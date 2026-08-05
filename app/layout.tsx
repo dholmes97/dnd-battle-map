@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   },
   description:
     "A focused proof of server-authoritative, real-time tabletop movement.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

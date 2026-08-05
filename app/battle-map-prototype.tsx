@@ -186,6 +186,7 @@ export default function BattleMapPrototype() {
   const previousLockRef = useRef<EncounterState["token"]["lock"]>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
+  const joinedEncounterCode = state?.encounter.code;
   const activeLock = state?.token.lock ?? null;
   const ownsLock = Boolean(
     participant && activeLock?.ownerId === participant.id,
@@ -245,16 +246,16 @@ export default function BattleMapPrototype() {
   };
 
   useEffect(() => {
-    if (!participant || !state) return;
+    if (!participant || !joinedEncounterCode) return;
     let disposed = false;
     const source = new EventSource(
-      `/api/encounters/${encodeURIComponent(state.encounter.code)}/events?since=${state.encounter.version}`,
+      `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/events?since=${state?.encounter.version ?? 0}`,
     );
 
     const refresh = async () => {
       try {
         const fresh = await api<EncounterState>(
-          `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
+          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
         );
         if (!disposed) {
           setState(fresh);
@@ -275,7 +276,7 @@ export default function BattleMapPrototype() {
       try {
         const next = JSON.parse((event as MessageEvent).data) as EncounterState;
         setState(next);
-        setConnection("live");
+        if (navigator.onLine) setConnection("live");
       } catch {
         setConnection("reconnecting");
       }
@@ -296,7 +297,37 @@ export default function BattleMapPrototype() {
     };
     // Reconnect only when encounter or participant changes, not on each version.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participant?.id, state?.encounter.code]);
+  }, [participant?.id, joinedEncounterCode]);
+
+  useEffect(() => {
+    if (!participant || !joinedEncounterCode) return;
+
+    const scheduleLost = () => {
+      setConnection("reconnecting");
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = setTimeout(() => setConnection("lost"), 8_000);
+    };
+    const handleOnline = async () => {
+      setConnection("reconnecting");
+      try {
+        const fresh = await api<EncounterState>(
+          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
+        );
+        setState(fresh);
+        if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+        setConnection("live");
+      } catch {
+        scheduleLost();
+      }
+    };
+
+    window.addEventListener("offline", scheduleLost);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("offline", scheduleLost);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [joinedEncounterCode, participant]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 250);
