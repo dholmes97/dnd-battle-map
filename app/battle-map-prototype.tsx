@@ -248,9 +248,8 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     if (!participant || !joinedEncounterCode) return;
     let disposed = false;
-    const source = new EventSource(
-      `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/events?since=${state?.encounter.version ?? 0}`,
-    );
+    let controller: AbortController | null = null;
+    let lastVersion = state?.encounter.version ?? 0;
 
     const refresh = async () => {
       try {
@@ -266,36 +265,62 @@ export default function BattleMapPrototype() {
       }
     };
 
-    source.onopen = () => {
-      if (disposed) return;
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-      void refresh();
-    };
-    source.addEventListener("state", (event) => {
-      if (disposed) return;
-      try {
-        const next = JSON.parse((event as MessageEvent).data) as EncounterState;
-        setState(next);
-        if (navigator.onLine) setConnection("live");
-      } catch {
-        setConnection("reconnecting");
-      }
-    });
-    source.onerror = () => {
-      if (disposed) return;
-      setConnection((current) => (current === "lost" ? "lost" : "reconnecting"));
+    const scheduleLost = () => {
+      setConnection((current) =>
+        current === "lost" ? "lost" : "reconnecting",
+      );
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
       disconnectTimerRef.current = setTimeout(() => {
         if (!disposed) setConnection("lost");
       }, 8_000);
     };
 
+    const markLive = () => {
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      if (navigator.onLine) setConnection("live");
+    };
+
+    const listen = async () => {
+      await refresh();
+      while (!disposed) {
+        controller = new AbortController();
+        try {
+          const response = await fetch(
+            `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/events?since=${lastVersion}`,
+            { signal: controller.signal, cache: "no-store" },
+          );
+          if (disposed) return;
+          if (response.status === 204) {
+            markLive();
+            continue;
+          }
+          if (!response.ok) throw new Error("Live updates are unavailable.");
+          const next = (await response.json()) as EncounterState;
+          lastVersion = next.encounter.version;
+          setState(next);
+          markLive();
+        } catch (listenError) {
+          if (
+            disposed ||
+            (listenError instanceof DOMException &&
+              listenError.name === "AbortError")
+          ) {
+            return;
+          }
+          scheduleLost();
+          await new Promise((resolve) => setTimeout(resolve, 750));
+        }
+      }
+    };
+
+    void listen();
+
     return () => {
       disposed = true;
-      source.close();
+      controller?.abort();
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
-    // Reconnect only when encounter or participant changes, not on each version.
+    // Keep one authoritative long-poll loop per participant and encounter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [participant?.id, joinedEncounterCode]);
 

@@ -325,78 +325,31 @@ async function recordAction(
     .run();
 }
 
-async function handleSse(
+async function handleLongPoll(
   request: Request,
   env: Env,
-  ctx: ExecutionContext,
   code: string,
 ): Promise<Response> {
-  const encoder = new TextEncoder();
   const requestedVersion = Number(new URL(request.url).searchParams.get("since"));
-  let lastVersion = Number.isFinite(requestedVersion) ? requestedVersion : 0;
-  let closed = false;
-  request.signal.addEventListener("abort", () => {
-    closed = true;
-  });
+  const lastVersion = Number.isFinite(requestedVersion) ? requestedVersion : 0;
+  const startedAt = Date.now();
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const run = async () => {
-        const startedAt = Date.now();
-        let lastKeepAlive = 0;
-        try {
-          while (!closed && Date.now() - startedAt < 55_000) {
-            const state = await encounterState(env, code);
-            if (!state) {
-              controller.enqueue(
-                encoder.encode(`event: error\ndata: {"message":"Encounter not found"}\n\n`),
-              );
-              break;
-            }
+  while (!request.signal.aborted && Date.now() - startedAt < 20_000) {
+    const state = await encounterState(env, code);
+    if (!state) return json({ error: "Encounter not found." }, { status: 404 });
+    if (state.encounter.version !== lastVersion) return json(state);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
 
-            if (state.encounter.version !== lastVersion) {
-              lastVersion = state.encounter.version;
-              controller.enqueue(
-                encoder.encode(`event: state\ndata: ${JSON.stringify(state)}\n\n`),
-              );
-            } else if (Date.now() - lastKeepAlive > 12_000) {
-              lastKeepAlive = Date.now();
-              controller.enqueue(encoder.encode(": keep-alive\n\n"));
-            }
-            await new Promise((resolve) => setTimeout(resolve, 250));
-          }
-        } catch (error) {
-          console.error("Battle map event stream error", error);
-          controller.enqueue(
-            encoder.encode(
-              `event: error\ndata: {"message":"Live updates are temporarily unavailable."}\n\n`,
-            ),
-          );
-        } finally {
-          if (!closed) controller.close();
-        }
-      };
-      ctx.waitUntil(run());
-    },
-    cancel() {
-      closed = true;
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      connection: "keep-alive",
-      "x-accel-buffering": "no",
-    },
+  return new Response(null, {
+    status: 204,
+    headers: { "cache-control": "no-store" },
   });
 }
 
 async function handleApi(
   request: Request,
   env: Env,
-  ctx: ExecutionContext,
   code: string,
   action: string,
 ): Promise<Response> {
@@ -416,7 +369,7 @@ async function handleApi(
     return json(await encounterState(env, code));
   }
   if (action === "events") {
-    return handleSse(request, env, ctx, code);
+    return handleLongPoll(request, env, code);
   }
 
   const body = await readJson(request);
@@ -575,7 +528,6 @@ const worker = {
         return await handleApi(
           request,
           env,
-          ctx,
           cleanCode(apiMatch[1]),
           apiMatch[2],
         );
