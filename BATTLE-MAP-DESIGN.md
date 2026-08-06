@@ -104,6 +104,10 @@ starts combat, and advanced by server-validated End Turn actions. A summon or
 familiar inherits its summoner's owner and initiative group; each group member
 must finish before the timeline advances. Starting an active group resets its
 movement, while DM correction and explicit movement override remain available.
+Tokens without an initiative entry remain freely movable during an active
+encounter; turn-order enforcement applies only after a token has been assigned
+to an initiative group. Movement rejections are shown directly over the map so
+a safe rollback never appears to be an unexplained snap-back.
 Returning to setup clears the combat round and order without deleting the
 entered initiative rolls.
 

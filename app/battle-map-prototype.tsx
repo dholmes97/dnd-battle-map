@@ -885,6 +885,7 @@ export default function BattleMapPrototype() {
               </div>
               {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
             </section> : null}
+            {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
           </div>
           <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>

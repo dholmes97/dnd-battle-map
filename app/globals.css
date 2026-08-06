@@ -300,6 +300,24 @@ input:focus {
 .creature-tile small { color: #8c8376; font-size: 0.57rem; letter-spacing: 0.04em; text-transform: capitalize; }
 .palette-cancel { width: 100%; margin-top: 0.65rem; padding: 0.55rem; border: 1px solid #554d42; border-radius: 0.48rem; background: transparent; color: #c7bcad; font-size: 0.7rem; }
 
+.map-message {
+  position: absolute;
+  z-index: 2;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  max-width: min(24rem, calc(100% - 1.6rem));
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(126, 188, 138, 0.46);
+  border-radius: 0.55rem;
+  background: rgba(23, 35, 26, 0.94);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.42);
+  color: #b9dec0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.map-message.is-error { border-color: rgba(218, 109, 85, 0.5); background: rgba(53, 25, 20, 0.95); color: #f2b1a1; }
+
 .map-safety-overlay {
   position: absolute;
   z-index: 4;

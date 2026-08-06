@@ -304,6 +304,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const dm = (await join(`DM ${suffix}`, "dm")).participant;
   const player = (await join(`Player ${suffix}`)).participant;
+  const latePlayer = (await join(`Late Player ${suffix}`)).participant;
   const createdIds = [];
   let originalMap;
   try {
@@ -354,6 +355,24 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       { size: placedMonster.size, x: placedMonster.x, y: placedMonster.y },
       { size: "large", x: 15.14, y: 10.14 },
     );
+
+    const untrackedCharacter = await command(dm, "create-token", {
+      name: `Untracked Hero ${suffix}`,
+      kind: "character",
+      size: "medium",
+      speed: 30,
+      artAsset: "/assets/tokens/characters/malichar-rogue-01.png",
+      x: 6.5,
+      y: 8.5,
+    });
+    assert.equal(untrackedCharacter.response.status, 200);
+    const untrackedCharacterId = untrackedCharacter.body.tokenId;
+    createdIds.push(untrackedCharacterId);
+    const untrackedClaim = await request("claim", {
+      method: "POST",
+      body: participantBody(latePlayer, untrackedCharacterId),
+    });
+    assert.equal(untrackedClaim.response.status, 200);
 
     const claim = await request("claim", {
       method: "POST",
@@ -418,6 +437,27 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const activeSummon = start.body.state.tokens.find((token) => token.id === summonId);
     assert.equal(activeHero.initiativeOrder, activeSummon.initiativeOrder);
     assert.equal(activeHero.initiativeOrder, start.body.state.encounter.activeInitiativeOrder);
+
+    const untrackedLock = await request("lock", {
+      method: "POST",
+      body: participantBody(latePlayer, untrackedCharacterId),
+    });
+    assert.equal(untrackedLock.response.status, 200);
+    const untrackedMove = await request("move", {
+      method: "POST",
+      body: participantBody(latePlayer, untrackedCharacterId, {
+        x: 7.35,
+        y: 8.15,
+        path: [{ x: 7.35, y: 8.15 }],
+      }),
+    });
+    assert.equal(untrackedMove.response.status, 200);
+    assert.deepEqual(
+      (({ x, y }) => ({ x, y }))(
+        untrackedMove.body.state.tokens.find((token) => token.id === untrackedCharacterId),
+      ),
+      { x: 7.35, y: 8.15 },
+    );
 
     const monsterMoveLock = await request("lock", {
       method: "POST",

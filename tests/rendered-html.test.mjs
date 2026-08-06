@@ -131,3 +131,13 @@ test("keeps pings compact, audible, and limited to three pulses", async () => {
   assert.match(workerSource, /const PING_TTL_MS = 2_000;/);
   assert.doesNotMatch(workerSource, /now \+ 10_000/);
 });
+
+test("keeps movement rejections visible on the map", async () => {
+  const [clientSource, workerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /className="map-message is-error" role="alert"/);
+  assert.match(workerSource, /token\.initiative_order !== null &&/);
+});

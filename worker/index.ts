@@ -1883,6 +1883,7 @@ async function handleApi(
     if (
       encounter.status === "active" &&
       participant.role !== "dm" &&
+      token.initiative_order !== null &&
       (token.initiative_order !== encounter.active_initiative_order || token.turn_complete)
     ) {
       return json({ error: "This token is not in the active turn group." }, { status: 409 });
