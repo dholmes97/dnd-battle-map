@@ -11,11 +11,11 @@ clear lock/reconnect safety.
 | --- | --- | --- |
 | 1 | One shared token, durable fractional movement, locking, and two-client synchronization | Complete |
 | 2 | Multiple tokens, player claiming/ownership, and independent token locks | Complete |
-| 3 | Initiative order, rounds, active turn, and End Turn | Planned |
-| 4 | Movement allowance, path distance, and DM override | Planned |
-| 5 | DM encounter setup, creature placement, and map selection | Planned |
-| 6 | Summons, effects, conditions, concentration reminders, and lightweight HP | Planned |
-| 7 | Visibility, pings, tactical annotations, and multiplayer scale hardening | Planned |
+| 3 | Initiative order, rounds, active turn, and End Turn | Complete |
+| 4 | Movement allowance, path distance, and DM override | Complete |
+| 5 | DM encounter setup, creature placement, and map selection | Complete |
+| 6 | Summons, effects, conditions, concentration reminders, and lightweight HP | Complete |
+| 7 | Visibility, pings, tactical annotations, and multiplayer scale hardening | Complete |
 
 ## Phase 1 — Real-time movement foundation
 
@@ -83,6 +83,11 @@ console warnings or errors.
 - Server-enforced transitions and durable action history.
 - Turn groups for a character plus summons/familiars.
 
+Delivered August 5, 2026. Initiative, round, active-group, movement-reset, End
+Turn, forced advance, and DM correction transitions are server-authoritative and
+durable. The automated flow verified that a summoner and summon share one slot
+and that the global timeline advances only after both finish.
+
 ## Phase 4 — Movement rules
 
 - Continuous path preview over the free-position map.
@@ -91,12 +96,22 @@ console warnings or errors.
 - Server validation with an explicit DM override path.
 - Clear rejection and rollback when a drop exceeds legal movement.
 
+Delivered August 5, 2026. The client records a continuous fractional path and
+the server independently calculates equal-cost diagonal distance. The automated
+flow verified allowance use, over-budget rejection without position drift, and
+an explicit DM override.
+
 ## Phase 5 — Encounter setup
 
 - DM placement and configuration for players and creatures.
 - Map selection and reusable terrain composition.
 - Ownership assignment and encounter start controls.
 - Persistent pause/resume across sessions.
+
+Delivered August 5, 2026. A DM can select a durable terrain map, place and
+configure tokens, pause or resume play, reset to setup, and start combat. The
+portrait library includes Dar'eleth, Malichar, Jelton, a shadow dire warg,
+Hungry, and a young green dragon.
 
 ## Phase 6 — Tactical state
 
@@ -105,6 +120,11 @@ console warnings or errors.
 - Optional exact HP for owner/DM and coarse health states for others.
 - Manual synchronization boundaries with D&D Beyond.
 
+Delivered August 5, 2026. Summons inherit owner and initiative group; token HP,
+conditions, concentration, duration, and reminder timing are durable. Exact HP
+is personalized to the owner and DM, other players receive only a coarse health
+state, and damage to a concentrating token returns an explicit reminder.
+
 ## Phase 7 — Collaboration and hardening
 
 - DM-controlled visibility.
@@ -112,6 +132,14 @@ console warnings or errors.
 - Multi-client load tests and D1 request-budget measurements.
 - Revisit the polling transport before scaling beyond the trusted small-group
   target; adopt a managed push service if measured latency or load requires it.
+
+Delivered August 5, 2026. Hidden tokens are filtered on the server, pings and DM
+spotlights expire automatically, drawings persist until cleared, and pan/zoom
+remain local to each browser. A measured eight-client run converged on one
+annotation in 133 ms and produced 27.6 idle conditional requests per second in
+aggregate. Conditional polling remains suitable for the current trusted-group
+POC, but the measured idle request rate warrants a push transport before the
+audience or session duration grows materially.
 
 ## Definition of done for every phase
 

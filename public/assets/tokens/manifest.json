@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "libraryVersion": "2026-08-05-initial",
+  "rendering": {
+    "format": "PNG",
+    "width": 1254,
+    "height": 1254,
+    "colorMode": "RGBA",
+    "background": "transparent",
+    "style": "painterly tactical fantasy RPG cutout",
+    "framing": "full-body three-quarter view from a slightly elevated tactical camera"
+  },
+  "assets": [
+    {
+      "id": "dareleth-paladin-01",
+      "name": "Dar'eleth",
+      "category": "character",
+      "role": "Half-elf paladin of Torm",
+      "path": "/assets/tokens/characters/dareleth-paladin-01.png",
+      "sizeHint": "Medium",
+      "promptSummary": "Blond half-elf paladin in ornate dark-silver plate and blue-gray cloak, with longsword and story-carved heater shield."
+    },
+    {
+      "id": "malichar-rogue-01",
+      "name": "Malichar Jarom",
+      "category": "character",
+      "role": "High elf rogue",
+      "path": "/assets/tokens/characters/malichar-rogue-01.png",
+      "sizeHint": "Medium",
+      "promptSummary": "Wiry long-black-haired high elf with green eyes, red scarf, blue-black leather, Moonbow, and rapier."
+    },
+    {
+      "id": "jelton-druid-01",
+      "name": "Jelton Mercury",
+      "category": "character",
+      "role": "Human Circle of Stars druid",
+      "path": "/assets/tokens/characters/jelton-druid-01.png",
+      "sizeHint": "Medium",
+      "promptSummary": "Rugged green-cloaked human druid with breastplate, wooden quarterstaff, and round branch-and-leaf shield."
+    },
+    {
+      "id": "shadow-dire-warg-01",
+      "name": "Shadow Dire Warg",
+      "category": "monster",
+      "role": "Shadow-corrupted huge warg",
+      "path": "/assets/tokens/monsters/shadow-dire-warg-01.png",
+      "sizeHint": "Large",
+      "promptSummary": "Huge black bristled dire warg with toxic yellow-green eyes and solid violet-black corruption ridges."
+    },
+    {
+      "id": "hungry-01",
+      "name": "Hungry",
+      "category": "monster",
+      "role": "Gaunt Accursed horror",
+      "path": "/assets/tokens/monsters/hungry-01.png",
+      "sizeHint": "Large",
+      "promptSummary": "Tall charcoal-gray starving humanoid horror with stretched hide, long arms, claws, and ember-amber eyes."
+    },
+    {
+      "id": "young-green-dragon-01",
+      "name": "Young Green Dragon",
+      "category": "monster",
+      "role": "Venom-breathing forest dragon",
+      "path": "/assets/tokens/monsters/young-green-dragon-01.png",
+      "sizeHint": "Large",
+      "promptSummary": "Lean young dragon with forest-green scales, olive-gold underscales, two folded wings, and a compact curled tail."
+    }
+  ]
+}

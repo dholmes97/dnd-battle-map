@@ -91,6 +91,50 @@ Local verification forced a participant beyond the grace period and confirmed
 the ownership, lock, shared version, and action-history changes while the
 normal three-client movement test continued to pass.
 
+### Verified initiative-through-collaboration implementation
+
+The remaining V1 roadmap was implemented locally on August 5, 2026. D1 now
+stores encounter status and terrain, initiative and rounds, token movement/HP/
+visibility, summons, effects, and tactical annotations. The Worker remains the
+authority for every shared mutation. The browser retains only session identity,
+draft movement paths, tool choice, and its independent pan/zoom viewport.
+
+Initiative is manually entered, fixed into durable turn groups when the DM
+starts combat, and advanced by server-validated End Turn actions. A summon or
+familiar inherits its summoner's owner and initiative group; each group member
+must finish before the timeline advances. Starting an active group resets its
+movement, while DM correction and explicit movement override remain available.
+Returning to setup clears the combat round and order without deleting the
+entered initiative rolls.
+
+Free-position movement now carries the sampled drag path to the server. The
+server recalculates equal-cost diagonal distance, accumulates movement used,
+rejects an over-budget path without changing the token position, and records a
+confirmed path in action history. Pointer drag still confirms on release;
+keyboard movement exposes explicit confirm and cancel controls. A personal
+ten-action undo stack applies compensating mutations for reversible actions and
+appends each undo to the audit history rather than deleting history.
+
+The tactical UI supports DM map selection and token configuration, six
+transparent portrait assets, summons/familiars, a small Bless/Poisoned/Stunned
+effect preset set, custom effects and reminder timing, manual HP changes,
+concentration-check reminders, hidden tokens, pings, drawings, and DM
+spotlights. Personalized state responses filter hidden tokens and exact HP on
+the server. This is still an accountless trusted-group tool: participants
+self-select the DM role, so the role boundary is coordination rather than
+strong authentication.
+
+Automated local verification covered three concurrent token clients, the full
+initiative/movement/setup/tactical flow, and an eight-client collaboration
+run. The latest run observed two-token convergence in 20 ms, eight-client
+annotation convergence in 133 ms, and 27.6 idle conditional requests per second
+across eight clients. Two browser tabs separately joined as player and DM;
+claim, movement, cross-tab convergence, local-only zoom, portrait placement,
+and UI undo passed with no new console errors. Conditional polling remains the
+verified Sites-compatible POC transport. Its measured idle request rate is
+acceptable for this small trusted group, but a managed push transport should be
+reconsidered before materially larger groups or longer-running deployments.
+
 ### Visibility
 
 - V1 uses simple, DM-controlled visibility rather than fog of war or per-character line-of-sight.
@@ -161,9 +205,10 @@ normal three-client movement test continued to pass.
 - Ready actions, triggers, and reaction notes; these remain a verbal player/DM workflow.
 - Rich reveal and teleport animations/effects.
 
-## Open interview questions
+## Resolved implementation decisions
 
-1. **Movement reset (next question):** When a token's turn begins, should V1 automatically reset its movement allowance to its configured speed, with the DM able to correct it?
+- Movement allowance resets automatically when a turn group becomes active;
+  the DM retains timeline correction and movement override controls.
 
 ## Maintenance note
 

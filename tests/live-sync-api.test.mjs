@@ -36,10 +36,10 @@ function sessionBody(participant) {
   });
 }
 
-async function join(name) {
+async function join(name, role = "player") {
   const result = await request("join", {
     method: "POST",
-    body: JSON.stringify({ participantName: name }),
+    body: JSON.stringify({ participantName: name, role }),
   });
   assert.equal(result.response.status, 200);
   assert.match(result.body.participantId, /^[a-f0-9-]{36}$/);
@@ -49,12 +49,35 @@ async function join(name) {
     participant: {
       id: result.body.participantId,
       name,
+      role,
       sessionSecret: result.body.sessionSecret,
     },
   };
 }
 
-async function waitForPolledState(since, predicate, timeoutMs = 15_000) {
+async function command(participant, name, extra = {}) {
+  return request("command", {
+    method: "POST",
+    body: JSON.stringify({
+      participantId: participant.id,
+      sessionSecret: participant.sessionSecret,
+      command: name,
+      ...extra,
+    }),
+  });
+}
+
+async function viewerState(participant) {
+  return request("state", {
+    method: "GET",
+    headers: {
+      "x-participant-id": participant.id,
+      "x-session-secret": participant.sessionSecret,
+    },
+  });
+}
+
+async function waitForPolledState(since, predicate, timeoutMs = 15_000, headers = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let lastVersion = since;
@@ -62,7 +85,7 @@ async function waitForPolledState(since, predicate, timeoutMs = 15_000) {
     while (true) {
       const response = await fetch(`${endpoint("events")}?since=${lastVersion}`, {
         signal: controller.signal,
-        headers: { accept: "application/json" },
+        headers: { accept: "application/json", ...headers },
       });
       if (response.status === 204) {
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -275,4 +298,296 @@ test("three clients claim and independently move authoritative tokens", async ()
 
   console.log(`Two-token propagation to third client: ${propagationMs.toFixed(0)}ms`);
   console.log(`Confirmed: ${aliceToken.name} ${destinationA.x},${destinationA.y}; ${bobToken.name} ${destinationB.x},${destinationB.y}`);
+});
+
+test("initiative, turn groups, tactical state, visibility, setup, and undo stay authoritative", async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const dm = (await join(`DM ${suffix}`, "dm")).participant;
+  const player = (await join(`Player ${suffix}`)).participant;
+  const createdIds = [];
+  let originalMap;
+  try {
+    const initial = await viewerState(dm);
+    assert.equal(initial.response.status, 200);
+    originalMap = initial.body.encounter.mapAsset;
+
+    const configure = await command(dm, "configure-encounter", {
+      status: "paused",
+      mapAsset: "/assets/terrain/terrain-meadow-grass-01.png",
+    });
+    assert.equal(configure.response.status, 200);
+    assert.equal(configure.body.state.encounter.status, "paused");
+    assert.equal(configure.body.state.encounter.mapAsset, "/assets/terrain/terrain-meadow-grass-01.png");
+
+    const character = await command(dm, "create-token", {
+      name: `Hero ${suffix}`,
+      kind: "character",
+      speed: 30,
+      hp: 24,
+      maxHp: 24,
+      artAsset: "/assets/tokens/characters/dareleth-paladin-01.png",
+      x: 2.25,
+      y: 2.5,
+    });
+    assert.equal(character.response.status, 200);
+    const characterId = character.body.tokenId;
+    createdIds.push(characterId);
+
+    const monster = await command(dm, "create-token", {
+      name: `Warg ${suffix}`,
+      kind: "monster",
+      speed: 40,
+      hp: 20,
+      maxHp: 40,
+      artAsset: "/assets/tokens/monsters/shadow-dire-warg-01.png",
+      hidden: true,
+      x: 12.1,
+      y: 7.7,
+    });
+    assert.equal(monster.response.status, 200);
+    const monsterId = monster.body.tokenId;
+    createdIds.push(monsterId);
+
+    const claim = await request("claim", {
+      method: "POST",
+      body: participantBody(player, characterId),
+    });
+    assert.equal(claim.response.status, 200);
+
+    const summon = await command(dm, "create-token", {
+      name: `Griffon ${suffix}`,
+      kind: "summon",
+      speed: 35,
+      hp: 12,
+      maxHp: 12,
+      artAsset: "/assets/tokens/monsters/hungry-01.png",
+      summonerTokenId: characterId,
+      x: 3.25,
+      y: 2.5,
+    });
+    assert.equal(summon.response.status, 200);
+    const summonId = summon.body.tokenId;
+    createdIds.push(summonId);
+    assert.equal(summon.body.state.tokens.find((token) => token.id === summonId).owner.participantId, player.id);
+
+    const playerHiddenState = await viewerState(player);
+    assert.equal(playerHiddenState.body.tokens.some((token) => token.id === monsterId), false);
+    const dmHiddenState = await viewerState(dm);
+    assert.equal(dmHiddenState.body.tokens.find((token) => token.id === monsterId).hp, 20);
+
+    const reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false });
+    assert.equal(reveal.response.status, 200);
+    const playerVisibleState = await viewerState(player);
+    const coarseMonster = playerVisibleState.body.tokens.find((token) => token.id === monsterId);
+    assert.equal(coarseMonster.hp, null);
+    assert.equal(coarseMonster.maxHp, null);
+    assert.equal(coarseMonster.healthState, "bloodied");
+    assert.equal(playerVisibleState.body.tokens.find((token) => token.id === characterId).hp, 24);
+
+    const playerInitiative = await command(player, "set-initiative", { tokenId: characterId, initiative: 18 });
+    assert.equal(playerInitiative.response.status, 200);
+    const monsterInitiative = await command(dm, "set-initiative", { tokenId: monsterId, initiative: 12 });
+    assert.equal(monsterInitiative.response.status, 200);
+    const start = await command(dm, "start-combat");
+    assert.equal(start.response.status, 200);
+    assert.equal(start.body.state.encounter.currentRound, 1);
+    const activeHero = start.body.state.tokens.find((token) => token.id === characterId);
+    const activeSummon = start.body.state.tokens.find((token) => token.id === summonId);
+    assert.equal(activeHero.initiativeOrder, activeSummon.initiativeOrder);
+    assert.equal(activeHero.initiativeOrder, start.body.state.encounter.activeInitiativeOrder);
+
+    const monsterMoveLock = await request("lock", {
+      method: "POST",
+      body: participantBody(player, monsterId),
+    });
+    assert.equal(monsterMoveLock.response.status, 403);
+
+    const heroLock = await request("lock", {
+      method: "POST",
+      body: participantBody(player, characterId),
+    });
+    assert.equal(heroLock.response.status, 200);
+    const move = await request("move", {
+      method: "POST",
+      body: participantBody(player, characterId, {
+        x: 4.25,
+        y: 3.5,
+        path: [{ x: 3.25, y: 2.5 }, { x: 4.25, y: 3.5 }],
+      }),
+    });
+    assert.equal(move.response.status, 200);
+    assert.equal(move.body.distance, 10);
+    assert.equal(move.body.movementUsed, 10);
+
+    const overBudgetLock = await request("lock", {
+      method: "POST",
+      body: participantBody(player, characterId),
+    });
+    assert.equal(overBudgetLock.response.status, 200);
+    const overBudgetMove = await request("move", {
+      method: "POST",
+      body: participantBody(player, characterId, {
+        x: 10.25,
+        y: 3.5,
+        path: [{ x: 10.25, y: 3.5 }],
+      }),
+    });
+    assert.equal(overBudgetMove.response.status, 409);
+    assert.match(overBudgetMove.body.error, /remains this turn/);
+    const unlockAfterRejection = await request("unlock", {
+      method: "POST",
+      body: participantBody(player, characterId),
+    });
+    assert.equal(unlockAfterRejection.response.status, 200);
+    const afterRejectedMove = await viewerState(player);
+    assert.deepEqual(
+      (({ x, y, movementUsed }) => ({ x, y, movementUsed }))(
+        afterRejectedMove.body.tokens.find((token) => token.id === characterId),
+      ),
+      { x: 4.25, y: 3.5, movementUsed: 10 },
+    );
+
+    const dmMonsterLock = await request("lock", {
+      method: "POST",
+      body: participantBody(dm, monsterId),
+    });
+    assert.equal(dmMonsterLock.response.status, 200);
+    const dmOverrideMove = await request("move", {
+      method: "POST",
+      body: participantBody(dm, monsterId, {
+        x: 0.4,
+        y: 7.7,
+        path: [{ x: 0.4, y: 7.7 }],
+        override: true,
+      }),
+    });
+    assert.equal(dmOverrideMove.response.status, 200);
+    assert.ok(dmOverrideMove.body.distance > 40);
+
+    const concentration = await command(player, "add-effect", {
+      tokenId: characterId,
+      name: "Bless",
+      effectType: "concentration",
+      durationRounds: 1,
+    });
+    assert.equal(concentration.response.status, 200);
+    const damage = await command(player, "apply-hp", { tokenId: characterId, delta: -5 });
+    assert.equal(damage.response.status, 200);
+    assert.equal(damage.body.concentrationCheckRequired, true);
+
+    const summonEnd = await command(player, "end-turn", { tokenId: summonId });
+    assert.equal(summonEnd.response.status, 200);
+    assert.equal(summonEnd.body.advanced, false);
+    const heroEnd = await command(player, "end-turn", { tokenId: characterId });
+    assert.equal(heroEnd.response.status, 200);
+    assert.equal(heroEnd.body.advanced, true);
+    assert.notEqual(heroEnd.body.state.encounter.activeInitiativeOrder, activeHero.initiativeOrder);
+
+    const correction = await command(dm, "correct-turn", {
+      round: 2,
+      activeOrder: activeHero.initiativeOrder,
+    });
+    assert.equal(correction.response.status, 200);
+    assert.equal(correction.body.state.encounter.currentRound, 2);
+    assert.equal(
+      correction.body.state.tokens.find((token) => token.id === characterId).effects[0].due,
+      true,
+    );
+
+    const forbiddenSpotlight = await command(player, "add-annotation", {
+      annotationType: "spotlight",
+      x: 5,
+      y: 5,
+    });
+    assert.equal(forbiddenSpotlight.response.status, 403);
+    const drawing = await command(player, "add-annotation", {
+      annotationType: "drawing",
+      x: 1,
+      y: 1,
+      x2: 2,
+      y2: 2,
+    });
+    assert.equal(drawing.response.status, 200);
+    assert.ok(drawing.body.state.annotations.some((annotation) => annotation.id === drawing.body.annotationId));
+    assert.ok(drawing.body.state.undo.available > 0);
+    const undo = await command(player, "undo");
+    assert.equal(undo.response.status, 200);
+    assert.equal(undo.body.actionType, "annotation_added");
+    assert.equal(undo.body.state.annotations.some((annotation) => annotation.id === drawing.body.annotationId), false);
+
+    const resetSetup = await command(dm, "configure-encounter", {
+      status: "setup",
+      mapAsset: originalMap,
+    });
+    assert.equal(resetSetup.response.status, 200);
+    assert.equal(resetSetup.body.state.encounter.currentRound, 0);
+    assert.equal(resetSetup.body.state.encounter.activeInitiativeOrder, null);
+    assert.ok(resetSetup.body.state.tokens.every((token) => token.initiativeOrder === null));
+    originalMap = null;
+  } finally {
+    for (const tokenId of createdIds.reverse()) {
+      await command(dm, "delete-token", { tokenId }).catch(() => null);
+    }
+    if (originalMap) {
+      await command(dm, "configure-encounter", { status: "setup", mapAsset: originalMap }).catch(() => null);
+    }
+  }
+});
+
+test("eight joined clients converge on one collaboration update", async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const dm = (await join(`Load DM ${suffix}`, "dm")).participant;
+  const viewers = await Promise.all(
+    Array.from({ length: 7 }, (_, index) => join(`Load P${index + 1} ${suffix}`)),
+  );
+  const clients = [dm, ...viewers.map((viewer) => viewer.participant)];
+  try {
+    const baselines = await Promise.all(clients.map((client) => viewerState(client)));
+    const started = performance.now();
+    const observations = clients.map((client, index) => waitForPolledState(
+      baselines[index].body.encounter.version,
+      (state) => state.annotations.some((annotation) => annotation.label === suffix),
+      5_000,
+      {
+        "x-participant-id": client.id,
+        "x-session-secret": client.sessionSecret,
+      },
+    ));
+    const ping = await command(dm, "add-annotation", {
+      annotationType: "ping",
+      x: 6.25,
+      y: 4.75,
+      label: suffix,
+    });
+    assert.equal(ping.response.status, 200);
+    await Promise.all(observations);
+    const convergenceMs = performance.now() - started;
+    assert.ok(convergenceMs < 2_500, `Eight-client convergence took ${convergenceMs.toFixed(0)}ms`);
+    console.log(`Eight-client collaboration convergence: ${convergenceMs.toFixed(0)}ms`);
+
+    const budgetStarted = performance.now();
+    const budgetWindowMs = 2_000;
+    const requestCounts = await Promise.all(clients.map(async (client) => {
+      let count = 0;
+      while (performance.now() - budgetStarted < budgetWindowMs) {
+        const response = await fetch(`${endpoint("events")}?since=${ping.body.state.encounter.version}`, {
+          headers: {
+            accept: "application/json",
+            "x-participant-id": client.id,
+            "x-session-secret": client.sessionSecret,
+          },
+        });
+        assert.equal(response.status, 204);
+        count += 1;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      return count;
+    }));
+    const requestRate = requestCounts.reduce((total, count) => total + count, 0) /
+      ((performance.now() - budgetStarted) / 1_000);
+    assert.ok(requestRate < 40, `Idle polling exceeded the 40 request/second budget: ${requestRate.toFixed(1)}`);
+    console.log(`Eight-client idle request rate: ${requestRate.toFixed(1)} requests/second`);
+  } finally {
+    await command(dm, "clear-annotations").catch(() => null);
+  }
 });

@@ -78,3 +78,21 @@ test("keeps validated terrain textures at the expected canvas size", async () =>
 
   await access(projectRoot);
 });
+
+test("packages the transparent tactical token library", async () => {
+  const manifest = JSON.parse(
+    await readFile(new URL("../public/assets/tokens/manifest.json", import.meta.url), "utf8"),
+  );
+  assert.equal(manifest.assets.length, 6);
+  assert.deepEqual(
+    manifest.assets.slice(0, 3).map((asset) => asset.name),
+    ["Dar'eleth", "Malichar Jarom", "Jelton Mercury"],
+  );
+  for (const asset of manifest.assets) {
+    const png = await readFile(new URL(`../public${asset.path}`, import.meta.url));
+    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    assert.equal(png.readUInt32BE(16), 1254, `${asset.id} width`);
+    assert.equal(png.readUInt32BE(20), 1254, `${asset.id} height`);
+    assert.equal(png[25], 6, `${asset.id} must use RGBA color`);
+  }
+});

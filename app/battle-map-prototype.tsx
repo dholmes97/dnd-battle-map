@@ -9,48 +9,91 @@ import {
   useRef,
   useState,
 } from "react";
+import NextImage from "next/image";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
+type Role = "player" | "dm";
 type MapPoint = { x: number; y: number };
-type TokenLock = {
-  ownerId: string;
-  ownerName: string;
-  expiresAt: number;
+type TokenLock = { ownerId: string; ownerName: string; expiresAt: number };
+type SharedEffect = {
+  id: string;
+  name: string;
+  type: string;
+  durationRounds: number | null;
+  expiresRound: number | null;
+  reminderTiming: string;
+  due: boolean;
 };
 type SharedToken = MapPoint & {
   id: string;
   name: string;
+  artAsset: string | null;
+  kind: string;
+  speed: number;
+  hp: number | null;
+  maxHp: number | null;
+  healthState: string | null;
+  hidden: boolean;
+  summonerTokenId: string | null;
+  initiative: number | null;
+  initiativeOrder: number | null;
+  turnComplete: boolean;
+  movementUsed: number;
+  effects: SharedEffect[];
   owner: null | { participantId: string; name: string };
   lock: TokenLock | null;
+};
+type SharedAnnotation = {
+  id: string;
+  type: "ping" | "drawing" | "spotlight";
+  x: number;
+  y: number;
+  x2: number | null;
+  y2: number | null;
+  color: string;
+  label: string | null;
+  createdBy: string;
+  expiresAt: number | null;
 };
 type EncounterState = {
   encounter: {
     code: string;
     name: string;
     version: number;
+    status: "setup" | "active" | "paused";
+    mapAsset: string;
+    currentRound: number;
+    activeInitiativeOrder: number | null;
     updatedAt: number;
   };
   grid: { width: number; height: number; feetPerCell: number };
+  viewer: null | { id: string; role: Role };
+  undo: { available: number; lastAction: string | null };
   tokens: SharedToken[];
+  annotations: SharedAnnotation[];
+  availableMaps: string[];
+  availableArt: string[];
 };
-type Participant = { id: string; name: string; sessionSecret: string };
+type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
 type DragGesture = {
   pointerId: number;
   tokenId: string;
   origin: MapPoint;
   latest: MapPoint;
+  path: MapPoint[];
   grabOffset: MapPoint;
   released: boolean;
   canceled: boolean;
   finishing: boolean;
   lockState: EncounterState | null;
 };
+type AnnotationMode = "move" | "ping" | "drawing" | "spotlight";
+type Viewport = { zoom: number; panX: number; panY: number };
 
 const DEFAULT_CODE = "EMBER-KEEP";
-const TERRAIN_URL = "/assets/terrain/terrain-dungeon-flagstone-01.png";
 const TOKEN_RADIUS_CELLS = 0.36;
-const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8"];
+const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
 function roundCoordinate(value: number) {
@@ -61,28 +104,48 @@ function formatPosition(point: MapPoint) {
   return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
 }
 
+function tokenInitial(token: SharedToken) {
+  return token.name.split(/\s+/).at(-1)?.charAt(0).toUpperCase() || "T";
+}
+
+function artLabel(path: string) {
+  return path.split("/").at(-1)?.replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Artwork";
+}
+
+function mapLabel(path: string) {
+  return path.split("/").at(-1)?.replace(/^terrain-/, "").replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Map";
+}
+
 function clampMapPoint(state: EncounterState, point: MapPoint): MapPoint {
   return {
-    x: roundCoordinate(
-      Math.min(state.grid.width - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.x)),
-    ),
-    y: roundCoordinate(
-      Math.min(state.grid.height - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.y)),
-    ),
+    x: roundCoordinate(Math.min(state.grid.width - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.x))),
+    y: roundCoordinate(Math.min(state.grid.height - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.y))),
   };
 }
 
 function pointerToMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
+  viewport: Viewport,
   clientX: number,
   clientY: number,
-): MapPoint {
+) {
   const rect = canvas.getBoundingClientRect();
   return clampMapPoint(state, {
-    x: ((clientX - rect.left) / rect.width) * state.grid.width,
-    y: ((clientY - rect.top) / rect.height) * state.grid.height,
+    x: viewport.panX + ((clientX - rect.left) / rect.width) * state.grid.width / viewport.zoom,
+    y: viewport.panY + ((clientY - rect.top) / rect.height) * state.grid.height / viewport.zoom,
   });
+}
+
+function calculatePathDistance(path: MapPoint[], feetPerCell: number) {
+  let squares = 0;
+  for (let index = 1; index < path.length; index += 1) {
+    squares += Math.max(
+      Math.abs(path[index].x - path[index - 1].x),
+      Math.abs(path[index].y - path[index - 1].y),
+    );
+  }
+  return Math.round(squares * feetPerCell * 10) / 10;
 }
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
@@ -95,36 +158,30 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
   return data;
 }
 
-function sessionBody(participant: Participant) {
+function sessionPayload(participant: Participant, extra: Record<string, unknown> = {}) {
   return JSON.stringify({
     participantId: participant.id,
     sessionSecret: participant.sessionSecret,
-  });
-}
-
-function postBody(
-  participant: Participant,
-  tokenId: string,
-  extra: Record<string, unknown> = {},
-) {
-  return JSON.stringify({
-    participantId: participant.id,
-    sessionSecret: participant.sessionSecret,
-    tokenId,
     ...extra,
   });
 }
 
-function tokenInitial(token: SharedToken) {
-  return token.name.split(/\s+/).at(-1)?.charAt(0).toUpperCase() || "T";
+function viewerHeaders(participant: Participant) {
+  return {
+    "x-participant-id": participant.id,
+    "x-session-secret": participant.sessionSecret,
+  };
 }
 
 function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
   preview: TokenPreview | null,
+  previewPath: MapPoint[],
   participant: Participant,
   terrain: HTMLImageElement | null,
+  tokenArt: Map<string, HTMLImageElement>,
+  viewport: Viewport,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -138,16 +195,17 @@ function drawMap(
   if (!context) return;
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
   context.clearRect(0, 0, rect.width, rect.height);
-
-  const cellWidth = rect.width / state.grid.width;
-  const cellHeight = rect.height / state.grid.height;
+  const cellWidth = rect.width / state.grid.width * viewport.zoom;
+  const cellHeight = rect.height / state.grid.height * viewport.zoom;
+  const screenX = (mapX: number) => (mapX - viewport.panX) * cellWidth;
+  const screenY = (mapY: number) => (mapY - viewport.panY) * cellHeight;
   const pattern = terrain ? context.createPattern(terrain, "repeat") : null;
   if (pattern) {
     const scale = Math.max(0.18, Math.min(0.32, cellWidth / 190));
     pattern.setTransform(new DOMMatrix().scale(scale));
     context.fillStyle = pattern;
     context.fillRect(0, 0, rect.width, rect.height);
-    context.fillStyle = "rgba(20, 23, 21, 0.17)";
+    context.fillStyle = "rgba(20, 23, 21, 0.15)";
     context.fillRect(0, 0, rect.width, rect.height);
   } else {
     context.fillStyle = "#4b4b42";
@@ -157,59 +215,90 @@ function drawMap(
   context.strokeStyle = "rgba(232, 220, 190, 0.17)";
   context.lineWidth = 1;
   for (let x = 0; x <= state.grid.width; x += 1) {
-    context.beginPath();
-    context.moveTo(x * cellWidth, 0);
-    context.lineTo(x * cellWidth, rect.height);
-    context.stroke();
+    context.beginPath(); context.moveTo(screenX(x), 0); context.lineTo(screenX(x), rect.height); context.stroke();
   }
   for (let y = 0; y <= state.grid.height; y += 1) {
-    context.beginPath();
-    context.moveTo(0, y * cellHeight);
-    context.lineTo(rect.width, y * cellHeight);
-    context.stroke();
+    context.beginPath(); context.moveTo(0, screenY(y)); context.lineTo(rect.width, screenY(y)); context.stroke();
   }
 
-  const previewToken = preview
-    ? state.tokens.find((token) => token.id === preview.tokenId)
-    : null;
-  if (preview && previewToken) {
-    context.strokeStyle = "rgba(245, 198, 92, 0.9)";
+  for (const annotation of state.annotations) {
+    const x = screenX(annotation.x);
+    const y = screenY(annotation.y);
+    context.save();
+    context.strokeStyle = annotation.color;
+    context.fillStyle = `${annotation.color}33`;
+    context.lineWidth = annotation.type === "spotlight" ? 5 : 3;
+    if (annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null) {
+      context.setLineDash([9, 5]);
+      context.beginPath(); context.moveTo(x, y); context.lineTo(screenX(annotation.x2), screenY(annotation.y2)); context.stroke();
+    } else {
+      const radius = Math.min(cellWidth, cellHeight) * (annotation.type === "spotlight" ? 1.15 : 0.58);
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke();
+    }
+    context.restore();
+  }
+
+  if (preview && previewPath.length > 1) {
+    context.strokeStyle = "rgba(245, 198, 92, 0.94)";
     context.lineWidth = 3;
     context.setLineDash([7, 6]);
     context.beginPath();
-    context.moveTo(previewToken.x * cellWidth, previewToken.y * cellHeight);
-    context.lineTo(preview.x * cellWidth, preview.y * cellHeight);
+    previewPath.forEach((point, index) => {
+      if (index === 0) context.moveTo(screenX(point.x), screenY(point.y));
+      else context.lineTo(screenX(point.x), screenY(point.y));
+    });
     context.stroke();
     context.setLineDash([]);
   }
 
   state.tokens.forEach((token, index) => {
     const position = preview?.tokenId === token.id ? preview : token;
-    const ownsToken = token.owner?.participantId === participant.id;
-    const ownsLock = token.lock?.ownerId === participant.id;
-    const tokenX = position.x * cellWidth;
-    const tokenY = position.y * cellHeight;
+    const owned = token.owner?.participantId === participant.id;
+    const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+    const x = screenX(position.x);
+    const y = screenY(position.y);
     const radius = Math.min(cellWidth, cellHeight) * TOKEN_RADIUS_CELLS;
-
     context.save();
-    if (token.lock && !ownsLock) context.globalAlpha = 0.58;
-    context.shadowColor = "rgba(0, 0, 0, 0.45)";
-    context.shadowBlur = 12;
-    context.fillStyle = ownsLock || preview?.tokenId === token.id
-      ? "#f5c65c"
-      : TOKEN_COLORS[index % TOKEN_COLORS.length];
-    context.beginPath();
-    context.arc(tokenX, tokenY, radius, 0, Math.PI * 2);
-    context.fill();
+    if (token.lock && token.lock.ownerId !== participant.id) context.globalAlpha = 0.55;
+    if (token.hidden) context.globalAlpha *= 0.48;
+    context.shadowColor = "rgba(0,0,0,.45)";
+    context.shadowBlur = 10;
+    context.fillStyle = active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length];
+    context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
     context.shadowBlur = 0;
-    context.strokeStyle = ownsToken ? "#fff1ba" : "#f0d0a0";
-    context.lineWidth = ownsToken ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
-    context.stroke();
-    context.fillStyle = "#261d18";
-    context.font = `700 ${Math.max(12, radius * 0.88)}px ui-sans-serif, system-ui`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(tokenInitial(token), tokenX, tokenY + 1);
+    const art = token.artAsset ? tokenArt.get(token.artAsset) : null;
+    if (art) {
+      context.save();
+      context.beginPath(); context.arc(x, y, radius * 0.9, 0, Math.PI * 2); context.clip();
+      if (token.artAsset?.includes("/characters/")) {
+        context.drawImage(
+          art,
+          art.naturalWidth * 0.2,
+          0,
+          art.naturalWidth * 0.6,
+          art.naturalHeight * 0.6,
+          x - radius,
+          y - radius,
+          radius * 2,
+          radius * 2,
+        );
+      } else {
+        context.drawImage(art, x - radius, y - radius, radius * 2, radius * 2);
+      }
+      context.restore();
+    } else {
+      context.fillStyle = "#261d18";
+      context.font = `800 ${Math.max(12, radius * 0.88)}px ui-sans-serif, system-ui`;
+      context.textAlign = "center"; context.textBaseline = "middle";
+      context.fillText(tokenInitial(token), x, y + 1);
+    }
+    context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
+    context.lineWidth = owned || active ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
+    context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
+    if (token.effects.length > 0) {
+      context.fillStyle = token.effects.some((effect) => effect.due) ? "#d95f59" : "#8ec9a0";
+      context.beginPath(); context.arc(x + radius * 0.72, y - radius * 0.72, radius * 0.24, 0, Math.PI * 2); context.fill();
+    }
     context.restore();
   });
 }
@@ -217,194 +306,134 @@ function drawMap(
 export default function BattleMapPrototype() {
   const [displayName, setDisplayName] = useState("");
   const [encounterCode, setEncounterCode] = useState(DEFAULT_CODE);
+  const [joinRole, setJoinRole] = useState<Role>("player");
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
+  const [previewPath, setPreviewPath] = useState<MapPoint[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
+  const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
+  const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
+  const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; speed?: string; maxHp?: string; artAsset?: string }>>({});
+  const [hpDelta, setHpDelta] = useState("-1");
+  const [effectName, setEffectName] = useState("");
+  const [effectType, setEffectType] = useState("condition");
+  const [effectDuration, setEffectDuration] = useState("1");
+  const [effectReminder, setEffectReminder] = useState("end");
+  const [newTokenName, setNewTokenName] = useState("");
+  const [newTokenKind, setNewTokenKind] = useState("monster");
+  const [newTokenSpeed, setNewTokenSpeed] = useState("30");
+  const [newTokenHp, setNewTokenHp] = useState("20");
+  const [newTokenArt, setNewTokenArt] = useState("");
+  const [newTokenSummoner, setNewTokenSummoner] = useState("");
+  const [viewport, setViewport] = useState<Viewport>({ zoom: 1, panX: 0, panY: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousLockRef = useRef<TokenLock | null>(null);
   const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
+  const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
-  const joinedEncounterCode = state?.encounter.code;
-  const claimedToken = useMemo(
-    () => state?.tokens.find((token) => token.owner?.participantId === participant?.id) ?? null,
+  const joinedCode = state?.encounter.code;
+  const controlledTokens = useMemo(
+    () => state?.tokens.filter((token) => token.owner?.participantId === participant?.id) ?? [],
     [participant?.id, state?.tokens],
   );
-  const activeLock = claimedToken?.lock ?? null;
-  const ownsLock = Boolean(participant && activeLock?.ownerId === participant.id);
-  const movementEnabled = connection === "live" && !busy;
-  const remainingSeconds = activeLock
-    ? Math.max(0, Math.ceil((activeLock.expiresAt - now) / 1000))
-    : 0;
-  const distance = useMemo(() => {
-    if (!state || !preview || !claimedToken || preview.tokenId !== claimedToken.id) return 0;
-    return Number((
-      Math.max(Math.abs(preview.x - claimedToken.x), Math.abs(preview.y - claimedToken.y)) *
-      state.grid.feetPerCell
-    ).toFixed(1));
-  }, [claimedToken, preview, state]);
-  const isNoOpPreview = Boolean(
-    claimedToken && preview && preview.tokenId === claimedToken.id &&
-      Math.hypot(preview.x - claimedToken.x, preview.y - claimedToken.y) < 0.001,
+  const primaryToken = controlledTokens.find((token) => !token.summonerTokenId) ?? null;
+  const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
+  const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
+  const canControlSelected = Boolean(
+    selectedToken && (participant?.role === "dm" || selectedToken.owner?.participantId === participant?.id),
   );
+  const activeLock = selectedToken?.lock ?? null;
+  const ownsLock = Boolean(participant && activeLock?.ownerId === participant.id);
+  const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
+  const remainingSeconds = activeLock ? Math.max(0, Math.ceil((activeLock.expiresAt - now) / 1000)) : 0;
+  const distance = state ? calculatePathDistance(previewPath, state.grid.feetPerCell) : 0;
+  const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
+  const isNoOp = Boolean(selectedToken && preview && Math.hypot(preview.x - selectedToken.x, preview.y - selectedToken.y) < 0.001);
 
   const join = async () => {
     const name = displayName.trim();
-    if (!name) {
-      setError("Enter a display name to join the encounter.");
-      return;
-    }
-    setBusy(true);
-    setError("");
+    if (!name) return setError("Enter a display name to join the encounter.");
+    setBusy(true); setError("");
     try {
-      const result = await api<{
-        participantId: string;
-        sessionSecret: string;
-        state: EncounterState;
-      }>(`/api/encounters/${encodeURIComponent(normalizedCode)}/join`, {
-        method: "POST",
-        body: JSON.stringify({ participantName: name }),
-      });
-      setParticipant({ id: result.participantId, name, sessionSecret: result.sessionSecret });
-      setState(result.state);
-      setEncounterCode(result.state.encounter.code);
-      setConnection("connecting");
+      const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(normalizedCode)}/join`,
+        { method: "POST", body: JSON.stringify({ participantName: name, role: joinRole }) },
+      );
+      const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
+      setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : "Unable to join.");
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
   useEffect(() => {
-    if (!participant || !joinedEncounterCode) return;
+    if (!participant || !joinedCode) return;
     let disposed = false;
     let controller: AbortController | null = null;
     let lastVersion = state?.encounter.version ?? 0;
-    const refresh = async () => {
-      try {
-        const fresh = await api<EncounterState>(
-          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
-        );
-        if (!disposed) {
-          lastVersion = fresh.encounter.version;
-          setState(fresh);
-          setConnection("live");
-        }
-      } catch {
-        // Conditional polling keeps retrying and movement stays paused.
-      }
-    };
-    const scheduleLost = () => {
-      setConnection((current) => current === "lost" ? "lost" : "reconnecting");
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-      disconnectTimerRef.current = setTimeout(() => {
-        if (!disposed) setConnection("lost");
-      }, 8_000);
-    };
+    const headers = viewerHeaders(participant);
     const markLive = () => {
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
       if (navigator.onLine) setConnection("live");
     };
+    const scheduleLost = () => {
+      setConnection((current) => current === "lost" ? "lost" : "reconnecting");
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = setTimeout(() => { if (!disposed) setConnection("lost"); }, 8_000);
+    };
+    const refresh = async () => {
+      const fresh = await api<EncounterState>(`/api/encounters/${encodeURIComponent(joinedCode)}/state`, { headers });
+      if (!disposed) { lastVersion = fresh.encounter.version; setState(fresh); markLive(); }
+    };
     const listen = async () => {
-      await refresh();
+      try { await refresh(); } catch { scheduleLost(); }
       while (!disposed) {
         controller = new AbortController();
         try {
           const response = await fetch(
-            `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/events?since=${lastVersion}`,
-            { signal: controller.signal, cache: "no-store" },
+            `/api/encounters/${encodeURIComponent(joinedCode)}/events?since=${lastVersion}`,
+            { signal: controller.signal, cache: "no-store", headers },
           );
           if (disposed) return;
-          if (response.status === 204) {
-            markLive();
-            await new Promise((resolve) => setTimeout(resolve, 250));
-            continue;
-          }
+          if (response.status === 204) { markLive(); await new Promise((resolve) => setTimeout(resolve, 250)); continue; }
           if (!response.ok) throw new Error("Live updates are unavailable.");
           const next = (await response.json()) as EncounterState;
-          lastVersion = next.encounter.version;
-          setState(next);
-          markLive();
+          lastVersion = next.encounter.version; setState(next); markLive();
           await new Promise((resolve) => setTimeout(resolve, 250));
         } catch (listenError) {
           if (disposed || (listenError instanceof DOMException && listenError.name === "AbortError")) return;
-          scheduleLost();
-          await new Promise((resolve) => setTimeout(resolve, 750));
+          scheduleLost(); await new Promise((resolve) => setTimeout(resolve, 750));
         }
       }
     };
     void listen();
-    return () => {
-      disposed = true;
-      controller?.abort();
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-    };
-    // One authoritative conditional-poll loop per participant and encounter.
+    return () => { disposed = true; controller?.abort(); if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participant?.id, joinedEncounterCode]);
+  }, [participant?.id, joinedCode]);
 
   useEffect(() => {
-    if (!participant || !joinedEncounterCode) return;
-    const markOffline = () => setConnection("reconnecting");
-    const markOnline = async () => {
-      setConnection("reconnecting");
-      try {
-        const fresh = await api<EncounterState>(
-          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
-        );
-        setState(fresh);
-        setConnection("live");
-      } catch {
-        setConnection("lost");
-      }
-    };
-    window.addEventListener("offline", markOffline);
-    window.addEventListener("online", markOnline);
-    return () => {
-      window.removeEventListener("offline", markOffline);
-      window.removeEventListener("online", markOnline);
-    };
-  }, [joinedEncounterCode, participant]);
-
-  useEffect(() => {
-    if (!participant || !joinedEncounterCode) return;
-    let disposed = false;
-    const heartbeat = async () => {
-      try {
-        await api<{ present: boolean; claimExpiresAt: number }>(
-          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/heartbeat`,
-          { method: "POST", body: sessionBody(participant) },
-        );
-      } catch {
-        if (!disposed) {
-          setConnection((current) => current === "lost" ? "lost" : "reconnecting");
-        }
-      }
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") void heartbeat();
-    };
+    if (!participant || !joinedCode) return;
+    const heartbeat = () => api<{ present: boolean }>(
+      `/api/encounters/${encodeURIComponent(joinedCode)}/heartbeat`,
+      { method: "POST", body: sessionPayload(participant) },
+    ).catch(() => setConnection((current) => current === "lost" ? "lost" : "reconnecting"));
+    const onVisible = () => { if (document.visibilityState === "visible") void heartbeat(); };
     void heartbeat();
     const timer = setInterval(() => void heartbeat(), HEARTBEAT_INTERVAL_MS);
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", heartbeat);
-    return () => {
-      disposed = true;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", heartbeat);
-    };
-  }, [joinedEncounterCode, participant]);
+    document.addEventListener("visibilitychange", onVisible); window.addEventListener("focus", heartbeat);
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", heartbeat); };
+  }, [joinedCode, participant]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 250);
@@ -412,445 +441,361 @@ export default function BattleMapPrototype() {
   }, []);
 
   useEffect(() => {
-    const previousLock = previousLockRef.current;
-    if (previousLock && !activeLock && previousLock.expiresAt <= Date.now() + 1_000) {
-      setPreview(null);
-      setNotice("Lock ended — your token is available again.");
+    const previous = previousClaimedTokenRef.current;
+    if (previous && !primaryToken) {
+      setPreview(null); setPreviewPath([]);
+      setNotice(`${previous.name} was released after inactivity or reconnected elsewhere.`);
     }
-    previousLockRef.current = activeLock;
-  }, [activeLock]);
-
-  useEffect(() => {
-    const previousToken = previousClaimedTokenRef.current;
-    if (previousToken && !claimedToken) {
-      setPreview(null);
-      setNotice(
-        `${previousToken.name} was released after inactivity or reconnected in another browser. Claim a token to continue.`,
-      );
-    }
-    previousClaimedTokenRef.current = claimedToken;
-  }, [claimedToken]);
-
-  useEffect(() => {
-    const image = new Image();
-    let disposed = false;
-    image.onload = () => {
-      if (!disposed) setTerrain(image);
-    };
-    image.src = TERRAIN_URL;
-    return () => { disposed = true; };
-  }, []);
+    previousClaimedTokenRef.current = primaryToken;
+  }, [primaryToken]);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 3_400);
+    const timer = setTimeout(() => setNotice(""), 4_200);
     return () => clearTimeout(timer);
   }, [notice]);
 
-  const redraw = useCallback(() => {
-    if (canvasRef.current && state && participant) {
-      drawMap(canvasRef.current, state, preview, participant, terrain);
-    }
-  }, [participant, preview, state, terrain]);
+  useEffect(() => {
+    if (!state?.encounter.mapAsset) return;
+    const image = new Image(); let disposed = false;
+    image.onload = () => { if (!disposed) setTerrain(image); };
+    image.src = state.encounter.mapAsset;
+    return () => { disposed = true; };
+  }, [state?.encounter.mapAsset]);
 
   useEffect(() => {
-    redraw();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const observer = new ResizeObserver(redraw);
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    const assets = [...new Set(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? [])];
+    if (assets.length === 0) return;
+    let disposed = false;
+    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
+      const image = new Image(); image.onload = () => resolve([path, image]); image.onerror = () => resolve([path, image]); image.src = path;
+    }))).then((entries) => { if (!disposed) setTokenArt(new Map(entries)); });
+    return () => { disposed = true; };
+  }, [state?.tokens]);
+
+  const redraw = useCallback(() => {
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, previewPath, participant, terrain, tokenArt, viewport);
+  }, [participant, preview, previewPath, state, terrain, tokenArt, viewport]);
+  useEffect(() => {
+    redraw(); const canvas = canvasRef.current; if (!canvas) return;
+    const observer = new ResizeObserver(redraw); observer.observe(canvas); return () => observer.disconnect();
   }, [redraw]);
 
-  const claimToken = async (tokenId: string) => {
-    if (!participant || !state || !movementEnabled) return;
-    setBusy(true);
-    setError("");
+  const refreshAfterError = async () => {
+    if (!participant || !state) return;
+    const fresh = await api<EncounterState>(
+      `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
+      { headers: viewerHeaders(participant) },
+    ).catch(() => null);
+    if (fresh) setState(fresh);
+  };
+
+  const command = async <T extends { state: EncounterState }>(name: string, extra: Record<string, unknown> = {}) => {
+    if (!participant || !state) throw new Error("Join the encounter first.");
+    const result = await api<T>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
+      method: "POST", body: sessionPayload(participant, { command: name, ...extra }),
+    });
+    setState(result.state); return result;
+  };
+
+  const runCommand = async (name: string, extra: Record<string, unknown> = {}, success?: string) => {
+    setBusy(true); setError("");
+    try { await command(name, extra); if (success) setNotice(success); }
+    catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); }
+    finally { setBusy(false); }
+  };
+
+  const claimToken = async (token: SharedToken) => {
+    if (!participant || !state) return;
+    setBusy(true); setError("");
     try {
-      const result = await api<{ claimed: boolean; recovered: boolean; state: EncounterState }>(
+      const result = await api<{ recovered: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/claim`,
-        { method: "POST", body: postBody(participant, tokenId) },
+        { method: "POST", body: sessionPayload(participant, { tokenId: token.id }) },
       );
-      setState(result.state);
-      const token = result.state.tokens.find((item) => item.id === tokenId);
-      setNotice(result.recovered ? `${token?.name ?? "Token"} reconnected to this browser.` : `${token?.name ?? "Token"} is yours.`);
-    } catch (claimError) {
-      setError(claimError instanceof Error ? claimError.message : "Unable to claim token.");
-    } finally {
-      setBusy(false);
-    }
+      setState(result.state); setSelectedTokenId(token.id);
+      setNotice(result.recovered ? `${token.name} reconnected.` : `${token.name} is yours.`);
+    } catch (claimError) { setError(claimError instanceof Error ? claimError.message : "Unable to claim token."); }
+    finally { setBusy(false); }
   };
 
   const relinquishToken = async () => {
-    if (!participant || !state || !claimedToken || !movementEnabled) return;
-    setBusy(true);
-    setError("");
+    if (!participant || !state || !primaryToken) return;
+    setBusy(true); setError("");
     try {
-      const result = await api<{ released: boolean; state: EncounterState }>(
+      const result = await api<{ state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/relinquish`,
-        { method: "POST", body: postBody(participant, claimedToken.id) },
+        { method: "POST", body: sessionPayload(participant, { tokenId: primaryToken.id }) },
       );
-      setPreview(null);
-      previousClaimedTokenRef.current = null;
-      setState(result.state);
-      setNotice(`${claimedToken.name} released.`);
-    } catch (releaseError) {
-      setError(releaseError instanceof Error ? releaseError.message : "Unable to release token.");
-    } finally {
-      setBusy(false);
-    }
+      previousClaimedTokenRef.current = null; setState(result.state); setSelectedTokenId(null); setNotice(`${primaryToken.name} released.`);
+    } catch (releaseError) { setError(releaseError instanceof Error ? releaseError.message : "Unable to release token."); }
+    finally { setBusy(false); }
   };
 
-  const acquireLock = async () => {
-    if (!participant || !state || !claimedToken || !movementEnabled || activeLock) return;
-    setBusy(true);
-    setError("");
+  const acquireLock = async (token: SharedToken) => {
+    if (!participant || !state || !movementEnabled) return null;
+    setBusy(true); setError("");
     try {
       const result = await api<{ acquired: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
-        { method: "POST", body: postBody(participant, claimedToken.id) },
+        { method: "POST", body: sessionPayload(participant, { tokenId: token.id }) },
       );
-      setState(result.state);
-      const token = result.state.tokens.find((item) => item.id === claimedToken.id);
-      if (result.acquired && token) {
-        setPreview({ tokenId: token.id, x: token.x, y: token.y });
-        setNotice("Token locked. Use the arrow keys, then confirm.");
-      }
-    } catch (lockError) {
-      setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
-    } finally {
-      setBusy(false);
-    }
+      setState(result.state); return result;
+    } catch (lockError) { setError(lockError instanceof Error ? lockError.message : "Lock unavailable."); await refreshAfterError(); return null; }
+    finally { setBusy(false); }
   };
 
   const unlock = async (tokenId: string, encounter = state?.encounter.code) => {
     if (!participant || !encounter) return null;
-    return api<{ state: EncounterState }>(
-      `/api/encounters/${encodeURIComponent(encounter)}/unlock`,
-      { method: "POST", body: postBody(participant, tokenId) },
-    );
+    return api<{ state: EncounterState }>(`/api/encounters/${encodeURIComponent(encounter)}/unlock`, {
+      method: "POST", body: sessionPayload(participant, { tokenId }),
+    });
+  };
+
+  const publishMove = async (tokenId: string, destination: MapPoint, path: MapPoint[], encounter = state?.encounter.code) => {
+    if (!participant || !encounter) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api<{ distance: number; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(encounter)}/move`,
+        { method: "POST", body: sessionPayload(participant, { tokenId, ...destination, path, override: participant.role === "dm" }) },
+      );
+      setState(result.state); setPreview(null); setPreviewPath([]);
+      setNotice(`Move confirmed · ${result.distance} ft.`);
+    } catch (moveError) { setError(moveError instanceof Error ? moveError.message : "Move rejected."); setPreview(null); setPreviewPath([]); await refreshAfterError(); }
+    finally { setBusy(false); }
   };
 
   const cancelMove = async () => {
-    if (!claimedToken) return;
-    setPreview(null);
-    setBusy(true);
-    try {
-      const result = await unlock(claimedToken.id);
-      if (result) setState(result.state);
-      setNotice("Move cancelled. Token released.");
-    } catch (cancelError) {
-      setError(cancelError instanceof Error ? cancelError.message : "Unable to release token.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!participant || !state || !ownsLock) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") void cancelMove();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // cancelMove intentionally uses the latest render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownsLock, participant, state?.encounter.code]);
-
-  const publishMove = async (
-    tokenId: string,
-    destination: MapPoint,
-    encounter = state?.encounter.code,
-  ) => {
-    if (!participant || !encounter) return;
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api<{ moved: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(encounter)}/move`,
-        { method: "POST", body: postBody(participant, tokenId, destination) },
-      );
-      setState(result.state);
-      setPreview(null);
-      setNotice(`Move confirmed at ${formatPosition(destination)}.`);
-    } catch (moveError) {
-      setError(moveError instanceof Error ? moveError.message : "Move rejected.");
-      setPreview(null);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const confirmMove = async () => {
-    if (!preview || !ownsLock || !movementEnabled) return;
-    await publishMove(preview.tokenId, preview);
-  };
-
-  const releaseGestureLock = async (gesture: DragGesture, message?: string) => {
-    if (!gesture.lockState) {
-      setBusy(false);
-      return;
-    }
-    try {
-      const result = await unlock(gesture.tokenId, gesture.lockState.encounter.code);
-      if (result) setState(result.state);
-      if (message) setNotice(message);
-    } catch (releaseError) {
-      setError(releaseError instanceof Error ? releaseError.message : "Unable to release token.");
-    } finally {
-      setPreview(null);
-      setBusy(false);
-    }
+    if (!selectedToken) return;
+    setPreview(null); setPreviewPath([]); setBusy(true);
+    try { const result = await unlock(selectedToken.id); if (result) setState(result.state); setNotice("Move cancelled."); }
+    catch (cancelError) { setError(cancelError instanceof Error ? cancelError.message : "Unable to release token."); }
+    finally { setBusy(false); }
   };
 
   const finishDrag = async (gesture: DragGesture) => {
     if (gesture.finishing || !gesture.lockState) return;
-    gesture.finishing = true;
-    dragGestureRef.current = null;
-    setDragging(false);
+    gesture.finishing = true; dragGestureRef.current = null; setDragging(false);
     if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
-      await releaseGestureLock(gesture, "Token released without moving.");
-      return;
+      const result = await unlock(gesture.tokenId, gesture.lockState.encounter.code).catch(() => null);
+      if (result) setState(result.state); setPreview(null); setPreviewPath([]); setBusy(false); return;
     }
-    await publishMove(gesture.tokenId, gesture.latest, gesture.lockState.encounter.code);
+    await publishMove(gesture.tokenId, gesture.latest, gesture.path, gesture.lockState.encounter.code);
   };
 
-  const acquireLockForDrag = async (gesture: DragGesture) => {
-    if (!participant || !state) return;
-    try {
-      const result = await api<{ acquired: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
-        { method: "POST", body: postBody(participant, gesture.tokenId) },
-      );
-      setState(result.state);
-      if (!result.acquired) throw new Error("Token lock is unavailable.");
-      gesture.lockState = result.state;
-      if (gesture.canceled) await releaseGestureLock(gesture);
-      else if (gesture.released) await finishDrag(gesture);
-      else setBusy(false);
-    } catch (lockError) {
-      if (!gesture.canceled) setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
-      if (dragGestureRef.current === gesture) dragGestureRef.current = null;
-      setPreview(null);
-      setDragging(false);
-      setBusy(false);
-    }
+  const acquireForDrag = async (gesture: DragGesture) => {
+    const token = state?.tokens.find((item) => item.id === gesture.tokenId);
+    if (!token) return;
+    const result = await acquireLock(token);
+    if (!result?.acquired) { dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false); return; }
+    gesture.lockState = result.state;
+    if (gesture.canceled) { const released = await unlock(gesture.tokenId); if (released) setState(released.state); }
+    else if (gesture.released) await finishDrag(gesture);
   };
 
-  const dragDestination = (
-    canvas: HTMLCanvasElement,
-    gesture: DragGesture,
-    clientX: number,
-    clientY: number,
-  ) => {
-    if (!state) return gesture.latest;
-    const pointer = pointerToMap(canvas, state, clientX, clientY);
-    return clampMapPoint(state, {
-      x: pointer.x - gesture.grabOffset.x,
-      y: pointer.y - gesture.grabOffset.y,
-    });
+  const addAnnotation = async (type: AnnotationMode, start: MapPoint, end?: MapPoint) => {
+    if (type === "move") return;
+    await runCommand("add-annotation", {
+      annotationType: type,
+      x: start.x, y: start.y,
+      x2: end?.x, y2: end?.y,
+      color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
+    }, type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : "Ping shared.");
+    setAnnotationMode("move");
   };
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || !claimedToken || !movementEnabled || activeLock || dragGestureRef.current) return;
+    if (!state || !participant || !movementEnabled) return;
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+    if (annotationMode !== "move") {
+      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+      if (annotationMode === "drawing") annotationStartRef.current = { pointerId: event.pointerId, point };
+      else void addAnnotation(annotationMode, point);
+      return;
+    }
+    if (!selectedToken || !canControlSelected || selectedToken.lock || dragGestureRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const pointer = pointerToMap(event.currentTarget, state, event.clientX, event.clientY);
-    const displayed = preview?.tokenId === claimedToken.id ? preview : claimedToken;
-    const deltaX = ((pointer.x - displayed.x) / state.grid.width) * rect.width;
-    const deltaY = ((pointer.y - displayed.y) / state.grid.height) * rect.height;
-    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * TOKEN_RADIUS_CELLS;
+    const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
+    const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
+    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * TOKEN_RADIUS_CELLS;
     if (Math.hypot(deltaX, deltaY) > radius) return;
-
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
     const gesture: DragGesture = {
-      pointerId: event.pointerId,
-      tokenId: claimedToken.id,
-      origin: { x: claimedToken.x, y: claimedToken.y },
-      latest: { x: displayed.x, y: displayed.y },
-      grabOffset: { x: pointer.x - displayed.x, y: pointer.y - displayed.y },
-      released: false,
-      canceled: false,
-      finishing: false,
-      lockState: null,
+      pointerId: event.pointerId, tokenId: selectedToken.id,
+      origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
+      path: [{ x: selectedToken.x, y: selectedToken.y }],
+      grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
+      released: false, canceled: false, finishing: false, lockState: null,
     };
-    dragGestureRef.current = gesture;
-    setDragging(true);
-    setPreview({ tokenId: claimedToken.id, x: displayed.x, y: displayed.y });
-    setBusy(true);
-    setError("");
-    void acquireLockForDrag(gesture);
+    dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
+    setPreviewPath(gesture.path); void acquireForDrag(gesture);
+  };
+
+  const dragPoint = (canvas: HTMLCanvasElement, gesture: DragGesture, clientX: number, clientY: number) => {
+    if (!state) return gesture.latest;
+    const pointer = pointerToMap(canvas, state, viewport, clientX, clientY);
+    return clampMapPoint(state, { x: pointer.x - gesture.grabOffset.x, y: pointer.y - gesture.grabOffset.y });
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    event.preventDefault();
-    gesture.latest = dragDestination(event.currentTarget, gesture, event.clientX, event.clientY);
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
+    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
+    const last = gesture.path.at(-1)!;
+    if (Math.hypot(last.x - gesture.latest.x, last.y - gesture.latest.y) > 0.06) gesture.path.push(gesture.latest);
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path, gesture.latest]);
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drawing = annotationStartRef.current;
+    if (drawing?.pointerId === event.pointerId && state) {
+      const end = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+      annotationStartRef.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      void addAnnotation("drawing", drawing.point, end); return;
+    }
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    event.preventDefault();
-    gesture.latest = dragDestination(event.currentTarget, gesture, event.clientX, event.clientY);
-    gesture.released = true;
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
-    setDragging(false);
+    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY); gesture.path.push(gesture.latest); gesture.released = true;
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path]); setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (gesture.lockState) void finishDrag(gesture);
   };
 
   const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const gesture = dragGestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gesture.canceled = true;
-    dragGestureRef.current = null;
-    setPreview(null);
-    setDragging(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (gesture.lockState) void releaseGestureLock(gesture);
+    annotationStartRef.current = null;
+    const gesture = dragGestureRef.current; if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.canceled = true; dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false);
+    if (gesture.lockState) void unlock(gesture.tokenId, gesture.lockState.encounter.code).then((result) => { if (result) setState(result.state); });
   };
 
   const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
-    if (!state || !claimedToken || !movementEnabled) return;
+    if (!state || !selectedToken || !canControlSelected || !movementEnabled) return;
     if (!ownsLock) {
-      if ((event.key === "Enter" || event.key === " ") && !activeLock) {
+      if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        void acquireLock();
+        void acquireLock(selectedToken).then((result) => {
+          if (!result?.acquired) return;
+          setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
+          setPreviewPath([{ x: selectedToken.x, y: selectedToken.y }]);
+        });
       }
       return;
     }
-    const origin = preview?.tokenId === claimedToken.id ? preview : claimedToken;
     const deltas: Record<string, MapPoint> = {
-      ArrowLeft: { x: -0.25, y: 0 }, ArrowRight: { x: 0.25, y: 0 },
-      ArrowUp: { x: 0, y: -0.25 }, ArrowDown: { x: 0, y: 0.25 },
+      ArrowLeft: { x: -0.25, y: 0 }, ArrowRight: { x: 0.25, y: 0 }, ArrowUp: { x: 0, y: -0.25 }, ArrowDown: { x: 0, y: 0.25 },
     };
-    const delta = deltas[event.key];
-    if (!delta) return;
-    event.preventDefault();
-    setPreview({
-      tokenId: claimedToken.id,
-      ...clampMapPoint(state, { x: origin.x + delta.x, y: origin.y + delta.y }),
-    });
+    const delta = deltas[event.key]; if (!delta) return; event.preventDefault();
+    const origin = preview ?? selectedToken;
+    const next = clampMapPoint(state, { x: origin.x + delta.x, y: origin.y + delta.y });
+    setPreview({ tokenId: selectedToken.id, ...next }); setPreviewPath((current) => [...(current.length ? current : [selectedToken]), next]);
   };
 
   if (!participant || !state) {
     return (
-      <main className="join-shell">
-        <section className="join-card" aria-labelledby="join-title">
-          <div className="eyebrow">Phase two · Party movement proof</div>
-          <h1 id="join-title">Enter the Ember Keep</h1>
-          <p>Join the same encounter in several browser windows, claim a token, and move independently.</p>
-          <label>Display name
-            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") void join(); }}
-              placeholder="e.g. Mira" autoFocus maxLength={32} />
-          </label>
-          <label>Encounter code
-            <input value={encounterCode} onChange={(event) => setEncounterCode(event.target.value.toUpperCase())}
-              maxLength={24} spellCheck={false} />
-          </label>
-          {error ? <div className="form-error" role="alert">{error}</div> : null}
-          <button className="primary-button" onClick={() => void join()} disabled={busy}>
-            {busy ? "Joining…" : "Join encounter"}
-          </button>
-          <div className="join-note">Accountless prototype · use code <strong>EMBER-KEEP</strong><br />Token claims release after two minutes offline.</div>
-        </section>
-      </main>
+      <main className="join-shell"><section className="join-card" aria-labelledby="join-title">
+        <div className="eyebrow">Living encounter · Tactical companion</div>
+        <h1 id="join-title">Enter the Ember Keep</h1>
+        <p>Join as a player to claim a character, or as the DM to build and run the encounter.</p>
+        <label>Display name<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void join(); }} placeholder="e.g. Dar’eleth" autoFocus maxLength={32} /></label>
+        <label>Role<select value={joinRole} onChange={(event) => setJoinRole(event.target.value as Role)}><option value="player">Player</option><option value="dm">Dungeon Master</option></select></label>
+        <label>Encounter code<input value={encounterCode} onChange={(event) => setEncounterCode(event.target.value.toUpperCase())} maxLength={24} spellCheck={false} /></label>
+        {error ? <div className="form-error" role="alert">{error}</div> : null}
+        <button className="primary-button" onClick={() => void join()} disabled={busy}>{busy ? "Joining…" : "Join encounter"}</button>
+        <div className="join-note">Accountless trusted-group prototype · claims release after two minutes offline.</div>
+      </section></main>
     );
   }
 
-  const connectionLabel = connection === "live" ? "Live" : connection === "lost"
-    ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
+  const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
+  const initiativeTokens = [...state.tokens].filter((token) => token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
 
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div><div className="eyebrow">Shared encounter · {state.encounter.code}</div><h1>{state.encounter.name}</h1></div>
-        <div className={`connection-pill connection-${connection}`} aria-live="polite">
-          <span className="connection-dot" />{connectionLabel}
-        </div>
+        <div><div className="eyebrow">{state.encounter.status} · {state.encounter.code}</div><h1>{state.encounter.name}{state.encounter.currentRound > 0 ? ` · Round ${state.encounter.currentRound}` : ""}</h1></div>
+        <div className={`connection-pill connection-${connection}`} aria-live="polite"><span className="connection-dot" />{connectionLabel}</div>
       </header>
-
       <div className="workspace">
         <section className="map-panel" aria-label="Shared battle map">
+          <div className="map-toolbar" aria-label="Map communication tools">
+            <button className={annotationMode === "move" ? "tool-active" : ""} onClick={() => setAnnotationMode("move")}>Move</button>
+            <button className={annotationMode === "ping" ? "tool-active" : ""} onClick={() => setAnnotationMode("ping")}>Ping</button>
+            <button className={annotationMode === "drawing" ? "tool-active" : ""} onClick={() => setAnnotationMode("drawing")}>Draw line</button>
+            {participant.role === "dm" ? <button className={annotationMode === "spotlight" ? "tool-active" : ""} onClick={() => setAnnotationMode("spotlight")}>Spotlight</button> : null}
+            {participant.role === "dm" ? <button onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}>Clear</button> : null}
+            <span className="toolbar-spacer" />
+            <button aria-label="Pan left" onClick={() => setViewport((view) => ({ ...view, panX: Math.max(0, view.panX - 1 / view.zoom) }))}>←</button>
+            <button aria-label="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
+            <button aria-label="Pan down" onClick={() => setViewport((view) => ({ ...view, panY: Math.min(state.grid.height - state.grid.height / view.zoom, view.panY + 1 / view.zoom) }))}>↓</button>
+            <button aria-label="Pan right" onClick={() => setViewport((view) => ({ ...view, panX: Math.min(state.grid.width - state.grid.width / view.zoom, view.panX + 1 / view.zoom) }))}>→</button>
+            <button aria-label="Zoom out" onClick={() => setViewport((view) => ({ zoom: Math.max(1, view.zoom - 0.5), panX: 0, panY: 0 }))}>−</button>
+            <button aria-label="Zoom in" onClick={() => setViewport((view) => ({ ...view, zoom: Math.min(3, view.zoom + 0.5) }))}>+</button>
+            <button onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
+          </div>
           <div className="map-frame">
-            <canvas ref={canvasRef}
-              className={`map-canvas${claimedToken ? "" : " is-blocked"}${dragging ? " is-dragging" : ""}`}
-              onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove}
-              onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel}
-              onKeyDown={onCanvasKeyDown}
-              aria-disabled={!movementEnabled || !claimedToken}
-              aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} tokens. ${claimedToken ? `You control ${claimedToken.name} at ${formatPosition(claimedToken)}.` : "Claim a token before moving."} Grab and drag your token to any position.`}
-              role="application" tabIndex={0} />
-            {connection !== "live" ? (
-              <div className="map-safety-overlay"><strong>{connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div>
-            ) : null}
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onKeyDown={onCanvasKeyDown} aria-disabled={!movementEnabled} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${selectedToken ? `Selected ${selectedToken.name}.` : ""}`} role="application" tabIndex={0} />
+            {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
           </div>
-          <div className="map-footer">
-            <span>{state.grid.width} × {state.grid.height} squares</span>
-            <span>5 ft per square · free positioning</span>
-            <span>Server version {state.encounter.version}</span>
-          </div>
+          <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>
         </section>
 
-        <aside className="control-panel" aria-label="Party token controls">
-          <div className="participant-row">
-            <span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span>
-            <span><small>Joined as</small><strong>{participant.name}</strong></span>
-          </div>
+        <aside className="control-panel" aria-label="Encounter controls">
+          <div className="participant-row"><span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span><span><small>{participant.role === "dm" ? "Dungeon Master" : "Joined as"}</small><strong>{participant.name}</strong></span></div>
           <div className="panel-rule" />
 
+          <section className="initiative-panel">
+            <div className="section-heading"><div><small>Combat clock</small><h2>Initiative</h2></div><strong>{state.encounter.currentRound ? `Round ${state.encounter.currentRound}` : "Setup"}</strong></div>
+            <div className="initiative-list">
+              {initiativeTokens.length ? initiativeTokens.map((token) => <div key={token.id} className={`initiative-entry${token.initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}`}><span>{token.initiative ?? "—"}</span><strong>{token.name}</strong><small>{token.turnComplete ? "Done" : token.initiativeOrder === state.encounter.activeInitiativeOrder ? "Active" : `#${(token.initiativeOrder ?? 0) + 1}`}</small></div>) : <p className="empty-copy">Enter initiative on token cards.</p>}
+            </div>
+            {participant.role === "dm" ? <div className="button-row"><button className="primary-button" onClick={() => void runCommand("start-combat", {}, "Combat started.")} disabled={busy}>Start combat</button><button className="secondary-button" onClick={() => void runCommand("advance-turn", {}, "Turn advanced.")} disabled={busy || state.encounter.status !== "active"}>Advance</button></div> : null}
+            {participant.role === "dm" && initiativeTokens.length ? <div className="turn-correction"><label>Correct round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => void runCommand("correct-turn", { round: Number(event.target.value), activeOrder: state.encounter.activeInitiativeOrder ?? 0 }, "Round corrected.")} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => void runCommand("correct-turn", { round: Math.max(1, state.encounter.currentRound), activeOrder: Number(event.target.value) }, "Active turn corrected.")}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div> : null}
+          </section>
+
+          <div className="panel-rule" />
           <div className="token-roster">
             {state.tokens.map((token) => {
-              const isYours = token.owner?.participantId === participant.id;
-              const isSameName = !isYours && token.owner?.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
-              const canClaim = !claimedToken && (!token.owner || isSameName);
-              return (
-                <section className={`token-card${isYours ? " is-owned" : ""}`} key={token.id}>
-                  <div className="token-heading">
-                    <span className="token-mini">{tokenInitial(token)}</span>
-                    <div><small>{isYours ? "Your token" : token.owner ? `Controlled by ${token.owner.name}` : "Unclaimed token"}</small><h2>{token.name}</h2></div>
-                  </div>
-                  <div className="coordinate-row"><span>Position</span><strong>{formatPosition(token)}</strong></div>
-
-                  {isYours ? (
-                    <>
-                      {!token.lock ? (
-                        <div className="lock-state is-open"><span className="lock-mark">◇</span><span><strong>Ready</strong><small>Grab and drag anywhere on the map.</small></span></div>
-                      ) : ownsLock ? (
-                        <div className="lock-state is-yours"><span className="lock-mark">◆</span><span><strong>Your lock · {remainingSeconds}s</strong><small>Release the token to publish the drop.</small></span></div>
-                      ) : (
-                        <div className="lock-state is-other"><span className="lock-mark">◆</span><span><strong>Recovering prior move</strong><small>Available in about {remainingSeconds}s.</small></span></div>
-                      )}
-                      {ownsLock && preview?.tokenId === token.id ? (
-                        <div className="move-review"><div><small>Proposed destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Rules distance</small><strong>{distance} ft</strong></div></div>
-                      ) : null}
-                      {ownsLock ? (
-                        <div className="button-stack">
-                          <button className="primary-button" onClick={() => void confirmMove()} disabled={!preview || isNoOpPreview || !movementEnabled}>Confirm move</button>
-                          <button className="secondary-button" onClick={() => void cancelMove()} disabled={!movementEnabled}>Cancel & release</button>
-                        </div>
-                      ) : (
-                        <div className="button-stack">
-                          <button className="primary-button" onClick={() => void acquireLock()} disabled={!movementEnabled || Boolean(token.lock)}>Move with keyboard</button>
-                          <button className="secondary-button" onClick={() => void relinquishToken()} disabled={!movementEnabled}>Release token</button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <button className="secondary-button" onClick={() => void claimToken(token.id)} disabled={!movementEnabled || !canClaim}>
-                      {isSameName ? "Reconnect this token" : token.owner ? "Already claimed" : claimedToken ? "Release yours first" : "Claim token"}
-                    </button>
-                  )}
-                </section>
-              );
+              const yours = token.owner?.participantId === participant.id;
+              const controlled = participant.role === "dm" || yours;
+              const sameName = !yours && token.owner?.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
+              const selected = token.id === selectedToken?.id;
+              const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+              return <section className={`token-card${selected ? " is-owned" : ""}`} key={token.id}>
+                <button className="token-heading token-select" onClick={() => setSelectedTokenId(token.id)}>
+                  {token.artAsset ? <NextImage className="token-portrait" src={token.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(token)}</span>}
+                  <div><small>{token.hidden ? "Hidden · " : ""}{token.kind} · {token.owner ? `controlled by ${token.owner.name}` : "unclaimed"}</small><h2>{token.name}</h2></div>
+                </button>
+                <div className="coordinate-row"><span>{formatPosition(token)}</span><strong>{token.healthState ?? "No HP"}</strong></div>
+                {selected ? <>
+                  <div className="compact-form"><label>Initiative<input type="number" min="0" max="99" value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => setInitiativeDrafts((current) => ({ ...current, [token.id]: event.target.value }))} /></label><button className="secondary-button" onClick={() => void runCommand("set-initiative", { tokenId: token.id, initiative: Number(initiativeDrafts[token.id] ?? token.initiative) }, "Initiative saved.")} disabled={!controlled || busy}>Set</button></div>
+                  {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-row"><strong>HP {token.hp}/{token.maxHp}</strong><input aria-label="HP change" type="number" value={hpDelta} onChange={(event) => setHpDelta(event.target.value)} /><button onClick={() => void command<{ state: EncounterState; concentrationCheckRequired: boolean }>("apply-hp", { tokenId: token.id, delta: Number(hpDelta) }).then((result) => setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.")).catch((hpError) => setError(hpError instanceof Error ? hpError.message : "HP rejected."))}>Apply</button></div> : null}
+                  <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => void runCommand("remove-effect", { effectId: effect.id })}>×</button> : null}</span>)}</div>
+                  {controlled ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void runCommand("add-effect", { tokenId: token.id, name: effectName, effectType, reminderTiming: effectReminder, durationRounds: Number(effectDuration) }, `${effectName} added.`).then(() => setEffectName(""))}>Add</button></div> : null}
+                  {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
+                  {activeLock ? <div className={`lock-state${ownsLock ? " is-yours" : " is-other"}`}><span className="lock-mark">●</span><span><strong>{ownsLock ? `Movement reserved · ${remainingSeconds}s` : `Being moved by ${activeLock.ownerName}`}</strong><small>{ownsLock ? "Release to confirm, or cancel safely." : "You’ll receive the confirmed position automatically."}</small></span></div> : null}
+                  {ownsLock && preview?.tokenId === token.id ? <div className="move-review"><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Path / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
+                  {controlled && selected ? ownsLock ? <div className="button-stack"><button className="primary-button" onClick={() => preview && void publishMove(token.id, preview, previewPath)} disabled={!preview || isNoOp || !movementEnabled}>Confirm move</button><button className="secondary-button" onClick={() => void cancelMove()}>Cancel</button></div> : <button className="primary-button" onClick={() => void acquireLock(token).then((result) => { if (result?.acquired) { setPreview({ tokenId: token.id, x: token.x, y: token.y }); setPreviewPath([token]); } })} disabled={!movementEnabled || Boolean(token.lock)}>Move with keyboard</button> : null}
+                  {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
+                  {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
+                  {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
+                  {yours && token.id === primaryToken?.id ? <button className="text-button" onClick={() => void relinquishToken()}>Release token</button> : null}
+                  {participant.role === "dm" ? <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="danger-button" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
+                  {participant.role === "dm" ? <div className="token-config"><input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} /><div className="form-grid"><input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /><input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /><select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></div><button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token configuration saved.").then(() => setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; })); }}>Save configuration</button></div> : null}
+                </> : null}
+              </section>;
             })}
           </div>
 
-          <div className="how-it-works"><span>1</span><p>Claim one party token.</p><span>2</span><p>Drag it to any pixel.</p><span>3</span><p>Release to publish the move.</p><span>4</span><p>Closed browsers release claims after two minutes.</p></div>
+          {participant.role === "dm" ? <section className="dm-panel">
+            <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
+            <label>Map<select value={state.encounter.mapAsset} onChange={(event) => void runCommand("configure-encounter", { mapAsset: event.target.value }, "Map changed.")}>{state.availableMaps.map((path) => <option value={path} key={path}>{mapLabel(path)}</option>)}</select></label>
+            <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
+            <div className="new-token-form"><input placeholder="Creature or character name" value={newTokenName} onChange={(event) => setNewTokenName(event.target.value)} /><div className="form-grid"><label>Kind<select value={newTokenKind} onChange={(event) => setNewTokenKind(event.target.value)}><option value="character">Character</option><option value="monster">Monster</option><option value="summon">Summon</option><option value="familiar">Familiar</option></select></label><label>Speed<input type="number" value={newTokenSpeed} onChange={(event) => setNewTokenSpeed(event.target.value)} /></label><label>Max HP<input type="number" value={newTokenHp} onChange={(event) => setNewTokenHp(event.target.value)} /></label></div><label>Portrait<select value={newTokenArt} onChange={(event) => setNewTokenArt(event.target.value)}><option value="">No portrait</option>{state.availableArt.map((path) => <option key={path} value={path}>{artLabel(path)}</option>)}</select></label>{["summon", "familiar"].includes(newTokenKind) ? <label>Summoner<select value={newTokenSummoner} onChange={(event) => setNewTokenSummoner(event.target.value)}><option value="">Choose summoner</option>{state.tokens.filter((token) => !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>{token.name}</option>)}</select></label> : null}<button className="primary-button" onClick={() => void runCommand("create-token", { name: newTokenName, kind: newTokenKind, speed: Number(newTokenSpeed), hp: Number(newTokenHp), maxHp: Number(newTokenHp), artAsset: newTokenArt, summonerTokenId: newTokenSummoner || undefined, x: 8, y: 5.5 }, `${newTokenName} placed.`).then(() => setNewTokenName(""))}>Place token</button></div>
+          </section> : null}
+
+          <button className="undo-button" onClick={() => void runCommand("undo", {}, "Last reversible action undone.")} disabled={busy || state.undo.available === 0}>Undo my last action{state.undo.available ? ` (${state.undo.available}/10)` : ""}</button>
+
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           {notice ? <div className="toast" role="status">{notice}</div> : null}
         </aside>
