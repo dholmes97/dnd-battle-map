@@ -1,0 +1,1 @@
+ALTER TABLE `tokens` ADD `size` text DEFAULT 'medium' NOT NULL;

@@ -322,6 +322,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const character = await command(dm, "create-token", {
       name: `Hero ${suffix}`,
       kind: "character",
+      size: "medium",
       speed: 30,
       hp: 24,
       maxHp: 24,
@@ -336,17 +337,23 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const monster = await command(dm, "create-token", {
       name: `Warg ${suffix}`,
       kind: "monster",
+      size: "large",
       speed: 40,
       hp: 20,
       maxHp: 40,
       artAsset: "/assets/tokens/monsters/shadow-dire-warg-01.png",
       hidden: true,
-      x: 12.1,
-      y: 7.7,
+      x: 15.9,
+      y: 10.9,
     });
     assert.equal(monster.response.status, 200);
     const monsterId = monster.body.tokenId;
     createdIds.push(monsterId);
+    const placedMonster = monster.body.state.tokens.find((token) => token.id === monsterId);
+    assert.deepEqual(
+      { size: placedMonster.size, x: placedMonster.x, y: placedMonster.y },
+      { size: "large", x: 15.14, y: 10.14 },
+    );
 
     const claim = await request("claim", {
       method: "POST",
@@ -357,6 +364,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const summon = await command(dm, "create-token", {
       name: `Griffon ${suffix}`,
       kind: "summon",
+      size: "large",
       speed: 35,
       hp: 12,
       maxHp: 12,
@@ -375,8 +383,23 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const dmHiddenState = await viewerState(dm);
     assert.equal(dmHiddenState.body.tokens.find((token) => token.id === monsterId).hp, 20);
 
-    const reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false });
+    let reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false, size: "huge" });
     assert.equal(reveal.response.status, 200);
+    let resizedMonster = reveal.body.state.tokens.find((token) => token.id === monsterId);
+    assert.deepEqual(
+      { size: resizedMonster.size, x: resizedMonster.x, y: resizedMonster.y },
+      { size: "huge", x: 14.71, y: 9.71 },
+    );
+    const undoResize = await command(dm, "undo");
+    assert.equal(undoResize.response.status, 200);
+    const restoredMonster = undoResize.body.state.tokens.find((token) => token.id === monsterId);
+    assert.deepEqual(
+      { size: restoredMonster.size, x: restoredMonster.x, y: restoredMonster.y, hidden: restoredMonster.hidden },
+      { size: "large", x: 15.14, y: 10.14, hidden: true },
+    );
+    reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false, size: "huge" });
+    resizedMonster = reveal.body.state.tokens.find((token) => token.id === monsterId);
+    assert.equal(resizedMonster.size, "huge");
     const playerVisibleState = await viewerState(player);
     const coarseMonster = playerVisibleState.body.tokens.find((token) => token.id === monsterId);
     assert.equal(coarseMonster.hp, null);
@@ -569,15 +592,20 @@ test("eight joined clients converge on one collaboration update", async () => {
     const budgetWindowMs = 2_000;
     const requestCounts = await Promise.all(clients.map(async (client) => {
       let count = 0;
+      let since = ping.body.state.encounter.version;
       while (performance.now() - budgetStarted < budgetWindowMs) {
-        const response = await fetch(`${endpoint("events")}?since=${ping.body.state.encounter.version}`, {
+        const response = await fetch(`${endpoint("events")}?since=${since}`, {
           headers: {
             accept: "application/json",
             "x-participant-id": client.id,
             "x-session-secret": client.sessionSecret,
           },
         });
-        assert.equal(response.status, 204);
+        assert.ok([200, 204].includes(response.status));
+        if (response.status === 200) {
+          const refreshed = await response.json();
+          since = refreshed.encounter.version;
+        }
         count += 1;
         await new Promise((resolve) => setTimeout(resolve, 250));
       }

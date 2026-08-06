@@ -48,6 +48,7 @@ export const tokens = sqliteTable(
     y: real("y").notNull(),
     artAsset: text("art_asset"),
     kind: text("kind").notNull().default("character"),
+    size: text("size").notNull().default("medium"),
     speed: integer("speed").notNull().default(30),
     hp: integer("hp"),
     maxHp: integer("max_hp"),

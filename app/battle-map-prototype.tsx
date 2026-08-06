@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -9,6 +10,13 @@ import {
   useState,
 } from "react";
 import NextImage from "next/image";
+import {
+  CREATURE_LIBRARY,
+  CREATURE_SIZES,
+  type CreatureSize,
+  type CreatureTemplate,
+  tokenRadiusCells,
+} from "@/shared/creature-library";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
@@ -28,6 +36,7 @@ type SharedToken = MapPoint & {
   name: string;
   artAsset: string | null;
   kind: string;
+  size: CreatureSize;
   speed: number;
   hp: number | null;
   maxHp: number | null;
@@ -75,6 +84,7 @@ type EncounterState = {
 };
 type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
+type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 type DragGesture = {
   pointerId: number;
   tokenId: string;
@@ -91,7 +101,6 @@ type AnnotationMode = "move" | "ping" | "drawing" | "spotlight";
 type Viewport = { zoom: number; panX: number; panY: number };
 
 const DEFAULT_CODE = "EMBER-KEEP";
-const TOKEN_RADIUS_CELLS = 0.36;
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const PING_PULSE_COUNT = 3;
@@ -118,10 +127,10 @@ function mapLabel(path: string) {
   return path.split("/").at(-1)?.replace(/^terrain-/, "").replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Map";
 }
 
-function clampMapPoint(state: EncounterState, point: MapPoint): MapPoint {
+function clampMapPoint(state: EncounterState, point: MapPoint, radius = tokenRadiusCells("medium")): MapPoint {
   return {
-    x: roundCoordinate(Math.min(state.grid.width - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.x))),
-    y: roundCoordinate(Math.min(state.grid.height - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.y))),
+    x: roundCoordinate(Math.min(state.grid.width - radius, Math.max(radius, point.x))),
+    y: roundCoordinate(Math.min(state.grid.height - radius, Math.max(radius, point.y))),
   };
 }
 
@@ -131,12 +140,13 @@ function pointerToMap(
   viewport: Viewport,
   clientX: number,
   clientY: number,
+  radius?: number,
 ) {
   const rect = canvas.getBoundingClientRect();
   return clampMapPoint(state, {
     x: viewport.panX + ((clientX - rect.left) / rect.width) * state.grid.width / viewport.zoom,
     y: viewport.panY + ((clientY - rect.top) / rect.height) * state.grid.height / viewport.zoom,
-  });
+  }, radius);
 }
 
 function calculatePathDistance(path: MapPoint[], feetPerCell: number) {
@@ -198,6 +208,7 @@ function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
   preview: TokenPreview | null,
+  placementPreview: PlacementPreview | null,
   previewPath: MapPoint[],
   participant: Participant,
   terrain: HTMLImageElement | null,
@@ -294,7 +305,7 @@ function drawMap(
     const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
     const x = screenX(position.x);
     const y = screenY(position.y);
-    const radius = Math.min(cellWidth, cellHeight) * TOKEN_RADIUS_CELLS;
+    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
     context.save();
     if (token.lock && token.lock.ownerId !== participant.id) context.globalAlpha = 0.55;
     if (token.hidden) context.globalAlpha *= 0.48;
@@ -338,6 +349,23 @@ function drawMap(
     }
     context.restore();
   });
+
+  if (placementPreview) {
+    const x = screenX(placementPreview.x);
+    const y = screenY(placementPreview.y);
+    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(placementPreview.creature.size);
+    const art = tokenArt.get(placementPreview.creature.artAsset);
+    context.save();
+    context.globalAlpha = 0.72;
+    context.fillStyle = "rgba(245, 198, 92, 0.28)";
+    context.strokeStyle = "#f5c65c";
+    context.lineWidth = Math.max(2, radius * 0.08);
+    context.setLineDash([7, 5]);
+    context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke();
+    context.setLineDash([]);
+    if (art) context.drawImage(art, x - radius, y - radius, radius * 2, radius * 2);
+    context.restore();
+  }
 }
 
 export default function BattleMapPrototype() {
@@ -359,18 +387,16 @@ export default function BattleMapPrototype() {
   const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
   const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
-  const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; speed?: string; maxHp?: string; artAsset?: string }>>({});
+  const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; maxHp?: string; artAsset?: string }>>({});
   const [hpDelta, setHpDelta] = useState("-1");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
   const [effectDuration, setEffectDuration] = useState("1");
   const [effectReminder, setEffectReminder] = useState("end");
-  const [newTokenName, setNewTokenName] = useState("");
-  const [newTokenKind, setNewTokenKind] = useState("monster");
-  const [newTokenSpeed, setNewTokenSpeed] = useState("30");
-  const [newTokenHp, setNewTokenHp] = useState("20");
-  const [newTokenArt, setNewTokenArt] = useState("");
-  const [newTokenSummoner, setNewTokenSummoner] = useState("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
+  const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
+  const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, panX: 0, panY: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -524,7 +550,10 @@ export default function BattleMapPrototype() {
   }, [state?.encounter.mapAsset]);
 
   useEffect(() => {
-    const assets = [...new Set(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? [])];
+    const assets = [...new Set([
+      ...(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? []),
+      ...CREATURE_LIBRARY.map((creature) => creature.artAsset),
+    ])];
     if (assets.length === 0) return;
     let disposed = false;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
@@ -534,8 +563,8 @@ export default function BattleMapPrototype() {
   }, [state?.tokens]);
 
   const redraw = useCallback((animationNow = Date.now()) => {
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, previewPath, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
-  }, [participant, preview, previewPath, state, terrain, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, previewPath, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
+  }, [participant, placementPreview, preview, previewPath, state, terrain, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -578,6 +607,60 @@ export default function BattleMapPrototype() {
     try { await command(name, extra); if (success) setNotice(success); }
     catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); }
     finally { setBusy(false); }
+  };
+
+  const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
+    if (!participant || !state || participant.role !== "dm" || !movementEnabled) return;
+    const matchingCount = state.tokens.filter((token) => token.artAsset === creature.artAsset).length;
+    const name = matchingCount === 0 ? creature.name : `${creature.name} ${matchingCount + 1}`;
+    setBusy(true); setError("");
+    try {
+      const result = await command<{ tokenId: string; state: EncounterState }>("create-token", {
+        name,
+        kind: placementSummonerId ? "summon" : "monster",
+        size: creature.size,
+        speed: creature.defaultSpeed,
+        artAsset: creature.artAsset,
+        summonerTokenId: placementSummonerId || undefined,
+        x: point.x,
+        y: point.y,
+      });
+      setSelectedTokenId(result.tokenId);
+      setNotice(`${name} placed. Add HP or change its details whenever you’re ready.`);
+    } catch (placementError) {
+      setError(placementError instanceof Error ? placementError.message : "Creature placement was rejected.");
+      await refreshAfterError();
+    } finally {
+      setPlacementPreview(null);
+      setBusy(false);
+    }
+  };
+
+  const paletteCreature = (id: string | null) => CREATURE_LIBRARY.find((creature) => creature.id === id) ?? null;
+
+  const onPaletteDragStart = (event: ReactDragEvent<HTMLButtonElement>, creature: CreatureTemplate) => {
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData("application/x-creature-id", creature.id);
+    setArmedCreatureId(creature.id);
+  };
+
+  const onMapDragOver = (event: ReactDragEvent<HTMLCanvasElement>) => {
+    if (!state || !participant || participant.role !== "dm" || !movementEnabled) return;
+    const creature = paletteCreature(event.dataTransfer.getData("application/x-creature-id") || armedCreatureId);
+    if (!creature) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(creature.size));
+    setPlacementPreview({ creature, ...point });
+  };
+
+  const onMapDrop = (event: ReactDragEvent<HTMLCanvasElement>) => {
+    if (!state || !participant || participant.role !== "dm" || !movementEnabled) return;
+    const creature = paletteCreature(event.dataTransfer.getData("application/x-creature-id") || armedCreatureId);
+    if (!creature) return;
+    event.preventDefault();
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(creature.size));
+    void placeCreature(creature, point);
   };
 
   const claimToken = async (token: SharedToken) => {
@@ -674,6 +757,13 @@ export default function BattleMapPrototype() {
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!state || !participant || !movementEnabled) return;
+    const armedCreature = participant.role === "dm" ? paletteCreature(armedCreatureId) : null;
+    if (armedCreature) {
+      event.preventDefault();
+      const placementPoint = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(armedCreature.size));
+      void placeCreature(armedCreature, placementPoint);
+      return;
+    }
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     if (annotationMode !== "move") {
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
@@ -685,7 +775,7 @@ export default function BattleMapPrototype() {
     const rect = event.currentTarget.getBoundingClientRect();
     const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
     const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
-    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * TOKEN_RADIUS_CELLS;
+    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(selectedToken.size);
     if (Math.hypot(deltaX, deltaY) > radius) return;
     event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
     const gesture: DragGesture = {
@@ -701,8 +791,10 @@ export default function BattleMapPrototype() {
 
   const dragPoint = (canvas: HTMLCanvasElement, gesture: DragGesture, clientX: number, clientY: number) => {
     if (!state) return gesture.latest;
-    const pointer = pointerToMap(canvas, state, viewport, clientX, clientY);
-    return clampMapPoint(state, { x: pointer.x - gesture.grabOffset.x, y: pointer.y - gesture.grabOffset.y });
+    const token = state.tokens.find((item) => item.id === gesture.tokenId);
+    const radius = tokenRadiusCells(token?.size ?? "medium");
+    const pointer = pointerToMap(canvas, state, viewport, clientX, clientY, radius);
+    return clampMapPoint(state, { x: pointer.x - gesture.grabOffset.x, y: pointer.y - gesture.grabOffset.y }, radius);
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -769,6 +861,7 @@ export default function BattleMapPrototype() {
             <button className={annotationMode === "drawing" ? "tool-active" : ""} onClick={() => setAnnotationMode("drawing")}>Draw line</button>
             {participant.role === "dm" ? <button className={annotationMode === "spotlight" ? "tool-active" : ""} onClick={() => setAnnotationMode("spotlight")}>Spotlight</button> : null}
             {participant.role === "dm" ? <button onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}>Clear</button> : null}
+            {participant.role === "dm" ? <button className={paletteOpen ? "tool-active" : ""} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}>Creatures</button> : null}
             <span className="toolbar-spacer" />
             <button aria-label="Pan left" onClick={() => setViewport((view) => ({ ...view, panX: Math.max(0, view.panX - 1 / view.zoom) }))}>←</button>
             <button aria-label="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
@@ -779,7 +872,19 @@ export default function BattleMapPrototype() {
             <button onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
           </div>
           <div className="map-frame">
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
+            {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
+              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
+              <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
+              <p>Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
+              <div className="creature-grid">
+                {CREATURE_LIBRARY.map((creature) => <button type="button" draggable className={`creature-tile${armedCreatureId === creature.id ? " is-armed" : ""}`} key={creature.id} onDragStart={(event) => onPaletteDragStart(event, creature)} onDragEnd={() => setPlacementPreview(null)} onClick={() => setArmedCreatureId((current) => current === creature.id ? null : creature.id)} aria-pressed={armedCreatureId === creature.id}>
+                  <NextImage src={creature.artAsset} alt="" width={72} height={72} unoptimized />
+                  <span><strong>{creature.name}</strong><small>{creature.size} · {creature.defaultSpeed} ft</small></span>
+                </button>)}
+              </div>
+              {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
+            </section> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
           </div>
           <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>
@@ -825,7 +930,16 @@ export default function BattleMapPrototype() {
                   {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
                   {yours && token.id === primaryToken?.id ? <button className="text-button" onClick={() => void relinquishToken()}>Release token</button> : null}
                   {participant.role === "dm" ? <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="danger-button" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
-                  {participant.role === "dm" ? <div className="token-config"><input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} /><div className="form-grid"><input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /><input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /><select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></div><button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token configuration saved.").then(() => setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; })); }}>Save configuration</button></div> : null}
+                  {participant.role === "dm" ? <div className="token-config">
+                    <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
+                    <div className="form-grid">
+                      <label>Size<select aria-label="Token size" value={tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
+                      <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /></label>
+                      <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
+                    </div>
+                    <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
+                    <button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, size: draft.size ?? token.size, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token configuration saved.").then(() => setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; })); }}>Save configuration</button>
+                  </div> : null}
                 </> : null}
               </section>;
             })}
@@ -835,7 +949,7 @@ export default function BattleMapPrototype() {
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
             <label>Map<select value={state.encounter.mapAsset} onChange={(event) => void runCommand("configure-encounter", { mapAsset: event.target.value }, "Map changed.")}>{state.availableMaps.map((path) => <option value={path} key={path}>{mapLabel(path)}</option>)}</select></label>
             <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
-            <div className="new-token-form"><input placeholder="Creature or character name" value={newTokenName} onChange={(event) => setNewTokenName(event.target.value)} /><div className="form-grid"><label>Kind<select value={newTokenKind} onChange={(event) => setNewTokenKind(event.target.value)}><option value="character">Character</option><option value="monster">Monster</option><option value="summon">Summon</option><option value="familiar">Familiar</option></select></label><label>Speed<input type="number" value={newTokenSpeed} onChange={(event) => setNewTokenSpeed(event.target.value)} /></label><label>Max HP<input type="number" value={newTokenHp} onChange={(event) => setNewTokenHp(event.target.value)} /></label></div><label>Portrait<select value={newTokenArt} onChange={(event) => setNewTokenArt(event.target.value)}><option value="">No portrait</option>{state.availableArt.map((path) => <option key={path} value={path}>{artLabel(path)}</option>)}</select></label>{["summon", "familiar"].includes(newTokenKind) ? <label>Summoner<select value={newTokenSummoner} onChange={(event) => setNewTokenSummoner(event.target.value)}><option value="">Choose summoner</option>{state.tokens.filter((token) => !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>{token.name}</option>)}</select></label> : null}<button className="primary-button" onClick={() => void runCommand("create-token", { name: newTokenName, kind: newTokenKind, speed: Number(newTokenSpeed), hp: Number(newTokenHp), maxHp: Number(newTokenHp), artAsset: newTokenArt, summonerTokenId: newTokenSummoner || undefined, x: 8, y: 5.5 }, `${newTokenName} placed.`).then(() => setNewTokenName(""))}>Place token</button></div>
+            <button className="primary-button" onClick={() => { setPaletteOpen(true); setAnnotationMode("move"); }}>Open creature palette</button>
           </section> : null}
 
           <button className="undo-button" onClick={() => void runCommand("undo", {}, "Last reversible action undone.")} disabled={busy || state.undo.available === 0}>Undo my last action{state.undo.available ? ` (${state.undo.available}/10)` : ""}</button>

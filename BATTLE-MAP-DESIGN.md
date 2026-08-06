@@ -116,7 +116,7 @@ is the sole movement interaction. A personal ten-action undo stack applies
 compensating mutations for reversible actions and appends each undo to the
 audit history rather than deleting history.
 
-The tactical UI supports DM map selection and token configuration, six
+The tactical UI supports DM map selection and token configuration, twenty
 transparent portrait assets, summons/familiars, a small Bless/Poisoned/Stunned
 effect preset set, custom effects and reminder timing, manual HP changes,
 concentration-check reminders, hidden tokens, compact audible pings that pulse
@@ -136,6 +136,33 @@ and UI undo passed with no new console errors. Conditional polling remains the
 verified Sites-compatible POC transport. Its measured idle request rate is
 acceptable for this small trusted group, but a managed push transport should be
 reconsidered before materially larger groups or longer-running deployments.
+
+### Verified creature-palette implementation
+
+The DM placement flow was replaced on August 5, 2026 with an overlay palette of
+seventeen creature templates. A creature can be dragged to an exact map point,
+or armed once and placed repeatedly by clicking the map. The palette remains
+open between placements, automatically numbers duplicate names, and permits a
+controller context to be chosen once for a batch: DM-controlled or summoned by
+an existing primary token. Name, HP, speed, portrait, visibility, and size can
+all be completed or revised after the authoritative placement is confirmed.
+
+Token size is now durable D1 state and part of the action history. The standard
+footprint defaults are Tiny (half a square), Small/Medium (one square), Large
+(two squares), Huge (three squares), and Gargantuan (four squares). Rendering,
+hit testing, client drag bounds, server placement bounds, later resizing, and
+server-confirmed movement all use the selected size. Changing size near a map
+edge safely reclamps the token center instead of allowing the enlarged token to
+extend off the board; movement remains continuously positioned between grid
+lines.
+
+The expanded library adds fourteen original transparent tactical cutouts to the
+six existing portraits. Local browser verification opened the palette, rendered
+all seventeen templates without warnings, placed a Small goblin at `11.88,
+6.55`, changed it to Large through the post-placement editor, and removed it
+again. API verification confirmed Large placement-edge clamping, Huge resize
+clamping, summon ownership inheritance, two-token convergence in 19 ms, and
+eight-client annotation convergence in 149 ms.
 
 ### Visibility
 
@@ -163,7 +190,7 @@ reconsidered before materially larger groups or longer-running deployments.
 
 ### Encounter setup
 
-- V1 uses manual placement and configuration of players and monsters.
+- V1 uses a DM creature palette for rapid drag/drop or repeated click placement; detailed configuration is intentionally optional until after placement.
 
 ### Joining and character scope
 

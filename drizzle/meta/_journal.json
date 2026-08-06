@@ -29,6 +29,13 @@
       "when": 1785981301958,
       "tag": "0003_flashy_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785985334446,
+      "tag": "0004_unique_smasher",
+      "breakpoints": true
     }
   ]
 }

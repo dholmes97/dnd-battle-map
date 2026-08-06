@@ -83,7 +83,7 @@ test("packages the transparent tactical token library", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../public/assets/tokens/manifest.json", import.meta.url), "utf8"),
   );
-  assert.equal(manifest.assets.length, 6);
+  assert.equal(manifest.assets.length, 20);
   assert.deepEqual(
     manifest.assets.slice(0, 3).map((asset) => asset.name),
     ["Dar'eleth", "Malichar Jarom", "Jelton Mercury"],
@@ -94,6 +94,27 @@ test("packages the transparent tactical token library", async () => {
     assert.equal(png.readUInt32BE(16), 1254, `${asset.id} width`);
     assert.equal(png.readUInt32BE(20), 1254, `${asset.id} height`);
     assert.equal(png[25], 6, `${asset.id} must use RGBA color`);
+  }
+});
+
+test("ships the drag-and-drop creature palette with durable size controls", async () => {
+  const [clientSource, workerSource, catalogSource, sizeMigration] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/creature-library.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0004_unique_smasher.sql", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /onDragStart=.*onPaletteDragStart/);
+  assert.match(clientSource, /onDrop=\{onMapDrop\}/);
+  assert.match(clientSource, /Click to place the selected creature/);
+  assert.match(clientSource, /aria-label="Token size"/);
+  assert.match(workerSource, /size TEXT DEFAULT 'medium' NOT NULL/);
+  assert.match(workerSource, /clampTokenCoordinate\(requestedX, GRID_WIDTH, token\.size\)/);
+  assert.match(sizeMigration, /ALTER TABLE `tokens` ADD `size` text DEFAULT 'medium' NOT NULL/);
+  assert.equal((catalogSource.match(/id: "/g) ?? []).length, 17);
+  for (const size of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
+    assert.match(catalogSource, new RegExp(`${size}: \\d`));
   }
 });
 

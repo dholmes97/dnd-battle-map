@@ -4,6 +4,12 @@ import {
   handleImageOptimization,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import {
+  TOKEN_ART_ASSETS,
+  type CreatureSize,
+  isCreatureSize,
+  tokenRadiusCells,
+} from "../shared/creature-library";
 
 interface Env {
   ASSETS: Fetcher;
@@ -44,6 +50,7 @@ type TokenRow = {
   y: number;
   art_asset: string | null;
   kind: string;
+  size: CreatureSize;
   speed: number;
   hp: number | null;
   max_hp: number | null;
@@ -101,14 +108,6 @@ const GRID_HEIGHT = 11;
 const LOCK_TTL_MS = 12_000;
 const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const PING_TTL_MS = 2_000;
-const TOKEN_ART_ASSETS = [
-  "/assets/tokens/characters/dareleth-paladin-01.png",
-  "/assets/tokens/characters/malichar-rogue-01.png",
-  "/assets/tokens/characters/jelton-druid-01.png",
-  "/assets/tokens/monsters/shadow-dire-warg-01.png",
-  "/assets/tokens/monsters/hungry-01.png",
-  "/assets/tokens/monsters/young-green-dragon-01.png",
-];
 const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|lock|move|unlock|command)$/;
 
@@ -174,6 +173,13 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
+function clampTokenCoordinate(value: unknown, limit: number, size: CreatureSize): number {
+  const radius = tokenRadiusCells(size);
+  const numeric = Number(value);
+  const fallback = limit / 2;
+  return Math.round(Math.min(limit - radius, Math.max(radius, Number.isFinite(numeric) ? numeric : fallback)) * 1_000) / 1_000;
+}
+
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
     schemaReady = (async () => {
@@ -207,6 +213,7 @@ async function ensureSchema(env: Env): Promise<void> {
           y REAL NOT NULL,
           art_asset TEXT,
           kind TEXT DEFAULT 'character' NOT NULL,
+          size TEXT DEFAULT 'medium' NOT NULL,
           speed INTEGER DEFAULT 30 NOT NULL,
           hp INTEGER,
           max_hp INTEGER,
@@ -325,6 +332,7 @@ async function ensureSchema(env: Env): Promise<void> {
       const tokenAdditions = [
         ["art_asset", "ALTER TABLE tokens ADD COLUMN art_asset TEXT"],
         ["kind", "ALTER TABLE tokens ADD COLUMN kind TEXT DEFAULT 'character' NOT NULL"],
+        ["size", "ALTER TABLE tokens ADD COLUMN size TEXT DEFAULT 'medium' NOT NULL"],
         ["speed", "ALTER TABLE tokens ADD COLUMN speed INTEGER DEFAULT 30 NOT NULL"],
         ["hp", "ALTER TABLE tokens ADD COLUMN hp INTEGER"],
         ["max_hp", "ALTER TABLE tokens ADD COLUMN max_hp INTEGER"],
@@ -621,7 +629,7 @@ async function encounterState(
   await expireAnnotations(env, encounter);
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
-    `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+    `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
             movement_used, owner_participant_id, owner_name,
             lock_owner_id, lock_owner_name, lock_expires_at
@@ -682,6 +690,7 @@ async function encounterState(
         y: token.y,
         artAsset: token.art_asset,
         kind: token.kind,
+        size: token.size,
         speed: token.speed,
         hp: canSeeExactHp ? token.hp : null,
         maxHp: canSeeExactHp ? token.max_hp : null,
@@ -1029,11 +1038,16 @@ async function handleCommand(
     } else if (action.action_type === "token_updated") {
       const previous = payload.previous as Record<string, unknown> | undefined;
       if (previous) {
+        const current = await env.DB.prepare(
+          "SELECT x, y, size FROM tokens WHERE id = ? AND encounter_id = ?",
+        )
+          .bind(tokenId, encounter.id)
+          .first<{ x: number; y: number; size: CreatureSize }>();
         const result = await env.DB.prepare(
-          `UPDATE tokens SET name = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?,
+          `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?,
            art_asset = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
         )
-          .bind(cleanText(previous.name, 48), Number(previous.speed), previous.hp ?? null, previous.maxHp ?? null, previous.hidden ? 1 : 0, previous.artAsset ?? null, now, tokenId, encounter.id)
+          .bind(cleanText(previous.name, 48), isCreatureSize(previous.size) ? previous.size : current?.size ?? "medium", Number.isFinite(Number(previous.x)) ? Number(previous.x) : current?.x ?? GRID_WIDTH / 2, Number.isFinite(Number(previous.y)) ? Number(previous.y) : current?.y ?? GRID_HEIGHT / 2, Number(previous.speed), previous.hp ?? null, previous.maxHp ?? null, previous.hidden ? 1 : 0, previous.artAsset ?? null, now, tokenId, encounter.id)
           .run();
         changes = result.meta.changes ?? 0;
       }
@@ -1053,7 +1067,7 @@ async function handleCommand(
     const tokenId = cleanTokenId(body.tokenId);
     const initiative = Math.trunc(Number(body.initiative));
     const token = await env.DB.prepare(
-      `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, lock_owner_id,
               lock_owner_name, lock_expires_at
@@ -1138,7 +1152,7 @@ async function handleCommand(
     }
     if (command === "end-turn") {
       const token = await env.DB.prepare(
-        `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+        `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
                 summoner_token_id, initiative, initiative_order, turn_complete,
                 movement_used, owner_participant_id, owner_name, lock_owner_id,
                 lock_owner_name, lock_expires_at
@@ -1268,8 +1282,9 @@ async function handleCommand(
     const artAsset = TOKEN_ART_ASSETS.includes(String(body.artAsset))
       ? String(body.artAsset)
       : null;
-    const x = Math.min(GRID_WIDTH, Math.max(0, Number(body.x) || GRID_WIDTH / 2));
-    const y = Math.min(GRID_HEIGHT, Math.max(0, Number(body.y) || GRID_HEIGHT / 2));
+    const size: CreatureSize = isCreatureSize(body.size) ? body.size : "medium";
+    const x = clampTokenCoordinate(body.x, GRID_WIDTH, size);
+    const y = clampTokenCoordinate(body.y, GRID_HEIGHT, size);
     const speed = Math.min(120, Math.max(0, Math.trunc(Number(body.speed)) || 30));
     const maxHp = Number.isFinite(Number(body.maxHp)) ? Math.max(1, Math.trunc(Number(body.maxHp))) : null;
     const hp = maxHp === null ? null : Math.min(maxHp, Math.max(0, Math.trunc(Number(body.hp)) || maxHp));
@@ -1297,11 +1312,11 @@ async function handleCommand(
     const tokenId = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO tokens
-       (id, encounter_id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+       (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
         summoner_token_id, initiative, initiative_order, turn_complete,
         movement_used, owner_participant_id, owner_name, lock_owner_id,
         lock_owner_name, lock_expires_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL, ?)`,
     )
       .bind(
         tokenId,
@@ -1311,6 +1326,7 @@ async function handleCommand(
         y,
         artAsset,
         kind,
+        size,
         speed,
         hp,
         maxHp,
@@ -1324,14 +1340,14 @@ async function handleCommand(
       )
       .run();
     await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "token_created", { tokenId, name, kind, summonerTokenId, artAsset }, now);
+    await recordAction(env, encounter.id, participant.id, "token_created", { tokenId, name, kind, size, x, y, summonerTokenId, artAsset }, now);
     return json({ created: true, tokenId, state: await state() });
   }
 
   if (command === "update-token" || command === "apply-hp") {
     const tokenId = cleanTokenId(body.tokenId);
     const token = await env.DB.prepare(
-      `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, lock_owner_id,
               lock_owner_name, lock_expires_at
@@ -1348,6 +1364,7 @@ async function handleCommand(
         ? Math.min(120, Math.max(0, Math.trunc(Number(body.speed))))
         : token.speed;
       const hidden = typeof body.hidden === "boolean" ? (body.hidden ? 1 : 0) : token.is_hidden;
+      const size: CreatureSize = isCreatureSize(body.size) ? body.size : token.size;
       const artAsset = TOKEN_ART_ASSETS.includes(String(body.artAsset))
         ? String(body.artAsset)
         : body.artAsset === ""
@@ -1357,17 +1374,19 @@ async function handleCommand(
         ? Math.max(1, Math.trunc(Number(body.maxHp)))
         : token.max_hp;
       const hp = maxHp === null ? null : Math.min(maxHp, token.hp ?? maxHp);
+      const x = clampTokenCoordinate(token.x, GRID_WIDTH, size);
+      const y = clampTokenCoordinate(token.y, GRID_HEIGHT, size);
       await env.DB.prepare(
-        `UPDATE tokens SET name = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?, art_asset = ?, updated_at = ?
+        `UPDATE tokens SET name = ?, size = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ?`,
       )
-        .bind(name, speed, hp, maxHp, hidden, artAsset, now, tokenId, encounter.id)
+        .bind(name, size, speed, hp, maxHp, hidden, artAsset, x, y, now, tokenId, encounter.id)
         .run();
       await bumpEncounter(env, encounter.id, now);
       await recordAction(env, encounter.id, participant.id, "token_updated", {
         tokenId,
-        previous: { name: token.name, speed: token.speed, hp: token.hp, maxHp: token.max_hp, hidden: Boolean(token.is_hidden), artAsset: token.art_asset },
-        next: { name, speed, hp, maxHp, hidden: Boolean(hidden), artAsset },
+        previous: { name: token.name, size: token.size, x: token.x, y: token.y, speed: token.speed, hp: token.hp, maxHp: token.max_hp, hidden: Boolean(token.is_hidden), artAsset: token.art_asset },
+        next: { name, size, x, y, speed, hp, maxHp, hidden: Boolean(hidden), artAsset },
       }, now);
       return json({ updated: true, state: await state() });
     }
@@ -1408,7 +1427,7 @@ async function handleCommand(
   if (command === "add-effect") {
     const tokenId = cleanTokenId(body.tokenId);
     const token = await env.DB.prepare(
-      `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, lock_owner_id,
               lock_owner_name, lock_expires_at
@@ -1669,7 +1688,7 @@ async function handleApi(
     return json({ error: "Token is required." }, { status: 400 });
   }
   const token = await env.DB.prepare(
-    `SELECT id, name, x, y, art_asset, kind, speed, hp, max_hp, is_hidden,
+    `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
             movement_used, owner_participant_id, owner_name,
             lock_owner_id, lock_owner_name, lock_expires_at
@@ -1880,8 +1899,8 @@ async function handleApi(
     ) {
       return json({ error: "Destination is outside the map." }, { status: 400 });
     }
-    const x = Math.round(requestedX * 1_000) / 1_000;
-    const y = Math.round(requestedY * 1_000) / 1_000;
+    const x = clampTokenCoordinate(requestedX, GRID_WIDTH, token.size);
+    const y = clampTokenCoordinate(requestedY, GRID_HEIGHT, token.size);
     const previous = { x: token.x, y: token.y };
     const movement = pathDistance(body, previous, { x, y });
     const remaining = Math.max(0, token.speed - token.movement_used);
