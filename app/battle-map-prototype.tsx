@@ -370,7 +370,7 @@ export default function BattleMapPrototype() {
       previousLock.expiresAt <= Date.now() + 1_000
     ) {
       setPreview(null);
-      setNotice("Lock expired — the token is available again.");
+      setNotice("Lock ended — the token is available again.");
     }
     previousLockRef.current = currentLock;
   }, [state?.token.lock]);
