@@ -29,6 +29,13 @@ function participantBody(participant, tokenId, extra = {}) {
   });
 }
 
+function sessionBody(participant) {
+  return JSON.stringify({
+    participantId: participant.id,
+    sessionSecret: participant.sessionSecret,
+  });
+}
+
 async function join(name) {
   const result = await request("join", {
     method: "POST",
@@ -129,6 +136,23 @@ test("three clients claim and independently move authoritative tokens", async ()
     bobClaim.body.state.tokens.find((token) => token.id === bobToken.id).owner.participantId,
     bob.id,
   );
+
+  const heartbeat = await request("heartbeat", {
+    method: "POST",
+    body: sessionBody(alice),
+  });
+  assert.equal(heartbeat.response.status, 200);
+  assert.equal(heartbeat.body.present, true);
+  assert.ok(heartbeat.body.claimExpiresAt > Date.now() + 115_000);
+
+  const invalidHeartbeat = await request("heartbeat", {
+    method: "POST",
+    body: JSON.stringify({
+      participantId: alice.id,
+      sessionSecret: bob.sessionSecret,
+    }),
+  });
+  assert.equal(invalidHeartbeat.response.status, 401);
 
   const secondClaim = await request("claim", {
     method: "POST",

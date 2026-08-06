@@ -51,6 +51,7 @@ const DEFAULT_CODE = "EMBER-KEEP";
 const TERRAIN_URL = "/assets/terrain/terrain-dungeon-flagstone-01.png";
 const TOKEN_RADIUS_CELLS = 0.36;
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8"];
+const HEARTBEAT_INTERVAL_MS = 20_000;
 
 function roundCoordinate(value: number) {
   return Math.round(value * 1_000) / 1_000;
@@ -92,6 +93,13 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const data = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
   return data;
+}
+
+function sessionBody(participant: Participant) {
+  return JSON.stringify({
+    participantId: participant.id,
+    sessionSecret: participant.sessionSecret,
+  });
 }
 
 function postBody(
@@ -222,6 +230,7 @@ export default function BattleMapPrototype() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousLockRef = useRef<TokenLock | null>(null);
+  const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
@@ -368,6 +377,36 @@ export default function BattleMapPrototype() {
   }, [joinedEncounterCode, participant]);
 
   useEffect(() => {
+    if (!participant || !joinedEncounterCode) return;
+    let disposed = false;
+    const heartbeat = async () => {
+      try {
+        await api<{ present: boolean; claimExpiresAt: number }>(
+          `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/heartbeat`,
+          { method: "POST", body: sessionBody(participant) },
+        );
+      } catch {
+        if (!disposed) {
+          setConnection((current) => current === "lost" ? "lost" : "reconnecting");
+        }
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void heartbeat();
+    };
+    void heartbeat();
+    const timer = setInterval(() => void heartbeat(), HEARTBEAT_INTERVAL_MS);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", heartbeat);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", heartbeat);
+    };
+  }, [joinedEncounterCode, participant]);
+
+  useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(timer);
   }, []);
@@ -380,6 +419,17 @@ export default function BattleMapPrototype() {
     }
     previousLockRef.current = activeLock;
   }, [activeLock]);
+
+  useEffect(() => {
+    const previousToken = previousClaimedTokenRef.current;
+    if (previousToken && !claimedToken) {
+      setPreview(null);
+      setNotice(
+        `${previousToken.name} was released after inactivity or reconnected in another browser. Claim a token to continue.`,
+      );
+    }
+    previousClaimedTokenRef.current = claimedToken;
+  }, [claimedToken]);
 
   useEffect(() => {
     const image = new Image();
@@ -441,6 +491,7 @@ export default function BattleMapPrototype() {
         { method: "POST", body: postBody(participant, claimedToken.id) },
       );
       setPreview(null);
+      previousClaimedTokenRef.current = null;
       setState(result.state);
       setNotice(`${claimedToken.name} released.`);
     } catch (releaseError) {
@@ -705,7 +756,7 @@ export default function BattleMapPrototype() {
           <button className="primary-button" onClick={() => void join()} disabled={busy}>
             {busy ? "Joining…" : "Join encounter"}
           </button>
-          <div className="join-note">Accountless prototype · use code <strong>EMBER-KEEP</strong></div>
+          <div className="join-note">Accountless prototype · use code <strong>EMBER-KEEP</strong><br />Token claims release after two minutes offline.</div>
         </section>
       </main>
     );
@@ -799,7 +850,7 @@ export default function BattleMapPrototype() {
             })}
           </div>
 
-          <div className="how-it-works"><span>1</span><p>Claim one party token.</p><span>2</span><p>Drag it to any pixel.</p><span>3</span><p>Release to publish the move.</p></div>
+          <div className="how-it-works"><span>1</span><p>Claim one party token.</p><span>2</span><p>Drag it to any pixel.</p><span>3</span><p>Release to publish the move.</p><span>4</span><p>Closed browsers release claims after two minutes.</p></div>
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           {notice ? <div className="toast" role="status">{notice}</div> : null}
         </aside>

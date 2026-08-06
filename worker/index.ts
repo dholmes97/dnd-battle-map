@@ -53,8 +53,9 @@ type ParticipantRow = {
 const GRID_WIDTH = 16;
 const GRID_HEIGHT = 11;
 const LOCK_TTL_MS = 12_000;
+const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const API_ROUTE =
-  /^\/api\/encounters\/([^/]+)\/(join|state|events|claim|relinquish|lock|move|unlock)$/;
+  /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|lock|move|unlock)$/;
 
 let schemaReady: Promise<void> | null = null;
 
@@ -332,9 +333,68 @@ async function expireLock(env: Env, encounter: EncounterRow): Promise<void> {
   }
 }
 
+async function expireStaleClaims(
+  env: Env,
+  encounter: EncounterRow,
+): Promise<void> {
+  const now = Date.now();
+  const staleBefore = now - PARTICIPANT_PRESENCE_TTL_MS;
+  const staleClaims = await env.DB.prepare(
+    `SELECT t.id, t.owner_participant_id, t.owner_name, p.last_seen_at
+     FROM tokens t
+     JOIN participants p ON p.id = t.owner_participant_id
+     WHERE t.encounter_id = ? AND p.last_seen_at <= ?`,
+  )
+    .bind(encounter.id, staleBefore)
+    .all<{
+      id: string;
+      owner_participant_id: string;
+      owner_name: string;
+      last_seen_at: number;
+    }>();
+
+  for (const token of staleClaims.results) {
+    const result = await env.DB.prepare(
+      `UPDATE tokens
+       SET owner_participant_id = NULL, owner_name = NULL,
+           lock_owner_id = NULL, lock_owner_name = NULL,
+           lock_expires_at = NULL, updated_at = ?
+       WHERE id = ? AND owner_participant_id = ?
+         AND EXISTS (
+           SELECT 1 FROM participants
+           WHERE id = ? AND last_seen_at <= ?
+         )`,
+    )
+      .bind(
+        now,
+        token.id,
+        token.owner_participant_id,
+        token.owner_participant_id,
+        staleBefore,
+      )
+      .run();
+    if ((result.meta.changes ?? 0) > 0) {
+      await bumpEncounter(env, encounter.id, now);
+      await recordAction(
+        env,
+        encounter.id,
+        token.owner_participant_id,
+        "token_claim_expired",
+        {
+          tokenId: token.id,
+          ownerName: token.owner_name,
+          lastSeenAt: token.last_seen_at,
+        },
+        now,
+      );
+    }
+  }
+}
+
 async function encounterState(env: Env, code: string) {
   let encounter = await findEncounter(env, code);
   if (!encounter) return null;
+  await expireStaleClaims(env, encounter);
   await expireLock(env, encounter);
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
@@ -503,6 +563,13 @@ async function handleApi(
   )
     .bind(now, participantId)
     .run();
+
+  if (action === "heartbeat") {
+    return json({
+      present: true,
+      claimExpiresAt: now + PARTICIPANT_PRESENCE_TTL_MS,
+    });
+  }
 
   const tokenId = cleanTokenId(body.tokenId);
   if (!tokenId) {

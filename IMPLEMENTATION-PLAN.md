@@ -40,6 +40,8 @@ Scope:
 - Allow a participant with the same display name to reclaim that token after a
   reload; this is an explicitly trusted-group recovery rule, not authentication.
 - Let a participant relinquish their token.
+- Renew active participant presence every twenty seconds and release abandoned
+  claims after two minutes without a valid heartbeat.
 - Require token ownership for lock and movement operations.
 - Scope locks and moves by token ID so different tokens can move concurrently.
 - Render all tokens on the shared map and identify their owners in the control
@@ -57,6 +59,8 @@ Acceptance criteria:
 - Fractional positions, ownership, and action records survive refresh/restart.
 - All three clients converge on the same token roster and positions promptly.
 - Reconnect, lock expiry, rejected ownership, and reclaim states are explicit.
+- A stale claim releases its ownership and lock atomically and records the
+  expiry in action history.
 
 Out of scope for this phase:
 

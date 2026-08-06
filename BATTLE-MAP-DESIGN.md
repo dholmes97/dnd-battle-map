@@ -81,6 +81,16 @@ against Sites version 6 and observed both concurrent fractional moves in 1.6
 seconds. Three public browser sessions then claimed separate tokens and
 converged on a direct drag to `10.65, 6.01`, with no console warnings or errors.
 
+Token ownership now uses a presence lease to prevent a closed browser from
+stranding a character indefinitely. An active browser sends an authenticated
+heartbeat every twenty seconds. After two minutes without a valid heartbeat,
+the server atomically releases that participant's claim and any token lock,
+bumps encounter state, and appends a `token_claim_expired` action. Same-name
+reconnect still transfers ownership immediately and does not wait for expiry.
+Local verification forced a participant beyond the grace period and confirmed
+the ownership, lock, shared version, and action-history changes while the
+normal three-client movement test continued to pass.
+
 ### Visibility
 
 - V1 uses simple, DM-controlled visibility rather than fog of war or per-character line-of-sight.
