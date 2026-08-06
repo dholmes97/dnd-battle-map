@@ -76,6 +76,11 @@ transferred ownership to a new browser, the superseded session was denied, and
 claim, reconnect, lock, move, and relinquish actions were confirmed in the
 append-only relational history. The browser run produced no warnings or errors.
 
+Production verification on August 5, 2026 repeated the three-client API flow
+against Sites version 6 and observed both concurrent fractional moves in 1.6
+seconds. Three public browser sessions then claimed separate tokens and
+converged on a direct drag to `10.65, 6.01`, with no console warnings or errors.
+
 ### Visibility
 
 - V1 uses simple, DM-controlled visibility rather than fog of war or per-character line-of-sight.

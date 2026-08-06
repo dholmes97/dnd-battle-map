@@ -10,7 +10,7 @@ clear lock/reconnect safety.
 | Phase | Milestone | Status |
 | --- | --- | --- |
 | 1 | One shared token, durable fractional movement, locking, and two-client synchronization | Complete |
-| 2 | Multiple tokens, player claiming/ownership, and independent token locks | In progress |
+| 2 | Multiple tokens, player claiming/ownership, and independent token locks | Complete |
 | 3 | Initiative order, rounds, active turn, and End Turn | Planned |
 | 4 | Movement allowance, path distance, and DM override | Planned |
 | 5 | DM encounter setup, creature placement, and map selection | Planned |
@@ -65,6 +65,11 @@ Out of scope for this phase:
 - Movement-speed enforcement.
 - Creating arbitrary tokens through the UI.
 - Hidden creatures or per-player visibility.
+
+Delivered August 5, 2026. The automated three-client production test observed
+two concurrent fractional moves in 1.6 seconds. Three production browser
+clients also claimed separate tokens and converged on a direct drag with no
+console warnings or errors.
 
 ## Phase 3 — Initiative and rounds
 
