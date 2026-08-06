@@ -86,9 +86,15 @@ test("two clients share an authoritative locked token move", async () => {
 
   const initial = bobJoin.body.state;
   const destination = {
-    x: (initial.token.x + 1) % initial.grid.width,
-    y: initial.token.y,
+    x: Number((initial.token.x < initial.grid.width / 2
+      ? initial.token.x + 1.137
+      : initial.token.x - 1.137).toFixed(3)),
+    y: Number((initial.token.y < initial.grid.height / 2
+      ? initial.token.y + 0.413
+      : initial.token.y - 0.413).toFixed(3)),
   };
+  assert.notEqual(destination.x, Math.trunc(destination.x));
+  assert.notEqual(destination.y, Math.trunc(destination.y));
 
   const observedMove = waitForLongPollState(
     initial.encounter.version,

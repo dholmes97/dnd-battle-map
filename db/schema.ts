@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
@@ -31,8 +31,8 @@ export const tokens = sqliteTable(
       .notNull()
       .references(() => encounters.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    x: integer("x").notNull(),
-    y: integer("y").notNull(),
+    x: real("x").notNull(),
+    y: real("y").notNull(),
     lockOwnerId: text("lock_owner_id"),
     lockOwnerName: text("lock_owner_name"),
     lockExpiresAt: integer("lock_expires_at"),

@@ -34,10 +34,59 @@ type EncounterState = {
 };
 
 type Participant = { id: string; name: string; sessionSecret: string };
-type Cell = { x: number; y: number };
+type MapPoint = { x: number; y: number };
+type DragGesture = {
+  pointerId: number;
+  origin: MapPoint;
+  latest: MapPoint;
+  grabOffset: MapPoint;
+  released: boolean;
+  canceled: boolean;
+  finishing: boolean;
+  lockState: EncounterState | null;
+};
 
 const DEFAULT_CODE = "EMBER-KEEP";
 const TERRAIN_URL = "/assets/terrain/terrain-dungeon-flagstone-01.png";
+const TOKEN_RADIUS_CELLS = 0.36;
+
+function roundCoordinate(value: number) {
+  return Math.round(value * 1_000) / 1_000;
+}
+
+function formatPosition(point: MapPoint) {
+  return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
+}
+
+function clampMapPoint(state: EncounterState, point: MapPoint): MapPoint {
+  return {
+    x: roundCoordinate(
+      Math.min(
+        state.grid.width - TOKEN_RADIUS_CELLS,
+        Math.max(TOKEN_RADIUS_CELLS, point.x),
+      ),
+    ),
+    y: roundCoordinate(
+      Math.min(
+        state.grid.height - TOKEN_RADIUS_CELLS,
+        Math.max(TOKEN_RADIUS_CELLS, point.y),
+      ),
+    ),
+  };
+}
+
+function pointerToMap(
+  canvas: HTMLCanvasElement,
+  state: EncounterState,
+  clientX: number,
+  clientY: number,
+): MapPoint {
+  const rect = canvas.getBoundingClientRect();
+  return clampMapPoint(state, {
+    x: ((clientX - rect.left) / rect.width) * state.grid.width,
+    y: ((clientY - rect.top) / rect.height) * state.grid.height,
+  });
+}
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -63,7 +112,7 @@ function postBody(participant: Participant, extra: Record<string, unknown> = {})
 function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
-  preview: Cell | null,
+  preview: MapPoint | null,
   participant: Participant,
   terrain: HTMLImageElement | null,
 ) {
@@ -112,11 +161,14 @@ function drawMap(
   }
 
   const ownsLock = state.token.lock?.ownerId === participant.id;
-  if (preview && ownsLock) {
-    const startX = (state.token.x + 0.5) * cellWidth;
-    const startY = (state.token.y + 0.5) * cellHeight;
-    const endX = (preview.x + 0.5) * cellWidth;
-    const endY = (preview.y + 0.5) * cellHeight;
+  const lockedByOther = Boolean(
+    state.token.lock && state.token.lock.ownerId !== participant.id,
+  );
+  if (preview && !lockedByOther) {
+    const startX = state.token.x * cellWidth;
+    const startY = state.token.y * cellHeight;
+    const endX = preview.x * cellWidth;
+    const endY = preview.y * cellHeight;
     context.strokeStyle = "rgba(245, 198, 92, 0.9)";
     context.lineWidth = 3;
     context.setLineDash([7, 6]);
@@ -125,35 +177,18 @@ function drawMap(
     context.lineTo(endX, endY);
     context.stroke();
     context.setLineDash([]);
-    context.fillStyle = "rgba(245, 198, 92, 0.18)";
-    context.fillRect(
-      preview.x * cellWidth + 2,
-      preview.y * cellHeight + 2,
-      cellWidth - 4,
-      cellHeight - 4,
-    );
-    context.strokeStyle = "#f5c65c";
-    context.lineWidth = 2;
-    context.strokeRect(
-      preview.x * cellWidth + 2,
-      preview.y * cellHeight + 2,
-      cellWidth - 4,
-      cellHeight - 4,
-    );
   }
 
-  const tokenX = (state.token.x + 0.5) * cellWidth;
-  const tokenY = (state.token.y + 0.5) * cellHeight;
-  const radius = Math.min(cellWidth, cellHeight) * 0.36;
-  const lockedByOther = Boolean(
-    state.token.lock && state.token.lock.ownerId !== participant.id,
-  );
+  const displayedPosition = preview && !lockedByOther ? preview : state.token;
+  const tokenX = displayedPosition.x * cellWidth;
+  const tokenY = displayedPosition.y * cellHeight;
+  const radius = Math.min(cellWidth, cellHeight) * TOKEN_RADIUS_CELLS;
 
   context.save();
   if (lockedByOther) context.globalAlpha = 0.58;
   context.shadowColor = "rgba(0, 0, 0, 0.45)";
   context.shadowBlur = 12;
-  context.fillStyle = ownsLock ? "#f5c65c" : "#c97546";
+  context.fillStyle = ownsLock || preview ? "#f5c65c" : "#c97546";
   context.beginPath();
   context.arc(tokenX, tokenY, radius, 0, Math.PI * 2);
   context.fill();
@@ -175,7 +210,8 @@ export default function BattleMapPrototype() {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
-  const [preview, setPreview] = useState<Cell | null>(null);
+  const [preview, setPreview] = useState<MapPoint | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -184,6 +220,7 @@ export default function BattleMapPrototype() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousLockRef = useRef<EncounterState["token"]["lock"]>(null);
+  const dragGestureRef = useRef<DragGesture | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedEncounterCode = state?.encounter.code;
@@ -199,15 +236,17 @@ export default function BattleMapPrototype() {
 
   const distance = useMemo(() => {
     if (!state || !preview) return 0;
-    return (
+    return Number((
       Math.max(
         Math.abs(preview.x - state.token.x),
         Math.abs(preview.y - state.token.y),
       ) * state.grid.feetPerCell
-    );
+    ).toFixed(1));
   }, [preview, state]);
   const isNoOpPreview = Boolean(
-    state && preview && preview.x === state.token.x && preview.y === state.token.y,
+    state &&
+      preview &&
+      Math.hypot(preview.x - state.token.x, preview.y - state.token.y) < 0.001,
   );
 
   const join = async () => {
@@ -261,7 +300,7 @@ export default function BattleMapPrototype() {
           setConnection("live");
         }
       } catch {
-        // EventSource will keep retrying; movement remains disabled meanwhile.
+        // The polling loop will keep retrying; movement remains disabled meanwhile.
       }
     };
 
@@ -419,7 +458,7 @@ export default function BattleMapPrototype() {
       setState(result.state);
       if (result.acquired) {
         setPreview({ x: result.state.token.x, y: result.state.token.y });
-        setNotice("Token locked. Choose a destination, then confirm.");
+        setNotice("Token locked. Drag it or use the arrow keys.");
       }
     } catch (lockError) {
       setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
@@ -461,26 +500,29 @@ export default function BattleMapPrototype() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownsLock, participant, state?.encounter.code]);
 
-  const confirmMove = async () => {
-    if (!participant || !state || !preview || !ownsLock || !movementEnabled) return;
+  const publishMove = async (
+    destination: MapPoint,
+    encounterCode = state?.encounter.code,
+  ) => {
+    if (!participant || !encounterCode) return;
     setBusy(true);
     setError("");
     try {
       const result = await api<{ moved: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/move`,
+        `/api/encounters/${encodeURIComponent(encounterCode)}/move`,
         {
           method: "POST",
-          body: postBody(participant, { x: preview.x, y: preview.y }),
+          body: postBody(participant, destination),
         },
       );
       setState(result.state);
       setPreview(null);
-      setNotice(`Move confirmed at ${preview.x + 1}, ${preview.y + 1}.`);
+      setNotice(`Move confirmed at ${formatPosition(destination)}.`);
     } catch (moveError) {
       setError(moveError instanceof Error ? moveError.message : "Move rejected.");
       setPreview(null);
       const fresh = await api<EncounterState>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
+        `/api/encounters/${encodeURIComponent(encounterCode)}/state`,
       ).catch(() => null);
       if (fresh) setState(fresh);
     } finally {
@@ -488,26 +530,201 @@ export default function BattleMapPrototype() {
     }
   };
 
-  const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || !movementEnabled) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const cell = {
-      x: Math.min(
-        state.grid.width - 1,
-        Math.max(0, Math.floor(((event.clientX - rect.left) / rect.width) * state.grid.width)),
-      ),
-      y: Math.min(
-        state.grid.height - 1,
-        Math.max(0, Math.floor(((event.clientY - rect.top) / rect.height) * state.grid.height)),
-      ),
-    };
+  const confirmMove = async () => {
+    if (!preview || !ownsLock || !movementEnabled) return;
+    await publishMove(preview);
+  };
 
-    if (ownsLock) {
-      setPreview(cell);
+  const releaseGestureLock = async (
+    gesture: DragGesture,
+    message?: string,
+  ) => {
+    if (!participant || !gesture.lockState) {
+      setBusy(false);
       return;
     }
-    if (!lockedByOther && cell.x === state.token.x && cell.y === state.token.y) {
-      void acquireLock();
+    try {
+      const result = await api<{ state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(gesture.lockState.encounter.code)}/unlock`,
+        { method: "POST", body: postBody(participant) },
+      );
+      setState(result.state);
+      if (message) setNotice(message);
+    } catch (releaseError) {
+      setError(
+        releaseError instanceof Error
+          ? releaseError.message
+          : "Unable to release token.",
+      );
+    } finally {
+      setPreview(null);
+      setBusy(false);
+    }
+  };
+
+  const finishDrag = async (gesture: DragGesture) => {
+    if (gesture.finishing || !gesture.lockState) return;
+    gesture.finishing = true;
+    dragGestureRef.current = null;
+    setDragging(false);
+    if (
+      Math.hypot(
+        gesture.latest.x - gesture.origin.x,
+        gesture.latest.y - gesture.origin.y,
+      ) < 0.001
+    ) {
+      await releaseGestureLock(gesture, "Token released without moving.");
+      return;
+    }
+    await publishMove(gesture.latest, gesture.lockState.encounter.code);
+  };
+
+  const acquireLockForDrag = async (gesture: DragGesture) => {
+    if (!participant || !state) return;
+    try {
+      const result = await api<{ acquired: boolean; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
+        { method: "POST", body: postBody(participant) },
+      );
+      setState(result.state);
+      if (!result.acquired) throw new Error("Token lock is unavailable.");
+      gesture.lockState = result.state;
+      if (gesture.canceled) {
+        await releaseGestureLock(gesture);
+      } else if (gesture.released) {
+        await finishDrag(gesture);
+      } else {
+        setBusy(false);
+      }
+    } catch (lockError) {
+      if (!gesture.canceled) {
+        setError(
+          lockError instanceof Error ? lockError.message : "Lock unavailable.",
+        );
+      }
+      if (dragGestureRef.current === gesture) dragGestureRef.current = null;
+      setPreview(null);
+      setDragging(false);
+      setBusy(false);
+      const fresh = await api<EncounterState>(
+        `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
+      ).catch(() => null);
+      if (fresh) setState(fresh);
+    }
+  };
+
+  const dragDestination = (
+    canvas: HTMLCanvasElement,
+    gesture: DragGesture,
+    clientX: number,
+    clientY: number,
+  ) => {
+    if (!state) return gesture.latest;
+    const pointer = pointerToMap(canvas, state, clientX, clientY);
+    return clampMapPoint(state, {
+      x: pointer.x - gesture.grabOffset.x,
+      y: pointer.y - gesture.grabOffset.y,
+    });
+  };
+
+  const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (
+      !state ||
+      !participant ||
+      !movementEnabled ||
+      lockedByOther ||
+      dragGestureRef.current
+    ) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointer = pointerToMap(
+      event.currentTarget,
+      state,
+      event.clientX,
+      event.clientY,
+    );
+    const displayedPosition = ownsLock && preview ? preview : state.token;
+    const deltaX =
+      ((pointer.x - displayedPosition.x) / state.grid.width) * rect.width;
+    const deltaY =
+      ((pointer.y - displayedPosition.y) / state.grid.height) * rect.height;
+    const radius =
+      Math.min(rect.width / state.grid.width, rect.height / state.grid.height) *
+      TOKEN_RADIUS_CELLS;
+    if (Math.hypot(deltaX, deltaY) > radius) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const gesture: DragGesture = {
+      pointerId: event.pointerId,
+      origin: { x: state.token.x, y: state.token.y },
+      latest: { ...displayedPosition },
+      grabOffset: {
+        x: pointer.x - displayedPosition.x,
+        y: pointer.y - displayedPosition.y,
+      },
+      released: false,
+      canceled: false,
+      finishing: false,
+      lockState: ownsLock ? state : null,
+    };
+    dragGestureRef.current = gesture;
+    setDragging(true);
+    setPreview(displayedPosition);
+    setBusy(true);
+    setError("");
+    if (gesture.lockState) {
+      setBusy(false);
+    } else {
+      void acquireLockForDrag(gesture);
+    }
+  };
+
+  const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const gesture = dragGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    gesture.latest = dragDestination(
+      event.currentTarget,
+      gesture,
+      event.clientX,
+      event.clientY,
+    );
+    setPreview(gesture.latest);
+  };
+
+  const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const gesture = dragGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    gesture.latest = dragDestination(
+      event.currentTarget,
+      gesture,
+      event.clientX,
+      event.clientY,
+    );
+    gesture.released = true;
+    setPreview(gesture.latest);
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (gesture.lockState) void finishDrag(gesture);
+  };
+
+  const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const gesture = dragGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.canceled = true;
+    dragGestureRef.current = null;
+    setPreview(null);
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (gesture.lockState) {
+      void releaseGestureLock(gesture);
     }
   };
 
@@ -522,19 +739,21 @@ export default function BattleMapPrototype() {
     }
 
     const origin = preview ?? { x: state.token.x, y: state.token.y };
-    const deltas: Record<string, Cell> = {
-      ArrowLeft: { x: -1, y: 0 },
-      ArrowRight: { x: 1, y: 0 },
-      ArrowUp: { x: 0, y: -1 },
-      ArrowDown: { x: 0, y: 1 },
+    const deltas: Record<string, MapPoint> = {
+      ArrowLeft: { x: -0.25, y: 0 },
+      ArrowRight: { x: 0.25, y: 0 },
+      ArrowUp: { x: 0, y: -0.25 },
+      ArrowDown: { x: 0, y: 0.25 },
     };
     const delta = deltas[event.key];
     if (!delta) return;
     event.preventDefault();
-    setPreview({
-      x: Math.max(0, Math.min(state.grid.width - 1, origin.x + delta.x)),
-      y: Math.max(0, Math.min(state.grid.height - 1, origin.y + delta.y)),
-    });
+    setPreview(
+      clampMapPoint(state, {
+        x: origin.x + delta.x,
+        y: origin.y + delta.y,
+      }),
+    );
   };
 
   if (!participant || !state) {
@@ -608,11 +827,14 @@ export default function BattleMapPrototype() {
           <div className="map-frame">
             <canvas
               ref={canvasRef}
-              className={lockedByOther ? "map-canvas is-blocked" : "map-canvas"}
+              className={`map-canvas${lockedByOther ? " is-blocked" : ""}${dragging ? " is-dragging" : ""}`}
               onPointerDown={onCanvasPointerDown}
+              onPointerMove={onCanvasPointerMove}
+              onPointerUp={onCanvasPointerUp}
+              onPointerCancel={onCanvasPointerCancel}
               onKeyDown={onCanvasKeyDown}
               aria-disabled={!movementEnabled || lockedByOther}
-              aria-label={`${state.grid.width} by ${state.grid.height} battle grid. Token at column ${state.token.x + 1}, row ${state.token.y + 1}. Lock the token, then use arrow keys or select a square to choose a destination.`}
+              aria-label={`${state.grid.width} by ${state.grid.height} battle grid. Token at map position ${formatPosition(state.token)}. Grab and drag the token to any position, or use the keyboard movement control.`}
               role="application"
               tabIndex={0}
             />
@@ -651,18 +873,18 @@ export default function BattleMapPrototype() {
             </div>
             <div className="coordinate-row">
               <span>Position</span>
-              <strong>{state.token.x + 1}, {state.token.y + 1}</strong>
+              <strong>{formatPosition(state.token)}</strong>
             </div>
 
             {!activeLock ? (
               <div className="lock-state is-open">
                 <span className="lock-mark">◇</span>
-                <span><strong>Available</strong><small>Select the token on the map to lock it.</small></span>
+                <span><strong>Available</strong><small>Grab the token and drag it anywhere on the map.</small></span>
               </div>
             ) : ownsLock ? (
               <div className="lock-state is-yours">
                 <span className="lock-mark">◆</span>
-                <span><strong>Your lock · {remainingSeconds}s</strong><small>Choose a square, then confirm the move.</small></span>
+                <span><strong>Your lock · {remainingSeconds}s</strong><small>Release the token to publish the drop.</small></span>
               </div>
             ) : (
               <div className="lock-state is-other">
@@ -675,7 +897,7 @@ export default function BattleMapPrototype() {
               <div className="move-review">
                 <div>
                   <small>Proposed destination</small>
-                  <strong>{preview.x + 1}, {preview.y + 1}</strong>
+                  <strong>{formatPosition(preview)}</strong>
                 </div>
                 <div>
                   <small>Rules distance</small>
@@ -703,15 +925,15 @@ export default function BattleMapPrototype() {
                 onClick={() => void acquireLock()}
                 disabled={!movementEnabled || lockedByOther}
               >
-                {lockedByOther ? "Token locked" : "Lock token"}
+                {lockedByOther ? "Token locked" : "Move with keyboard"}
               </button>
             )}
           </section>
 
           <div className="how-it-works">
-            <span>1</span><p>Lock the shared token.</p>
-            <span>2</span><p>Choose a destination square.</p>
-            <span>3</span><p>Confirm to publish the move.</p>
+            <span>1</span><p>Grab the shared token.</p>
+            <span>2</span><p>Drag to any pixel on the map.</p>
+            <span>3</span><p>Release to publish the move.</p>
           </div>
 
           {error ? <div className="form-error" role="alert">{error}</div> : null}

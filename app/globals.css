@@ -208,10 +208,11 @@ input:focus {
   width: 100%;
   aspect-ratio: 16 / 11;
   touch-action: none;
-  cursor: crosshair;
+  cursor: grab;
 }
 
 .map-canvas.is-blocked { cursor: not-allowed; }
+.map-canvas.is-dragging { cursor: grabbing; }
 .map-canvas:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: -3px;

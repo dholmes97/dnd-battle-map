@@ -124,8 +124,8 @@ async function ensureSchema(env: Env): Promise<void> {
           id TEXT PRIMARY KEY NOT NULL,
           encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
           name TEXT NOT NULL,
-          x INTEGER NOT NULL,
-          y INTEGER NOT NULL,
+          x REAL NOT NULL,
+          y REAL NOT NULL,
           lock_owner_id TEXT,
           lock_owner_name TEXT,
           lock_expires_at INTEGER,
@@ -473,18 +473,20 @@ async function handleApi(
   }
 
   if (action === "move") {
-    const x = Number(body.x);
-    const y = Number(body.y);
+    const requestedX = Number(body.x);
+    const requestedY = Number(body.y);
     if (
-      !Number.isInteger(x) ||
-      !Number.isInteger(y) ||
-      x < 0 ||
-      y < 0 ||
-      x >= GRID_WIDTH ||
-      y >= GRID_HEIGHT
+      !Number.isFinite(requestedX) ||
+      !Number.isFinite(requestedY) ||
+      requestedX < 0 ||
+      requestedY < 0 ||
+      requestedX > GRID_WIDTH ||
+      requestedY > GRID_HEIGHT
     ) {
       return json({ error: "Destination is outside the map." }, { status: 400 });
     }
+    const x = Math.round(requestedX * 1_000) / 1_000;
+    const y = Math.round(requestedY * 1_000) / 1_000;
     const previous = await env.DB.prepare(
       "SELECT x, y FROM tokens WHERE encounter_id = ? LIMIT 1",
     )
