@@ -119,7 +119,8 @@ audit history rather than deleting history.
 The tactical UI supports DM map selection and token configuration, six
 transparent portrait assets, summons/familiars, a small Bless/Poisoned/Stunned
 effect preset set, custom effects and reminder timing, manual HP changes,
-concentration-check reminders, hidden tokens, pings, drawings, and DM
+concentration-check reminders, hidden tokens, compact audible pings that pulse
+exactly three times and then disappear, drawings, and DM
 spotlights. Personalized state responses filter hidden tokens and exact HP on
 the server. This is still an accountless trusted-group tool: participants
 self-select the DM role, so the role boundary is coordination rather than

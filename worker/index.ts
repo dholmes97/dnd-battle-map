@@ -100,6 +100,7 @@ const GRID_WIDTH = 16;
 const GRID_HEIGHT = 11;
 const LOCK_TTL_MS = 12_000;
 const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
+const PING_TTL_MS = 2_000;
 const TOKEN_ART_ASSETS = [
   "/assets/tokens/characters/dareleth-paladin-01.png",
   "/assets/tokens/characters/malichar-rogue-01.png",
@@ -1513,7 +1514,7 @@ async function handleCommand(
       return json({ error: "Annotation is outside the map." }, { status: 400 });
     }
     const expiresAt = annotationType === "ping"
-      ? now + 10_000
+      ? now + PING_TTL_MS
       : annotationType === "spotlight"
         ? now + 15_000
         : null;

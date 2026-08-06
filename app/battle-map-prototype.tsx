@@ -94,6 +94,9 @@ const DEFAULT_CODE = "EMBER-KEEP";
 const TOKEN_RADIUS_CELLS = 0.36;
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 const HEARTBEAT_INTERVAL_MS = 20_000;
+const PING_PULSE_COUNT = 3;
+const PING_PULSE_MS = 420;
+const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
 
 function roundCoordinate(value: number) {
   return Math.round(value * 1_000) / 1_000;
@@ -147,6 +150,25 @@ function calculatePathDistance(path: MapPoint[], feetPerCell: number) {
   return Math.round(squares * feetPerCell * 10) / 10;
 }
 
+function playPingSound(context: AudioContext) {
+  if (context.state === "closed") return;
+  const sound = () => {
+    const startedAt = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, startedAt);
+    oscillator.frequency.exponentialRampToValueAtTime(1_320, startedAt + 0.09);
+    gain.gain.setValueAtTime(0.0001, startedAt);
+    gain.gain.exponentialRampToValueAtTime(0.16, startedAt + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + 0.18);
+    oscillator.connect(gain); gain.connect(context.destination);
+    oscillator.start(startedAt); oscillator.stop(startedAt + 0.19);
+  };
+  if (context.state === "suspended") void context.resume().then(sound).catch(() => undefined);
+  else sound();
+}
+
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
@@ -181,6 +203,8 @@ function drawMap(
   terrain: HTMLImageElement | null,
   tokenArt: Map<string, HTMLImageElement>,
   viewport: Viewport,
+  pingStartedAt: ReadonlyMap<string, number>,
+  animationNow: number,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -227,11 +251,25 @@ function drawMap(
     context.strokeStyle = annotation.color;
     context.fillStyle = `${annotation.color}33`;
     context.lineWidth = annotation.type === "spotlight" ? 5 : 3;
-    if (annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null) {
+    if (annotation.type === "ping") {
+      const startedAt = pingStartedAt.get(annotation.id);
+      const elapsed = startedAt === undefined ? PING_DURATION_MS : animationNow - startedAt;
+      if (elapsed < 0 || elapsed >= PING_DURATION_MS) { context.restore(); continue; }
+      const pulseProgress = (elapsed % PING_PULSE_MS) / PING_PULSE_MS;
+      const radius = Math.min(cellWidth, cellHeight) * (0.12 + pulseProgress * 0.2);
+      context.globalAlpha = Math.max(0, 1 - pulseProgress);
+      context.lineWidth = 2.5;
+      context.shadowColor = annotation.color;
+      context.shadowBlur = 7;
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
+      context.globalAlpha = Math.max(0, 0.82 - elapsed / PING_DURATION_MS);
+      context.fillStyle = annotation.color;
+      context.beginPath(); context.arc(x, y, Math.min(cellWidth, cellHeight) * 0.055, 0, Math.PI * 2); context.fill();
+    } else if (annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null) {
       context.setLineDash([9, 5]);
       context.beginPath(); context.moveTo(x, y); context.lineTo(screenX(annotation.x2), screenY(annotation.y2)); context.stroke();
     } else {
-      const radius = Math.min(cellWidth, cellHeight) * (annotation.type === "spotlight" ? 1.15 : 0.58);
+      const radius = Math.min(cellWidth, cellHeight) * 1.15;
       context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke();
     }
     context.restore();
@@ -339,6 +377,8 @@ export default function BattleMapPrototype() {
   const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
+  const pingStartedAtRef = useRef<Map<string, number>>(new Map());
+  const pingAudioContextRef = useRef<AudioContext | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedCode = state?.encounter.code;
@@ -359,9 +399,18 @@ export default function BattleMapPrototype() {
   const distance = state ? calculatePathDistance(previewPath, state.grid.feetPerCell) : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
 
+  const enablePingAudio = () => {
+    if (typeof AudioContext === "undefined") return;
+    if (!pingAudioContextRef.current || pingAudioContextRef.current.state === "closed") {
+      pingAudioContextRef.current = new AudioContext();
+    }
+    if (pingAudioContextRef.current.state === "suspended") void pingAudioContextRef.current.resume().catch(() => undefined);
+  };
+
   const join = async () => {
     const name = displayName.trim();
     if (!name) return setError("Enter a display name to join the encounter.");
+    enablePingAudio();
     setBusy(true); setError("");
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
@@ -454,6 +503,19 @@ export default function BattleMapPrototype() {
   }, [notice]);
 
   useEffect(() => {
+    const receivedAt = Date.now();
+    for (const annotation of state?.annotations ?? []) {
+      if (annotation.type !== "ping" || pingStartedAtRef.current.has(annotation.id)) continue;
+      pingStartedAtRef.current.set(annotation.id, receivedAt);
+      if (pingAudioContextRef.current) playPingSound(pingAudioContextRef.current);
+    }
+  }, [state?.annotations]);
+
+  useEffect(() => () => {
+    if (pingAudioContextRef.current) void pingAudioContextRef.current.close();
+  }, []);
+
+  useEffect(() => {
     if (!state?.encounter.mapAsset) return;
     const image = new Image(); let disposed = false;
     image.onload = () => { if (!disposed) setTerrain(image); };
@@ -471,13 +533,28 @@ export default function BattleMapPrototype() {
     return () => { disposed = true; };
   }, [state?.tokens]);
 
-  const redraw = useCallback(() => {
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, previewPath, participant, terrain, tokenArt, viewport);
+  const redraw = useCallback((animationNow = Date.now()) => {
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, previewPath, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
   }, [participant, preview, previewPath, state, terrain, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
-    const observer = new ResizeObserver(redraw); observer.observe(canvas); return () => observer.disconnect();
+    const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
   }, [redraw]);
+
+  useEffect(() => {
+    const hasAnimatingPing = () => state?.annotations.some((annotation) => {
+      const startedAt = pingStartedAtRef.current.get(annotation.id);
+      return annotation.type === "ping" && startedAt !== undefined && Date.now() - startedAt < PING_DURATION_MS;
+    });
+    if (!hasAnimatingPing()) return;
+    let frameId = 0;
+    const animate = () => {
+      redraw(Date.now());
+      if (hasAnimatingPing()) frameId = requestAnimationFrame(animate);
+    };
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, [redraw, state?.annotations]);
 
   const refreshAfterError = async () => {
     if (!participant || !state) return;
@@ -591,7 +668,7 @@ export default function BattleMapPrototype() {
       x: start.x, y: start.y,
       x2: end?.x, y2: end?.y,
       color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
-    }, type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : "Ping shared.");
+    }, type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : undefined);
     setAnnotationMode("move");
   };
 
@@ -688,7 +765,7 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-toolbar" aria-label="Map communication tools">
             <button className={annotationMode === "move" ? "tool-active" : ""} onClick={() => setAnnotationMode("move")}>Move</button>
-            <button className={annotationMode === "ping" ? "tool-active" : ""} onClick={() => setAnnotationMode("ping")}>Ping</button>
+            <button className={annotationMode === "ping" ? "tool-active" : ""} onClick={() => { enablePingAudio(); setAnnotationMode("ping"); }}>Ping</button>
             <button className={annotationMode === "drawing" ? "tool-active" : ""} onClick={() => setAnnotationMode("drawing")}>Draw line</button>
             {participant.role === "dm" ? <button className={annotationMode === "spotlight" ? "tool-active" : ""} onClick={() => setAnnotationMode("spotlight")}>Spotlight</button> : null}
             {participant.role === "dm" ? <button onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}>Clear</button> : null}

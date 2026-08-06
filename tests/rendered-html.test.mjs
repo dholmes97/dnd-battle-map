@@ -96,3 +96,17 @@ test("packages the transparent tactical token library", async () => {
     assert.equal(png[25], 6, `${asset.id} must use RGBA color`);
   }
 });
+
+test("keeps pings compact, audible, and limited to three pulses", async () => {
+  const [clientSource, workerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /const PING_PULSE_COUNT = 3;/);
+  assert.match(clientSource, /const PING_PULSE_MS = 420;/);
+  assert.match(clientSource, /createOscillator\(\)/);
+  assert.match(clientSource, /0\.12 \+ pulseProgress \* 0\.2/);
+  assert.match(workerSource, /const PING_TTL_MS = 2_000;/);
+  assert.doesNotMatch(workerSource, /now \+ 10_000/);
+});
