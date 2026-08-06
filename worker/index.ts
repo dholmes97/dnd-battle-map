@@ -325,21 +325,16 @@ async function recordAction(
     .run();
 }
 
-async function handleLongPoll(
+async function handleStatePoll(
   request: Request,
   env: Env,
   code: string,
 ): Promise<Response> {
   const requestedVersion = Number(new URL(request.url).searchParams.get("since"));
   const lastVersion = Number.isFinite(requestedVersion) ? requestedVersion : 0;
-  const startedAt = Date.now();
-
-  while (!request.signal.aborted && Date.now() - startedAt < 20_000) {
-    const state = await encounterState(env, code);
-    if (!state) return json({ error: "Encounter not found." }, { status: 404 });
-    if (state.encounter.version !== lastVersion) return json(state);
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
+  const state = await encounterState(env, code);
+  if (!state) return json({ error: "Encounter not found." }, { status: 404 });
+  if (state.encounter.version !== lastVersion) return json(state);
 
   return new Response(null, {
     status: 204,
@@ -354,9 +349,6 @@ async function handleApi(
   action: string,
 ): Promise<Response> {
   await ensureSchema(env);
-  const encounter = await findEncounter(env, code);
-  if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
-
   const expectedMethod = action === "state" || action === "events" ? "GET" : "POST";
   if (request.method !== expectedMethod) {
     return json(
@@ -366,11 +358,17 @@ async function handleApi(
   }
 
   if (action === "state") {
-    return json(await encounterState(env, code));
+    const state = await encounterState(env, code);
+    return state
+      ? json(state)
+      : json({ error: "Encounter not found." }, { status: 404 });
   }
   if (action === "events") {
-    return handleLongPoll(request, env, code);
+    return handleStatePoll(request, env, code);
   }
+
+  const encounter = await findEncounter(env, code);
+  if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
 
   const body = await readJson(request);
   const now = Date.now();

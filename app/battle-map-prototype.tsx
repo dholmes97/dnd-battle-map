@@ -292,6 +292,7 @@ export default function BattleMapPrototype() {
           if (disposed) return;
           if (response.status === 204) {
             markLive();
+            await new Promise((resolve) => setTimeout(resolve, 250));
             continue;
           }
           if (!response.ok) throw new Error("Live updates are unavailable.");
@@ -299,6 +300,7 @@ export default function BattleMapPrototype() {
           lastVersion = next.encounter.version;
           setState(next);
           markLive();
+          await new Promise((resolve) => setTimeout(resolve, 250));
         } catch (listenError) {
           if (
             disposed ||
@@ -320,7 +322,7 @@ export default function BattleMapPrototype() {
       controller?.abort();
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
-    // Keep one authoritative long-poll loop per participant and encounter.
+    // Keep one authoritative conditional-poll loop per participant and encounter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [participant?.id, joinedEncounterCode]);
 

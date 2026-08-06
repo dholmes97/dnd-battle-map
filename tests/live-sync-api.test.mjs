@@ -60,7 +60,10 @@ async function waitForLongPollState(since, predicate, timeoutMs = 15_000) {
         signal: controller.signal,
         headers: { accept: "application/json" },
       });
-      if (response.status === 204) continue;
+      if (response.status === 204) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        continue;
+      }
       assert.equal(response.status, 200);
       const state = await response.json();
       lastVersion = state.encounter.version;
