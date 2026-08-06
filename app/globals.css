@@ -248,6 +248,8 @@ input:focus {
   padding: 1.35rem;
   border-left: 1px solid #2f2d29;
   background: var(--panel);
+  max-height: calc(100vh - 5.25rem);
+  overflow-y: auto;
 }
 
 .participant-row { display: flex; align-items: center; gap: 0.7rem; }
@@ -266,6 +268,10 @@ input:focus {
   border-radius: 0.72rem;
   background: var(--panel-raised);
 }
+
+.token-roster { display: grid; gap: 0.75rem; }
+.token-card.is-owned { border-color: rgba(245, 198, 92, 0.48); }
+.token-card .secondary-button { width: 100%; }
 
 .token-heading { display: flex; align-items: center; gap: 0.72rem; }
 .token-mini {
@@ -331,7 +337,7 @@ input:focus {
 
 @media (max-width: 850px) {
   .workspace { grid-template-columns: 1fr; }
-  .control-panel { border-top: 1px solid #2f2d29; border-left: 0; }
+  .control-panel { max-height: none; overflow-y: visible; border-top: 1px solid #2f2d29; border-left: 0; }
   .map-footer { flex-wrap: wrap; }
 }
 

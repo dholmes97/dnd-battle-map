@@ -15,6 +15,13 @@
       "when": 1785976182734,
       "tag": "0001_smooth_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785977831815,
+      "tag": "0002_married_blizzard",
+      "breakpoints": true
     }
   ]
 }

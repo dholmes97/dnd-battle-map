@@ -11,7 +11,18 @@ import {
 } from "react";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
-
+type MapPoint = { x: number; y: number };
+type TokenLock = {
+  ownerId: string;
+  ownerName: string;
+  expiresAt: number;
+};
+type SharedToken = MapPoint & {
+  id: string;
+  name: string;
+  owner: null | { participantId: string; name: string };
+  lock: TokenLock | null;
+};
 type EncounterState = {
   encounter: {
     code: string;
@@ -20,23 +31,13 @@ type EncounterState = {
     updatedAt: number;
   };
   grid: { width: number; height: number; feetPerCell: number };
-  token: {
-    id: string;
-    name: string;
-    x: number;
-    y: number;
-    lock: null | {
-      ownerId: string;
-      ownerName: string;
-      expiresAt: number;
-    };
-  };
+  tokens: SharedToken[];
 };
-
 type Participant = { id: string; name: string; sessionSecret: string };
-type MapPoint = { x: number; y: number };
+type TokenPreview = MapPoint & { tokenId: string };
 type DragGesture = {
   pointerId: number;
+  tokenId: string;
   origin: MapPoint;
   latest: MapPoint;
   grabOffset: MapPoint;
@@ -49,6 +50,7 @@ type DragGesture = {
 const DEFAULT_CODE = "EMBER-KEEP";
 const TERRAIN_URL = "/assets/terrain/terrain-dungeon-flagstone-01.png";
 const TOKEN_RADIUS_CELLS = 0.36;
+const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8"];
 
 function roundCoordinate(value: number) {
   return Math.round(value * 1_000) / 1_000;
@@ -61,16 +63,10 @@ function formatPosition(point: MapPoint) {
 function clampMapPoint(state: EncounterState, point: MapPoint): MapPoint {
   return {
     x: roundCoordinate(
-      Math.min(
-        state.grid.width - TOKEN_RADIUS_CELLS,
-        Math.max(TOKEN_RADIUS_CELLS, point.x),
-      ),
+      Math.min(state.grid.width - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.x)),
     ),
     y: roundCoordinate(
-      Math.min(
-        state.grid.height - TOKEN_RADIUS_CELLS,
-        Math.max(TOKEN_RADIUS_CELLS, point.y),
-      ),
+      Math.min(state.grid.height - TOKEN_RADIUS_CELLS, Math.max(TOKEN_RADIUS_CELLS, point.y)),
     ),
   };
 }
@@ -91,28 +87,34 @@ function pointerToMap(
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
-    headers: {
-      "content-type": "application/json",
-      ...(options?.headers ?? {}),
-    },
+    headers: { "content-type": "application/json", ...(options?.headers ?? {}) },
   });
   const data = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
   return data;
 }
 
-function postBody(participant: Participant, extra: Record<string, unknown> = {}) {
+function postBody(
+  participant: Participant,
+  tokenId: string,
+  extra: Record<string, unknown> = {},
+) {
   return JSON.stringify({
     participantId: participant.id,
     sessionSecret: participant.sessionSecret,
+    tokenId,
     ...extra,
   });
+}
+
+function tokenInitial(token: SharedToken) {
+  return token.name.split(/\s+/).at(-1)?.charAt(0).toUpperCase() || "T";
 }
 
 function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
-  preview: MapPoint | null,
+  preview: TokenPreview | null,
   participant: Participant,
   terrain: HTMLImageElement | null,
 ) {
@@ -124,7 +126,6 @@ function drawMap(
     canvas.width = width;
     canvas.height = height;
   }
-
   const context = canvas.getContext("2d");
   if (!context) return;
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -160,48 +161,49 @@ function drawMap(
     context.stroke();
   }
 
-  const ownsLock = state.token.lock?.ownerId === participant.id;
-  const lockedByOther = Boolean(
-    state.token.lock && state.token.lock.ownerId !== participant.id,
-  );
-  if (preview && !lockedByOther) {
-    const startX = state.token.x * cellWidth;
-    const startY = state.token.y * cellHeight;
-    const endX = preview.x * cellWidth;
-    const endY = preview.y * cellHeight;
+  const previewToken = preview
+    ? state.tokens.find((token) => token.id === preview.tokenId)
+    : null;
+  if (preview && previewToken) {
     context.strokeStyle = "rgba(245, 198, 92, 0.9)";
     context.lineWidth = 3;
     context.setLineDash([7, 6]);
     context.beginPath();
-    context.moveTo(startX, startY);
-    context.lineTo(endX, endY);
+    context.moveTo(previewToken.x * cellWidth, previewToken.y * cellHeight);
+    context.lineTo(preview.x * cellWidth, preview.y * cellHeight);
     context.stroke();
     context.setLineDash([]);
   }
 
-  const displayedPosition = preview && !lockedByOther ? preview : state.token;
-  const tokenX = displayedPosition.x * cellWidth;
-  const tokenY = displayedPosition.y * cellHeight;
-  const radius = Math.min(cellWidth, cellHeight) * TOKEN_RADIUS_CELLS;
+  state.tokens.forEach((token, index) => {
+    const position = preview?.tokenId === token.id ? preview : token;
+    const ownsToken = token.owner?.participantId === participant.id;
+    const ownsLock = token.lock?.ownerId === participant.id;
+    const tokenX = position.x * cellWidth;
+    const tokenY = position.y * cellHeight;
+    const radius = Math.min(cellWidth, cellHeight) * TOKEN_RADIUS_CELLS;
 
-  context.save();
-  if (lockedByOther) context.globalAlpha = 0.58;
-  context.shadowColor = "rgba(0, 0, 0, 0.45)";
-  context.shadowBlur = 12;
-  context.fillStyle = ownsLock || preview ? "#f5c65c" : "#c97546";
-  context.beginPath();
-  context.arc(tokenX, tokenY, radius, 0, Math.PI * 2);
-  context.fill();
-  context.shadowBlur = 0;
-  context.strokeStyle = ownsLock ? "#fff1ba" : "#f0d0a0";
-  context.lineWidth = Math.max(2, radius * 0.12);
-  context.stroke();
-  context.fillStyle = "#261d18";
-  context.font = `700 ${Math.max(12, radius * 0.88)}px ui-sans-serif, system-ui`;
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText("W", tokenX, tokenY + 1);
-  context.restore();
+    context.save();
+    if (token.lock && !ownsLock) context.globalAlpha = 0.58;
+    context.shadowColor = "rgba(0, 0, 0, 0.45)";
+    context.shadowBlur = 12;
+    context.fillStyle = ownsLock || preview?.tokenId === token.id
+      ? "#f5c65c"
+      : TOKEN_COLORS[index % TOKEN_COLORS.length];
+    context.beginPath();
+    context.arc(tokenX, tokenY, radius, 0, Math.PI * 2);
+    context.fill();
+    context.shadowBlur = 0;
+    context.strokeStyle = ownsToken ? "#fff1ba" : "#f0d0a0";
+    context.lineWidth = ownsToken ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
+    context.stroke();
+    context.fillStyle = "#261d18";
+    context.font = `700 ${Math.max(12, radius * 0.88)}px ui-sans-serif, system-ui`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(tokenInitial(token), tokenX, tokenY + 1);
+    context.restore();
+  });
 }
 
 export default function BattleMapPrototype() {
@@ -210,7 +212,7 @@ export default function BattleMapPrototype() {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
-  const [preview, setPreview] = useState<MapPoint | null>(null);
+  const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -219,34 +221,31 @@ export default function BattleMapPrototype() {
   const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousLockRef = useRef<EncounterState["token"]["lock"]>(null);
+  const previousLockRef = useRef<TokenLock | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedEncounterCode = state?.encounter.code;
-  const activeLock = state?.token.lock ?? null;
-  const ownsLock = Boolean(
-    participant && activeLock?.ownerId === participant.id,
+  const claimedToken = useMemo(
+    () => state?.tokens.find((token) => token.owner?.participantId === participant?.id) ?? null,
+    [participant?.id, state?.tokens],
   );
-  const lockedByOther = Boolean(activeLock && !ownsLock);
+  const activeLock = claimedToken?.lock ?? null;
+  const ownsLock = Boolean(participant && activeLock?.ownerId === participant.id);
   const movementEnabled = connection === "live" && !busy;
   const remainingSeconds = activeLock
     ? Math.max(0, Math.ceil((activeLock.expiresAt - now) / 1000))
     : 0;
-
   const distance = useMemo(() => {
-    if (!state || !preview) return 0;
+    if (!state || !preview || !claimedToken || preview.tokenId !== claimedToken.id) return 0;
     return Number((
-      Math.max(
-        Math.abs(preview.x - state.token.x),
-        Math.abs(preview.y - state.token.y),
-      ) * state.grid.feetPerCell
+      Math.max(Math.abs(preview.x - claimedToken.x), Math.abs(preview.y - claimedToken.y)) *
+      state.grid.feetPerCell
     ).toFixed(1));
-  }, [preview, state]);
+  }, [claimedToken, preview, state]);
   const isNoOpPreview = Boolean(
-    state &&
-      preview &&
-      Math.hypot(preview.x - state.token.x, preview.y - state.token.y) < 0.001,
+    claimedToken && preview && preview.tokenId === claimedToken.id &&
+      Math.hypot(preview.x - claimedToken.x, preview.y - claimedToken.y) < 0.001,
   );
 
   const join = async () => {
@@ -262,18 +261,11 @@ export default function BattleMapPrototype() {
         participantId: string;
         sessionSecret: string;
         state: EncounterState;
-      }>(
-        `/api/encounters/${encodeURIComponent(normalizedCode)}/join`,
-        {
-          method: "POST",
-          body: JSON.stringify({ participantName: name }),
-        },
-      );
-      setParticipant({
-        id: result.participantId,
-        name,
-        sessionSecret: result.sessionSecret,
+      }>(`/api/encounters/${encodeURIComponent(normalizedCode)}/join`, {
+        method: "POST",
+        body: JSON.stringify({ participantName: name }),
       });
+      setParticipant({ id: result.participantId, name, sessionSecret: result.sessionSecret });
       setState(result.state);
       setEncounterCode(result.state.encounter.code);
       setConnection("connecting");
@@ -289,36 +281,31 @@ export default function BattleMapPrototype() {
     let disposed = false;
     let controller: AbortController | null = null;
     let lastVersion = state?.encounter.version ?? 0;
-
     const refresh = async () => {
       try {
         const fresh = await api<EncounterState>(
           `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
         );
         if (!disposed) {
+          lastVersion = fresh.encounter.version;
           setState(fresh);
           setConnection("live");
         }
       } catch {
-        // The polling loop will keep retrying; movement remains disabled meanwhile.
+        // Conditional polling keeps retrying and movement stays paused.
       }
     };
-
     const scheduleLost = () => {
-      setConnection((current) =>
-        current === "lost" ? "lost" : "reconnecting",
-      );
+      setConnection((current) => current === "lost" ? "lost" : "reconnecting");
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
       disconnectTimerRef.current = setTimeout(() => {
         if (!disposed) setConnection("lost");
       }, 8_000);
     };
-
     const markLive = () => {
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
       if (navigator.onLine) setConnection("live");
     };
-
     const listen = async () => {
       await refresh();
       while (!disposed) {
@@ -341,57 +328,42 @@ export default function BattleMapPrototype() {
           markLive();
           await new Promise((resolve) => setTimeout(resolve, 250));
         } catch (listenError) {
-          if (
-            disposed ||
-            (listenError instanceof DOMException &&
-              listenError.name === "AbortError")
-          ) {
-            return;
-          }
+          if (disposed || (listenError instanceof DOMException && listenError.name === "AbortError")) return;
           scheduleLost();
           await new Promise((resolve) => setTimeout(resolve, 750));
         }
       }
     };
-
     void listen();
-
     return () => {
       disposed = true;
       controller?.abort();
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
-    // Keep one authoritative conditional-poll loop per participant and encounter.
+    // One authoritative conditional-poll loop per participant and encounter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [participant?.id, joinedEncounterCode]);
 
   useEffect(() => {
     if (!participant || !joinedEncounterCode) return;
-
-    const scheduleLost = () => {
-      setConnection("reconnecting");
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-      disconnectTimerRef.current = setTimeout(() => setConnection("lost"), 8_000);
-    };
-    const handleOnline = async () => {
+    const markOffline = () => setConnection("reconnecting");
+    const markOnline = async () => {
       setConnection("reconnecting");
       try {
         const fresh = await api<EncounterState>(
           `/api/encounters/${encodeURIComponent(joinedEncounterCode)}/state`,
         );
         setState(fresh);
-        if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
         setConnection("live");
       } catch {
-        scheduleLost();
+        setConnection("lost");
       }
     };
-
-    window.addEventListener("offline", scheduleLost);
-    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", markOffline);
+    window.addEventListener("online", markOnline);
     return () => {
-      window.removeEventListener("offline", scheduleLost);
-      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", markOffline);
+      window.removeEventListener("online", markOnline);
     };
   }, [joinedEncounterCode, participant]);
 
@@ -402,17 +374,12 @@ export default function BattleMapPrototype() {
 
   useEffect(() => {
     const previousLock = previousLockRef.current;
-    const currentLock = state?.token.lock ?? null;
-    if (
-      previousLock &&
-      !currentLock &&
-      previousLock.expiresAt <= Date.now() + 1_000
-    ) {
+    if (previousLock && !activeLock && previousLock.expiresAt <= Date.now() + 1_000) {
       setPreview(null);
-      setNotice("Lock ended — the token is available again.");
+      setNotice("Lock ended — your token is available again.");
     }
-    previousLockRef.current = currentLock;
-  }, [state?.token.lock]);
+    previousLockRef.current = activeLock;
+  }, [activeLock]);
 
   useEffect(() => {
     const image = new Image();
@@ -421,10 +388,9 @@ export default function BattleMapPrototype() {
       if (!disposed) setTerrain(image);
     };
     image.src = TERRAIN_URL;
-    return () => {
-      disposed = true;
-    };
+    return () => { disposed = true; };
   }, []);
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 3_400);
@@ -446,41 +412,81 @@ export default function BattleMapPrototype() {
     return () => observer.disconnect();
   }, [redraw]);
 
-  const acquireLock = async () => {
-    if (!participant || !state || !movementEnabled || lockedByOther) return;
+  const claimToken = async (tokenId: string) => {
+    if (!participant || !state || !movementEnabled) return;
     setBusy(true);
     setError("");
     try {
-      const result = await api<{ acquired: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
-        { method: "POST", body: postBody(participant) },
+      const result = await api<{ claimed: boolean; recovered: boolean; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(state.encounter.code)}/claim`,
+        { method: "POST", body: postBody(participant, tokenId) },
       );
       setState(result.state);
-      if (result.acquired) {
-        setPreview({ x: result.state.token.x, y: result.state.token.y });
-        setNotice("Token locked. Drag it or use the arrow keys.");
-      }
-    } catch (lockError) {
-      setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
-      const fresh = await api<EncounterState>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
-      ).catch(() => null);
-      if (fresh) setState(fresh);
+      const token = result.state.tokens.find((item) => item.id === tokenId);
+      setNotice(result.recovered ? `${token?.name ?? "Token"} reconnected to this browser.` : `${token?.name ?? "Token"} is yours.`);
+    } catch (claimError) {
+      setError(claimError instanceof Error ? claimError.message : "Unable to claim token.");
     } finally {
       setBusy(false);
     }
   };
 
+  const relinquishToken = async () => {
+    if (!participant || !state || !claimedToken || !movementEnabled) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api<{ released: boolean; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(state.encounter.code)}/relinquish`,
+        { method: "POST", body: postBody(participant, claimedToken.id) },
+      );
+      setPreview(null);
+      setState(result.state);
+      setNotice(`${claimedToken.name} released.`);
+    } catch (releaseError) {
+      setError(releaseError instanceof Error ? releaseError.message : "Unable to release token.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const acquireLock = async () => {
+    if (!participant || !state || !claimedToken || !movementEnabled || activeLock) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api<{ acquired: boolean; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
+        { method: "POST", body: postBody(participant, claimedToken.id) },
+      );
+      setState(result.state);
+      const token = result.state.tokens.find((item) => item.id === claimedToken.id);
+      if (result.acquired && token) {
+        setPreview({ tokenId: token.id, x: token.x, y: token.y });
+        setNotice("Token locked. Use the arrow keys, then confirm.");
+      }
+    } catch (lockError) {
+      setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unlock = async (tokenId: string, encounter = state?.encounter.code) => {
+    if (!participant || !encounter) return null;
+    return api<{ state: EncounterState }>(
+      `/api/encounters/${encodeURIComponent(encounter)}/unlock`,
+      { method: "POST", body: postBody(participant, tokenId) },
+    );
+  };
+
   const cancelMove = async () => {
-    if (!participant || !state) return;
+    if (!claimedToken) return;
     setPreview(null);
     setBusy(true);
     try {
-      const result = await api<{ state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/unlock`,
-        { method: "POST", body: postBody(participant) },
-      );
-      setState(result.state);
+      const result = await unlock(claimedToken.id);
+      if (result) setState(result.state);
       setNotice("Move cancelled. Token released.");
     } catch (cancelError) {
       setError(cancelError instanceof Error ? cancelError.message : "Unable to release token.");
@@ -501,19 +507,17 @@ export default function BattleMapPrototype() {
   }, [ownsLock, participant, state?.encounter.code]);
 
   const publishMove = async (
+    tokenId: string,
     destination: MapPoint,
-    encounterCode = state?.encounter.code,
+    encounter = state?.encounter.code,
   ) => {
-    if (!participant || !encounterCode) return;
+    if (!participant || !encounter) return;
     setBusy(true);
     setError("");
     try {
       const result = await api<{ moved: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(encounterCode)}/move`,
-        {
-          method: "POST",
-          body: postBody(participant, destination),
-        },
+        `/api/encounters/${encodeURIComponent(encounter)}/move`,
+        { method: "POST", body: postBody(participant, tokenId, destination) },
       );
       setState(result.state);
       setPreview(null);
@@ -521,10 +525,6 @@ export default function BattleMapPrototype() {
     } catch (moveError) {
       setError(moveError instanceof Error ? moveError.message : "Move rejected.");
       setPreview(null);
-      const fresh = await api<EncounterState>(
-        `/api/encounters/${encodeURIComponent(encounterCode)}/state`,
-      ).catch(() => null);
-      if (fresh) setState(fresh);
     } finally {
       setBusy(false);
     }
@@ -532,30 +532,20 @@ export default function BattleMapPrototype() {
 
   const confirmMove = async () => {
     if (!preview || !ownsLock || !movementEnabled) return;
-    await publishMove(preview);
+    await publishMove(preview.tokenId, preview);
   };
 
-  const releaseGestureLock = async (
-    gesture: DragGesture,
-    message?: string,
-  ) => {
-    if (!participant || !gesture.lockState) {
+  const releaseGestureLock = async (gesture: DragGesture, message?: string) => {
+    if (!gesture.lockState) {
       setBusy(false);
       return;
     }
     try {
-      const result = await api<{ state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(gesture.lockState.encounter.code)}/unlock`,
-        { method: "POST", body: postBody(participant) },
-      );
-      setState(result.state);
+      const result = await unlock(gesture.tokenId, gesture.lockState.encounter.code);
+      if (result) setState(result.state);
       if (message) setNotice(message);
     } catch (releaseError) {
-      setError(
-        releaseError instanceof Error
-          ? releaseError.message
-          : "Unable to release token.",
-      );
+      setError(releaseError instanceof Error ? releaseError.message : "Unable to release token.");
     } finally {
       setPreview(null);
       setBusy(false);
@@ -567,16 +557,11 @@ export default function BattleMapPrototype() {
     gesture.finishing = true;
     dragGestureRef.current = null;
     setDragging(false);
-    if (
-      Math.hypot(
-        gesture.latest.x - gesture.origin.x,
-        gesture.latest.y - gesture.origin.y,
-      ) < 0.001
-    ) {
+    if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
       await releaseGestureLock(gesture, "Token released without moving.");
       return;
     }
-    await publishMove(gesture.latest, gesture.lockState.encounter.code);
+    await publishMove(gesture.tokenId, gesture.latest, gesture.lockState.encounter.code);
   };
 
   const acquireLockForDrag = async (gesture: DragGesture) => {
@@ -584,32 +569,20 @@ export default function BattleMapPrototype() {
     try {
       const result = await api<{ acquired: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
-        { method: "POST", body: postBody(participant) },
+        { method: "POST", body: postBody(participant, gesture.tokenId) },
       );
       setState(result.state);
       if (!result.acquired) throw new Error("Token lock is unavailable.");
       gesture.lockState = result.state;
-      if (gesture.canceled) {
-        await releaseGestureLock(gesture);
-      } else if (gesture.released) {
-        await finishDrag(gesture);
-      } else {
-        setBusy(false);
-      }
+      if (gesture.canceled) await releaseGestureLock(gesture);
+      else if (gesture.released) await finishDrag(gesture);
+      else setBusy(false);
     } catch (lockError) {
-      if (!gesture.canceled) {
-        setError(
-          lockError instanceof Error ? lockError.message : "Lock unavailable.",
-        );
-      }
+      if (!gesture.canceled) setError(lockError instanceof Error ? lockError.message : "Lock unavailable.");
       if (dragGestureRef.current === gesture) dragGestureRef.current = null;
       setPreview(null);
       setDragging(false);
       setBusy(false);
-      const fresh = await api<EncounterState>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
-      ).catch(() => null);
-      if (fresh) setState(fresh);
     }
   };
 
@@ -628,88 +601,53 @@ export default function BattleMapPrototype() {
   };
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (
-      !state ||
-      !participant ||
-      !movementEnabled ||
-      lockedByOther ||
-      dragGestureRef.current
-    ) {
-      return;
-    }
+    if (!state || !participant || !claimedToken || !movementEnabled || activeLock || dragGestureRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const pointer = pointerToMap(
-      event.currentTarget,
-      state,
-      event.clientX,
-      event.clientY,
-    );
-    const displayedPosition = ownsLock && preview ? preview : state.token;
-    const deltaX =
-      ((pointer.x - displayedPosition.x) / state.grid.width) * rect.width;
-    const deltaY =
-      ((pointer.y - displayedPosition.y) / state.grid.height) * rect.height;
-    const radius =
-      Math.min(rect.width / state.grid.width, rect.height / state.grid.height) *
-      TOKEN_RADIUS_CELLS;
+    const pointer = pointerToMap(event.currentTarget, state, event.clientX, event.clientY);
+    const displayed = preview?.tokenId === claimedToken.id ? preview : claimedToken;
+    const deltaX = ((pointer.x - displayed.x) / state.grid.width) * rect.width;
+    const deltaY = ((pointer.y - displayed.y) / state.grid.height) * rect.height;
+    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * TOKEN_RADIUS_CELLS;
     if (Math.hypot(deltaX, deltaY) > radius) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     const gesture: DragGesture = {
       pointerId: event.pointerId,
-      origin: { x: state.token.x, y: state.token.y },
-      latest: { ...displayedPosition },
-      grabOffset: {
-        x: pointer.x - displayedPosition.x,
-        y: pointer.y - displayedPosition.y,
-      },
+      tokenId: claimedToken.id,
+      origin: { x: claimedToken.x, y: claimedToken.y },
+      latest: { x: displayed.x, y: displayed.y },
+      grabOffset: { x: pointer.x - displayed.x, y: pointer.y - displayed.y },
       released: false,
       canceled: false,
       finishing: false,
-      lockState: ownsLock ? state : null,
+      lockState: null,
     };
     dragGestureRef.current = gesture;
     setDragging(true);
-    setPreview(displayedPosition);
+    setPreview({ tokenId: claimedToken.id, x: displayed.x, y: displayed.y });
     setBusy(true);
     setError("");
-    if (gesture.lockState) {
-      setBusy(false);
-    } else {
-      void acquireLockForDrag(gesture);
-    }
+    void acquireLockForDrag(gesture);
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
-    gesture.latest = dragDestination(
-      event.currentTarget,
-      gesture,
-      event.clientX,
-      event.clientY,
-    );
-    setPreview(gesture.latest);
+    gesture.latest = dragDestination(event.currentTarget, gesture, event.clientX, event.clientY);
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
-    gesture.latest = dragDestination(
-      event.currentTarget,
-      gesture,
-      event.clientX,
-      event.clientY,
-    );
+    gesture.latest = dragDestination(event.currentTarget, gesture, event.clientX, event.clientY);
     gesture.released = true;
-    setPreview(gesture.latest);
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
     setDragging(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (gesture.lockState) void finishDrag(gesture);
   };
 
@@ -720,222 +658,148 @@ export default function BattleMapPrototype() {
     dragGestureRef.current = null;
     setPreview(null);
     setDragging(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    if (gesture.lockState) {
-      void releaseGestureLock(gesture);
-    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (gesture.lockState) void releaseGestureLock(gesture);
   };
 
   const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || !movementEnabled || lockedByOther) return;
+    if (!state || !claimedToken || !movementEnabled) return;
     if (!ownsLock) {
-      if (event.key === "Enter" || event.key === " ") {
+      if ((event.key === "Enter" || event.key === " ") && !activeLock) {
         event.preventDefault();
         void acquireLock();
       }
       return;
     }
-
-    const origin = preview ?? { x: state.token.x, y: state.token.y };
+    const origin = preview?.tokenId === claimedToken.id ? preview : claimedToken;
     const deltas: Record<string, MapPoint> = {
-      ArrowLeft: { x: -0.25, y: 0 },
-      ArrowRight: { x: 0.25, y: 0 },
-      ArrowUp: { x: 0, y: -0.25 },
-      ArrowDown: { x: 0, y: 0.25 },
+      ArrowLeft: { x: -0.25, y: 0 }, ArrowRight: { x: 0.25, y: 0 },
+      ArrowUp: { x: 0, y: -0.25 }, ArrowDown: { x: 0, y: 0.25 },
     };
     const delta = deltas[event.key];
     if (!delta) return;
     event.preventDefault();
-    setPreview(
-      clampMapPoint(state, {
-        x: origin.x + delta.x,
-        y: origin.y + delta.y,
-      }),
-    );
+    setPreview({
+      tokenId: claimedToken.id,
+      ...clampMapPoint(state, { x: origin.x + delta.x, y: origin.y + delta.y }),
+    });
   };
 
   if (!participant || !state) {
     return (
       <main className="join-shell">
         <section className="join-card" aria-labelledby="join-title">
-          <div className="eyebrow">Phase one · Live movement proof</div>
+          <div className="eyebrow">Phase two · Party movement proof</div>
           <h1 id="join-title">Enter the Ember Keep</h1>
-          <p>
-            Join the same encounter in two browser windows to test shared,
-            server-confirmed token movement.
-          </p>
-          <label>
-            Display name
-            <input
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void join();
-              }}
-              placeholder="e.g. Mira"
-              autoFocus
-              maxLength={32}
-            />
+          <p>Join the same encounter in several browser windows, claim a token, and move independently.</p>
+          <label>Display name
+            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") void join(); }}
+              placeholder="e.g. Mira" autoFocus maxLength={32} />
           </label>
-          <label>
-            Encounter code
-            <input
-              value={encounterCode}
-              onChange={(event) => setEncounterCode(event.target.value.toUpperCase())}
-              maxLength={24}
-              spellCheck={false}
-            />
+          <label>Encounter code
+            <input value={encounterCode} onChange={(event) => setEncounterCode(event.target.value.toUpperCase())}
+              maxLength={24} spellCheck={false} />
           </label>
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           <button className="primary-button" onClick={() => void join()} disabled={busy}>
             {busy ? "Joining…" : "Join encounter"}
           </button>
-          <div className="join-note">
-            Accountless prototype · use code <strong>EMBER-KEEP</strong>
-          </div>
+          <div className="join-note">Accountless prototype · use code <strong>EMBER-KEEP</strong></div>
         </section>
       </main>
     );
   }
 
-  const connectionLabel =
-    connection === "live"
-      ? "Live"
-      : connection === "lost"
-        ? "Connection lost"
-        : connection === "reconnecting"
-          ? "Reconnecting"
-          : "Connecting";
+  const connectionLabel = connection === "live" ? "Live" : connection === "lost"
+    ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
 
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <div className="eyebrow">Shared encounter · {state.encounter.code}</div>
-          <h1>{state.encounter.name}</h1>
-        </div>
+        <div><div className="eyebrow">Shared encounter · {state.encounter.code}</div><h1>{state.encounter.name}</h1></div>
         <div className={`connection-pill connection-${connection}`} aria-live="polite">
-          <span className="connection-dot" />
-          {connectionLabel}
+          <span className="connection-dot" />{connectionLabel}
         </div>
       </header>
 
       <div className="workspace">
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-frame">
-            <canvas
-              ref={canvasRef}
-              className={`map-canvas${lockedByOther ? " is-blocked" : ""}${dragging ? " is-dragging" : ""}`}
-              onPointerDown={onCanvasPointerDown}
-              onPointerMove={onCanvasPointerMove}
-              onPointerUp={onCanvasPointerUp}
-              onPointerCancel={onCanvasPointerCancel}
+            <canvas ref={canvasRef}
+              className={`map-canvas${claimedToken ? "" : " is-blocked"}${dragging ? " is-dragging" : ""}`}
+              onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove}
+              onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel}
               onKeyDown={onCanvasKeyDown}
-              aria-disabled={!movementEnabled || lockedByOther}
-              aria-label={`${state.grid.width} by ${state.grid.height} battle grid. Token at map position ${formatPosition(state.token)}. Grab and drag the token to any position, or use the keyboard movement control.`}
-              role="application"
-              tabIndex={0}
-            />
+              aria-disabled={!movementEnabled || !claimedToken}
+              aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} tokens. ${claimedToken ? `You control ${claimedToken.name} at ${formatPosition(claimedToken)}.` : "Claim a token before moving."} Grab and drag your token to any position.`}
+              role="application" tabIndex={0} />
             {connection !== "live" ? (
-              <div className="map-safety-overlay">
-                <strong>{connectionLabel}</strong>
-                <span>Movement is paused until shared state is current.</span>
-              </div>
+              <div className="map-safety-overlay"><strong>{connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div>
             ) : null}
           </div>
           <div className="map-footer">
             <span>{state.grid.width} × {state.grid.height} squares</span>
-            <span>5 ft per square · equal-cost diagonals</span>
+            <span>5 ft per square · free positioning</span>
             <span>Server version {state.encounter.version}</span>
           </div>
         </section>
 
-        <aside className="control-panel" aria-label="Token controls">
+        <aside className="control-panel" aria-label="Party token controls">
           <div className="participant-row">
             <span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span>
-            <span>
-              <small>Joined as</small>
-              <strong>{participant.name}</strong>
-            </span>
+            <span><small>Joined as</small><strong>{participant.name}</strong></span>
           </div>
-
           <div className="panel-rule" />
 
-          <section className="token-card">
-            <div className="token-heading">
-              <span className="token-mini">W</span>
-              <div>
-                <small>Shared token</small>
-                <h2>{state.token.name}</h2>
-              </div>
-            </div>
-            <div className="coordinate-row">
-              <span>Position</span>
-              <strong>{formatPosition(state.token)}</strong>
-            </div>
+          <div className="token-roster">
+            {state.tokens.map((token) => {
+              const isYours = token.owner?.participantId === participant.id;
+              const isSameName = !isYours && token.owner?.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
+              const canClaim = !claimedToken && (!token.owner || isSameName);
+              return (
+                <section className={`token-card${isYours ? " is-owned" : ""}`} key={token.id}>
+                  <div className="token-heading">
+                    <span className="token-mini">{tokenInitial(token)}</span>
+                    <div><small>{isYours ? "Your token" : token.owner ? `Controlled by ${token.owner.name}` : "Unclaimed token"}</small><h2>{token.name}</h2></div>
+                  </div>
+                  <div className="coordinate-row"><span>Position</span><strong>{formatPosition(token)}</strong></div>
 
-            {!activeLock ? (
-              <div className="lock-state is-open">
-                <span className="lock-mark">◇</span>
-                <span><strong>Available</strong><small>Grab the token and drag it anywhere on the map.</small></span>
-              </div>
-            ) : ownsLock ? (
-              <div className="lock-state is-yours">
-                <span className="lock-mark">◆</span>
-                <span><strong>Your lock · {remainingSeconds}s</strong><small>Release the token to publish the drop.</small></span>
-              </div>
-            ) : (
-              <div className="lock-state is-other">
-                <span className="lock-mark">◆</span>
-                <span><strong>{activeLock.ownerName} is moving</strong><small>Available again in about {remainingSeconds}s.</small></span>
-              </div>
-            )}
-
-            {ownsLock && preview ? (
-              <div className="move-review">
-                <div>
-                  <small>Proposed destination</small>
-                  <strong>{formatPosition(preview)}</strong>
-                </div>
-                <div>
-                  <small>Rules distance</small>
-                  <strong>{distance} ft</strong>
-                </div>
-              </div>
-            ) : null}
-
-            {ownsLock ? (
-              <div className="button-stack">
-                <button
-                  className="primary-button"
-                  onClick={() => void confirmMove()}
-                  disabled={!preview || isNoOpPreview || !movementEnabled}
-                >
-                  Confirm move
-                </button>
-                <button className="secondary-button" onClick={() => void cancelMove()} disabled={!movementEnabled}>
-                  Cancel & release
-                </button>
-              </div>
-            ) : (
-              <button
-                className="primary-button"
-                onClick={() => void acquireLock()}
-                disabled={!movementEnabled || lockedByOther}
-              >
-                {lockedByOther ? "Token locked" : "Move with keyboard"}
-              </button>
-            )}
-          </section>
-
-          <div className="how-it-works">
-            <span>1</span><p>Grab the shared token.</p>
-            <span>2</span><p>Drag to any pixel on the map.</p>
-            <span>3</span><p>Release to publish the move.</p>
+                  {isYours ? (
+                    <>
+                      {!token.lock ? (
+                        <div className="lock-state is-open"><span className="lock-mark">◇</span><span><strong>Ready</strong><small>Grab and drag anywhere on the map.</small></span></div>
+                      ) : ownsLock ? (
+                        <div className="lock-state is-yours"><span className="lock-mark">◆</span><span><strong>Your lock · {remainingSeconds}s</strong><small>Release the token to publish the drop.</small></span></div>
+                      ) : (
+                        <div className="lock-state is-other"><span className="lock-mark">◆</span><span><strong>Recovering prior move</strong><small>Available in about {remainingSeconds}s.</small></span></div>
+                      )}
+                      {ownsLock && preview?.tokenId === token.id ? (
+                        <div className="move-review"><div><small>Proposed destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Rules distance</small><strong>{distance} ft</strong></div></div>
+                      ) : null}
+                      {ownsLock ? (
+                        <div className="button-stack">
+                          <button className="primary-button" onClick={() => void confirmMove()} disabled={!preview || isNoOpPreview || !movementEnabled}>Confirm move</button>
+                          <button className="secondary-button" onClick={() => void cancelMove()} disabled={!movementEnabled}>Cancel & release</button>
+                        </div>
+                      ) : (
+                        <div className="button-stack">
+                          <button className="primary-button" onClick={() => void acquireLock()} disabled={!movementEnabled || Boolean(token.lock)}>Move with keyboard</button>
+                          <button className="secondary-button" onClick={() => void relinquishToken()} disabled={!movementEnabled}>Release token</button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <button className="secondary-button" onClick={() => void claimToken(token.id)} disabled={!movementEnabled || !canClaim}>
+                      {isSameName ? "Reconnect this token" : token.owner ? "Already claimed" : claimedToken ? "Release yours first" : "Claim token"}
+                    </button>
+                  )}
+                </section>
+              );
+            })}
           </div>
 
+          <div className="how-it-works"><span>1</span><p>Claim one party token.</p><span>2</span><p>Drag it to any pixel.</p><span>3</span><p>Release to publish the move.</p></div>
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           {notice ? <div className="toast" role="status">{notice}</div> : null}
         </aside>

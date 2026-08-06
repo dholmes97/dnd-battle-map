@@ -1,4 +1,11 @@
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
@@ -33,12 +40,22 @@ export const tokens = sqliteTable(
     name: text("name").notNull(),
     x: real("x").notNull(),
     y: real("y").notNull(),
+    ownerParticipantId: text("owner_participant_id").references(
+      () => participants.id,
+      { onDelete: "set null" },
+    ),
+    ownerName: text("owner_name"),
     lockOwnerId: text("lock_owner_id"),
     lockOwnerName: text("lock_owner_name"),
     lockExpiresAt: integer("lock_expires_at"),
     updatedAt: integer("updated_at").notNull(),
   },
-  (table) => [index("idx_tokens_encounter_id").on(table.encounterId)],
+  (table) => [
+    index("idx_tokens_encounter_id").on(table.encounterId),
+    uniqueIndex("tokens_owner_participant_id_unique").on(
+      table.ownerParticipantId,
+    ),
+  ],
 );
 
 export const actions = sqliteTable(

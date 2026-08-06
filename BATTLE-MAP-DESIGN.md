@@ -55,6 +55,27 @@ The free-position drag implementation was separately verified by dragging the to
 
 Production verification on August 5, 2026 found that Sites buffered the original Server-Sent Events body until the 55-second response closed; a forced initial state and five keep-alives arrived together after 56.3 seconds. A server-side long-poll attempt also failed to observe cross-request D1 changes reliably within its wait window. The verified Sites-compatible transport therefore uses fresh conditional requests with a short client pause, while all shared state remains server-authoritative and durable in D1. Against the public deployment, the two-client API test measured confirmed movement propagation at 1,304 milliseconds, and two joined browser sessions converged on the same moved token and server version in 845 milliseconds with no console errors.
 
+### Verified phase-two implementation
+
+The next vertical slice expands `EMBER-KEEP` to three durable tokens. Token
+ownership is stored in D1, each participant may own at most one token, and every
+lock and movement operation is scoped to a token ID. This permits different
+owners to move separate tokens concurrently while the server still rejects
+unowned movement and conflicting access to the same token. Relinquishing a
+token returns it to the shared pool. For this accountless trusted-group
+prototype, rejoining with the same display name can explicitly reconnect that
+character to the new browser session; the previous session immediately loses
+movement authority.
+
+Local verification on August 5, 2026 exercised three API clients and three
+independent browser sessions. Two owners acquired different locks concurrently,
+moved both tokens to fractional positions, and the observing client converged
+on both confirmed drops in 14 milliseconds. A direct browser drag moved one
+token to `10.99, 5.62` and appeared in both other sessions. Same-name reconnect
+transferred ownership to a new browser, the superseded session was denied, and
+claim, reconnect, lock, move, and relinquish actions were confirmed in the
+append-only relational history. The browser run produced no warnings or errors.
+
 ### Visibility
 
 - V1 uses simple, DM-controlled visibility rather than fog of war or per-character line-of-sight.
