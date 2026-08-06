@@ -252,10 +252,6 @@ input:focus {
 
 .map-canvas.is-blocked { cursor: not-allowed; }
 .map-canvas.is-dragging { cursor: grabbing; }
-.map-canvas:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: -3px;
-}
 
 .map-safety-overlay {
   position: absolute;
@@ -367,8 +363,6 @@ input:focus {
 
 .move-review div { display: grid; gap: 0.18rem; padding: 0.65rem; border-radius: 0.45rem; background: #171614; }
 .move-review strong { font-family: var(--font-geist-mono), monospace; font-size: 0.82rem; }
-.button-stack { display: grid; gap: 0.55rem; }
-
 .section-heading, .movement-summary {
   display: flex;
   align-items: center;

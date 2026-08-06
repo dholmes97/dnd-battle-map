@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -359,7 +358,6 @@ export default function BattleMapPrototype() {
   const remainingSeconds = activeLock ? Math.max(0, Math.ceil((activeLock.expiresAt - now) / 1000)) : 0;
   const distance = state ? calculatePathDistance(previewPath, state.grid.feetPerCell) : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
-  const isNoOp = Boolean(selectedToken && preview && Math.hypot(preview.x - selectedToken.x, preview.y - selectedToken.y) < 0.001);
 
   const join = async () => {
     const name = displayName.trim();
@@ -566,14 +564,6 @@ export default function BattleMapPrototype() {
     finally { setBusy(false); }
   };
 
-  const cancelMove = async () => {
-    if (!selectedToken) return;
-    setPreview(null); setPreviewPath([]); setBusy(true);
-    try { const result = await unlock(selectedToken.id); if (result) setState(result.state); setNotice("Move cancelled."); }
-    catch (cancelError) { setError(cancelError instanceof Error ? cancelError.message : "Unable to release token."); }
-    finally { setBusy(false); }
-  };
-
   const finishDrag = async (gesture: DragGesture) => {
     if (gesture.finishing || !gesture.lockState) return;
     gesture.finishing = true; dragGestureRef.current = null; setDragging(false);
@@ -669,28 +659,6 @@ export default function BattleMapPrototype() {
     if (gesture.lockState) void unlock(gesture.tokenId, gesture.lockState.encounter.code).then((result) => { if (result) setState(result.state); });
   };
 
-  const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
-    if (!state || !selectedToken || !canControlSelected || !movementEnabled) return;
-    if (!ownsLock) {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        void acquireLock(selectedToken).then((result) => {
-          if (!result?.acquired) return;
-          setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
-          setPreviewPath([{ x: selectedToken.x, y: selectedToken.y }]);
-        });
-      }
-      return;
-    }
-    const deltas: Record<string, MapPoint> = {
-      ArrowLeft: { x: -0.25, y: 0 }, ArrowRight: { x: 0.25, y: 0 }, ArrowUp: { x: 0, y: -0.25 }, ArrowDown: { x: 0, y: 0.25 },
-    };
-    const delta = deltas[event.key]; if (!delta) return; event.preventDefault();
-    const origin = preview ?? selectedToken;
-    const next = clampMapPoint(state, { x: origin.x + delta.x, y: origin.y + delta.y });
-    setPreview({ tokenId: selectedToken.id, ...next }); setPreviewPath((current) => [...(current.length ? current : [selectedToken]), next]);
-  };
-
   if (!participant || !state) {
     return (
       <main className="join-shell"><section className="join-card" aria-labelledby="join-title">
@@ -734,7 +702,7 @@ export default function BattleMapPrototype() {
             <button onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
           </div>
           <div className="map-frame">
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onKeyDown={onCanvasKeyDown} aria-disabled={!movementEnabled} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${selectedToken ? `Selected ${selectedToken.name}.` : ""}`} role="application" tabIndex={0} />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
           </div>
           <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>
@@ -775,7 +743,6 @@ export default function BattleMapPrototype() {
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                   {activeLock ? <div className={`lock-state${ownsLock ? " is-yours" : " is-other"}`}><span className="lock-mark">●</span><span><strong>{ownsLock ? `Movement reserved · ${remainingSeconds}s` : `Being moved by ${activeLock.ownerName}`}</strong><small>{ownsLock ? "Release to confirm, or cancel safely." : "You’ll receive the confirmed position automatically."}</small></span></div> : null}
                   {ownsLock && preview?.tokenId === token.id ? <div className="move-review"><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Path / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
-                  {controlled && selected ? ownsLock ? <div className="button-stack"><button className="primary-button" onClick={() => preview && void publishMove(token.id, preview, previewPath)} disabled={!preview || isNoOp || !movementEnabled}>Confirm move</button><button className="secondary-button" onClick={() => void cancelMove()}>Cancel</button></div> : <button className="primary-button" onClick={() => void acquireLock(token).then((result) => { if (result?.acquired) { setPreview({ tokenId: token.id, x: token.x, y: token.y }); setPreviewPath([token]); } })} disabled={!movementEnabled || Boolean(token.lock)}>Move with keyboard</button> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
                   {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}

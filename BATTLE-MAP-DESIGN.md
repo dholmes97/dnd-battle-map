@@ -110,10 +110,11 @@ entered initiative rolls.
 Free-position movement now carries the sampled drag path to the server. The
 server recalculates equal-cost diagonal distance, accumulates movement used,
 rejects an over-budget path without changing the token position, and records a
-confirmed path in action history. Pointer drag still confirms on release;
-keyboard movement exposes explicit confirm and cancel controls. A personal
-ten-action undo stack applies compensating mutations for reversible actions and
-appends each undo to the audit history rather than deleting history.
+confirmed path in action history. Pointer drag confirms on release; the
+discarded keyboard-step control is intentionally absent because direct dragging
+is the sole movement interaction. A personal ten-action undo stack applies
+compensating mutations for reversible actions and appends each undo to the
+audit history rather than deleting history.
 
 The tactical UI supports DM map selection and token configuration, six
 transparent portrait assets, summons/familiars, a small Bless/Poisoned/Stunned
