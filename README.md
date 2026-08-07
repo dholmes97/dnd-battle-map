@@ -1,23 +1,17 @@
-# D&D Battle Map — real-time movement proof
+# D&D Battle Map
 
-This repository contains the deliberately narrow phase-one prototype described
-in `BATTLE-MAP-DESIGN.md`. It proves that two accountless browser participants
-can join one encounter, contend for one short-lived server-authoritative token
-lock, and see confirmed movement converge promptly.
+This is a desktop-first, accountless tactical companion for a trusted D&D
+group. A vinext Worker owns the authoritative encounter API, D1 stores shared
+state and append-only action history, and React canvas clients converge through
+short conditional requests. Browser state is temporary.
 
-## What the prototype includes
-
-- one shared 16 × 11 canvas grid and one token;
-- server-issued participant sessions kept only in browser memory;
-- a fixed 12-second token lease with an on-screen countdown;
-- choose, confirm, cancel, and automatic-expiry movement states;
-- Server-Sent Events for prompt shared-state updates and reconnect handling;
-- durable encounter, participant, token, and append-only action records in D1;
-- generated Drizzle migrations packaged for Sites deployment.
-
-Everything beyond that synchronization proof—including initiative, ownership
-rules, HP, conditions, fog, annotations, map authoring, and undo—is intentionally
-out of scope for this phase.
+The current local implementation includes free-position last-write-wins token
+movement, multi-token claiming, initiative and rounds, summons, effects, HP,
+visibility, pings, tactical drawings, creature drag/drop, and a DM-only map
+workshop. The workshop generates editable forest, dungeon, cave, and ruins
+starters, supports terrain and structure editing, and keeps drafts private until
+the DM applies the complete package. See `BATTLE-MAP-DESIGN.md` for verified
+behavior and `IMPLEMENTATION-PLAN.md` for milestone status.
 
 ## Local development
 
@@ -40,8 +34,16 @@ npm run lint
 npm test
 ```
 
-With the development server running, exercise the complete two-participant API
-and event-stream path against its printed local URL:
+To create or refresh all twenty-six durable local prompt-map examples while the
+server is running, then independently audit the twenty-map expansion:
+
+```bash
+BATTLE_MAP_BASE_URL=http://localhost:3000 npm run maps:seed-prompts
+BATTLE_MAP_BASE_URL=http://localhost:3000 npm run maps:verify-prompts
+```
+
+With the development server running, exercise the authoritative multi-client
+API path against its printed local URL:
 
 ```bash
 BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live
@@ -49,7 +51,7 @@ BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live
 
 Replace port `3000` when the development server selected another port.
 
-The worker creates and seeds the single prototype encounter if it is absent.
+The worker creates and seeds the shared prototype encounter if it is absent.
 The same schema is represented in `db/schema.ts` and the checked-in migration
 under `drizzle/`; Sites owns the deployed D1 binding declared as `DB` in
 `.openai/hosting.json`.

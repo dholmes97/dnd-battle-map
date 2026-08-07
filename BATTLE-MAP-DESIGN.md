@@ -174,6 +174,49 @@ again. API verification confirmed Large placement-edge clamping, Huge resize
 clamping, summon ownership inheritance, two-token convergence in 19 ms, and
 eight-client annotation convergence in 149 ms.
 
+### Verified map-workshop implementation
+
+The pre-session authoring workflow is a separate DM-only workshop. Its draft is
+browser-temporary and invisible to players until the DM explicitly applies the
+complete map package; Discard restores the last authoritative package. Saved
+presets are durable D1 records but are returned only in DM-personalized state.
+The applied package, its grid dimensions, and the resulting action are durable
+and authoritative. Applying a differently sized map reclamps existing tokens
+inside the new bounds.
+
+The local/offline generator supports forest, dungeon, cave, ruins, swamp,
+desert, tundra, volcanic, and coastal starters,
+three sizes, density, landmark count, paths, water, atmosphere, and deterministic
+seeds. Generated maps remain editable as exact terrain cells plus movable,
+rotatable, flippable multi-cell and irregular stamps. The initial palette has
+twenty-eight biome-aware pieces, including dedicated nature, structure,
+furnishing, detail, and hazard options. Every palette definition now requires a
+dedicated transparent RGBA raster asset; generated and saved maps no longer
+depend on letter tiles or generic palette previews. Walls, doors, windows, public or DM-only
+labels, and DM notes share the package format and can be added or deleted in the
+workshop. Terrain corrections support click-drag painting; wall placement shows
+a live grid-intersection preview; and stamps support duplicate and front/back
+layer ordering in addition to move, rotate, flip, and delete. A fifty-step
+private undo/redo history never mutates player state.
+
+Organic terrain boundaries are a presentation layer over exact cell ownership:
+the renderer builds deterministic irregular masks and softly composites the
+same terrain textures, while the faint tactical grid remains above the map.
+This avoids an edge-tile permutation library and preserves predictable painting
+and package data.
+
+The prompt path intentionally has no deployed LLM dependency. A deterministic
+local interpreter turns plain-language biome, mood, water, density, and feature
+cues into the same editable package, while JSON import/export is the boundary
+for richer Codex-assisted maps prepared before a session. Six original prompt
+fixtures and twenty additional theme tests are saved in the local preset
+library. The added themes span swamp, desert, tundra, volcanic, coastal, and fey
+forest maps and use five new generated terrain textures. Local verification on
+August 7, 2026 passed lint, a production build, nineteen package/rendering tests,
+an independent 20/20 durable-preset read-back, and five live
+authoritative API scenarios; the edited draft supplied during Apply was visible
+to the player client and was not replaced by its older saved preset.
+
 ### Visibility
 
 - V1 uses simple, DM-controlled visibility rather than fog of war or per-character line-of-sight.

@@ -3,7 +3,7 @@
 This roadmap turns the product decisions in `BATTLE-MAP-DESIGN.md` into small,
 deployable vertical slices. Each milestone must preserve server authority,
 durable D1 state, append-only action history, temporary browser state, and
-clear lock/reconnect safety.
+clear reconnect and conflict safety.
 
 ## Status
 
@@ -16,6 +16,7 @@ clear lock/reconnect safety.
 | 5 | DM encounter setup, creature placement, and map selection | Complete |
 | 6 | Summons, effects, conditions, concentration reminders, and lightweight HP | Complete |
 | 7 | Visibility, pings, tactical annotations, and multiplayer scale hardening | Complete |
+| 8 | Private map workshop, procedural starters, editable packages, and staged publication | Complete locally |
 
 ## Phase 1 — Real-time movement foundation
 
@@ -140,6 +141,44 @@ annotation in 133 ms and produced 27.6 idle conditional requests per second in
 aggregate. Conditional polling remains suitable for the current trusted-group
 POC, but the measured idle request rate warrants a push transport before the
 audience or session duration grows materially.
+
+## Phase 8 — Map workshop and procedural authoring
+
+Delivered locally August 6, 2026:
+
+- A separate DM-only workshop that keeps draft changes private until **Apply to
+  players** and restores the authoritative map with **Discard**.
+- Seeded forest, dungeon, cave, ruins, swamp, desert, tundra, volcanic, and
+  coastal starters in three map sizes, with
+  density, landmarks, path, water, atmosphere, and reroll controls.
+- An editable versioned map-package model containing per-cell terrain,
+  irregular multi-cell stamps, walls, doors, windows, labels, and DM notes.
+- Twenty-eight searchable, biome-aware palette pieces across nature, structures,
+  furnishings, details, and hazards. Procedural generation rotates and flips
+  stamps deterministically; manual placement uses drag and drop.
+- One-cell terrain correction with optional organic edge rendering. Organic
+  edges soften the presentation without changing the exact underlying cells.
+- Stamp move/rotate/flip/duplicate/layer/delete, click-drag terrain correction,
+  wall previews snapped to grid intersections, structure deletion, and a
+  fifty-step private draft undo/redo history.
+- A local prompt interpreter with durable saved presets, six original fixtures,
+  twenty additional AI-prompt test maps, and JSON import/export for
+  Codex-assisted authoring without a live runtime AI dependency.
+- Authoritative D1 persistence for applied packages and private DM presets.
+  Applying a new map resizes the shared grid and safely reclamps existing token
+  centers; players receive only the applied package, never the draft library.
+
+Verified locally with lint, production build, 18 generation/rendering tests,
+and five live API scenarios. The latest live run observed two-token convergence
+in 22 ms, edited-map application in the shared player state, and eight-client
+collaboration convergence in 149 ms. This phase has not been published; local
+testing remains the requested workflow.
+
+The August 7 expansion added five generated terrain textures and twenty saved
+themes spanning swamp, desert, tundra, volcanic, coast, and fey forest. An
+independent state read-back confirmed all 20/20 additional packages are
+distinct, editable, durable, and DM-private. `SAVED-MAP-CATALOG.md` records the
+complete added set.
 
 ## Definition of done for every phase
 

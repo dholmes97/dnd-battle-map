@@ -103,9 +103,14 @@ async function waitForPolledState(since, predicate, timeoutMs = 15_000, headers 
 }
 
 function destinationFor(token, grid, xDelta, yDelta) {
+  const keepFractional = (value, limit) => {
+    const rounded = Number(value.toFixed(3));
+    if (!Number.isInteger(rounded)) return rounded;
+    return Number((rounded < limit - 0.2 ? rounded + 0.111 : rounded - 0.111).toFixed(3));
+  };
   return {
-    x: Number((token.x < grid.width / 2 ? token.x + xDelta : token.x - xDelta).toFixed(3)),
-    y: Number((token.y < grid.height / 2 ? token.y + yDelta : token.y - yDelta).toFixed(3)),
+    x: keepFractional(token.x < grid.width / 2 ? token.x + xDelta : token.x - xDelta, grid.width),
+    y: keepFractional(token.y < grid.height / 2 ? token.y + yDelta : token.y - yDelta, grid.height),
   };
 }
 
@@ -333,6 +338,75 @@ test("the last accepted move wins when two authorized clients move the same toke
   } finally {
     if (tokenId) await command(dm, "delete-token", { tokenId }).catch(() => null);
     await command(dm, "configure-encounter", { status: originalStatus, mapAsset: originalMap }).catch(() => null);
+  }
+});
+
+test("map presets persist privately and applied packages resize the shared authoritative grid", async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const dm = (await join(`Map DM ${suffix}`, "dm")).participant;
+  const player = (await join(`Map Player ${suffix}`)).participant;
+  const initial = await viewerState(dm);
+  const originalMapAsset = initial.body.encounter.mapAsset;
+  const originalPackage = initial.body.encounter.mapPackage;
+  const width = 18;
+  const height = 12;
+  const mapPackage = {
+    format: "dnd-battle-map",
+    version: 1,
+    id: `api-map-${suffix}`,
+    name: `Haunted API Ruins ${suffix}`,
+    description: "A durable map-package verification fixture.",
+    biome: "ruins",
+    mood: "moonlight",
+    seed: `API-${suffix}`,
+    width,
+    height,
+    terrain: Array.from({ length: width * height }, (_, index) => index % 19 === 0 ? "rubble" : "grass"),
+    stamps: [{ id: `bones-${suffix}`, definitionId: "bone-scatter", x: 7, y: 5, rotation: 0 }],
+    walls: [{ id: `wall-${suffix}`, x1: 2, y1: 2, x2: 8, y2: 2, style: "ruined" }],
+    portals: [], labels: [], notes: [],
+    source: { kind: "prompt", prompt: "Haunted ruins in moonlight with scattered bones." },
+    createdAt: Date.now(),
+  };
+  let presetId;
+  try {
+    const saved = await command(dm, "save-map-preset", { name: mapPackage.name, mapPackage });
+    assert.equal(saved.response.status, 200);
+    assert.match(saved.body.presetId, /^[a-f0-9-]{36}$/);
+    presetId = saved.body.presetId;
+    assert.equal(saved.body.state.savedMapPresets.some((preset) => preset.id === presetId), true);
+
+    const privatePlayerState = await viewerState(player);
+    assert.deepEqual(privatePlayerState.body.savedMapPresets, []);
+
+    const applied = await command(dm, "apply-map-package", { presetId });
+    assert.equal(applied.response.status, 200);
+    assert.deepEqual(applied.body.state.grid, { width, height, feetPerCell: 5 });
+    assert.equal(applied.body.state.encounter.mapPackage.id, mapPackage.id);
+    assert.equal(applied.body.state.encounter.activeMapPresetId, presetId);
+
+    const shared = await viewerState(player);
+    assert.equal(shared.body.encounter.mapPackage.name, mapPackage.name);
+    assert.deepEqual(shared.body.grid, { width, height, feetPerCell: 5 });
+
+    const editedDraft = { ...mapPackage, name: `${mapPackage.name} · Edited`, description: "The currently edited workshop draft must win over its older saved preset." };
+    const editedApplication = await command(dm, "apply-map-package", { presetId, mapPackage: editedDraft });
+    assert.equal(editedApplication.response.status, 200);
+    assert.equal(editedApplication.body.state.encounter.mapPackage.name, editedDraft.name);
+    assert.equal(editedApplication.body.state.encounter.activeMapPresetId, null, "An edited draft must not masquerade as the older saved preset");
+
+    const editedShared = await viewerState(player);
+    assert.equal(editedShared.body.encounter.mapPackage.description, editedDraft.description);
+
+    const deleted = await command(dm, "delete-map-preset", { presetId });
+    assert.equal(deleted.response.status, 200);
+    presetId = null;
+    assert.equal(deleted.body.state.encounter.mapPackage.name, editedDraft.name, "Deleting a preset must not erase the already-applied map");
+    assert.equal(deleted.body.state.encounter.activeMapPresetId, null);
+  } finally {
+    if (presetId) await command(dm, "delete-map-preset", { presetId }).catch(() => null);
+    if (originalPackage) await command(dm, "apply-map-package", { mapPackage: originalPackage }).catch(() => null);
+    else await command(dm, "configure-encounter", { status: initial.body.encounter.status, mapAsset: originalMapAsset }).catch(() => null);
   }
 });
 
@@ -585,6 +659,41 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(undo.response.status, 200);
     assert.equal(undo.body.actionType, "annotation_added");
     assert.equal(undo.body.state.annotations.some((annotation) => annotation.id === drawing.body.annotationId), false);
+
+    const erasableDrawing = await command(player, "add-annotation", {
+      annotationType: "drawing",
+      x: 2,
+      y: 2,
+      x2: 4,
+      y2: 3,
+    });
+    assert.equal(erasableDrawing.response.status, 200);
+    const eraseOwnDrawing = await command(player, "remove-annotation", {
+      annotationId: erasableDrawing.body.annotationId,
+    });
+    assert.equal(eraseOwnDrawing.response.status, 200);
+    assert.equal(eraseOwnDrawing.body.state.annotations.some((annotation) => annotation.id === erasableDrawing.body.annotationId), false);
+    const undoErase = await command(player, "undo");
+    assert.equal(undoErase.response.status, 200);
+    assert.equal(undoErase.body.actionType, "annotation_removed");
+    assert.equal(undoErase.body.state.annotations.some((annotation) => annotation.id === erasableDrawing.body.annotationId), true);
+
+    const dmDrawing = await command(dm, "add-annotation", {
+      annotationType: "drawing",
+      x: 5,
+      y: 2,
+      x2: 6,
+      y2: 4,
+    });
+    assert.equal(dmDrawing.response.status, 200);
+    const forbiddenErase = await command(player, "remove-annotation", {
+      annotationId: dmDrawing.body.annotationId,
+    });
+    assert.equal(forbiddenErase.response.status, 403);
+    const dmErase = await command(dm, "remove-annotation", {
+      annotationId: dmDrawing.body.annotationId,
+    });
+    assert.equal(dmErase.response.status, 200);
 
     const resetSetup = await command(dm, "configure-encounter", {
       status: "setup",

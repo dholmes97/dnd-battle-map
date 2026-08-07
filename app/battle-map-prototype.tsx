@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import NextImage from "next/image";
+import MapWorkshop, { renderMapPackageToCanvas } from "@/app/map-workshop";
 import {
   CREATURE_LIBRARY,
   CREATURE_SIZES,
@@ -17,6 +18,7 @@ import {
   type CreatureTemplate,
   tokenRadiusCells,
 } from "@/shared/creature-library";
+import { STAMP_LIBRARY, TERRAIN_ASSETS, type MapPackage } from "@/shared/map-package";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
@@ -68,6 +70,8 @@ type EncounterState = {
     version: number;
     status: "setup" | "active" | "paused";
     mapAsset: string;
+    mapPackage: MapPackage | null;
+    activeMapPresetId: string | null;
     currentRound: number;
     activeInitiativeOrder: number | null;
     updatedAt: number;
@@ -77,6 +81,15 @@ type EncounterState = {
   undo: { available: number; lastAction: string | null };
   tokens: SharedToken[];
   annotations: SharedAnnotation[];
+  savedMapPresets: Array<{
+    id: string;
+    name: string;
+    description: string;
+    sourcePrompt: string | null;
+    mapPackage: MapPackage;
+    createdAt: number;
+    updatedAt: number;
+  }>;
   availableMaps: string[];
   availableArt: string[];
 };
@@ -90,8 +103,9 @@ type DragGesture = {
   latest: MapPoint;
   grabOffset: MapPoint;
 };
-type AnnotationMode = "move" | "ping" | "drawing" | "spotlight";
+type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight";
 type Viewport = { zoom: number; panX: number; panY: number };
+type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
 
 const DEFAULT_CODE = "EMBER-KEEP";
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
@@ -106,6 +120,23 @@ function roundCoordinate(value: number) {
 
 function formatPosition(point: MapPoint) {
   return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
+}
+
+function distanceToSegment(point: MapPoint, start: MapPoint, end: MapPoint) {
+  const deltaX = end.x - start.x;
+  const deltaY = end.y - start.y;
+  const lengthSquared = deltaX * deltaX + deltaY * deltaY;
+  if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.y - start.y);
+  const projection = Math.max(0, Math.min(1, ((point.x - start.x) * deltaX + (point.y - start.y) * deltaY) / lengthSquared));
+  return Math.hypot(point.x - (start.x + projection * deltaX), point.y - (start.y + projection * deltaY));
+}
+
+function drawingAtPoint(annotations: SharedAnnotation[], point: MapPoint, tolerance: number) {
+  return annotations
+    .filter((annotation) => annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null)
+    .map((annotation) => ({ annotation, distance: distanceToSegment(point, annotation, { x: annotation.x2!, y: annotation.y2! }) }))
+    .filter(({ distance }) => distance <= tolerance)
+    .sort((a, b) => a.distance - b.distance)[0]?.annotation ?? null;
 }
 
 function tokenInitial(token: SharedToken) {
@@ -199,6 +230,7 @@ function drawMap(
   dragOrigin: MapPoint | null,
   participant: Participant,
   terrain: HTMLImageElement | null,
+  mapScene: HTMLCanvasElement | null,
   tokenArt: Map<string, HTMLImageElement>,
   viewport: Viewport,
   pingStartedAt: ReadonlyMap<string, number>,
@@ -220,11 +252,18 @@ function drawMap(
   const cellHeight = rect.height / state.grid.height * viewport.zoom;
   const screenX = (mapX: number) => (mapX - viewport.panX) * cellWidth;
   const screenY = (mapY: number) => (mapY - viewport.panY) * cellHeight;
-  const pattern = terrain ? context.createPattern(terrain, "repeat") : null;
-  if (pattern) {
+  const mapPackage = state.encounter.mapPackage;
+  if (mapScene && mapPackage) {
+    const sourceWidth = mapScene.width / viewport.zoom;
+    const sourceHeight = mapScene.height / viewport.zoom;
+    const sourceX = Math.max(0, Math.min(mapScene.width - sourceWidth, (viewport.panX / state.grid.width) * mapScene.width));
+    const sourceY = Math.max(0, Math.min(mapScene.height - sourceHeight, (viewport.panY / state.grid.height) * mapScene.height));
+    context.drawImage(mapScene, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, rect.width, rect.height);
+  } else if (terrain) {
+    const pattern = context.createPattern(terrain, "repeat");
     const scale = Math.max(0.18, Math.min(0.32, cellWidth / 190));
-    pattern.setTransform(new DOMMatrix().scale(scale));
-    context.fillStyle = pattern;
+    if (pattern) pattern.setTransform(new DOMMatrix().scale(scale));
+    context.fillStyle = pattern ?? "#4b4b42";
     context.fillRect(0, 0, rect.width, rect.height);
     context.fillStyle = "rgba(20, 23, 21, 0.15)";
     context.fillRect(0, 0, rect.width, rect.height);
@@ -396,14 +435,19 @@ export default function BattleMapPrototype() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
+  const [renderedMapScene, setRenderedMapScene] = useState<RenderedMapScene | null>(null);
   const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
+  const [initiativeStatuses, setInitiativeStatuses] = useState<Record<string, "editing" | "saving" | "saved">>({});
   const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; maxHp?: string; artAsset?: string }>>({});
   const [hpDelta, setHpDelta] = useState("-1");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
   const [effectDuration, setEffectDuration] = useState("1");
   const [effectReminder, setEffectReminder] = useState("end");
+  const [effectEditorTokenId, setEffectEditorTokenId] = useState<string | null>(null);
+  const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
@@ -556,6 +600,30 @@ export default function BattleMapPrototype() {
   }, [state?.encounter.mapAsset]);
 
   useEffect(() => {
+    const mapPackage = state?.encounter.mapPackage;
+    if (!mapPackage) return;
+    const assets = [...new Set([
+      ...Object.values(TERRAIN_ASSETS),
+      ...STAMP_LIBRARY.flatMap((stamp) => stamp.asset ? [stamp.asset] : []),
+    ])];
+    let disposed = false;
+    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve([path, image]);
+      image.onerror = () => resolve([path, image]);
+      image.src = path;
+    }))).then((entries) => {
+      if (disposed) return;
+      const scene = document.createElement("canvas");
+      scene.width = 1_440;
+      scene.height = Math.max(1, Math.round(scene.width * mapPackage.height / mapPackage.width));
+      renderMapPackageToCanvas(scene, mapPackage, new Map(entries), true);
+      setRenderedMapScene({ mapId: mapPackage.id, canvas: scene });
+    });
+    return () => { disposed = true; };
+  }, [state?.encounter.mapPackage]);
+
+  useEffect(() => {
     const assets = [...new Set([
       ...(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? []),
       ...CREATURE_LIBRARY.map((creature) => creature.artAsset),
@@ -569,8 +637,9 @@ export default function BattleMapPrototype() {
   }, [state?.tokens]);
 
   const redraw = useCallback((animationNow = Date.now()) => {
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
-  }, [dragOrigin, participant, placementPreview, preview, state, terrain, tokenArt, viewport]);
+    const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, terrain, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow);
+  }, [dragOrigin, participant, placementPreview, preview, renderedMapScene, state, terrain, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -613,6 +682,56 @@ export default function BattleMapPrototype() {
     try { await command(name, extra); if (success) setNotice(success); }
     catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); }
     finally { setBusy(false); }
+  };
+
+  const saveInitiative = async (token: SharedToken) => {
+    const draft = initiativeDrafts[token.id];
+    if (draft === undefined) return;
+    if (draft === "") {
+      setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+      setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
+      return;
+    }
+    const initiative = Number(draft);
+    if (!Number.isInteger(initiative) || initiative < 0 || initiative > 99) {
+      setError("Initiative must be a whole number from 0 to 99.");
+      return;
+    }
+    if (initiative === token.initiative) {
+      setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+      setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
+      return;
+    }
+    setBusy(true); setError("");
+    setInitiativeStatuses((current) => ({ ...current, [token.id]: "saving" }));
+    try {
+      await command("set-initiative", { tokenId: token.id, initiative });
+      setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+      setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
+    } catch (initiativeError) {
+      setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" }));
+      setError(initiativeError instanceof Error ? initiativeError.message : "Initiative rejected.");
+      await refreshAfterError();
+    } finally { setBusy(false); }
+  };
+
+  const addEffectToToken = async (tokenId: string) => {
+    const name = effectName.trim();
+    if (!name) return;
+    setBusy(true); setError("");
+    try {
+      await command("add-effect", {
+        tokenId,
+        name,
+        effectType,
+        reminderTiming: effectReminder,
+        durationRounds: Number(effectDuration),
+      });
+      setNotice(`${name} added.`); setEffectName(""); setEffectEditorTokenId(null);
+    } catch (effectError) {
+      setError(effectError instanceof Error ? effectError.message : "Effect rejected.");
+      await refreshAfterError();
+    } finally { setBusy(false); }
   };
 
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
@@ -713,7 +832,7 @@ export default function BattleMapPrototype() {
   };
 
   const addAnnotation = async (type: AnnotationMode, start: MapPoint, end?: MapPoint) => {
-    if (type === "move") return;
+    if (type === "move" || type === "erase") return;
     await runCommand("add-annotation", {
       annotationType: type,
       x: start.x, y: start.y,
@@ -721,6 +840,18 @@ export default function BattleMapPrototype() {
       color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
     }, type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : undefined);
     setAnnotationMode("move");
+  };
+
+  const eraseAnnotationAtPoint = (canvas: HTMLCanvasElement, point: MapPoint) => {
+    if (!state) return;
+    const rect = canvas.getBoundingClientRect();
+    const cellPixels = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom;
+    const annotation = drawingAtPoint(state.annotations, point, 10 / Math.max(1, cellPixels));
+    if (!annotation) {
+      setNotice("Click closer to a drawn line.");
+      return;
+    }
+    void runCommand("remove-annotation", { annotationId: annotation.id }, "Line erased.");
   };
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -734,7 +865,12 @@ export default function BattleMapPrototype() {
     }
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     if (annotationMode !== "move") {
-      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      if (annotationMode === "erase") {
+        eraseAnnotationAtPoint(event.currentTarget, point);
+        return;
+      }
+      event.currentTarget.setPointerCapture(event.pointerId);
       if (annotationMode === "drawing") annotationStartRef.current = { pointerId: event.pointerId, point };
       else void addAnnotation(annotationMode, point);
       return;
@@ -813,6 +949,14 @@ export default function BattleMapPrototype() {
   const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
   const initiativeTokens = [...state.tokens].filter((token) => token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
 
+  if (participant.role === "dm" && workshopOpen) return <MapWorkshop
+    activeMapPackage={state.encounter.mapPackage}
+    activeMapPresetId={state.encounter.activeMapPresetId}
+    savedPresets={state.savedMapPresets}
+    onCommand={async (name, extra) => command<{ state: EncounterState; presetId?: string }>(name, extra)}
+    onClose={() => setWorkshopOpen(false)}
+  />;
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -821,24 +965,29 @@ export default function BattleMapPrototype() {
       </header>
       <div className="workspace">
         <section className="map-panel" aria-label="Shared battle map">
-          <div className="map-toolbar" aria-label="Map communication tools">
-            <button className={annotationMode === "move" ? "tool-active" : ""} onClick={() => setAnnotationMode("move")}>Move</button>
-            <button className={annotationMode === "ping" ? "tool-active" : ""} onClick={() => { enablePingAudio(); setAnnotationMode("ping"); }}>Ping</button>
-            <button className={annotationMode === "drawing" ? "tool-active" : ""} onClick={() => setAnnotationMode("drawing")}>Draw line</button>
-            {participant.role === "dm" ? <button className={annotationMode === "spotlight" ? "tool-active" : ""} onClick={() => setAnnotationMode("spotlight")}>Spotlight</button> : null}
-            {participant.role === "dm" ? <button onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}>Clear</button> : null}
-            {participant.role === "dm" ? <button className={paletteOpen ? "tool-active" : ""} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}>Creatures</button> : null}
+          <div className="map-toolbar" aria-label="Map tools">
+            <div className="map-tool-group" role="group" aria-label="Tactical tools">
+              <button className={`icon-tool${annotationMode === "move" ? " tool-active" : ""}`} aria-label="Move tokens" aria-pressed={annotationMode === "move"} data-tooltip="Move tokens" onClick={() => setAnnotationMode("move")}><span aria-hidden="true">✥</span></button>
+              <button className={`icon-tool${annotationMode === "ping" ? " tool-active" : ""}`} aria-label="Ping map" aria-pressed={annotationMode === "ping"} data-tooltip="Ping map" onClick={() => { enablePingAudio(); setAnnotationMode("ping"); }}><span aria-hidden="true">◉</span></button>
+              <button className={`icon-tool${annotationMode === "drawing" ? " tool-active" : ""}`} aria-label="Draw line" aria-pressed={annotationMode === "drawing"} data-tooltip="Draw line" onClick={() => setAnnotationMode("drawing")}><span aria-hidden="true">╱</span></button>
+              <button className={`icon-tool${annotationMode === "erase" ? " tool-active" : ""}`} aria-label="Erase line" aria-pressed={annotationMode === "erase"} data-tooltip="Erase line" onClick={() => setAnnotationMode("erase")}><span aria-hidden="true">⌫</span></button>
+              {participant.role === "dm" ? <button className={`icon-tool${annotationMode === "spotlight" ? " tool-active" : ""}`} aria-label="Place spotlight" aria-pressed={annotationMode === "spotlight"} data-tooltip="Spotlight" onClick={() => setAnnotationMode("spotlight")}><span aria-hidden="true">◎</span></button> : null}
+              {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all" onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}><span aria-hidden="true">⊘</span></button> : null}
+            </div>
+            {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
             <span className="toolbar-spacer" />
-            <button aria-label="Pan left" onClick={() => setViewport((view) => ({ ...view, panX: Math.max(0, view.panX - 1 / view.zoom) }))}>←</button>
-            <button aria-label="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
-            <button aria-label="Pan down" onClick={() => setViewport((view) => ({ ...view, panY: Math.min(state.grid.height - state.grid.height / view.zoom, view.panY + 1 / view.zoom) }))}>↓</button>
-            <button aria-label="Pan right" onClick={() => setViewport((view) => ({ ...view, panX: Math.min(state.grid.width - state.grid.width / view.zoom, view.panX + 1 / view.zoom) }))}>→</button>
-            <button aria-label="Zoom out" onClick={() => setViewport((view) => ({ zoom: Math.max(1, view.zoom - 0.5), panX: 0, panY: 0 }))}>−</button>
-            <button aria-label="Zoom in" onClick={() => setViewport((view) => ({ ...view, zoom: Math.min(3, view.zoom + 0.5) }))}>+</button>
-            <button onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
+            <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
+              <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => setViewport((view) => ({ ...view, panX: Math.max(0, view.panX - 1 / view.zoom) }))}>←</button>
+              <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
+              <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => setViewport((view) => ({ ...view, panY: Math.min(state.grid.height - state.grid.height / view.zoom, view.panY + 1 / view.zoom) }))}>↓</button>
+              <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => setViewport((view) => ({ ...view, panX: Math.min(state.grid.width - state.grid.width / view.zoom, view.panX + 1 / view.zoom) }))}>→</button>
+              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => setViewport((view) => ({ zoom: Math.max(1, view.zoom - 0.5), panX: 0, panY: 0 }))}>−</button>
+              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => setViewport((view) => ({ ...view, zoom: Math.min(3, view.zoom + 0.5) }))}>+</button>
+              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
+            </div>
           </div>
           <div className="map-frame">
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
@@ -883,20 +1032,26 @@ export default function BattleMapPrototype() {
                   {token.artAsset ? <NextImage className="token-portrait" src={token.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(token)}</span>}
                   <div><small>{token.hidden ? "Hidden · " : ""}{token.kind} · {token.owner ? `controlled by ${token.owner.name}` : "unclaimed"}</small><h2>{token.name}</h2></div>
                 </button>
-                <div className="coordinate-row"><span>{formatPosition(token)}</span><strong>{token.healthState ?? "No HP"}</strong></div>
+                <div className="token-meta">
+                  <span><small>Position</small><strong>{formatPosition(token)}</strong></span>
+                  <span><small>Size</small><strong>{token.size.charAt(0).toUpperCase() + token.size.slice(1)}</strong></span>
+                  <span><small>Speed</small><strong>{token.speed} ft</strong></span>
+                  <span><small>HP</small><strong>{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : "—"}</strong></span>
+                </div>
                 {selected ? <>
-                  <div className="compact-form"><label>Initiative<input type="number" min="0" max="99" value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => setInitiativeDrafts((current) => ({ ...current, [token.id]: event.target.value }))} /></label><button className="secondary-button" onClick={() => void runCommand("set-initiative", { tokenId: token.id, initiative: Number(initiativeDrafts[token.id] ?? token.initiative) }, "Initiative saved.")} disabled={!controlled || busy}>Set</button></div>
+                  <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled || busy} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
                   {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-row"><strong>HP {token.hp}/{token.maxHp}</strong><input aria-label="HP change" type="number" value={hpDelta} onChange={(event) => setHpDelta(event.target.value)} /><button onClick={() => void command<{ state: EncounterState; concentrationCheckRequired: boolean }>("apply-hp", { tokenId: token.id, delta: Number(hpDelta) }).then((result) => setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.")).catch((hpError) => setError(hpError instanceof Error ? hpError.message : "HP rejected."))}>Apply</button></div> : null}
                   <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => void runCommand("remove-effect", { effectId: effect.id })}>×</button> : null}</span>)}</div>
-                  {controlled ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void runCommand("add-effect", { tokenId: token.id, name: effectName, effectType, reminderTiming: effectReminder, durationRounds: Number(effectDuration) }, `${effectName} added.`).then(() => setEffectName(""))}>Add</button></div> : null}
+                  {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
+                  {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim() || busy}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                   {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
                   {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
-                  {yours && token.id === primaryToken?.id ? <button className="text-button" onClick={() => void relinquishToken()}>Release token</button> : null}
-                  {participant.role === "dm" ? <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="danger-button" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
-                  {participant.role === "dm" ? <div className="token-config">
+                  {yours && token.id === primaryToken?.id ? <button className="inline-action" onClick={() => void relinquishToken()}>Release token</button> : null}
+                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
+                  {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
                     <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
                     <div className="form-grid">
                       <label>Size<select aria-label="Token size" value={tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
@@ -904,7 +1059,7 @@ export default function BattleMapPrototype() {
                       <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
                     </div>
                     <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
-                    <button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, size: draft.size ?? token.size, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token configuration saved.").then(() => setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; })); }}>Save configuration</button>
+                    <button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, size: draft.size ?? token.size, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token details saved.").then(() => { setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; }); setTokenEditorTokenId(null); }); }}>Save details</button>
                   </div> : null}
                 </> : null}
               </section>;
@@ -916,6 +1071,7 @@ export default function BattleMapPrototype() {
             <label>Map<select value={state.encounter.mapAsset} onChange={(event) => void runCommand("configure-encounter", { mapAsset: event.target.value }, "Map changed.")}>{state.availableMaps.map((path) => <option value={path} key={path}>{mapLabel(path)}</option>)}</select></label>
             <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
             <button className="primary-button" onClick={() => { setPaletteOpen(true); setAnnotationMode("move"); }}>Open creature palette</button>
+            <button className="secondary-button workshop-launch" onClick={() => setWorkshopOpen(true)}>Open Map Workshop</button>
           </section> : null}
 
           <button className="undo-button" onClick={() => void runCommand("undo", {}, "Last reversible action undone.")} disabled={busy || state.undo.available === 0}>Undo my last action{state.undo.available ? ` (${state.undo.available}/10)` : ""}</button>

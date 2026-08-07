@@ -10,6 +10,7 @@ import {
   isCreatureSize,
   tokenRadiusCells,
 } from "../shared/creature-library";
+import { parseMapPackage, type MapPackage } from "../shared/map-package";
 
 interface Env {
   ASSETS: Fetcher;
@@ -38,6 +39,10 @@ type EncounterRow = {
   version: number;
   status: string;
   map_asset: string;
+  map_package_json: string | null;
+  active_map_preset_id: string | null;
+  grid_width: number;
+  grid_height: number;
   current_round: number;
   active_initiative_order: number | null;
   updated_at: number;
@@ -100,8 +105,16 @@ type ActionRow = {
   created_at: number;
 };
 
-const GRID_WIDTH = 16;
-const GRID_HEIGHT = 11;
+type MapPresetRow = {
+  id: string;
+  name: string;
+  description: string;
+  source_prompt: string | null;
+  package_json: string;
+  created_at: number;
+  updated_at: number;
+};
+
 const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const PING_TTL_MS = 2_000;
 const API_ROUTE =
@@ -169,6 +182,15 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
+function cleanMapPackage(value: unknown): MapPackage | null {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return parseMapPackage(parsed);
+  } catch {
+    return null;
+  }
+}
+
 function clampTokenCoordinate(value: unknown, limit: number, size: CreatureSize): number {
   const radius = tokenRadiusCells(size);
   const numeric = Number(value);
@@ -188,6 +210,10 @@ async function ensureSchema(env: Env): Promise<void> {
           version INTEGER DEFAULT 1 NOT NULL,
           status TEXT DEFAULT 'setup' NOT NULL,
           map_asset TEXT DEFAULT '/assets/terrain/terrain-dungeon-flagstone-01.png' NOT NULL,
+          map_package_json TEXT,
+          active_map_preset_id TEXT,
+          grid_width INTEGER DEFAULT 16 NOT NULL,
+          grid_height INTEGER DEFAULT 11 NOT NULL,
           current_round INTEGER DEFAULT 0 NOT NULL,
           active_initiative_order INTEGER,
           updated_at INTEGER NOT NULL
@@ -257,6 +283,17 @@ async function ensureSchema(env: Env): Promise<void> {
           expires_at INTEGER,
           created_at INTEGER NOT NULL
         )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS map_presets (
+          id TEXT PRIMARY KEY NOT NULL,
+          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          description TEXT DEFAULT '' NOT NULL,
+          source_prompt TEXT,
+          package_json TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_participants_encounter_id ON participants(encounter_id)",
         ),
@@ -271,6 +308,9 @@ async function ensureSchema(env: Env): Promise<void> {
         ),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_annotations_encounter_created_at ON annotations(encounter_id, created_at)",
+        ),
+        db.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_map_presets_encounter_updated ON map_presets(encounter_id, updated_at)",
         ),
       ]);
 
@@ -348,6 +388,10 @@ async function ensureSchema(env: Env): Promise<void> {
       const encounterAdditions = [
         ["status", "ALTER TABLE encounters ADD COLUMN status TEXT DEFAULT 'setup' NOT NULL"],
         ["map_asset", "ALTER TABLE encounters ADD COLUMN map_asset TEXT DEFAULT '/assets/terrain/terrain-dungeon-flagstone-01.png' NOT NULL"],
+        ["map_package_json", "ALTER TABLE encounters ADD COLUMN map_package_json TEXT"],
+        ["active_map_preset_id", "ALTER TABLE encounters ADD COLUMN active_map_preset_id TEXT"],
+        ["grid_width", "ALTER TABLE encounters ADD COLUMN grid_width INTEGER DEFAULT 16 NOT NULL"],
+        ["grid_height", "ALTER TABLE encounters ADD COLUMN grid_height INTEGER DEFAULT 11 NOT NULL"],
         ["current_round", "ALTER TABLE encounters ADD COLUMN current_round INTEGER DEFAULT 0 NOT NULL"],
         ["active_initiative_order", "ALTER TABLE encounters ADD COLUMN active_initiative_order INTEGER"],
       ] as const;
@@ -450,7 +494,8 @@ async function ensureSchema(env: Env): Promise<void> {
 
 async function findEncounter(env: Env, code: string): Promise<EncounterRow | null> {
   return env.DB.prepare(
-    `SELECT id, code, name, version, status, map_asset, current_round,
+    `SELECT id, code, name, version, status, map_asset, map_package_json,
+            active_map_preset_id, grid_width, grid_height, current_round,
             active_initiative_order, updated_at
      FROM encounters WHERE code = ?`,
   )
@@ -601,6 +646,16 @@ async function encounterState(
   const availableUndo = viewer
     ? await undoStack(env, encounter!.id, viewer.id)
     : [];
+  const savedMapPresets = viewer?.role === "dm"
+    ? await env.DB.prepare(
+        `SELECT id, name, description, source_prompt, package_json, created_at, updated_at
+         FROM map_presets WHERE encounter_id = ? ORDER BY updated_at DESC, name LIMIT 60`,
+      ).bind(encounter!.id).all<MapPresetRow>()
+    : { results: [] as MapPresetRow[] };
+  let activeMapPackage: MapPackage | null = null;
+  if (encounter!.map_package_json) {
+    try { activeMapPackage = parseMapPackage(JSON.parse(encounter!.map_package_json)); } catch { activeMapPackage = null; }
+  }
 
   if (tokens.results.length === 0) return null;
   const visibleTokens = tokens.results.filter(
@@ -616,11 +671,13 @@ async function encounterState(
       version: encounter!.version,
       status: encounter!.status,
       mapAsset: encounter!.map_asset,
+      mapPackage: activeMapPackage,
+      activeMapPresetId: encounter!.active_map_preset_id,
       currentRound: encounter!.current_round,
       activeInitiativeOrder: encounter!.active_initiative_order,
       updatedAt: encounter!.updated_at,
     },
-    grid: { width: GRID_WIDTH, height: GRID_HEIGHT, feetPerCell: 5 },
+    grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
     viewer: viewer ? { id: viewer.id, role: viewer.role } : null,
     undo: {
       available: availableUndo.length,
@@ -681,6 +738,20 @@ async function encounterState(
       createdBy: annotation.created_by,
       expiresAt: annotation.expires_at,
     })),
+    savedMapPresets: savedMapPresets.results.flatMap((preset) => {
+      try {
+        const mapPackage = parseMapPackage(JSON.parse(preset.package_json));
+        return mapPackage ? [{
+          id: preset.id,
+          name: preset.name,
+          description: preset.description,
+          sourcePrompt: preset.source_prompt,
+          mapPackage,
+          createdAt: preset.created_at,
+          updatedAt: preset.updated_at,
+        }] : [];
+      } catch { return []; }
+    }),
     availableMaps: [
       "/assets/terrain/terrain-dungeon-flagstone-01.png",
       "/assets/terrain/terrain-meadow-grass-01.png",
@@ -722,6 +793,7 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "effect_added",
   "effect_removed",
   "annotation_added",
+  "annotation_removed",
   "token_created",
   "token_updated",
 ]);
@@ -929,6 +1001,19 @@ async function handleCommand(
         .bind(cleanTokenId(payload.annotationId), encounter.id)
         .run();
       changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "annotation_removed") {
+      const annotation = payload.annotation as Record<string, unknown> | undefined;
+      if (annotation) {
+        const result = await env.DB.prepare(
+          `INSERT OR IGNORE INTO annotations
+           (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
+            created_by, expires_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+          .bind(cleanTokenId(annotation.id), encounter.id, cleanText(annotation.annotationType, 24), Number(annotation.x), Number(annotation.y), annotation.x2 ?? null, annotation.y2 ?? null, cleanText(annotation.color, 16) || "#75c8d8", cleanText(annotation.label, 48) || null, cleanParticipantId(annotation.createdBy) || participant.id, annotation.expiresAt ?? null, Number(annotation.createdAt) || now)
+          .run();
+        changes = result.meta.changes ?? 0;
+      }
     } else if (action.action_type === "token_created") {
       const result = await env.DB.prepare(
         `DELETE FROM tokens WHERE id = ? AND encounter_id = ?
@@ -949,7 +1034,7 @@ async function handleCommand(
           `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?,
            art_asset = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
         )
-          .bind(cleanText(previous.name, 48), isCreatureSize(previous.size) ? previous.size : current?.size ?? "medium", Number.isFinite(Number(previous.x)) ? Number(previous.x) : current?.x ?? GRID_WIDTH / 2, Number.isFinite(Number(previous.y)) ? Number(previous.y) : current?.y ?? GRID_HEIGHT / 2, Number(previous.speed), previous.hp ?? null, previous.maxHp ?? null, previous.hidden ? 1 : 0, previous.artAsset ?? null, now, tokenId, encounter.id)
+          .bind(cleanText(previous.name, 48), isCreatureSize(previous.size) ? previous.size : current?.size ?? "medium", Number.isFinite(Number(previous.x)) ? Number(previous.x) : current?.x ?? encounter.grid_width / 2, Number.isFinite(Number(previous.y)) ? Number(previous.y) : current?.y ?? encounter.grid_height / 2, Number(previous.speed), previous.hp ?? null, previous.maxHp ?? null, previous.hidden ? 1 : 0, previous.artAsset ?? null, now, tokenId, encounter.id)
           .run();
         changes = result.meta.changes ?? 0;
       }
@@ -1129,6 +1214,101 @@ async function handleCommand(
     return json({ corrected: true, state: await state() });
   }
 
+  if (command === "save-map-preset") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const mapPackage = cleanMapPackage(body.mapPackage);
+    if (!mapPackage) return json({ error: "That map package is invalid or too large." }, { status: 400 });
+    const name = cleanText(body.name, 72) || cleanText(mapPackage.name, 72) || "Untitled map";
+    const description = cleanText(body.description, 240) || cleanText(mapPackage.description, 240);
+    const sourcePrompt = cleanText(body.sourcePrompt, 600) || cleanText(mapPackage.source.prompt, 600) || null;
+    const requestedId = cleanTokenId(body.presetId);
+    const presetId = requestedId || crypto.randomUUID();
+    const serialized = JSON.stringify(mapPackage);
+    if (requestedId) {
+      const result = await env.DB.prepare(
+        `UPDATE map_presets SET name = ?, description = ?, source_prompt = ?,
+         package_json = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
+      ).bind(name, description, sourcePrompt, serialized, now, requestedId, encounter.id).run();
+      if ((result.meta.changes ?? 0) === 0) return json({ error: "Saved map preset not found." }, { status: 404 });
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO map_presets
+         (id, encounter_id, name, description, source_prompt, package_json,
+          created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(presetId, encounter.id, name, description, sourcePrompt, serialized, participant.id, now, now).run();
+    }
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, requestedId ? "map_preset_updated" : "map_preset_saved", { presetId, name }, now);
+    return json({ saved: true, presetId, state: await state() });
+  }
+
+  if (command === "delete-map-preset") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const presetId = cleanTokenId(body.presetId);
+    if (!presetId) return json({ error: "Saved map preset is required." }, { status: 400 });
+    const result = await env.DB.prepare(
+      "DELETE FROM map_presets WHERE id = ? AND encounter_id = ?",
+    ).bind(presetId, encounter.id).run();
+    if ((result.meta.changes ?? 0) === 0) return json({ error: "Saved map preset not found." }, { status: 404 });
+    if (encounter.active_map_preset_id === presetId) {
+      await env.DB.prepare("UPDATE encounters SET active_map_preset_id = NULL WHERE id = ?").bind(encounter.id).run();
+    }
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "map_preset_deleted", { presetId }, now);
+    return json({ deleted: true, state: await state() });
+  }
+
+  if (command === "apply-map-package") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const presetId = cleanTokenId(body.presetId) || null;
+    let mapPackage = cleanMapPackage(body.mapPackage);
+    let appliedPresetId: string | null = null;
+    if (presetId) {
+      const saved = await env.DB.prepare(
+        "SELECT package_json FROM map_presets WHERE id = ? AND encounter_id = ?",
+      ).bind(presetId, encounter.id).first<{ package_json: string }>();
+      if (!saved) return json({ error: "Saved map preset not found." }, { status: 404 });
+      const savedPackage = cleanMapPackage(saved.package_json);
+      if (!mapPackage) mapPackage = savedPackage;
+      if (savedPackage && mapPackage && JSON.stringify(savedPackage) === JSON.stringify(mapPackage)) appliedPresetId = presetId;
+    }
+    if (!mapPackage) return json({ error: "That map package is invalid or too large." }, { status: 400 });
+    const serialized = JSON.stringify(mapPackage);
+    const tokenRows = await env.DB.prepare(
+      "SELECT id, x, y, size FROM tokens WHERE encounter_id = ?",
+    ).bind(encounter.id).all<{ id: string; x: number; y: number; size: CreatureSize }>();
+    const updates = tokenRows.results.map((token) => env.DB.prepare(
+      "UPDATE tokens SET x = ?, y = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
+    ).bind(
+      clampTokenCoordinate(token.x, mapPackage!.width, token.size),
+      clampTokenCoordinate(token.y, mapPackage!.height, token.size),
+      now,
+      token.id,
+      encounter.id,
+    ));
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE encounters SET map_package_json = ?, active_map_preset_id = ?,
+         grid_width = ?, grid_height = ?, updated_at = ? WHERE id = ?`,
+      ).bind(serialized, appliedPresetId, mapPackage.width, mapPackage.height, now, encounter.id),
+      ...updates,
+    ]);
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "map_package_applied", {
+      presetId: appliedPresetId,
+      mapId: mapPackage.id,
+      name: mapPackage.name,
+      previousMapPresetId: encounter.active_map_preset_id,
+      previousGrid: { width: encounter.grid_width, height: encounter.grid_height },
+      nextGrid: { width: mapPackage.width, height: mapPackage.height },
+    }, now);
+    return json({ applied: true, state: await state() });
+  }
+
   if (command === "configure-encounter") {
     const denied = requireDm();
     if (denied) return denied;
@@ -1141,7 +1321,8 @@ async function handleCommand(
       "/assets/terrain/terrain-shallow-water-01.png",
       "/assets/terrain/terrain-packed-earth-01.png",
     ];
-    const mapAsset = allowedMaps.includes(String(body.mapAsset))
+    const explicitLegacyMap = allowedMaps.includes(String(body.mapAsset));
+    const mapAsset = explicitLegacyMap
       ? String(body.mapAsset)
       : encounter.map_asset;
     if (status === "setup") {
@@ -1163,10 +1344,24 @@ async function handleCommand(
         .bind(status, mapAsset, now, encounter.id)
         .run();
     }
+    if (explicitLegacyMap) {
+      const tokenRows = await env.DB.prepare(
+        "SELECT id, x, y, size FROM tokens WHERE encounter_id = ?",
+      ).bind(encounter.id).all<{ id: string; x: number; y: number; size: CreatureSize }>();
+      await env.DB.batch([
+        env.DB.prepare(
+          `UPDATE encounters SET map_package_json = NULL, active_map_preset_id = NULL,
+           grid_width = 16, grid_height = 11, updated_at = ? WHERE id = ?`,
+        ).bind(now, encounter.id),
+        ...tokenRows.results.map((token) => env.DB.prepare(
+          "UPDATE tokens SET x = ?, y = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
+        ).bind(clampTokenCoordinate(token.x, 16, token.size), clampTokenCoordinate(token.y, 11, token.size), now, token.id, encounter.id)),
+      ]);
+    }
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "encounter_configured", {
       previous: { status: encounter.status, mapAsset: encounter.map_asset },
-      next: { status, mapAsset },
+      next: { status, mapAsset, mapPackage: explicitLegacyMap ? null : undefined },
     }, now);
     return json({ configured: true, state: await state() });
   }
@@ -1183,8 +1378,8 @@ async function handleCommand(
       ? String(body.artAsset)
       : null;
     const size: CreatureSize = isCreatureSize(body.size) ? body.size : "medium";
-    const x = clampTokenCoordinate(body.x, GRID_WIDTH, size);
-    const y = clampTokenCoordinate(body.y, GRID_HEIGHT, size);
+    const x = clampTokenCoordinate(body.x, encounter.grid_width, size);
+    const y = clampTokenCoordinate(body.y, encounter.grid_height, size);
     const speed = Math.min(120, Math.max(0, Math.trunc(Number(body.speed)) || 30));
     const maxHp = Number.isFinite(Number(body.maxHp)) ? Math.max(1, Math.trunc(Number(body.maxHp))) : null;
     const hp = maxHp === null ? null : Math.min(maxHp, Math.max(0, Math.trunc(Number(body.hp)) || maxHp));
@@ -1272,8 +1467,8 @@ async function handleCommand(
         ? Math.max(1, Math.trunc(Number(body.maxHp)))
         : token.max_hp;
       const hp = maxHp === null ? null : Math.min(maxHp, token.hp ?? maxHp);
-      const x = clampTokenCoordinate(token.x, GRID_WIDTH, size);
-      const y = clampTokenCoordinate(token.y, GRID_HEIGHT, size);
+      const x = clampTokenCoordinate(token.x, encounter.grid_width, size);
+      const y = clampTokenCoordinate(token.y, encounter.grid_height, size);
       await env.DB.prepare(
         `UPDATE tokens SET name = ?, size = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ?`,
@@ -1426,7 +1621,7 @@ async function handleCommand(
     const y = Number(body.y);
     const x2 = Number.isFinite(Number(body.x2)) ? Number(body.x2) : null;
     const y2 = Number.isFinite(Number(body.y2)) ? Number(body.y2) : null;
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > GRID_WIDTH || y > GRID_HEIGHT) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > encounter.grid_width || y > encounter.grid_height) {
       return json({ error: "Annotation is outside the map." }, { status: 400 });
     }
     const expiresAt = annotationType === "ping"
@@ -1457,6 +1652,49 @@ async function handleCommand(
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "annotations_cleared", {}, now);
     return json({ cleared: true, state: await state() });
+  }
+
+  if (command === "remove-annotation") {
+    const annotationId = cleanTokenId(body.annotationId);
+    const annotation = await env.DB.prepare(
+      `SELECT id, annotation_type, x, y, x2, y2, color, label, created_by,
+              expires_at, created_at
+       FROM annotations WHERE id = ? AND encounter_id = ?`,
+    )
+      .bind(annotationId, encounter.id)
+      .first<AnnotationRow & { created_at: number }>();
+    if (!annotation || annotation.annotation_type !== "drawing") {
+      return json({ error: "Drawn line not found." }, { status: 404 });
+    }
+    if (participant.role !== "dm" && annotation.created_by !== participant.id) {
+      return json({ error: "You can only erase lines you drew." }, { status: 403 });
+    }
+    const result = await env.DB.prepare(
+      "DELETE FROM annotations WHERE id = ? AND encounter_id = ?",
+    )
+      .bind(annotationId, encounter.id)
+      .run();
+    if ((result.meta.changes ?? 0) !== 1) {
+      return json({ error: "That line was already removed." }, { status: 409 });
+    }
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "annotation_removed", {
+      annotationId,
+      annotation: {
+        id: annotation.id,
+        annotationType: annotation.annotation_type,
+        x: annotation.x,
+        y: annotation.y,
+        x2: annotation.x2,
+        y2: annotation.y2,
+        color: annotation.color,
+        label: annotation.label,
+        createdBy: annotation.created_by,
+        expiresAt: annotation.expires_at,
+        createdAt: annotation.created_at,
+      },
+    }, now);
+    return json({ removed: true, state: await state() });
   }
 
   if (command === "delete-token") {
@@ -1732,13 +1970,13 @@ async function handleApi(
       !Number.isFinite(requestedY) ||
       requestedX < 0 ||
       requestedY < 0 ||
-      requestedX > GRID_WIDTH ||
-      requestedY > GRID_HEIGHT
+      requestedX > encounter.grid_width ||
+      requestedY > encounter.grid_height
     ) {
       return json({ error: "Destination is outside the map." }, { status: 400 });
     }
-    const x = clampTokenCoordinate(requestedX, GRID_WIDTH, token.size);
-    const y = clampTokenCoordinate(requestedY, GRID_HEIGHT, token.size);
+    const x = clampTokenCoordinate(requestedX, encounter.grid_width, token.size);
+    const y = clampTokenCoordinate(requestedY, encounter.grid_height, token.size);
     const previous = { x: token.x, y: token.y };
     const distance = directDistance(previous, { x, y });
     const remainingBeforeMove = Math.max(0, token.speed - token.movement_used);

@@ -15,10 +15,37 @@ export const encounters = sqliteTable("encounters", {
   mapAsset: text("map_asset")
     .notNull()
     .default("/assets/terrain/terrain-dungeon-flagstone-01.png"),
+  mapPackageJson: text("map_package_json"),
+  activeMapPresetId: text("active_map_preset_id"),
+  gridWidth: integer("grid_width").notNull().default(16),
+  gridHeight: integer("grid_height").notNull().default(11),
   currentRound: integer("current_round").notNull().default(0),
   activeInitiativeOrder: integer("active_initiative_order"),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const mapPresets = sqliteTable(
+  "map_presets",
+  {
+    id: text("id").primaryKey(),
+    encounterId: text("encounter_id")
+      .notNull()
+      .references(() => encounters.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    sourcePrompt: text("source_prompt"),
+    packageJson: text("package_json").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_map_presets_encounter_updated").on(
+      table.encounterId,
+      table.updatedAt,
+    ),
+  ],
+);
 
 export const participants = sqliteTable(
   "participants",
