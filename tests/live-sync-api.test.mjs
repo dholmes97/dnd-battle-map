@@ -291,11 +291,10 @@ test("the last accepted move wins when two authorized clients move the same toke
   const player = (await join(`LWW Player ${suffix}`)).participant;
   const initial = await viewerState(dm);
   const originalStatus = initial.body.encounter.status;
-  const originalMap = initial.body.encounter.mapAsset;
   let tokenId;
 
   try {
-    await command(dm, "configure-encounter", { status: "setup", mapAsset: originalMap });
+    await command(dm, "configure-encounter", { status: "setup" });
     const created = await command(dm, "create-token", {
       name: `Last write token ${suffix}`,
       kind: "character",
@@ -337,7 +336,7 @@ test("the last accepted move wins when two authorized clients move the same toke
     assert.deepEqual({ x: movedToken.x, y: movedToken.y }, { x: 6.375, y: 5.875 });
   } finally {
     if (tokenId) await command(dm, "delete-token", { tokenId }).catch(() => null);
-    await command(dm, "configure-encounter", { status: originalStatus, mapAsset: originalMap }).catch(() => null);
+    await command(dm, "configure-encounter", { status: originalStatus }).catch(() => null);
   }
 });
 
@@ -346,7 +345,6 @@ test("map presets persist privately and applied packages resize the shared autho
   const dm = (await join(`Map DM ${suffix}`, "dm")).participant;
   const player = (await join(`Map Player ${suffix}`)).participant;
   const initial = await viewerState(dm);
-  const originalMapAsset = initial.body.encounter.mapAsset;
   const originalPackage = initial.body.encounter.mapPackage;
   const width = 18;
   const height = 12;
@@ -361,11 +359,11 @@ test("map presets persist privately and applied packages resize the shared autho
     seed: `API-${suffix}`,
     width,
     height,
-    terrain: Array.from({ length: width * height }, (_, index) => index % 19 === 0 ? "rubble" : "grass"),
-    stamps: [{ id: `bones-${suffix}`, definitionId: "bone-scatter", x: 7, y: 5, rotation: 0 }],
+    visual: { kind: "generated-scene", assetUrl: "/map-assets/storm-coast-ruins-02.jpg", pixelWidth: 3072, pixelHeight: 2048, sceneKitId: "storm-coast" },
+    sceneObjects: [{ id: `boat-${suffix}`, definitionId: "coast-boat", assetUrl: "/map-assets/scene-kits/coast-boat.png", x: 7, y: 5, width: 6, height: 6, rotation: 0 }],
     walls: [{ id: `wall-${suffix}`, x1: 2, y1: 2, x2: 8, y2: 2, style: "ruined" }],
     portals: [], labels: [], notes: [],
-    source: { kind: "prompt", prompt: "Haunted ruins in moonlight with scattered bones." },
+    source: { kind: "generated-scene" },
     createdAt: Date.now(),
   };
   let presetId;
@@ -406,7 +404,7 @@ test("map presets persist privately and applied packages resize the shared autho
   } finally {
     if (presetId) await command(dm, "delete-map-preset", { presetId }).catch(() => null);
     if (originalPackage) await command(dm, "apply-map-package", { mapPackage: originalPackage }).catch(() => null);
-    else await command(dm, "configure-encounter", { status: initial.body.encounter.status, mapAsset: originalMapAsset }).catch(() => null);
+    else await command(dm, "configure-encounter", { status: initial.body.encounter.status }).catch(() => null);
   }
 });
 
@@ -416,19 +414,17 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
   const player = (await join(`Player ${suffix}`)).participant;
   const latePlayer = (await join(`Late Player ${suffix}`)).participant;
   const createdIds = [];
-  let originalMap;
+  let originalStatus;
   try {
     const initial = await viewerState(dm);
     assert.equal(initial.response.status, 200);
-    originalMap = initial.body.encounter.mapAsset;
+    originalStatus = initial.body.encounter.status;
 
     const configure = await command(dm, "configure-encounter", {
       status: "paused",
-      mapAsset: "/assets/terrain/terrain-meadow-grass-01.png",
     });
     assert.equal(configure.response.status, 200);
     assert.equal(configure.body.state.encounter.status, "paused");
-    assert.equal(configure.body.state.encounter.mapAsset, "/assets/terrain/terrain-meadow-grass-01.png");
 
     const character = await command(dm, "create-token", {
       name: `Hero ${suffix}`,
@@ -454,8 +450,8 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       maxHp: 40,
       artAsset: "/assets/tokens/monsters/shadow-dire-warg-01.png",
       hidden: true,
-      x: 15.9,
-      y: 10.9,
+      x: initial.body.grid.width - 0.1,
+      y: initial.body.grid.height - 0.1,
     });
     assert.equal(monster.response.status, 200);
     const monsterId = monster.body.tokenId;
@@ -463,7 +459,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const placedMonster = monster.body.state.tokens.find((token) => token.id === monsterId);
     assert.deepEqual(
       { size: placedMonster.size, x: placedMonster.x, y: placedMonster.y },
-      { size: "large", x: 15.14, y: 10.14 },
+      { size: "large", x: initial.body.grid.width - 0.86, y: initial.body.grid.height - 0.86 },
     );
 
     const untrackedCharacter = await command(dm, "create-token", {
@@ -517,14 +513,14 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     let resizedMonster = reveal.body.state.tokens.find((token) => token.id === monsterId);
     assert.deepEqual(
       { size: resizedMonster.size, x: resizedMonster.x, y: resizedMonster.y },
-      { size: "huge", x: 14.71, y: 9.71 },
+      { size: "huge", x: initial.body.grid.width - 1.29, y: initial.body.grid.height - 1.29 },
     );
     const undoResize = await command(dm, "undo");
     assert.equal(undoResize.response.status, 200);
     const restoredMonster = undoResize.body.state.tokens.find((token) => token.id === monsterId);
     assert.deepEqual(
       { size: restoredMonster.size, x: restoredMonster.x, y: restoredMonster.y, hidden: restoredMonster.hidden },
-      { size: "large", x: 15.14, y: 10.14, hidden: true },
+      { size: "large", x: initial.body.grid.width - 0.86, y: initial.body.grid.height - 0.86, hidden: true },
     );
     reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false, size: "huge" });
     resizedMonster = reveal.body.state.tokens.find((token) => token.id === monsterId);
@@ -697,19 +693,18 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
 
     const resetSetup = await command(dm, "configure-encounter", {
       status: "setup",
-      mapAsset: originalMap,
     });
     assert.equal(resetSetup.response.status, 200);
     assert.equal(resetSetup.body.state.encounter.currentRound, 0);
     assert.equal(resetSetup.body.state.encounter.activeInitiativeOrder, null);
     assert.ok(resetSetup.body.state.tokens.every((token) => token.initiativeOrder === null));
-    originalMap = null;
+    originalStatus = null;
   } finally {
     for (const tokenId of createdIds.reverse()) {
       await command(dm, "delete-token", { tokenId }).catch(() => null);
     }
-    if (originalMap) {
-      await command(dm, "configure-encounter", { status: "setup", mapAsset: originalMap }).catch(() => null);
+    if (originalStatus) {
+      await command(dm, "configure-encounter", { status: originalStatus }).catch(() => null);
     }
   }
 });

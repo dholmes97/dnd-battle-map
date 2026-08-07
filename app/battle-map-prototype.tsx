@@ -18,7 +18,7 @@ import {
   type CreatureTemplate,
   tokenRadiusCells,
 } from "@/shared/creature-library";
-import { STAMP_LIBRARY, TERRAIN_ASSETS, type MapPackage } from "@/shared/map-package";
+import { type MapPackage } from "@/shared/map-package";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
@@ -69,7 +69,6 @@ type EncounterState = {
     name: string;
     version: number;
     status: "setup" | "active" | "paused";
-    mapAsset: string;
     mapPackage: MapPackage | null;
     activeMapPresetId: string | null;
     currentRound: number;
@@ -90,7 +89,6 @@ type EncounterState = {
     createdAt: number;
     updatedAt: number;
   }>;
-  availableMaps: string[];
   availableArt: string[];
 };
 type Participant = { id: string; name: string; role: Role; sessionSecret: string };
@@ -145,10 +143,6 @@ function tokenInitial(token: SharedToken) {
 
 function artLabel(path: string) {
   return path.split("/").at(-1)?.replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Artwork";
-}
-
-function mapLabel(path: string) {
-  return path.split("/").at(-1)?.replace(/^terrain-/, "").replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Map";
 }
 
 function clampMapPoint(state: EncounterState, point: MapPoint, radius = tokenRadiusCells("medium")): MapPoint {
@@ -229,7 +223,6 @@ function drawMap(
   placementPreview: PlacementPreview | null,
   dragOrigin: MapPoint | null,
   participant: Participant,
-  terrain: HTMLImageElement | null,
   mapScene: HTMLCanvasElement | null,
   tokenArt: Map<string, HTMLImageElement>,
   viewport: Viewport,
@@ -259,14 +252,6 @@ function drawMap(
     const sourceX = Math.max(0, Math.min(mapScene.width - sourceWidth, (viewport.panX / state.grid.width) * mapScene.width));
     const sourceY = Math.max(0, Math.min(mapScene.height - sourceHeight, (viewport.panY / state.grid.height) * mapScene.height));
     context.drawImage(mapScene, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, rect.width, rect.height);
-  } else if (terrain) {
-    const pattern = context.createPattern(terrain, "repeat");
-    const scale = Math.max(0.18, Math.min(0.32, cellWidth / 190));
-    if (pattern) pattern.setTransform(new DOMMatrix().scale(scale));
-    context.fillStyle = pattern ?? "#4b4b42";
-    context.fillRect(0, 0, rect.width, rect.height);
-    context.fillStyle = "rgba(20, 23, 21, 0.15)";
-    context.fillRect(0, 0, rect.width, rect.height);
   } else {
     context.fillStyle = "#4b4b42";
     context.fillRect(0, 0, rect.width, rect.height);
@@ -434,7 +419,6 @@ export default function BattleMapPrototype() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
   const [renderedMapScene, setRenderedMapScene] = useState<RenderedMapScene | null>(null);
   const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
@@ -592,22 +576,11 @@ export default function BattleMapPrototype() {
   }, []);
 
   useEffect(() => {
-    if (!state?.encounter.mapAsset) return;
-    const image = new Image(); let disposed = false;
-    image.onload = () => { if (!disposed) setTerrain(image); };
-    image.src = state.encounter.mapAsset;
-    return () => { disposed = true; };
-  }, [state?.encounter.mapAsset]);
-
-  useEffect(() => {
     const mapPackage = state?.encounter.mapPackage;
     if (!mapPackage) return;
-    const assets = [...new Set(mapPackage.visual ? [
+    const assets = [...new Set([
       mapPackage.visual.assetUrl,
-      ...(mapPackage.sceneObjects ?? []).map((object) => object.assetUrl),
-    ] : [
-      ...Object.values(TERRAIN_ASSETS),
-      ...STAMP_LIBRARY.flatMap((stamp) => stamp.assets),
+      ...mapPackage.sceneObjects.map((object) => object.assetUrl),
     ])];
     let disposed = false;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement] | null>((resolve) => {
@@ -618,8 +591,8 @@ export default function BattleMapPrototype() {
     }))).then((entries) => {
       if (disposed) return;
       const scene = document.createElement("canvas");
-      scene.width = mapPackage.visual?.pixelWidth ?? 1_440;
-      scene.height = mapPackage.visual?.pixelHeight ?? Math.max(1, Math.round(scene.width * mapPackage.height / mapPackage.width));
+      scene.width = mapPackage.visual.pixelWidth;
+      scene.height = mapPackage.visual.pixelHeight;
       renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), true);
       setRenderedMapScene({ mapId: mapPackage.id, canvas: scene });
     });
@@ -641,8 +614,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, terrain, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow);
-  }, [dragOrigin, participant, placementPreview, preview, renderedMapScene, state, terrain, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow);
+  }, [dragOrigin, participant, placementPreview, preview, renderedMapScene, state, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -989,8 +962,8 @@ export default function BattleMapPrototype() {
               <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
             </div>
           </div>
-          <div className="map-frame">
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
+          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
@@ -1071,7 +1044,6 @@ export default function BattleMapPrototype() {
 
           {participant.role === "dm" ? <section className="dm-panel">
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
-            <label>Map<select value={state.encounter.mapAsset} onChange={(event) => void runCommand("configure-encounter", { mapAsset: event.target.value }, "Map changed.")}>{state.availableMaps.map((path) => <option value={path} key={path}>{mapLabel(path)}</option>)}</select></label>
             <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
             <button className="primary-button" onClick={() => { setPaletteOpen(true); setAnnotationMode("move"); }}>Open creature palette</button>
             <button className="secondary-button workshop-launch" onClick={() => setWorkshopOpen(true)}>Open Map Workshop</button>

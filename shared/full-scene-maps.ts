@@ -1,4 +1,4 @@
-import type { MapBiome, MapPackage, TerrainKind } from "./map-package.ts";
+import type { MapBiome, MapPackage } from "./map-package.ts";
 
 export type SceneKitDefinition = {
   id: string;
@@ -64,15 +64,9 @@ export const SCENE_KITS: Record<string, SceneKitDefinition[]> = {
   ],
 };
 
-export const FULL_SCENE_ASSETS = [
-  ...FULL_SCENE_MAPS.map((scene) => scene.assetUrl),
-  ...Object.values(SCENE_KITS).flatMap((kit) => kit.map((item) => item.assetUrl)),
-];
-
 export function createFullSceneMap(definition: FullSceneDefinition): MapPackage {
   const width = 24;
   const height = 16;
-  const terrainKind: TerrainKind = definition.biome === "dungeon" ? "stone" : definition.biome === "coast" ? "sand" : "grass";
   return {
     format: "dnd-battle-map",
     version: 1,
@@ -84,8 +78,6 @@ export function createFullSceneMap(definition: FullSceneDefinition): MapPackage 
     seed: definition.id.toUpperCase(),
     width,
     height,
-    terrain: Array<TerrainKind>(width * height).fill(terrainKind),
-    stamps: [],
     walls: [],
     portals: [],
     labels: [],

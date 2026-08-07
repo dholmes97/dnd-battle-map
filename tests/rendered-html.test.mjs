@@ -55,34 +55,9 @@ test("removes starter artifacts and packages the D1 migration", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
 });
 
-test("keeps validated terrain textures at the expected canvas size", async () => {
-  const terrainFiles = [
-    ["terrain-dungeon-flagstone-01.png", 1024],
-    ["terrain-meadow-grass-01.png", 1024],
-    ["terrain-packed-earth-01.png", 1024],
-    ["terrain-shallow-water-01.png", 1024],
-    ["terrain-cave-floor-01.png", 1254],
-    ["terrain-rubble-01.png", 1254],
-    ["terrain-swamp-mud-01.png", 1254],
-    ["terrain-desert-sand-01.png", 1254],
-    ["terrain-tundra-snow-01.png", 1254],
-    ["terrain-volcanic-ash-01.png", 1254],
-    ["terrain-lava-crust-01.png", 1254],
-  ];
-
-  for (const [file, size] of terrainFiles) {
-    const png = await readFile(
-      new URL(`../public/assets/terrain/${file}`, import.meta.url),
-    );
-    assert.deepEqual(
-      [...png.subarray(0, 8)],
-      [137, 80, 78, 71, 13, 10, 26, 10],
-      `${file} must be a PNG`,
-    );
-    assert.equal(png.readUInt32BE(16), size, `${file} width`);
-    assert.equal(png.readUInt32BE(20), size, `${file} height`);
-  }
-
+test("removes the retired editor art libraries", async () => {
+  await assert.rejects(access(new URL("../public/assets/terrain/", import.meta.url)));
+  await assert.rejects(access(new URL("../public/assets/map-stamps/", import.meta.url)));
   await access(projectRoot);
 });
 
@@ -228,6 +203,22 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 18\.5rem/);
 });
 
+test("normalizes Safari form controls and fits the desktop map to the viewport", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(styles, /-webkit-appearance: none/);
+  assert.match(styles, /\.join-card select \{ min-height: 3rem/);
+  assert.match(styles, /@media \(min-width: 851px\)/);
+  assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
+  assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
+  assert.match(styles, /\.map-frame \{ width: auto; height: 100%; max-width: 100%; justify-self: center; \}/);
+  assert.match(clientSource, /className="map-frame" style=\{\{ aspectRatio:/);
+  assert.doesNotMatch(clientSource, /className=\{`map-canvas[^\n]+style=\{\{ aspectRatio:/);
+});
+
 test("offers compact icon tools and precise line erasing", async () => {
   const [clientSource, workerSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
@@ -250,7 +241,7 @@ test("offers compact icon tools and precise line erasing", async () => {
   assert.match(styles, /\[data-tooltip\]:focus-visible::after/);
 });
 
-test("includes the durable multi-biome map workshop, prompt composer, and irregular stamp proof", async () => {
+test("includes a durable full-scene workshop with no retired editor path", async () => {
   const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
@@ -261,74 +252,23 @@ test("includes the durable multi-biome map workshop, prompt composer, and irregu
 
   assert.match(battleMapSource, /Open Map Workshop/);
   assert.match(battleMapSource, /participant\.role === "dm" && workshopOpen/);
-  assert.match(packageSource, /export function generateMap\(/);
-  assert.match(packageSource, /export function randomFromSeed\(/);
-  assert.match(packageSource, /export function composeMapFromPrompt\(/);
-  for (const biome of ["forest", "dungeon", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"]) assert.match(packageSource, new RegExp(`\\"${biome}\\"`));
-  assert.match(packageSource, /name: "L-shaped grove"/);
-  assert.match(packageSource, /two-by-two open notch/);
-  assert.match(packageSource, /name: "Bone scatter"/);
-  assert.match(packageSource, /name: "Rope bridge"/);
-  assert.match(packageSource, /name: "Glow mushrooms"/);
-  assert.match(packageSource, /name: "Broken fountain"/);
-  assert.match(packageSource, /name: "Crates & barrels"/);
-  assert.match(packageSource, /name: "Spike pit"/);
-  assert.match(packageSource, /name: "Warding rune"/);
-  assert.match(packageSource, /name: "Twisted mangroves"/);
-  assert.match(packageSource, /name: "Wind-carved dunes"/);
-  assert.match(packageSource, /name: "Ice spires"/);
-  assert.match(packageSource, /name: "Lava vent"/);
-  assert.match(packageSource, /name: "Coastal wreck"/);
+  assert.match(packageSource, /export type FullSceneVisual/);
+  assert.match(packageSource, /kind: "generated-scene"/);
+  assert.match(packageSource, /export function parseMapPackage/);
   assert.match(workshopSource, /Rotate 90°/);
-  assert.match(workshopSource, />Terrain<\/button>/);
-  assert.match(workshopSource, />Wall<\/button>/);
-  assert.match(workshopSource, />Door<\/button>/);
-  assert.match(workshopSource, />Window<\/button>/);
-  assert.match(workshopSource, />DM note<\/button>/);
-  assert.match(workshopSource, /Undo draft/);
-  assert.match(workshopSource, /onClick=\{flipSelected\}>Flip/);
   assert.match(workshopSource, /Private until applied/);
-  assert.match(workshopSource, /draggable onDragStart=\{\(event\) => onStampDragStart/);
-  assert.match(workshopSource, /onDragOver=\{onMapDragOver\} onDrop=\{onMapDrop\}/);
-  assert.match(workshopSource, /Drag a piece onto the map/);
-  assert.doesNotMatch(workshopSource, /onClick=\{\(\) => addStamp\(/);
-  assert.match(packageSource, /const rotations: MapRotation\[\] = definition\.rotationMode === "fixed" \? \[0\] : \[0, 90, 180, 270\]/);
-  assert.match(packageSource, /rotation = rotations\[Math\.floor\(random\(\) \* rotations\.length\)\]/);
-  assert.match(workshopSource, /function createTerrainMask\(/);
-  assert.match(workshopSource, /function organicEdgeNoise\(/);
-  assert.match(workshopSource, /globalCompositeOperation = "destination-in"/);
-  assert.match(workshopSource, /const bankBlur = Math\.max/);
-  assert.match(workshopSource, />Crisp cells<\/button>/);
-  assert.match(workshopSource, />Organic edges<\/button>/);
-  assert.match(workshopSource, /underlying terrain still occupies exact grid cells/);
-  assert.match(workshopSource, /Interpret prompt/);
+  assert.match(workshopSource, /onKitDragStart/);
+  assert.match(workshopSource, /onDrop=\{onMapDrop\}/);
+  assert.match(workshopSource, /Artwork for this scene/);
   assert.match(workshopSource, /save-map-preset/);
   assert.match(workshopSource, /apply-map-package/);
-  assert.match(workshopSource, /Map package exported/);
-  assert.match(workshopSource, /Search stamp palette/);
-  assert.match(workshopSource, /Map objects/);
-  assert.match(workshopSource, /deleteMapObject/);
-  assert.match(workshopSource, /paintGestureRef/);
   assert.match(workshopSource, /setWallPreview/);
-  assert.match(workshopSource, />Duplicate<\/button>/);
-  assert.match(workshopSource, />Bring front<\/button>/);
   assert.match(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
   assert.match(workerSource, /map_package_applied/);
+  assert.match(workerSource, /map_scene_migrated/);
   assert.match(mapMigration, /CREATE TABLE `map_presets`/);
   assert.match(mapMigration, /ADD `grid_width` integer DEFAULT 16 NOT NULL/);
-
-  const assets = [
-    ["forest-ancient-oak-01.png", 768, 768],
-    ["forest-l-grove-01.png", 768, 768],
-    ["forest-fallen-log-01.png", 768, 384],
-    ["cave-bone-lair-01.png", 768, 460],
-    ["ruined-moon-shrine-01.png", 768, 639],
-  ];
-  for (const [file, width, height] of assets) {
-    const png = await readFile(new URL(`../public/assets/map-stamps/${file}`, import.meta.url));
-    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-    assert.equal(png.readUInt32BE(16), width, `${file} width`);
-    assert.equal(png.readUInt32BE(20), height, `${file} height`);
-    assert.equal(png[25], 6, `${file} must preserve RGBA transparency`);
+  for (const source of [battleMapSource, workshopSource, packageSource, workerSource]) {
+    assert.doesNotMatch(source, /map-stamps|assets\/terrain|STAMP_LIBRARY|TERRAIN_ASSETS|Legacy procedural|stamp palette/i);
   }
 });

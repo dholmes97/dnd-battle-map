@@ -29,9 +29,9 @@ The current D&D Beyond map experience does not provide:
 
 ### Maps
 
-- Support flexible map building from terrain pieces and reusable, themed maps.
+- Support reusable, cohesive full-scene maps with small scene-matched addition kits.
 - Use Codex-assisted authoring before a session, but require **no live runtime AI dependency**.
-- During play, support local/offline procedural map generation from tiles, dimensions, biome, and requested features (for example, a stream).
+- Keep scene drafting private until the DM explicitly applies it to the encounter.
 
 ## Technical architecture
 
@@ -39,7 +39,7 @@ The current D&D Beyond map experience does not provide:
 - Use durable relational storage for encounter state and an append-only action history. The action history supports a per-user ten-step undo capability.
 - Treat the server as authoritative for shared game state. Keep only temporary interface state in each participant's browser.
 - Resolve competing authorized token movement with server-authoritative last-write-wins updates; movement has no reservation phase.
-- Render the battle map with a tile-based canvas renderer.
+- Render each battle map from one high-resolution scene image plus a lightweight semantic overlay.
 - Validate real-time multiplayer before committing to a specific synchronization provider. The first prototype must prove that two browsers can join one encounter, move a shared token without a reservation round trip, and promptly converge on the server-confirmed position.
 - If Sites provides the required native live-session capability in that prototype, keep the entire solution in Sites. Otherwise, retain Sites for the app and durable database and add a small managed real-time service solely for live synchronization.
 
@@ -184,42 +184,14 @@ The applied package, its grid dimensions, and the resulting action are durable
 and authoritative. Applying a differently sized map reclamps existing tokens
 inside the new bounds.
 
-The local/offline generator supports forest, dungeon, cave, ruins, swamp,
-desert, tundra, volcanic, and coastal starters,
-three sizes, density, landmark count, paths, water, atmosphere, and deterministic
-seeds. Generated maps remain editable as exact terrain cells plus movable
-multi-cell and irregular stamps. The workshop exposes fifty searchable stamp
-families across nature, structure, furnishing, detail, and hazard categories.
-Every family has five dedicated transparent RGBA raster variants, for 250
-finished stamp assets total. Procedural placement and palette drops choose a
-variant deterministically from the map seed, so saved and refreshed maps keep
-the same art. Orthographic pieces can rotate and flip; perspective-sensitive
-pieces such as the standing-stone ring remain at their authored orientation so
-their lighting and perspective do not become implausible. The selected-stamp
-editor can advance artwork explicitly without changing the footprint.
-Generated and saved maps no longer depend on letter tiles or generic palette
-previews. Walls, doors, windows, public or DM-only
-labels, and DM notes share the package format and can be added or deleted in the
-workshop. Terrain corrections support click-drag painting; wall placement shows
-a live grid-intersection preview; and stamps support duplicate and front/back
-layer ordering in addition to move, rotate, flip, and delete. A fifty-step
-private undo/redo history never mutates player state.
-
-Organic terrain boundaries are a presentation layer over exact cell ownership:
-the renderer builds deterministic irregular masks and softly composites the
-same terrain textures, while the faint tactical grid remains above the map.
-This avoids an edge-tile permutation library and preserves predictable painting
-and package data.
-
-The workshop now also supports a deliberately separate cohesive-scene path.
 Three 24 × 16 starters use single 3072 × 2048 generated base images rather
-than assembling the visible scene from generic stamps. Each base has a tiny
+than assembling the visible scene from many reusable fragments. Each base has a tiny
 two-piece scene kit generated against that exact image's palette, lighting,
 scale, and top-down viewpoint. Scene additions snap to the grid, remain movable,
 rotatable, deletable package objects, and do not alter the base image. The
-legacy procedural and tile editor remains available in a collapsed secondary
-panel for comparison and recovery, but generic stamps are not offered over a
-cohesive scene.
+workshop also supports walls, doors, windows, public or DM-only labels, private
+notes, JSON import/export, durable private presets, and a fifty-step private
+undo/redo history.
 
 Full-scene image bytes are addressed through a narrow allowlisted Worker route
 and stored in the Sites R2 binding. The D1-backed map package remains the source
@@ -228,24 +200,15 @@ additions, private presets, and applied encounter state. Packaged seed copies
 bootstrap an empty bucket and provide a local-development fallback. Local
 browser verification selected and applied the forest scene through the
 authoritative command path, then rendered the live encounter without a runtime
-error. The player renderer now preserves the 3072 × 2048 source canvas and, in
-full-scene mode, avoids downloading the 250-asset legacy stamp library.
-
-The prompt path intentionally has no deployed LLM dependency. A deterministic
-local interpreter turns plain-language biome, mood, water, density, and feature
-cues into the same editable package, while JSON import/export is the boundary
-for richer Codex-assisted maps prepared before a session. Six original prompt
-fixtures and twenty additional theme tests are saved in the local preset
-library. The added themes span swamp, desert, tundra, volcanic, coastal, and fey
-forest maps and use five new generated terrain textures. Local verification on
-August 7, 2026 passed lint, a production build, twenty package/rendering tests,
-an independent 20/20 durable-preset read-back, and five live
-authoritative API scenarios. All twenty-six presets were reseeded against the
-local durable service to record stable variant choices. Browser verification
-confirmed all fifty families render in the workshop, fixed-orientation controls
-are disabled where required, and variant selection is available. The edited
-draft supplied during Apply was visible to the player client and was not
-replaced by its older saved preset.
+error. The player renderer preserves the 3072 × 2048 source canvas. The old
+fragment-based editor, its product controls, its package fields, and its art
+libraries were removed locally on August 7, 2026. Existing encounters without a
+full-scene package automatically migrate to the forest starter; incompatible
+saved presets are discarded. Lint, the production build, all seventeen local
+package/render tests, and all five authoritative multi-client API scenarios
+passed after the change. The live local run observed two-token propagation in
+19 ms and eight-client annotation convergence in 142 ms. Deployment remains
+intentionally deferred until requested.
 
 ### Visibility
 

@@ -11,6 +11,7 @@ import {
   tokenRadiusCells,
 } from "../shared/creature-library";
 import { parseMapPackage, type MapPackage } from "../shared/map-package";
+import { FULL_SCENE_MAPS, createFullSceneMap } from "../shared/full-scene-maps";
 
 interface Env {
   ASSETS: Fetcher;
@@ -251,7 +252,7 @@ async function ensureSchema(env: Env): Promise<void> {
           name TEXT NOT NULL,
           version INTEGER DEFAULT 1 NOT NULL,
           status TEXT DEFAULT 'setup' NOT NULL,
-          map_asset TEXT DEFAULT '/assets/terrain/terrain-dungeon-flagstone-01.png' NOT NULL,
+          map_asset TEXT DEFAULT '' NOT NULL,
           map_package_json TEXT,
           active_map_preset_id TEXT,
           grid_width INTEGER DEFAULT 16 NOT NULL,
@@ -429,7 +430,7 @@ async function ensureSchema(env: Env): Promise<void> {
         .all<{ name: string }>();
       const encounterAdditions = [
         ["status", "ALTER TABLE encounters ADD COLUMN status TEXT DEFAULT 'setup' NOT NULL"],
-        ["map_asset", "ALTER TABLE encounters ADD COLUMN map_asset TEXT DEFAULT '/assets/terrain/terrain-dungeon-flagstone-01.png' NOT NULL"],
+        ["map_asset", "ALTER TABLE encounters ADD COLUMN map_asset TEXT DEFAULT '' NOT NULL"],
         ["map_package_json", "ALTER TABLE encounters ADD COLUMN map_package_json TEXT"],
         ["active_map_preset_id", "ALTER TABLE encounters ADD COLUMN active_map_preset_id TEXT"],
         ["grid_width", "ALTER TABLE encounters ADD COLUMN grid_width INTEGER DEFAULT 16 NOT NULL"],
@@ -526,6 +527,20 @@ async function ensureSchema(env: Env): Promise<void> {
           "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
         ).bind(now, "encounter-ember-keep").run();
       }
+      const defaultScene = createFullSceneMap(FULL_SCENE_MAPS[0]);
+      const migratedScenes = await db.prepare(
+        `UPDATE encounters SET map_package_json = ?, active_map_preset_id = NULL,
+         map_asset = '', grid_width = ?, grid_height = ?, version = version + 1,
+         updated_at = ? WHERE map_package_json IS NULL OR instr(map_package_json, '"visual"') = 0`,
+      ).bind(JSON.stringify(defaultScene), defaultScene.width, defaultScene.height, now).run();
+      if ((migratedScenes.meta.changes ?? 0) > 0) {
+        await db.prepare(
+          `INSERT INTO actions (id, encounter_id, participant_id, action_type, payload_json, created_at)
+           SELECT lower(hex(randomblob(16))), id, 'system', 'map_scene_migrated', ?, ?
+           FROM encounters WHERE map_package_json = ?`,
+        ).bind(JSON.stringify({ mapId: defaultScene.id, reason: "full_scene_only" }), now, JSON.stringify(defaultScene)).run();
+      }
+      await db.prepare(`DELETE FROM map_presets WHERE instr(package_json, '"visual"') = 0`).run();
     })().catch((error) => {
       schemaReady = null;
       throw error;
@@ -712,7 +727,6 @@ async function encounterState(
       name: encounter!.name,
       version: encounter!.version,
       status: encounter!.status,
-      mapAsset: encounter!.map_asset,
       mapPackage: activeMapPackage,
       activeMapPresetId: encounter!.active_map_preset_id,
       currentRound: encounter!.current_round,
@@ -794,12 +808,6 @@ async function encounterState(
         }] : [];
       } catch { return []; }
     }),
-    availableMaps: [
-      "/assets/terrain/terrain-dungeon-flagstone-01.png",
-      "/assets/terrain/terrain-meadow-grass-01.png",
-      "/assets/terrain/terrain-shallow-water-01.png",
-      "/assets/terrain/terrain-packed-earth-01.png",
-    ],
     availableArt: TOKEN_ART_ASSETS,
   };
 }
@@ -1357,22 +1365,12 @@ async function handleCommand(
     const status = ["setup", "active", "paused"].includes(String(body.status))
       ? String(body.status)
       : encounter.status;
-    const allowedMaps = [
-      "/assets/terrain/terrain-dungeon-flagstone-01.png",
-      "/assets/terrain/terrain-meadow-grass-01.png",
-      "/assets/terrain/terrain-shallow-water-01.png",
-      "/assets/terrain/terrain-packed-earth-01.png",
-    ];
-    const explicitLegacyMap = allowedMaps.includes(String(body.mapAsset));
-    const mapAsset = explicitLegacyMap
-      ? String(body.mapAsset)
-      : encounter.map_asset;
     if (status === "setup") {
       await env.DB.batch([
         env.DB.prepare(
-          `UPDATE encounters SET status = 'setup', map_asset = ?, current_round = 0,
+          `UPDATE encounters SET status = 'setup', current_round = 0,
            active_initiative_order = NULL, updated_at = ? WHERE id = ?`,
-        ).bind(mapAsset, now, encounter.id),
+        ).bind(now, encounter.id),
         env.DB.prepare(
           `UPDATE tokens SET initiative_order = NULL, turn_complete = 0,
            movement_used = 0, updated_at = ? WHERE encounter_id = ?`,
@@ -1380,30 +1378,16 @@ async function handleCommand(
       ]);
     } else {
       await env.DB.prepare(
-        `UPDATE encounters SET status = ?, map_asset = ?, updated_at = ?
+        `UPDATE encounters SET status = ?, updated_at = ?
          WHERE id = ?`,
       )
-        .bind(status, mapAsset, now, encounter.id)
+        .bind(status, now, encounter.id)
         .run();
-    }
-    if (explicitLegacyMap) {
-      const tokenRows = await env.DB.prepare(
-        "SELECT id, x, y, size FROM tokens WHERE encounter_id = ?",
-      ).bind(encounter.id).all<{ id: string; x: number; y: number; size: CreatureSize }>();
-      await env.DB.batch([
-        env.DB.prepare(
-          `UPDATE encounters SET map_package_json = NULL, active_map_preset_id = NULL,
-           grid_width = 16, grid_height = 11, updated_at = ? WHERE id = ?`,
-        ).bind(now, encounter.id),
-        ...tokenRows.results.map((token) => env.DB.prepare(
-          "UPDATE tokens SET x = ?, y = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
-        ).bind(clampTokenCoordinate(token.x, 16, token.size), clampTokenCoordinate(token.y, 11, token.size), now, token.id, encounter.id)),
-      ]);
     }
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "encounter_configured", {
-      previous: { status: encounter.status, mapAsset: encounter.map_asset },
-      next: { status, mapAsset, mapPackage: explicitLegacyMap ? null : undefined },
+      previous: { status: encounter.status },
+      next: { status },
     }, now);
     return json({ configured: true, state: await state() });
   }

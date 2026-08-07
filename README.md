@@ -9,8 +9,8 @@ The current local implementation includes free-position last-write-wins token
 movement, multi-token claiming, initiative and rounds, summons, effects, HP,
 visibility, pings, tactical drawings, creature drag/drop, and a DM-only map
 workshop. The workshop generates editable forest, dungeon, cave, and ruins
-starters, supports terrain and structure editing, and keeps drafts private until
-the DM applies the complete package. See `BATTLE-MAP-DESIGN.md` for verified
+starters, supports cohesive-scene additions and annotations, and keeps drafts
+private until the DM applies the complete package. See `BATTLE-MAP-DESIGN.md` for verified
 behavior and `IMPLEMENTATION-PLAN.md` for milestone status.
 
 ## Local development
@@ -32,14 +32,6 @@ Useful checks:
 npm run build
 npm run lint
 npm test
-```
-
-To create or refresh all twenty-six durable local prompt-map examples while the
-server is running, then independently audit the twenty-map expansion:
-
-```bash
-BATTLE_MAP_BASE_URL=http://localhost:3000 npm run maps:seed-prompts
-BATTLE_MAP_BASE_URL=http://localhost:3000 npm run maps:verify-prompts
 ```
 
 With the development server running, exercise the authoritative multi-client

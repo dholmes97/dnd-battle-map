@@ -14,7 +14,7 @@ export const encounters = sqliteTable("encounters", {
   status: text("status").notNull().default("setup"),
   mapAsset: text("map_asset")
     .notNull()
-    .default("/assets/terrain/terrain-dungeon-flagstone-01.png"),
+    .default(""),
   mapPackageJson: text("map_package_json"),
   activeMapPresetId: text("active_map_preset_id"),
   gridWidth: integer("grid_width").notNull().default(16),
