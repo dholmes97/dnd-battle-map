@@ -799,7 +799,13 @@ export default function BattleMapPrototype() {
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const gesture = dragGestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (
+      !gesture ||
+      gesture.pointerId !== event.pointerId ||
+      gesture.released ||
+      gesture.canceled ||
+      gesture.finishing
+    ) return;
     event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
     const last = gesture.path.at(-1)!;
     if (Math.hypot(last.x - gesture.latest.x, last.y - gesture.latest.y) > 0.06) gesture.path.push(gesture.latest);

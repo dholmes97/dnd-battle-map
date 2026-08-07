@@ -141,3 +141,19 @@ test("keeps movement rejections visible on the map", async () => {
   assert.match(clientSource, /className="map-message is-error" role="alert"/);
   assert.match(workerSource, /token\.initiative_order !== null &&/);
 });
+
+test("freezes the token destination as soon as the pointer is released", async () => {
+  const clientSource = await readFile(
+    new URL("../app/battle-map-prototype.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    clientSource,
+    /gesture\.pointerId !== event\.pointerId \|\|\s+gesture\.released \|\|\s+gesture\.canceled \|\|\s+gesture\.finishing/,
+  );
+  assert.match(
+    clientSource,
+    /gesture\.latest = dragPoint\(event\.currentTarget, gesture, event\.clientX, event\.clientY\); gesture\.path\.push\(gesture\.latest\); gesture\.released = true;/,
+  );
+});

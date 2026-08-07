@@ -116,7 +116,9 @@ server recalculates equal-cost diagonal distance, accumulates movement used,
 rejects an over-budget path without changing the token position, and records a
 confirmed path in action history. Pointer drag confirms on release; the
 discarded keyboard-step control is intentionally absent because direct dragging
-is the sole movement interaction. A personal ten-action undo stack applies
+is the sole movement interaction. Pointer release also freezes the confirmed
+destination immediately while any pending movement-lock request finishes, so
+later pointer motion cannot alter the drop point. A personal ten-action undo stack applies
 compensating mutations for reversible actions and appends each undo to the
 audit history rather than deleting history.
 
