@@ -211,6 +211,26 @@ same terrain textures, while the faint tactical grid remains above the map.
 This avoids an edge-tile permutation library and preserves predictable painting
 and package data.
 
+The workshop now also supports a deliberately separate cohesive-scene path.
+Three 24 × 16 starters use single 3072 × 2048 generated base images rather
+than assembling the visible scene from generic stamps. Each base has a tiny
+two-piece scene kit generated against that exact image's palette, lighting,
+scale, and top-down viewpoint. Scene additions snap to the grid, remain movable,
+rotatable, deletable package objects, and do not alter the base image. The
+legacy procedural and tile editor remains available in a collapsed secondary
+panel for comparison and recovery, but generic stamps are not offered over a
+cohesive scene.
+
+Full-scene image bytes are addressed through a narrow allowlisted Worker route
+and stored in the Sites R2 binding. The D1-backed map package remains the source
+of truth for the selected asset URL, dimensions, scene-kit identity, placed
+additions, private presets, and applied encounter state. Packaged seed copies
+bootstrap an empty bucket and provide a local-development fallback. Local
+browser verification selected and applied the forest scene through the
+authoritative command path, then rendered the live encounter without a runtime
+error. The player renderer now preserves the 3072 × 2048 source canvas and, in
+full-scene mode, avoids downloading the 250-asset legacy stamp library.
+
 The prompt path intentionally has no deployed LLM dependency. A deterministic
 local interpreter turns plain-language biome, mood, water, density, and feature
 cues into the same editable package, while JSON import/export is the boundary

@@ -11,6 +11,25 @@ export type Cell = { x: number; y: number };
 export type MapRotation = 0 | 90 | 180 | 270;
 export type StampAssetSet = readonly [string, string, string, string, string];
 
+export type FullSceneVisual = {
+  kind: "generated-scene";
+  assetUrl: string;
+  pixelWidth: number;
+  pixelHeight: number;
+  sceneKitId: string;
+};
+
+export type PlacedSceneObject = {
+  id: string;
+  definitionId: string;
+  assetUrl: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: MapRotation;
+};
+
 export type StampDefinition = {
   id: string;
   name: string;
@@ -85,8 +104,10 @@ export type MapPackage = {
   portals: Portal[];
   labels: MapLabel[];
   notes: MapNote[];
+  visual?: FullSceneVisual;
+  sceneObjects?: PlacedSceneObject[];
   source: {
-    kind: "procedural" | "prompt" | "imported";
+    kind: "procedural" | "prompt" | "imported" | "generated-scene";
     prompt?: string;
   };
   createdAt: number;
@@ -1246,7 +1267,44 @@ export function parseMapPackage(value: unknown): MapPackage | null {
   const biomes = new Set<MapBiome>(["forest", "dungeon", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"]);
   const moods = new Set<MapMood>(["daylight", "overcast", "moonlight", "torchlight"]);
   if (!candidate.biome || !biomes.has(candidate.biome) || !candidate.mood || !moods.has(candidate.mood)) return null;
-  if (candidate.stamps.length > 500 || candidate.walls.length > 500 || candidate.portals.length > 200 || candidate.labels.length > 200 || candidate.notes.length > 300) return null;
+  if (candidate.stamps.length > 500 || candidate.walls.length > 500 || candidate.portals.length > 200 || candidate.labels.length > 200 || candidate.notes.length > 300 || (candidate.sceneObjects?.length ?? 0) > 100) return null;
+
+  const safeAssetUrl = (input: unknown) => {
+    const url = text(input, 180);
+    return /^\/map-assets\/[a-z0-9][a-z0-9/-]*\.(?:jpg|png)$/.test(url) ? url : "";
+  };
+  const visual = candidate.visual && typeof candidate.visual === "object" && candidate.visual.kind === "generated-scene"
+    ? (() => {
+        const assetUrl = safeAssetUrl(candidate.visual?.assetUrl);
+        const sceneKitId = text(candidate.visual?.sceneKitId, 80);
+        if (!assetUrl || !sceneKitId) return undefined;
+        return {
+          kind: "generated-scene" as const,
+          assetUrl,
+          pixelWidth: Math.round(number(candidate.visual?.pixelWidth, 1024, 8192)),
+          pixelHeight: Math.round(number(candidate.visual?.pixelHeight, 768, 8192)),
+          sceneKitId,
+        };
+      })()
+    : undefined;
+  const sceneObjects = Array.isArray(candidate.sceneObjects) ? candidate.sceneObjects.flatMap((object, index): PlacedSceneObject[] => {
+    if (!object || typeof object !== "object") return [];
+    const assetUrl = safeAssetUrl(object.assetUrl);
+    const definitionId = text(object.definitionId, 80);
+    if (!assetUrl || !definitionId || ![0, 90, 180, 270].includes(Number(object.rotation))) return [];
+    const width = number(object.width, 0.5, candidate.width!);
+    const height = number(object.height, 0.5, candidate.height!);
+    return [{
+      id: text(object.id, 80) || `scene-object-${index}`,
+      definitionId,
+      assetUrl,
+      x: number(object.x, 0, Math.max(0, candidate.width! - width)),
+      y: number(object.y, 0, Math.max(0, candidate.height! - height)),
+      width,
+      height,
+      rotation: Number(object.rotation) as MapRotation,
+    }];
+  }) : [];
 
   const stamps = candidate.stamps.flatMap((stamp, index): PlacedStamp[] => {
     if (!stamp || typeof stamp !== "object") return [];
@@ -1297,7 +1355,7 @@ export function parseMapPackage(value: unknown): MapPackage | null {
   });
   const sourceKind = candidate.source?.kind;
   const source: MapPackage["source"] = {
-    kind: sourceKind === "prompt" || sourceKind === "imported" ? sourceKind : "procedural",
+    kind: sourceKind === "prompt" || sourceKind === "imported" || sourceKind === "generated-scene" ? sourceKind : "procedural",
     ...(candidate.source?.prompt ? { prompt: text(candidate.source.prompt, 600) } : {}),
   };
   return {
@@ -1317,6 +1375,8 @@ export function parseMapPackage(value: unknown): MapPackage | null {
     portals,
     labels,
     notes,
+    ...(visual ? { visual } : {}),
+    ...(sceneObjects.length ? { sceneObjects } : {}),
     source,
     createdAt: Math.max(0, Math.trunc(Number(candidate.createdAt)) || Date.now()),
   };

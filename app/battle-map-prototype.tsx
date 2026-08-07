@@ -602,22 +602,25 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     const mapPackage = state?.encounter.mapPackage;
     if (!mapPackage) return;
-    const assets = [...new Set([
+    const assets = [...new Set(mapPackage.visual ? [
+      mapPackage.visual.assetUrl,
+      ...(mapPackage.sceneObjects ?? []).map((object) => object.assetUrl),
+    ] : [
       ...Object.values(TERRAIN_ASSETS),
       ...STAMP_LIBRARY.flatMap((stamp) => stamp.assets),
     ])];
     let disposed = false;
-    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
+    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement] | null>((resolve) => {
       const image = new Image();
       image.onload = () => resolve([path, image]);
-      image.onerror = () => resolve([path, image]);
+      image.onerror = () => resolve(null);
       image.src = path;
     }))).then((entries) => {
       if (disposed) return;
       const scene = document.createElement("canvas");
-      scene.width = 1_440;
-      scene.height = Math.max(1, Math.round(scene.width * mapPackage.height / mapPackage.width));
-      renderMapPackageToCanvas(scene, mapPackage, new Map(entries), true);
+      scene.width = mapPackage.visual?.pixelWidth ?? 1_440;
+      scene.height = mapPackage.visual?.pixelHeight ?? Math.max(1, Math.round(scene.width * mapPackage.height / mapPackage.width));
+      renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), true);
       setRenderedMapScene({ mapId: mapPackage.id, canvas: scene });
     });
     return () => { disposed = true; };

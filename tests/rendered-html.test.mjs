@@ -50,7 +50,7 @@ test("removes starter artifacts and packages the D1 migration", async () => {
   assert.equal(packageJson.name, "dnd-battle-map-poc");
   assert.equal(packageJson.dependencies["react-loading-skeleton"], undefined);
   assert.equal(hosting.d1, "DB");
-  assert.equal(hosting.r2, null);
+  assert.equal(hosting.r2, "MAP_ASSETS");
   assert.ok(migrationFiles.some((file) => file.endsWith(".sql")));
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
 });

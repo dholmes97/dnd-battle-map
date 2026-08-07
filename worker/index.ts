@@ -15,6 +15,7 @@ import { parseMapPackage, type MapPackage } from "../shared/map-package";
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  MAP_ASSETS?: R2Bucket;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -121,6 +122,47 @@ const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|move|command)$/;
 
 let schemaReady: Promise<void> | null = null;
+
+const MAP_ASSET_KEYS = new Set([
+  "ancient-forest-clearing-02.jpg",
+  "ruined-underground-temple-02.jpg",
+  "storm-coast-ruins-02.jpg",
+  "scene-kits/forest-log.png",
+  "scene-kits/forest-rocks.png",
+  "scene-kits/temple-debris.png",
+  "scene-kits/temple-table.png",
+  "scene-kits/coast-boat.png",
+  "scene-kits/coast-barricade.png",
+]);
+
+async function handleMapAsset(request: Request, env: Env, key: string): Promise<Response> {
+  if (!MAP_ASSET_KEYS.has(key)) return new Response("Not found", { status: 404 });
+  const headers = new Headers({
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-type": key.endsWith(".jpg") ? "image/jpeg" : "image/png",
+  });
+  if (env.MAP_ASSETS) {
+    const stored = await env.MAP_ASSETS.get(key);
+    if (stored) {
+      headers.set("etag", stored.httpEtag);
+      headers.set("x-map-asset-source", "r2");
+      return new Response(stored.body, { headers });
+    }
+  }
+  const seedUrl = new URL(`/assets/full-map-seeds/${key}`, request.url);
+  if (!env.ASSETS) {
+    return Response.redirect(seedUrl, 307);
+  }
+  const seedRequest = new Request(seedUrl);
+  const seed = await env.ASSETS.fetch(seedRequest);
+  if (!seed.ok || !seed.body) return new Response("Map asset unavailable", { status: 503 });
+  const bytes = await seed.arrayBuffer();
+  if (env.MAP_ASSETS) {
+    await env.MAP_ASSETS.put(key, bytes, { httpMetadata: { contentType: headers.get("content-type") ?? undefined, cacheControl: headers.get("cache-control") ?? undefined } });
+    headers.set("x-map-asset-source", "seeded-r2");
+  } else headers.set("x-map-asset-source", "packaged-fallback");
+  return new Response(bytes, { headers });
+}
 
 function json(data: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
@@ -2016,6 +2058,11 @@ async function handleApi(
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/map-assets/")) {
+      const key = url.pathname.slice("/map-assets/".length);
+      return handleMapAsset(request, env, key);
+    }
 
     const apiMatch = url.pathname.match(API_ROUTE);
     if (apiMatch) {

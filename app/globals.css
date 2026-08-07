@@ -667,6 +667,20 @@ input:focus {
 .workshop-section-heading strong { color: #d8d0c3; font-size: 0.76rem; }
 .workshop-help { margin: 0.45rem 0 0; color: #716c63; font-size: 0.61rem; line-height: 1.45; }
 
+.full-scene-list { display: grid; gap: 0.35rem; margin-top: 0.55rem; }
+.full-scene-list button { min-width: 0; padding: 0.32rem; display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); align-items: center; gap: 0.48rem; border: 1px solid #363832; border-radius: 0.42rem; background: #191a17; color: #c9c1b5; text-align: left; }
+.full-scene-list button:hover, .full-scene-list button.is-active { border-color: #76623a; background: #211f18; }
+.full-scene-list img { width: 4.8rem; height: 3.2rem; border-radius: 0.28rem; object-fit: cover; }
+.full-scene-list span { min-width: 0; display: grid; gap: 0.15rem; }
+.full-scene-list strong { overflow: hidden; font-size: 0.64rem; text-overflow: ellipsis; white-space: nowrap; }
+.full-scene-list small { color: #746e64; font-size: 0.54rem; text-transform: capitalize; }
+.legacy-map-editor { margin: 0.35rem 0; border: 1px solid #30322c; border-radius: 0.42rem; background: #121310; }
+.legacy-map-editor > summary { padding: 0.58rem 0.65rem; color: #777169; cursor: pointer; font-size: 0.61rem; font-weight: 680; }
+.legacy-map-editor[open] > summary { border-bottom: 1px solid #2c2d28; color: #a69f94; }
+.legacy-map-editor > section { padding: 0.65rem; border-bottom: 1px solid #2c2d28; }
+.legacy-map-editor > section:last-child { border-bottom: 0; }
+.scene-kit-panel .stamp-palette img { background: #23241f; }
+
 .prompt-studio textarea {
   width: 100%;
   min-height: 4.8rem;

@@ -167,8 +167,11 @@ Delivered locally August 6, 2026:
 - Authoritative D1 persistence for applied packages and private DM presets.
   Applying a new map resizes the shared grid and safely reclamps existing token
   centers; players receive only the applied package, never the draft library.
+- A cohesive full-scene experiment with three 3072 × 2048 generated maps,
+  map-specific two-piece scene kits, R2 image storage, D1 package metadata, and
+  the original procedural/tile editor retained as a collapsed legacy path.
 
-Verified locally with lint, production build, 18 generation/rendering tests,
+Verified locally with lint, production build, 21 generation/rendering tests,
 and five live API scenarios. The latest live run observed two-token convergence
 in 22 ms, edited-map application in the shared player state, and eight-client
 collaboration convergence in 149 ms. This phase has not been published; local
