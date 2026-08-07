@@ -479,7 +479,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       body: participantBody(latePlayer, untrackedCharacterId, {
         x: 7.35,
         y: 8.15,
-        path: [{ x: 7.35, y: 8.15 }],
       }),
     });
     assert.equal(untrackedMove.response.status, 200);
@@ -501,7 +500,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       body: participantBody(player, characterId, {
         x: 4.25,
         y: 3.5,
-        path: [{ x: 3.25, y: 2.5 }, { x: 4.25, y: 3.5 }],
       }),
     });
     assert.equal(move.response.status, 200);
@@ -513,17 +511,18 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       body: participantBody(player, characterId, {
         x: 10.25,
         y: 3.5,
-        path: [{ x: 10.25, y: 3.5 }],
       }),
     });
-    assert.equal(overBudgetMove.response.status, 409);
-    assert.match(overBudgetMove.body.error, /remains this turn/);
-    const afterRejectedMove = await viewerState(player);
+    assert.equal(overBudgetMove.response.status, 200);
+    assert.equal(overBudgetMove.body.distance, 30);
+    assert.equal(overBudgetMove.body.movementUsed, 40);
+    assert.equal(overBudgetMove.body.overBudget, true);
+    const afterOverBudgetMove = await viewerState(player);
     assert.deepEqual(
       (({ x, y, movementUsed }) => ({ x, y, movementUsed }))(
-        afterRejectedMove.body.tokens.find((token) => token.id === characterId),
+        afterOverBudgetMove.body.tokens.find((token) => token.id === characterId),
       ),
-      { x: 4.25, y: 3.5, movementUsed: 10 },
+      { x: 10.25, y: 3.5, movementUsed: 40 },
     );
 
     const dmOverrideMove = await request("move", {
@@ -531,8 +530,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       body: participantBody(dm, monsterId, {
         x: 0.4,
         y: 7.7,
-        path: [{ x: 0.4, y: 7.7 }],
-        override: true,
       }),
     });
     assert.equal(dmOverrideMove.response.status, 200);

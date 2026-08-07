@@ -88,7 +88,6 @@ type DragGesture = {
   tokenId: string;
   origin: MapPoint;
   latest: MapPoint;
-  path: MapPoint[];
   grabOffset: MapPoint;
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "spotlight";
@@ -143,14 +142,8 @@ function pointerToMap(
   }, radius);
 }
 
-function calculatePathDistance(path: MapPoint[], feetPerCell: number) {
-  let squares = 0;
-  for (let index = 1; index < path.length; index += 1) {
-    squares += Math.max(
-      Math.abs(path[index].x - path[index - 1].x),
-      Math.abs(path[index].y - path[index - 1].y),
-    );
-  }
+function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell: number) {
+  const squares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
   return Math.round(squares * feetPerCell * 10) / 10;
 }
 
@@ -203,7 +196,7 @@ function drawMap(
   state: EncounterState,
   preview: TokenPreview | null,
   placementPreview: PlacementPreview | null,
-  previewPath: MapPoint[],
+  dragOrigin: MapPoint | null,
   participant: Participant,
   terrain: HTMLImageElement | null,
   tokenArt: Map<string, HTMLImageElement>,
@@ -280,17 +273,43 @@ function drawMap(
     context.restore();
   }
 
-  if (preview && previewPath.length > 1) {
-    context.strokeStyle = "rgba(245, 198, 92, 0.94)";
+  if (preview && dragOrigin) {
+    const movingToken = state.tokens.find((token) => token.id === preview.tokenId);
+    const distance = calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell);
+    const remaining = movingToken ? Math.max(0, movingToken.speed - movingToken.movementUsed) : 0;
+    const overMovement = Boolean(movingToken && distance > remaining + 0.05);
+    const rulerColor = overMovement ? "#ef6656" : "#f5c65c";
+    const startX = screenX(dragOrigin.x);
+    const startY = screenY(dragOrigin.y);
+    const endX = screenX(preview.x);
+    const endY = screenY(preview.y);
+    const middleX = (startX + endX) / 2;
+    const middleY = (startY + endY) / 2;
+    const label = `${distance} ft`;
+
+    context.save();
+    context.strokeStyle = rulerColor;
     context.lineWidth = 3;
-    context.setLineDash([7, 6]);
+    context.setLineDash([3, 7]);
     context.beginPath();
-    previewPath.forEach((point, index) => {
-      if (index === 0) context.moveTo(screenX(point.x), screenY(point.y));
-      else context.lineTo(screenX(point.x), screenY(point.y));
-    });
+    context.moveTo(startX, startY);
+    context.lineTo(endX, endY);
     context.stroke();
     context.setLineDash([]);
+    context.fillStyle = rulerColor;
+    context.beginPath(); context.arc(startX, startY, 5, 0, Math.PI * 2); context.fill();
+    context.font = "700 12px ui-monospace, SFMono-Regular, Menlo, monospace";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    const labelWidth = context.measureText(label).width + 14;
+    context.fillStyle = "rgba(24, 22, 19, 0.92)";
+    context.fillRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
+    context.strokeStyle = rulerColor;
+    context.lineWidth = 1.5;
+    context.strokeRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
+    context.fillStyle = rulerColor;
+    context.fillText(label, middleX, middleY + 0.5);
+    context.restore();
   }
 
   state.tokens.forEach((token, index) => {
@@ -370,7 +389,7 @@ export default function BattleMapPrototype() {
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
-  const [previewPath, setPreviewPath] = useState<MapPoint[]>([]);
+  const [dragOrigin, setDragOrigin] = useState<MapPoint | null>(null);
   const [dragging, setDragging] = useState(false);
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
   const [error, setError] = useState("");
@@ -411,8 +430,11 @@ export default function BattleMapPrototype() {
     selectedToken && (participant?.role === "dm" || selectedToken.owner?.participantId === participant?.id),
   );
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
-  const distance = state ? calculatePathDistance(previewPath, state.grid.feetPerCell) : 0;
+  const distance = state && dragOrigin && preview
+    ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
+    : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
+  const overMovement = distance > remainingMovement + 0.05;
 
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
@@ -500,7 +522,7 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     const previous = previousClaimedTokenRef.current;
     if (previous && !primaryToken) {
-      setPreview(null); setPreviewPath([]);
+      setPreview(null); setDragOrigin(null);
       setNotice(`${previous.name} was released after inactivity or reconnected elsewhere.`);
     }
     previousClaimedTokenRef.current = primaryToken;
@@ -547,8 +569,8 @@ export default function BattleMapPrototype() {
   }, [state?.tokens]);
 
   const redraw = useCallback((animationNow = Date.now()) => {
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, previewPath, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
-  }, [participant, placementPreview, preview, previewPath, state, terrain, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, terrain, tokenArt, viewport, pingStartedAtRef.current, animationNow);
+  }, [dragOrigin, participant, placementPreview, preview, state, terrain, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -674,17 +696,19 @@ export default function BattleMapPrototype() {
     finally { setBusy(false); }
   };
 
-  const publishMove = async (tokenId: string, destination: MapPoint, path: MapPoint[], encounter = state?.encounter.code) => {
+  const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
     if (!participant || !encounter) return;
     setBusy(true); setError("");
     try {
-      const result = await api<{ distance: number; state: EncounterState }>(
+      const result = await api<{ distance: number; overBudget: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(encounter)}/move`,
-        { method: "POST", body: sessionPayload(participant, { tokenId, ...destination, path, override: participant.role === "dm" }) },
+        { method: "POST", body: sessionPayload(participant, { tokenId, ...destination }) },
       );
-      setState(result.state); setPreview(null); setPreviewPath([]);
-      setNotice(`Move confirmed · ${result.distance} ft.`);
-    } catch (moveError) { setError(moveError instanceof Error ? moveError.message : "Move rejected."); setPreview(null); setPreviewPath([]); await refreshAfterError(); }
+      setState(result.state); setPreview(null); setDragOrigin(null);
+      setNotice(result.overBudget
+        ? `Move confirmed · ${result.distance} ft · over movement.`
+        : `Move confirmed · ${result.distance} ft.`);
+    } catch (moveError) { setError(moveError instanceof Error ? moveError.message : "Move rejected."); setPreview(null); setDragOrigin(null); await refreshAfterError(); }
     finally { setBusy(false); }
   };
 
@@ -725,11 +749,10 @@ export default function BattleMapPrototype() {
     const gesture: DragGesture = {
       pointerId: event.pointerId, tokenId: selectedToken.id,
       origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
-      path: [{ x: selectedToken.x, y: selectedToken.y }],
       grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
     };
     dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
-    setPreviewPath(gesture.path);
+    setDragOrigin(gesture.origin);
   };
 
   const dragPoint = (canvas: HTMLCanvasElement, gesture: DragGesture, clientX: number, clientY: number) => {
@@ -744,9 +767,7 @@ export default function BattleMapPrototype() {
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
-    const last = gesture.path.at(-1)!;
-    if (Math.hypot(last.x - gesture.latest.x, last.y - gesture.latest.y) > 0.06) gesture.path.push(gesture.latest);
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path, gesture.latest]);
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -758,19 +779,19 @@ export default function BattleMapPrototype() {
     }
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY); gesture.path.push(gesture.latest);
-    dragGestureRef.current = null; setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path]); setDragging(false);
+    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
+    dragGestureRef.current = null; setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
-      setPreview(null); setPreviewPath([]); return;
+      setPreview(null); setDragOrigin(null); return;
     }
-    void publishMove(gesture.tokenId, gesture.latest, gesture.path);
+    void publishMove(gesture.tokenId, gesture.latest);
   };
 
   const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     annotationStartRef.current = null;
     const gesture = dragGestureRef.current; if (!gesture || gesture.pointerId !== event.pointerId) return;
-    dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false);
+    dragGestureRef.current = null; setPreview(null); setDragOrigin(null); setDragging(false);
   };
 
   if (!participant || !state) {
@@ -869,7 +890,7 @@ export default function BattleMapPrototype() {
                   <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => void runCommand("remove-effect", { effectId: effect.id })}>×</button> : null}</span>)}</div>
                   {controlled ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void runCommand("add-effect", { tokenId: token.id, name: effectName, effectType, reminderTiming: effectReminder, durationRounds: Number(effectDuration) }, `${effectName} added.`).then(() => setEffectName(""))}>Add</button></div> : null}
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
-                  {controlled && preview?.tokenId === token.id ? <div className="move-review"><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Path / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
+                  {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
                   {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}

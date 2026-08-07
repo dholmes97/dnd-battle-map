@@ -409,6 +409,7 @@ input:focus {
 }
 
 .move-review div { display: grid; gap: 0.18rem; padding: 0.65rem; border-radius: 0.45rem; background: #171614; }
+.move-review.is-over strong { color: #ef6656; }
 .move-review strong { font-family: var(--font-geist-mono), monospace; font-size: 0.82rem; }
 .section-heading, .movement-summary {
   display: flex;

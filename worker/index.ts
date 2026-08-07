@@ -793,44 +793,12 @@ async function canControlToken(
   return summoner?.owner_participant_id === participant.id;
 }
 
-function pathDistance(
-  body: Record<string, unknown>,
+function directDistance(
   from: { x: number; y: number },
   to: { x: number; y: number },
-): { distance: number; path: Array<{ x: number; y: number }> } {
-  const supplied = Array.isArray(body.path) ? body.path : [];
-  const points = [
-    from,
-    ...supplied.slice(0, 200).flatMap((point) => {
-      if (!point || typeof point !== "object") return [];
-      const x = Number((point as Record<string, unknown>).x);
-      const y = Number((point as Record<string, unknown>).y);
-      return Number.isFinite(x) && Number.isFinite(y) ? [{ x, y }] : [];
-    }),
-    to,
-  ];
-  const deduped = points.filter(
-    (point, index) =>
-      index === 0 ||
-      Math.hypot(
-        point.x - points[index - 1].x,
-        point.y - points[index - 1].y,
-      ) > 0.001,
-  );
-  let gridSquares = 0;
-  for (let index = 1; index < deduped.length; index += 1) {
-    gridSquares += Math.max(
-      Math.abs(deduped[index].x - deduped[index - 1].x),
-      Math.abs(deduped[index].y - deduped[index - 1].y),
-    );
-  }
-  return {
-    distance: Math.round(gridSquares * 5 * 10) / 10,
-    path: deduped.map((point) => ({
-      x: Math.round(point.x * 1_000) / 1_000,
-      y: Math.round(point.y * 1_000) / 1_000,
-    })),
-  };
+): number {
+  const gridSquares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+  return Math.round(gridSquares * 5 * 10) / 10;
 }
 
 async function advanceInitiative(
@@ -1743,7 +1711,6 @@ async function handleApi(
         { status: 403 },
       );
     }
-    const dmOverride = participant.role === "dm" && body.override === true;
     if (
       encounter.status === "paused" &&
       participant.role !== "dm"
@@ -1773,21 +1740,11 @@ async function handleApi(
     const x = clampTokenCoordinate(requestedX, GRID_WIDTH, token.size);
     const y = clampTokenCoordinate(requestedY, GRID_HEIGHT, token.size);
     const previous = { x: token.x, y: token.y };
-    const movement = pathDistance(body, previous, { x, y });
-    const remaining = Math.max(0, token.speed - token.movement_used);
-    if (encounter.status === "active" && movement.distance > remaining + 0.05 && !dmOverride) {
-      return json(
-        {
-          error: `That path costs ${movement.distance} ft; ${remaining} ft remains this turn.`,
-          distance: movement.distance,
-          remaining,
-          state: await encounterState(env, code, participant),
-        },
-        { status: 409 },
-      );
-    }
+    const distance = directDistance(previous, { x, y });
+    const remainingBeforeMove = Math.max(0, token.speed - token.movement_used);
+    const overBudget = encounter.status === "active" && distance > remainingBeforeMove + 0.05;
     const movementUsed = encounter.status === "active"
-      ? Math.round((token.movement_used + movement.distance) * 10) / 10
+      ? Math.round((token.movement_used + distance) * 10) / 10
       : token.movement_used;
     const result = await env.DB.prepare(
       `UPDATE tokens
@@ -1807,13 +1764,12 @@ async function handleApi(
       tokenId,
       from: previous,
       to: { x, y },
-      path: movement.path,
-      distance: movement.distance,
+      distance,
       previousMovementUsed: token.movement_used,
       movementUsed,
-      override: dmOverride,
+      overBudget,
     });
-    return json({ moved: true, distance: movement.distance, movementUsed, state: await encounterState(env, code, participant) });
+    return json({ moved: true, distance, movementUsed, overBudget, state: await encounterState(env, code, participant) });
   }
 
   return json({ error: "Method not allowed." }, { status: 405 });

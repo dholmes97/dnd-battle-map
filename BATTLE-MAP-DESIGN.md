@@ -95,24 +95,30 @@ The remaining V1 roadmap was implemented locally on August 5, 2026. D1 now
 stores encounter status and terrain, initiative and rounds, token movement/HP/
 visibility, summons, effects, and tactical annotations. The Worker remains the
 authority for every shared mutation. The browser retains only session identity,
-draft movement paths, tool choice, and its independent pan/zoom viewport.
+the current drag origin and preview, tool choice, and its independent pan/zoom viewport.
 
 Initiative is manually entered, fixed into durable turn groups when the DM
 starts combat, and advanced by server-validated End Turn actions. A summon or
 familiar inherits its summoner's owner and initiative group; each group member
 must finish before the timeline advances. Starting an active group resets its
-movement, while DM correction and explicit movement override remain available.
+movement, while DM timeline correction remains available.
 Tokens without an initiative entry remain freely movable during an active
 encounter; turn-order enforcement applies only after a token has been assigned
-to an initiative group. Movement rejections are shown directly over the map so
-a safe rollback never appears to be an unexplained snap-back.
+to an initiative group. Permission and turn-order rejections are shown directly
+over the map.
 Returning to setup clears the combat round and order without deleting the
 entered initiative rolls.
 
-Free-position movement now carries the sampled drag path to the server. The
-server recalculates equal-cost diagonal distance, accumulates movement used,
-rejects an over-budget path without changing the token position, and records a
-confirmed path in action history. Pointer drag confirms on release; the
+Free-position movement uses only the token's starting point and current
+destination. During drag, the canvas leaves a dot at the origin, draws one
+straight dotted ruler to the token, and labels the direct equal-cost-diagonal
+distance on the line. The ruler and label turn red when the move would exceed
+the token's remaining movement, but this warning is advisory and never blocks
+the drop. The server independently recalculates the same direct distance,
+accumulates movement used even beyond the nominal speed, and records the
+confirmed endpoints and distance in action history. Local verification on
+August 6, 2026 confirmed that a move taking movement from 10 to 40 feet was
+accepted and marked over budget. Pointer drag confirms on release; the
 discarded keyboard-step control is intentionally absent because direct dragging
 is the sole movement interaction. Pointer release also freezes the confirmed
 destination immediately and submits it without a reservation request, so later
@@ -186,11 +192,11 @@ eight-client annotation convergence in 149 ms.
 - A summoned creature or familiar defaults to control by the player who owns its summoner; the DM may override that ownership.
 - Summons and familiars share their summoner's initiative slot by default, rather than receiving independent initiative entries. That slot is a turn group: each round, the player may take their own turn and each summoned creature/familiar turn in any order, including before or after the summoner.
 - Each member of a turn group has its own **End Turn** action; only the group's final **End Turn** advances the global initiative timeline.
-- Movement is permission-aware and shows a live path and distance preview.
+- Movement is permission-aware and shows a live origin-to-token ruler with its direct distance.
 - V1 uses five-foot grid-based diagonal costing: a diagonal square costs the same as a horizontal or vertical square.
-- The live movement preview and movement-allowance validation use rules distance calculated in grid squares.
-- A move must support confirm or cancel, with rollback available.
-- Start with a modular, DM-configurable rules framework that enforces token ownership and movement allowance, while always allowing a DM override.
+- The live ruler and authoritative movement record use the same direct rules distance calculated in grid squares.
+- Drag release confirms a move; pointer cancellation safely discards the temporary preview.
+- Token ownership and active-turn permissions remain enforced. Movement allowance is advisory: excess distance turns the ruler red but is still accepted.
 
 ### Encounter setup
 
@@ -241,7 +247,8 @@ eight-client annotation convergence in 149 ms.
 ## Resolved implementation decisions
 
 - Movement allowance resets automatically when a turn group becomes active;
-  the DM retains timeline correction and movement override controls.
+  exceeding that allowance is visibly warned but never blocks movement, and the
+  DM retains timeline correction controls.
 
 ## Maintenance note
 

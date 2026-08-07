@@ -132,7 +132,7 @@ test("keeps pings compact, audible, and limited to three pulses", async () => {
   assert.doesNotMatch(workerSource, /now \+ 10_000/);
 });
 
-test("keeps movement rejections visible on the map", async () => {
+test("keeps authoritative movement-rule rejections visible on the map", async () => {
   const [clientSource, workerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
@@ -155,7 +155,7 @@ test("moves immediately on pointer release without token reservations", async ()
   );
   assert.match(
     clientSource,
-    /void publishMove\(gesture\.tokenId, gesture\.latest, gesture\.path\);/,
+    /void publishMove\(gesture\.tokenId, gesture\.latest\);/,
   );
   assert.doesNotMatch(clientSource, /Movement reserved|Being moved by|\/lock|\/unlock|lockState/);
   assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
@@ -164,4 +164,20 @@ test("moves immediately on pointer release without token reservations", async ()
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_expires_at`/);
+});
+
+test("shows a straight movement ruler and never rejects movement overage", async () => {
+  const [clientSource, workerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /context\.setLineDash\(\[3, 7\]\)/);
+  assert.match(clientSource, /context\.moveTo\(startX, startY\);\s+context\.lineTo\(endX, endY\)/);
+  assert.match(clientSource, /context\.arc\(startX, startY, 5/);
+  assert.match(clientSource, /const label = `\$\{distance\} ft`/);
+  assert.match(clientSource, /overMovement \? "#ef6656" : "#f5c65c"/);
+  assert.doesNotMatch(clientSource, /gesture\.path|previewPath/);
+  assert.match(workerSource, /const overBudget = encounter\.status === "active" && distance > remainingBeforeMove \+ 0\.05/);
+  assert.doesNotMatch(workerSource, /body\.path|pathDistance|remains this turn/);
 });
