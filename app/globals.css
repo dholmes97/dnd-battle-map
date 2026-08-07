@@ -401,25 +401,6 @@ input:focus {
 .coordinate-row { display: flex; justify-content: space-between; margin: 1rem 0; padding-top: 0.85rem; border-top: 1px solid var(--rule); color: #8d867c; font-size: 0.75rem; }
 .coordinate-row strong { color: #e3d8c8; font-family: var(--font-geist-mono), monospace; }
 
-.lock-state {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin: 0.8rem 0;
-  padding: 0.68rem;
-  border: 1px solid #3e3b35;
-  border-radius: 0.52rem;
-  background: #191816;
-}
-
-.lock-state > span:last-child { display: grid; gap: 0.15rem; }
-.lock-state strong { font-size: 0.76rem; }
-.lock-state small { color: #7f786f; font-size: 0.67rem; line-height: 1.4; text-transform: none; letter-spacing: 0; }
-.lock-mark { color: #8f887d; font-size: 0.8rem; }
-.lock-state.is-yours { border-color: rgba(245, 198, 92, 0.5); background: rgba(245, 198, 92, 0.07); }
-.lock-state.is-yours .lock-mark, .lock-state.is-yours strong { color: var(--gold); }
-.lock-state.is-other { opacity: 0.72; }
-
 .move-review {
   display: grid;
   grid-template-columns: 1fr 1fr;

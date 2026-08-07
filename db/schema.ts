@@ -63,9 +63,6 @@ export const tokens = sqliteTable(
       { onDelete: "set null" },
     ),
     ownerName: text("owner_name"),
-    lockOwnerId: text("lock_owner_id"),
-    lockOwnerName: text("lock_owner_name"),
-    lockExpiresAt: integer("lock_expires_at"),
     updatedAt: integer("updated_at").notNull(),
   },
   (table) => [

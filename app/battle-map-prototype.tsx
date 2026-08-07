@@ -21,7 +21,6 @@ import {
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
 type MapPoint = { x: number; y: number };
-type TokenLock = { ownerId: string; ownerName: string; expiresAt: number };
 type SharedEffect = {
   id: string;
   name: string;
@@ -49,7 +48,6 @@ type SharedToken = MapPoint & {
   movementUsed: number;
   effects: SharedEffect[];
   owner: null | { participantId: string; name: string };
-  lock: TokenLock | null;
 };
 type SharedAnnotation = {
   id: string;
@@ -92,10 +90,6 @@ type DragGesture = {
   latest: MapPoint;
   path: MapPoint[];
   grabOffset: MapPoint;
-  released: boolean;
-  canceled: boolean;
-  finishing: boolean;
-  lockState: EncounterState | null;
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "spotlight";
 type Viewport = { zoom: number; panX: number; panY: number };
@@ -307,7 +301,6 @@ function drawMap(
     const y = screenY(position.y);
     const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
     context.save();
-    if (token.lock && token.lock.ownerId !== participant.id) context.globalAlpha = 0.55;
     if (token.hidden) context.globalAlpha *= 0.48;
     context.shadowColor = "rgba(0,0,0,.45)";
     context.shadowBlur = 10;
@@ -383,7 +376,6 @@ export default function BattleMapPrototype() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
   const [terrain, setTerrain] = useState<HTMLImageElement | null>(null);
   const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
@@ -418,10 +410,7 @@ export default function BattleMapPrototype() {
   const canControlSelected = Boolean(
     selectedToken && (participant?.role === "dm" || selectedToken.owner?.participantId === participant?.id),
   );
-  const activeLock = selectedToken?.lock ?? null;
-  const ownsLock = Boolean(participant && activeLock?.ownerId === participant.id);
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
-  const remainingSeconds = activeLock ? Math.max(0, Math.ceil((activeLock.expiresAt - now) / 1000)) : 0;
   const distance = state ? calculatePathDistance(previewPath, state.grid.feetPerCell) : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
 
@@ -507,11 +496,6 @@ export default function BattleMapPrototype() {
     document.addEventListener("visibilitychange", onVisible); window.addEventListener("focus", heartbeat);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", heartbeat); };
   }, [joinedCode, participant]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const previous = previousClaimedTokenRef.current;
@@ -690,26 +674,6 @@ export default function BattleMapPrototype() {
     finally { setBusy(false); }
   };
 
-  const acquireLock = async (token: SharedToken) => {
-    if (!participant || !state || !movementEnabled) return null;
-    setBusy(true); setError("");
-    try {
-      const result = await api<{ acquired: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/lock`,
-        { method: "POST", body: sessionPayload(participant, { tokenId: token.id }) },
-      );
-      setState(result.state); return result;
-    } catch (lockError) { setError(lockError instanceof Error ? lockError.message : "Lock unavailable."); await refreshAfterError(); return null; }
-    finally { setBusy(false); }
-  };
-
-  const unlock = async (tokenId: string, encounter = state?.encounter.code) => {
-    if (!participant || !encounter) return null;
-    return api<{ state: EncounterState }>(`/api/encounters/${encodeURIComponent(encounter)}/unlock`, {
-      method: "POST", body: sessionPayload(participant, { tokenId }),
-    });
-  };
-
   const publishMove = async (tokenId: string, destination: MapPoint, path: MapPoint[], encounter = state?.encounter.code) => {
     if (!participant || !encounter) return;
     setBusy(true); setError("");
@@ -722,26 +686,6 @@ export default function BattleMapPrototype() {
       setNotice(`Move confirmed · ${result.distance} ft.`);
     } catch (moveError) { setError(moveError instanceof Error ? moveError.message : "Move rejected."); setPreview(null); setPreviewPath([]); await refreshAfterError(); }
     finally { setBusy(false); }
-  };
-
-  const finishDrag = async (gesture: DragGesture) => {
-    if (gesture.finishing || !gesture.lockState) return;
-    gesture.finishing = true; dragGestureRef.current = null; setDragging(false);
-    if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
-      const result = await unlock(gesture.tokenId, gesture.lockState.encounter.code).catch(() => null);
-      if (result) setState(result.state); setPreview(null); setPreviewPath([]); setBusy(false); return;
-    }
-    await publishMove(gesture.tokenId, gesture.latest, gesture.path, gesture.lockState.encounter.code);
-  };
-
-  const acquireForDrag = async (gesture: DragGesture) => {
-    const token = state?.tokens.find((item) => item.id === gesture.tokenId);
-    if (!token) return;
-    const result = await acquireLock(token);
-    if (!result?.acquired) { dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false); return; }
-    gesture.lockState = result.state;
-    if (gesture.canceled) { const released = await unlock(gesture.tokenId); if (released) setState(released.state); }
-    else if (gesture.released) await finishDrag(gesture);
   };
 
   const addAnnotation = async (type: AnnotationMode, start: MapPoint, end?: MapPoint) => {
@@ -771,7 +715,7 @@ export default function BattleMapPrototype() {
       else void addAnnotation(annotationMode, point);
       return;
     }
-    if (!selectedToken || !canControlSelected || selectedToken.lock || dragGestureRef.current) return;
+    if (!selectedToken || !canControlSelected || dragGestureRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
     const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
@@ -783,10 +727,9 @@ export default function BattleMapPrototype() {
       origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
       path: [{ x: selectedToken.x, y: selectedToken.y }],
       grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
-      released: false, canceled: false, finishing: false, lockState: null,
     };
     dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
-    setPreviewPath(gesture.path); void acquireForDrag(gesture);
+    setPreviewPath(gesture.path);
   };
 
   const dragPoint = (canvas: HTMLCanvasElement, gesture: DragGesture, clientX: number, clientY: number) => {
@@ -799,13 +742,7 @@ export default function BattleMapPrototype() {
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const gesture = dragGestureRef.current;
-    if (
-      !gesture ||
-      gesture.pointerId !== event.pointerId ||
-      gesture.released ||
-      gesture.canceled ||
-      gesture.finishing
-    ) return;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
     const last = gesture.path.at(-1)!;
     if (Math.hypot(last.x - gesture.latest.x, last.y - gesture.latest.y) > 0.06) gesture.path.push(gesture.latest);
@@ -821,17 +758,19 @@ export default function BattleMapPrototype() {
     }
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY); gesture.path.push(gesture.latest); gesture.released = true;
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path]); setDragging(false);
+    event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY); gesture.path.push(gesture.latest);
+    dragGestureRef.current = null; setPreview({ tokenId: gesture.tokenId, ...gesture.latest }); setPreviewPath([...gesture.path]); setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (gesture.lockState) void finishDrag(gesture);
+    if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
+      setPreview(null); setPreviewPath([]); return;
+    }
+    void publishMove(gesture.tokenId, gesture.latest, gesture.path);
   };
 
   const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     annotationStartRef.current = null;
     const gesture = dragGestureRef.current; if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gesture.canceled = true; dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false);
-    if (gesture.lockState) void unlock(gesture.tokenId, gesture.lockState.encounter.code).then((result) => { if (result) setState(result.state); });
+    dragGestureRef.current = null; setPreview(null); setPreviewPath([]); setDragging(false);
   };
 
   if (!participant || !state) {
@@ -930,8 +869,7 @@ export default function BattleMapPrototype() {
                   <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => void runCommand("remove-effect", { effectId: effect.id })}>×</button> : null}</span>)}</div>
                   {controlled ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void runCommand("add-effect", { tokenId: token.id, name: effectName, effectType, reminderTiming: effectReminder, durationRounds: Number(effectDuration) }, `${effectName} added.`).then(() => setEffectName(""))}>Add</button></div> : null}
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
-                  {activeLock ? <div className={`lock-state${ownsLock ? " is-yours" : " is-other"}`}><span className="lock-mark">●</span><span><strong>{ownsLock ? `Movement reserved · ${remainingSeconds}s` : `Being moved by ${activeLock.ownerName}`}</strong><small>{ownsLock ? "Release to confirm, or cancel safely." : "You’ll receive the confirmed position automatically."}</small></span></div> : null}
-                  {ownsLock && preview?.tokenId === token.id ? <div className="move-review"><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Path / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
+                  {controlled && preview?.tokenId === token.id ? <div className="move-review"><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Path / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
                   {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}

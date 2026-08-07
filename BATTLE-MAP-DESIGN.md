@@ -38,18 +38,18 @@ The current D&D Beyond map experience does not provide:
 - Build and deploy the battle map with **Sites** as a TypeScript React web application, rather than as a static site-builder project.
 - Use durable relational storage for encounter state and an append-only action history. The action history supports a per-user ten-step undo capability.
 - Treat the server as authoritative for shared game state. Keep only temporary interface state in each participant's browser.
-- Use short-lived token locks to prevent conflicting simultaneous movement.
+- Resolve competing authorized token movement with server-authoritative last-write-wins updates; movement has no reservation phase.
 - Render the battle map with a tile-based canvas renderer.
-- Validate real-time multiplayer before committing to a specific synchronization provider. The first prototype must prove that two browsers can join one encounter, one participant can lock and move a token, and the other receives that move immediately.
+- Validate real-time multiplayer before committing to a specific synchronization provider. The first prototype must prove that two browsers can join one encounter, move a shared token without a reservation round trip, and promptly converge on the server-confirmed position.
 - If Sites provides the required native live-session capability in that prototype, keep the entire solution in Sites. Otherwise, retain Sites for the app and durable database and add a small managed real-time service solely for live synchronization.
 
 ### Verified phase-one implementation
 
 The phase-one proof remains inside the Sites stack: a vinext Worker owns the API, D1 stores encounter state and append-only actions, and clients conditionally poll for authoritative version changes. No separate real-time provider is part of the prototype.
 
-The implemented slice uses a fixed twelve-second server lease for its single token. Joining creates a server-issued participant ID and secret that exist only in the current browser memory; reloading requires joining again. Lock acquisition, expiry, release, and confirmed movement are server operations, and lock expiry is recorded in the action history. Token centers use continuous map-space coordinates stored as relational `REAL` values, so the grid measures distance but does not constrain landing positions. A pointer press on the token acquires the lease implicitly, the token follows the drag at sub-cell precision, and releasing publishes the fractional drop without a separate confirmation step.
+Joining creates a server-issued participant ID and secret that exist only in the current browser memory; reloading requires joining again. Token movement has no lock or reservation operation: pointer drag begins immediately, the token follows at sub-cell precision, and release submits the fractional destination directly to the authoritative server. Token centers use continuous map-space coordinates stored as relational `REAL` values, so the grid measures distance but does not constrain landing positions. When a controlling player and the DM move the same token, both accepted actions remain in history and the latest accepted database update defines the shared position.
 
-Local verification on August 5, 2026 exercised two independent browser windows against one D1-backed server. Both joined `EMBER-KEEP`, the non-owner received the lock state, an abandoned lease expired safely in both windows, and a subsequent confirmed five-foot move converged in both views. The matching token position and action history survived a server-process restart.
+Local verification on August 6, 2026 exercised direct movement from three API clients against one D1-backed server without any reservation request. Two owned tokens moved concurrently and the observing client converged on both fractional drops in 22 milliseconds. A separate player-plus-DM test moved one shared token twice and confirmed that the second accepted position was canonical; the retired lock route returned `404`.
 
 The free-position drag implementation was separately verified by dragging the token from `6.14, 2.41` to `10.48, 6.68`, spanning multiple grid cells and ending between grid lines. The second browser converged on the fractional drop in 180 milliseconds with no console warnings or errors.
 
@@ -59,22 +59,20 @@ Production verification on August 5, 2026 found that Sites buffered the original
 
 The next vertical slice expands `EMBER-KEEP` to three durable tokens. Token
 ownership is stored in D1, each participant may own at most one token, and every
-lock and movement operation is scoped to a token ID. This permits different
-owners to move separate tokens concurrently while the server still rejects
-unowned movement and conflicting access to the same token. Relinquishing a
+movement operation is scoped to a token ID. This permits different owners to
+move separate tokens concurrently while the server still rejects unowned
+movement. The DM and owning player may both move the same token, with the last
+accepted movement becoming authoritative. Relinquishing a
 token returns it to the shared pool. For this accountless trusted-group
 prototype, rejoining with the same display name can explicitly reconnect that
 character to the new browser session; the previous session immediately loses
 movement authority.
 
-Local verification on August 5, 2026 exercised three API clients and three
-independent browser sessions. Two owners acquired different locks concurrently,
-moved both tokens to fractional positions, and the observing client converged
-on both confirmed drops in 14 milliseconds. A direct browser drag moved one
-token to `10.99, 5.62` and appeared in both other sessions. Same-name reconnect
-transferred ownership to a new browser, the superseded session was denied, and
-claim, reconnect, lock, move, and relinquish actions were confirmed in the
-append-only relational history. The browser run produced no warnings or errors.
+The multi-client verification suite confirms concurrent movement of separate
+owned tokens, direct last-write-wins movement of the same token by its player
+and the DM, same-name ownership transfer, denial of the superseded session, and
+durable claim, reconnect, move, and relinquish actions. The server returns no
+movement-lock state and exposes no lock or unlock route.
 
 Production verification on August 5, 2026 repeated the three-client API flow
 against Sites version 6 and observed both concurrent fractional moves in 1.6
@@ -84,12 +82,12 @@ converged on a direct drag to `10.65, 6.01`, with no console warnings or errors.
 Token ownership now uses a presence lease to prevent a closed browser from
 stranding a character indefinitely. An active browser sends an authenticated
 heartbeat every twenty seconds. After two minutes without a valid heartbeat,
-the server atomically releases that participant's claim and any token lock,
-bumps encounter state, and appends a `token_claim_expired` action. Same-name
+the server atomically releases that participant's claim, bumps encounter state,
+and appends a `token_claim_expired` action. Same-name
 reconnect still transfers ownership immediately and does not wait for expiry.
 Local verification forced a participant beyond the grace period and confirmed
-the ownership, lock, shared version, and action-history changes while the
-normal three-client movement test continued to pass.
+the ownership, shared version, and action-history changes while the normal
+three-client movement test continued to pass.
 
 ### Verified initiative-through-collaboration implementation
 
@@ -117,8 +115,8 @@ rejects an over-budget path without changing the token position, and records a
 confirmed path in action history. Pointer drag confirms on release; the
 discarded keyboard-step control is intentionally absent because direct dragging
 is the sole movement interaction. Pointer release also freezes the confirmed
-destination immediately while any pending movement-lock request finishes, so
-later pointer motion cannot alter the drop point. A personal ten-action undo stack applies
+destination immediately and submits it without a reservation request, so later
+pointer motion cannot alter the drop point. A personal ten-action undo stack applies
 compensating mutations for reversible actions and appends each undo to the
 audit history rather than deleting history.
 

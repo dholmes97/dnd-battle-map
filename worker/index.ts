@@ -62,9 +62,6 @@ type TokenRow = {
   movement_used: number;
   owner_participant_id: string | null;
   owner_name: string | null;
-  lock_owner_id: string | null;
-  lock_owner_name: string | null;
-  lock_expires_at: number | null;
 };
 
 type ParticipantRow = {
@@ -105,11 +102,10 @@ type ActionRow = {
 
 const GRID_WIDTH = 16;
 const GRID_HEIGHT = 11;
-const LOCK_TTL_MS = 12_000;
 const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const PING_TTL_MS = 2_000;
 const API_ROUTE =
-  /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|lock|move|unlock|command)$/;
+  /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|move|command)$/;
 
 let schemaReady: Promise<void> | null = null;
 
@@ -225,9 +221,6 @@ async function ensureSchema(env: Env): Promise<void> {
           movement_used REAL DEFAULT 0 NOT NULL,
           owner_participant_id TEXT REFERENCES participants(id) ON DELETE SET NULL,
           owner_name TEXT,
-          lock_owner_id TEXT,
-          lock_owner_name TEXT,
-          lock_expires_at INTEGER,
           updated_at INTEGER NOT NULL
         )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS actions (
@@ -381,9 +374,8 @@ async function ensureSchema(env: Env): Promise<void> {
         ).bind("encounter-ember-keep", "EMBER-KEEP", "The Ember Keep", now),
         db.prepare(
           `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name,
-             lock_owner_id, lock_owner_name, lock_expires_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, ?)`,
+            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
+           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
         ).bind(
           "token-bronze-warden",
           "encounter-ember-keep",
@@ -394,9 +386,8 @@ async function ensureSchema(env: Env): Promise<void> {
         ),
         db.prepare(
           `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name,
-             lock_owner_id, lock_owner_name, lock_expires_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, ?)`,
+            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
+           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
         ).bind(
           "token-ember-scout",
           "encounter-ember-keep",
@@ -407,9 +398,8 @@ async function ensureSchema(env: Env): Promise<void> {
         ),
         db.prepare(
           `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name,
-             lock_owner_id, lock_owner_name, lock_expires_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, ?)`,
+            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
+           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
         ).bind(
           "token-ash-mystic",
           "encounter-ember-keep",
@@ -496,46 +486,6 @@ async function bumpEncounter(env: Env, encounterId: string, now = Date.now()) {
     .run();
 }
 
-async function expireLock(env: Env, encounter: EncounterRow): Promise<void> {
-  const now = Date.now();
-  const expired = await env.DB.prepare(
-    `SELECT id, lock_owner_id, lock_expires_at FROM tokens
-     WHERE encounter_id = ? AND lock_owner_id IS NOT NULL
-       AND lock_expires_at IS NOT NULL AND lock_expires_at <= ?`,
-  )
-    .bind(encounter.id, now)
-    .all<{
-      id: string;
-      lock_owner_id: string;
-      lock_expires_at: number;
-    }>();
-  for (const token of expired.results) {
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET lock_owner_id = NULL, lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
-       WHERE id = ? AND lock_owner_id = ? AND lock_expires_at = ?`,
-    )
-      .bind(
-        now,
-        token.id,
-        token.lock_owner_id,
-        token.lock_expires_at,
-      )
-      .run();
-    if ((result.meta.changes ?? 0) > 0) {
-      await bumpEncounter(env, encounter.id, now);
-      await recordAction(
-        env,
-        encounter.id,
-        token.lock_owner_id,
-        "token_lock_expired",
-        { tokenId: token.id, expiresAt: token.lock_expires_at },
-        now,
-      );
-    }
-  }
-}
-
 async function expireStaleClaims(
   env: Env,
   encounter: EncounterRow,
@@ -559,9 +509,7 @@ async function expireStaleClaims(
   for (const token of staleClaims.results) {
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET owner_participant_id = NULL, owner_name = NULL,
-           lock_owner_id = NULL, lock_owner_name = NULL,
-           lock_expires_at = NULL, updated_at = ?
+       SET owner_participant_id = NULL, owner_name = NULL, updated_at = ?
        WHERE id = ? AND owner_participant_id = ?
          AND EXISTS (
            SELECT 1 FROM participants
@@ -625,14 +573,12 @@ async function encounterState(
   let encounter = await findEncounter(env, code);
   if (!encounter) return null;
   await expireStaleClaims(env, encounter);
-  await expireLock(env, encounter);
   await expireAnnotations(env, encounter);
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
     `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
-            movement_used, owner_participant_id, owner_name,
-            lock_owner_id, lock_owner_name, lock_expires_at
+            movement_used, owner_participant_id, owner_name
      FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
   )
     .bind(encounter!.id)
@@ -719,17 +665,6 @@ async function encounterState(
             ? {
                 participantId: token.owner_participant_id,
                 name: token.owner_name,
-              }
-            : null,
-        lock:
-          token.lock_owner_id &&
-          token.lock_owner_name &&
-          token.lock_expires_at &&
-          token.lock_expires_at > Date.now()
-            ? {
-                ownerId: token.lock_owner_id,
-                ownerName: token.lock_owner_name,
-                expiresAt: token.lock_expires_at,
               }
             : null,
       };
@@ -977,8 +912,7 @@ async function handleCommand(
       const from = payload.from as { x?: unknown; y?: unknown } | undefined;
       const to = payload.to as { x?: unknown; y?: unknown } | undefined;
       const result = await env.DB.prepare(
-        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, lock_owner_id = NULL,
-         lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
+        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND x = ? AND y = ?`,
       )
         .bind(Number(from?.x), Number(from?.y), Number(payload.previousMovementUsed) || 0, now, tokenId, encounter.id, Number(to?.x), Number(to?.y))
@@ -1030,7 +964,7 @@ async function handleCommand(
     } else if (action.action_type === "token_created") {
       const result = await env.DB.prepare(
         `DELETE FROM tokens WHERE id = ? AND encounter_id = ?
-         AND owner_participant_id IS NULL AND lock_owner_id IS NULL`,
+         AND owner_participant_id IS NULL`,
       )
         .bind(tokenId, encounter.id)
         .run();
@@ -1069,8 +1003,7 @@ async function handleCommand(
     const token = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
-              movement_used, owner_participant_id, owner_name, lock_owner_id,
-              lock_owner_name, lock_expires_at
+              movement_used, owner_participant_id, owner_name
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
       .bind(tokenId, encounter.id)
@@ -1154,8 +1087,7 @@ async function handleCommand(
       const token = await env.DB.prepare(
         `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
                 summoner_token_id, initiative, initiative_order, turn_complete,
-                movement_used, owner_participant_id, owner_name, lock_owner_id,
-                lock_owner_name, lock_expires_at
+                movement_used, owner_participant_id, owner_name
          FROM tokens WHERE id = ? AND encounter_id = ?`,
       )
         .bind(tokenId, encounter.id)
@@ -1314,9 +1246,8 @@ async function handleCommand(
       `INSERT INTO tokens
        (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
         summoner_token_id, initiative, initiative_order, turn_complete,
-        movement_used, owner_participant_id, owner_name, lock_owner_id,
-        lock_owner_name, lock_expires_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL, ?)`,
+        movement_used, owner_participant_id, owner_name, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
     )
       .bind(
         tokenId,
@@ -1349,8 +1280,7 @@ async function handleCommand(
     const token = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
-              movement_used, owner_participant_id, owner_name, lock_owner_id,
-              lock_owner_name, lock_expires_at
+              movement_used, owner_participant_id, owner_name
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
       .bind(tokenId, encounter.id)
@@ -1429,8 +1359,7 @@ async function handleCommand(
     const token = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
-              movement_used, owner_participant_id, owner_name, lock_owner_id,
-              lock_owner_name, lock_expires_at
+              movement_used, owner_participant_id, owner_name
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
       .bind(tokenId, encounter.id)
@@ -1690,8 +1619,7 @@ async function handleApi(
   const token = await env.DB.prepare(
     `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
-            movement_used, owner_participant_id, owner_name,
-            lock_owner_id, lock_owner_name, lock_expires_at
+            movement_used, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,
   )
     .bind(tokenId, encounter.id)
@@ -1762,8 +1690,7 @@ async function handleApi(
 
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET owner_participant_id = ?, owner_name = ?, lock_owner_id = NULL,
-           lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
+       SET owner_participant_id = ?, owner_name = ?, updated_at = ?
        WHERE id = ? AND encounter_id = ?
          AND (owner_participant_id IS NULL OR lower(owner_name) = lower(?))`,
     )
@@ -1796,8 +1723,7 @@ async function handleApi(
     }
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET owner_participant_id = NULL, owner_name = NULL, lock_owner_id = NULL,
-           lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
+       SET owner_participant_id = NULL, owner_name = NULL, updated_at = ?
        WHERE encounter_id = ? AND owner_participant_id = ?
          AND (id = ? OR summoner_token_id = ?)`,
     )
@@ -1808,62 +1734,6 @@ async function handleApi(
       await recordAction(env, encounter.id, participantId, "token_relinquished", { tokenId }, now);
     }
     return json({ released: (result.meta.changes ?? 0) > 0, state: await encounterState(env, code, participant) });
-  }
-
-  if (action === "lock") {
-    if (!(await canControlToken(env, encounter.id, token, participant))) {
-      return json(
-        { error: "Claim this token before moving it.", state: await encounterState(env, code, participant) },
-        { status: 403 },
-      );
-    }
-    const expiresAt = now + LOCK_TTL_MS;
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET lock_owner_id = ?, lock_owner_name = ?, lock_expires_at = ?, updated_at = ?
-       WHERE id = ? AND encounter_id = ?
-         AND (lock_owner_id IS NULL OR lock_owner_id = ? OR lock_expires_at <= ?)`,
-    )
-      .bind(
-        participantId,
-        participant.name,
-        expiresAt,
-        now,
-        tokenId,
-        encounter.id,
-        participantId,
-        now,
-      )
-      .run();
-    const acquired = (result.meta.changes ?? 0) === 1;
-    if (acquired) {
-      await bumpEncounter(env, encounter.id, now);
-      await recordAction(env, encounter.id, participantId, "token_locked", {
-        tokenId,
-        expiresAt,
-      });
-    }
-    return json(
-      { acquired, state: await encounterState(env, code, participant) },
-      { status: acquired ? 200 : 409 },
-    );
-  }
-
-  if (action === "unlock") {
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET lock_owner_id = NULL, lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
-       WHERE id = ? AND encounter_id = ? AND lock_owner_id = ?`,
-    )
-      .bind(now, tokenId, encounter.id, participantId)
-      .run();
-    if ((result.meta.changes ?? 0) === 1) {
-      await bumpEncounter(env, encounter.id, now);
-      await recordAction(env, encounter.id, participantId, "token_unlocked", {
-        tokenId,
-      });
-    }
-    return json({ released: (result.meta.changes ?? 0) === 1, state: await encounterState(env, code, participant) });
   }
 
   if (action === "move") {
@@ -1921,16 +1791,14 @@ async function handleApi(
       : token.movement_used;
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET x = ?, y = ?, movement_used = ?, lock_owner_id = NULL,
-           lock_owner_name = NULL, lock_expires_at = NULL, updated_at = ?
-       WHERE id = ? AND encounter_id = ?
-         AND lock_owner_id = ? AND lock_expires_at > ?`,
+       SET x = ?, y = ?, movement_used = ?, updated_at = ?
+       WHERE id = ? AND encounter_id = ?`,
     )
-      .bind(x, y, movementUsed, now, tokenId, encounter.id, participantId, now)
+      .bind(x, y, movementUsed, now, tokenId, encounter.id)
       .run();
     if ((result.meta.changes ?? 0) !== 1) {
       return json(
-        { error: "The token lock expired or belongs to someone else.", state: await encounterState(env, code, participant) },
+        { error: "The token could not be moved.", state: await encounterState(env, code, participant) },
         { status: 409 },
       );
     }

@@ -142,18 +142,26 @@ test("keeps movement rejections visible on the map", async () => {
   assert.match(workerSource, /token\.initiative_order !== null &&/);
 });
 
-test("freezes the token destination as soon as the pointer is released", async () => {
-  const clientSource = await readFile(
-    new URL("../app/battle-map-prototype.tsx", import.meta.url),
-    "utf8",
-  );
+test("moves immediately on pointer release without token reservations", async () => {
+  const [clientSource, workerSource, retiredLocksMigration] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0005_new_leo.sql", import.meta.url), "utf8"),
+  ]);
 
   assert.match(
     clientSource,
-    /gesture\.pointerId !== event\.pointerId \|\|\s+gesture\.released \|\|\s+gesture\.canceled \|\|\s+gesture\.finishing/,
+    /dragGestureRef\.current = null; setPreview\(\{ tokenId: gesture\.tokenId, \.\.\.gesture\.latest \}\)/,
   );
   assert.match(
     clientSource,
-    /gesture\.latest = dragPoint\(event\.currentTarget, gesture, event\.clientX, event\.clientY\); gesture\.path\.push\(gesture\.latest\); gesture\.released = true;/,
+    /void publishMove\(gesture\.tokenId, gesture\.latest, gesture\.path\);/,
   );
+  assert.doesNotMatch(clientSource, /Movement reserved|Being moved by|\/lock|\/unlock|lockState/);
+  assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
+  assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
+  assert.match(workerSource, /WHERE id = \? AND encounter_id = \?`,\s+\)\s+\.bind\(x, y, movementUsed, now, tokenId, encounter\.id\)/);
+  assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
+  assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
+  assert.match(retiredLocksMigration, /DROP COLUMN `lock_expires_at`/);
 });

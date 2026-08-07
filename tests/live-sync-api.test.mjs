@@ -109,7 +109,7 @@ function destinationFor(token, grid, xDelta, yDelta) {
   };
 }
 
-test("three clients claim and independently move authoritative tokens", async () => {
+test("three clients claim and independently move authoritative tokens without reservations", async () => {
   const [aliceJoin, bobJoin, caraJoin] = await Promise.all([
     join("Alice API"),
     join("Bob API"),
@@ -117,7 +117,6 @@ test("three clients claim and independently move authoritative tokens", async ()
   ]);
   const alice = aliceJoin.participant;
   const bob = bobJoin.participant;
-  const cara = caraJoin.participant;
   const initial = caraJoin.state;
   assert.equal(initial.encounter.code, code);
   assert.ok(initial.tokens.length >= 3, "The encounter should seed at least three tokens");
@@ -183,27 +182,6 @@ test("three clients claim and independently move authoritative tokens", async ()
   });
   assert.equal(secondClaim.response.status, 409);
 
-  const unownedLock = await request("lock", {
-    method: "POST",
-    body: participantBody(cara, aliceToken.id),
-  });
-  assert.equal(unownedLock.response.status, 403);
-
-  const [aliceLock, bobLock] = await Promise.all([
-    request("lock", { method: "POST", body: participantBody(alice, aliceToken.id) }),
-    request("lock", { method: "POST", body: participantBody(bob, bobToken.id) }),
-  ]);
-  assert.equal(aliceLock.response.status, 200);
-  assert.equal(bobLock.response.status, 200);
-  assert.equal(
-    aliceLock.body.state.tokens.find((token) => token.id === aliceToken.id).lock.ownerId,
-    alice.id,
-  );
-  assert.equal(
-    bobLock.body.state.tokens.find((token) => token.id === bobToken.id).lock.ownerId,
-    bob.id,
-  );
-
   const destinationA = destinationFor(aliceToken, initial.grid, 1.137, 0.413);
   const destinationB = destinationFor(bobToken, initial.grid, 0.619, 1.271);
   assert.notEqual(destinationA.x, Math.trunc(destinationA.x));
@@ -234,8 +212,8 @@ test("three clients claim and independently move authoritative tokens", async ()
     (nextState) => {
       const nextA = nextState.tokens.find((token) => token.id === aliceToken.id);
       const nextB = nextState.tokens.find((token) => token.id === bobToken.id);
-      return nextA?.x === destinationA.x && nextA?.y === destinationA.y && nextA?.lock === null &&
-        nextB?.x === destinationB.x && nextB?.y === destinationB.y && nextB?.lock === null;
+      return nextA?.x === destinationA.x && nextA?.y === destinationA.y &&
+        nextB?.x === destinationB.x && nextB?.y === destinationB.y;
     },
   );
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -265,8 +243,10 @@ test("three clients claim and independently move authoritative tokens", async ()
   const confirmed = await request("state", { method: "GET" });
   const confirmedA = confirmed.body.tokens.find((token) => token.id === aliceToken.id);
   const confirmedB = confirmed.body.tokens.find((token) => token.id === bobToken.id);
-  assert.deepEqual({ x: confirmedA.x, y: confirmedA.y, lock: confirmedA.lock }, { ...destinationA, lock: null });
-  assert.deepEqual({ x: confirmedB.x, y: confirmedB.y, lock: confirmedB.lock }, { ...destinationB, lock: null });
+  assert.deepEqual({ x: confirmedA.x, y: confirmedA.y }, destinationA);
+  assert.deepEqual({ x: confirmedB.x, y: confirmedB.y }, destinationB);
+  assert.equal("lock" in confirmedA, false);
+  assert.equal("lock" in confirmedB, false);
 
   const aliceRecoveryJoin = await join(alice.name);
   const recoveredClaim = await request("claim", {
@@ -280,11 +260,11 @@ test("three clients claim and independently move authoritative tokens", async ()
     aliceRecoveryJoin.participant.id,
   );
 
-  const supersededSessionLock = await request("lock", {
+  const supersededSessionMove = await request("move", {
     method: "POST",
-    body: participantBody(alice, aliceToken.id),
+    body: participantBody(alice, aliceToken.id, destinationA),
   });
-  assert.equal(supersededSessionLock.response.status, 403);
+  assert.equal(supersededSessionMove.response.status, 403);
 
   const [aliceRelease, bobRelease] = await Promise.all([
     request("relinquish", {
@@ -298,6 +278,62 @@ test("three clients claim and independently move authoritative tokens", async ()
 
   console.log(`Two-token propagation to third client: ${propagationMs.toFixed(0)}ms`);
   console.log(`Confirmed: ${aliceToken.name} ${destinationA.x},${destinationA.y}; ${bobToken.name} ${destinationB.x},${destinationB.y}`);
+});
+
+test("the last accepted move wins when two authorized clients move the same token", async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const dm = (await join(`LWW DM ${suffix}`, "dm")).participant;
+  const player = (await join(`LWW Player ${suffix}`)).participant;
+  const initial = await viewerState(dm);
+  const originalStatus = initial.body.encounter.status;
+  const originalMap = initial.body.encounter.mapAsset;
+  let tokenId;
+
+  try {
+    await command(dm, "configure-encounter", { status: "setup", mapAsset: originalMap });
+    const created = await command(dm, "create-token", {
+      name: `Last write token ${suffix}`,
+      kind: "character",
+      size: "medium",
+      speed: 30,
+      x: 3.25,
+      y: 3.25,
+    });
+    assert.equal(created.response.status, 200);
+    tokenId = created.body.tokenId;
+
+    const claim = await request("claim", {
+      method: "POST",
+      body: participantBody(player, tokenId),
+    });
+    assert.equal(claim.response.status, 200);
+
+    const retiredLockEndpoint = await fetch(endpoint("lock"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: participantBody(player, tokenId),
+    });
+    assert.equal(retiredLockEndpoint.status, 404);
+
+    const dmMove = await request("move", {
+      method: "POST",
+      body: participantBody(dm, tokenId, { x: 5.125, y: 4.625, override: true }),
+    });
+    assert.equal(dmMove.response.status, 200);
+
+    const playerMove = await request("move", {
+      method: "POST",
+      body: participantBody(player, tokenId, { x: 6.375, y: 5.875 }),
+    });
+    assert.equal(playerMove.response.status, 200);
+
+    const confirmed = await viewerState(dm);
+    const movedToken = confirmed.body.tokens.find((token) => token.id === tokenId);
+    assert.deepEqual({ x: movedToken.x, y: movedToken.y }, { x: 6.375, y: 5.875 });
+  } finally {
+    if (tokenId) await command(dm, "delete-token", { tokenId }).catch(() => null);
+    await command(dm, "configure-encounter", { status: originalStatus, mapAsset: originalMap }).catch(() => null);
+  }
 });
 
 test("initiative, turn groups, tactical state, visibility, setup, and undo stay authoritative", async () => {
@@ -438,11 +474,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(activeHero.initiativeOrder, activeSummon.initiativeOrder);
     assert.equal(activeHero.initiativeOrder, start.body.state.encounter.activeInitiativeOrder);
 
-    const untrackedLock = await request("lock", {
-      method: "POST",
-      body: participantBody(latePlayer, untrackedCharacterId),
-    });
-    assert.equal(untrackedLock.response.status, 200);
     const untrackedMove = await request("move", {
       method: "POST",
       body: participantBody(latePlayer, untrackedCharacterId, {
@@ -459,17 +490,12 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       { x: 7.35, y: 8.15 },
     );
 
-    const monsterMoveLock = await request("lock", {
+    const unauthorizedMonsterMove = await request("move", {
       method: "POST",
-      body: participantBody(player, monsterId),
+      body: participantBody(player, monsterId, { x: 7.5, y: 7.5 }),
     });
-    assert.equal(monsterMoveLock.response.status, 403);
+    assert.equal(unauthorizedMonsterMove.response.status, 403);
 
-    const heroLock = await request("lock", {
-      method: "POST",
-      body: participantBody(player, characterId),
-    });
-    assert.equal(heroLock.response.status, 200);
     const move = await request("move", {
       method: "POST",
       body: participantBody(player, characterId, {
@@ -482,11 +508,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(move.body.distance, 10);
     assert.equal(move.body.movementUsed, 10);
 
-    const overBudgetLock = await request("lock", {
-      method: "POST",
-      body: participantBody(player, characterId),
-    });
-    assert.equal(overBudgetLock.response.status, 200);
     const overBudgetMove = await request("move", {
       method: "POST",
       body: participantBody(player, characterId, {
@@ -497,11 +518,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     });
     assert.equal(overBudgetMove.response.status, 409);
     assert.match(overBudgetMove.body.error, /remains this turn/);
-    const unlockAfterRejection = await request("unlock", {
-      method: "POST",
-      body: participantBody(player, characterId),
-    });
-    assert.equal(unlockAfterRejection.response.status, 200);
     const afterRejectedMove = await viewerState(player);
     assert.deepEqual(
       (({ x, y, movementUsed }) => ({ x, y, movementUsed }))(
@@ -510,11 +526,6 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       { x: 4.25, y: 3.5, movementUsed: 10 },
     );
 
-    const dmMonsterLock = await request("lock", {
-      method: "POST",
-      body: participantBody(dm, monsterId),
-    });
-    assert.equal(dmMonsterLock.response.status, 200);
     const dmOverrideMove = await request("move", {
       method: "POST",
       body: participantBody(dm, monsterId, {
