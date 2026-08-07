@@ -187,12 +187,18 @@ inside the new bounds.
 The local/offline generator supports forest, dungeon, cave, ruins, swamp,
 desert, tundra, volcanic, and coastal starters,
 three sizes, density, landmark count, paths, water, atmosphere, and deterministic
-seeds. Generated maps remain editable as exact terrain cells plus movable,
-rotatable, flippable multi-cell and irregular stamps. The initial palette has
-twenty-eight biome-aware pieces, including dedicated nature, structure,
-furnishing, detail, and hazard options. Every palette definition now requires a
-dedicated transparent RGBA raster asset; generated and saved maps no longer
-depend on letter tiles or generic palette previews. Walls, doors, windows, public or DM-only
+seeds. Generated maps remain editable as exact terrain cells plus movable
+multi-cell and irregular stamps. The workshop exposes fifty searchable stamp
+families across nature, structure, furnishing, detail, and hazard categories.
+Every family has five dedicated transparent RGBA raster variants, for 250
+finished stamp assets total. Procedural placement and palette drops choose a
+variant deterministically from the map seed, so saved and refreshed maps keep
+the same art. Orthographic pieces can rotate and flip; perspective-sensitive
+pieces such as the standing-stone ring remain at their authored orientation so
+their lighting and perspective do not become implausible. The selected-stamp
+editor can advance artwork explicitly without changing the footprint.
+Generated and saved maps no longer depend on letter tiles or generic palette
+previews. Walls, doors, windows, public or DM-only
 labels, and DM notes share the package format and can be added or deleted in the
 workshop. Terrain corrections support click-drag painting; wall placement shows
 a live grid-intersection preview; and stamps support duplicate and front/back
@@ -212,10 +218,14 @@ for richer Codex-assisted maps prepared before a session. Six original prompt
 fixtures and twenty additional theme tests are saved in the local preset
 library. The added themes span swamp, desert, tundra, volcanic, coastal, and fey
 forest maps and use five new generated terrain textures. Local verification on
-August 7, 2026 passed lint, a production build, nineteen package/rendering tests,
+August 7, 2026 passed lint, a production build, twenty package/rendering tests,
 an independent 20/20 durable-preset read-back, and five live
-authoritative API scenarios; the edited draft supplied during Apply was visible
-to the player client and was not replaced by its older saved preset.
+authoritative API scenarios. All twenty-six presets were reseeded against the
+local durable service to record stable variant choices. Browser verification
+confirmed all fifty families render in the workshop, fixed-orientation controls
+are disabled where required, and variant selection is available. The edited
+draft supplied during Apply was visible to the player client and was not
+replaced by its older saved preset.
 
 ### Visibility
 

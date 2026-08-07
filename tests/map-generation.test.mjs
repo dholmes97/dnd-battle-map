@@ -5,19 +5,39 @@ import {
   MAP_SIZES,
   STAMP_LIBRARY,
   composeMapFromPrompt,
+  effectiveStampRotation,
   generateMap,
   parseMapPackage,
+  stampVariantFor,
 } from "../shared/map-package.ts";
 import { ADDITIONAL_MAP_PROMPT_CASES, MAP_PROMPT_CASES } from "../shared/map-prompt-cases.ts";
 
-test("every map stamp has a finished transparent raster asset", async () => {
-  assert.equal(STAMP_LIBRARY.length, 28);
-  assert.equal(new Set(STAMP_LIBRARY.map((stamp) => stamp.asset)).size, STAMP_LIBRARY.length);
+test("every map stamp has five finished transparent raster variants", async () => {
+  assert.equal(STAMP_LIBRARY.length, 50);
+  const assets = STAMP_LIBRARY.flatMap((stamp) => stamp.assets);
+  assert.equal(assets.length, 250);
+  assert.equal(new Set(assets).size, assets.length);
   for (const stamp of STAMP_LIBRARY) {
-    assert.match(stamp.asset, /^\/assets\/map-stamps\/.+-01\.png$/);
-    const png = await readFile(new URL(`../public${stamp.asset}`, import.meta.url));
-    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${stamp.id} PNG signature`);
-    assert.equal(png[25], 6, `${stamp.id} must preserve RGBA transparency`);
+    assert.equal(stamp.assets.length, 5, `${stamp.id} variant count`);
+    for (const asset of stamp.assets) {
+      assert.match(asset, /^\/assets\/map-stamps\/.+-0[1-5]\.png$/);
+      const png = await readFile(new URL(`../public${asset}`, import.meta.url));
+      assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${stamp.id} PNG signature`);
+      assert.equal(png[25], 6, `${stamp.id} must preserve RGBA transparency`);
+    }
+  }
+});
+
+test("stamp art choices are seed-stable and fixed-perspective pieces never rotate", () => {
+  for (const definition of STAMP_LIBRARY) {
+    const first = stampVariantFor(definition, "VARIANT-SEED", `${definition.id}-example`);
+    const second = stampVariantFor(definition, "VARIANT-SEED", `${definition.id}-example`);
+    assert.equal(first, second, `${definition.id} stable variant`);
+    assert.ok(first >= 0 && first < 5, `${definition.id} valid variant`);
+    if (definition.rotationMode === "fixed") {
+      assert.equal(effectiveStampRotation(definition, 90), 0, `${definition.id} fixed at zero degrees`);
+      assert.equal(effectiveStampRotation(definition, 270), 0, `${definition.id} fixed at zero degrees`);
+    }
   }
 });
 

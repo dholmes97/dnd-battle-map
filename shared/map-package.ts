@@ -9,11 +9,13 @@ export type StampCategory = "nature" | "structure" | "hazard" | "furnishing" | "
 export type StampRenderKind = "image" | "stones" | "ruin" | "bones" | "stalagmites" | "campfire" | "bridge" | "crypt" | "thicket" | "supplies" | "altar" | "bars" | "mushrooms" | "fountain" | "cart" | "pit" | "rune" | "dunes" | "ice" | "lava" | "wreck";
 export type Cell = { x: number; y: number };
 export type MapRotation = 0 | 90 | 180 | 270;
+export type StampAssetSet = readonly [string, string, string, string, string];
 
 export type StampDefinition = {
   id: string;
   name: string;
-  asset: string;
+  assets: StampAssetSet;
+  rotationMode: "orthogonal" | "fixed";
   width: number;
   height: number;
   mask: Cell[];
@@ -30,6 +32,7 @@ export type PlacedStamp = {
   y: number;
   rotation: MapRotation;
   flipX?: boolean;
+  variant?: number;
 };
 
 export type WallSegment = {
@@ -154,11 +157,20 @@ export function baseTerrainForBiome(biome: MapBiome): TerrainKind {
 const rectangleMask = (width: number, height: number): Cell[] =>
   Array.from({ length: width * height }, (_, index) => ({ x: index % width, y: Math.floor(index / width) }));
 
+const stampAssets = (stem: string, firstStem = stem): StampAssetSet => [
+  `/assets/map-stamps/${firstStem}-01.png`,
+  `/assets/map-stamps/${stem}-02.png`,
+  `/assets/map-stamps/${stem}-03.png`,
+  `/assets/map-stamps/${stem}-04.png`,
+  `/assets/map-stamps/${stem}-05.png`,
+];
+
 export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "ancient-oak",
     name: "Ancient oak",
-    asset: "/assets/map-stamps/forest-ancient-oak-01.png",
+    assets: stampAssets("ancient-oak", "forest-ancient-oak"),
+    rotationMode: "fixed",
     width: 5,
     height: 5,
     mask: [
@@ -176,7 +188,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "l-grove",
     name: "L-shaped grove",
-    asset: "/assets/map-stamps/forest-l-grove-01.png",
+    assets: stampAssets("l-grove", "forest-l-grove"),
+    rotationMode: "orthogonal",
     width: 5,
     height: 4,
     mask: [
@@ -193,7 +206,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "fallen-log",
     name: "Fallen log & stones",
-    asset: "/assets/map-stamps/forest-fallen-log-01.png",
+    assets: stampAssets("fallen-log", "forest-fallen-log"),
+    rotationMode: "orthogonal",
     width: 4,
     height: 2,
     mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
@@ -205,7 +219,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "standing-stones",
     name: "Standing-stone ring",
-    asset: "/assets/map-stamps/standing-stones-01.png",
+    assets: stampAssets("standing-stones"),
+    rotationMode: "fixed",
     width: 4,
     height: 4,
     mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }],
@@ -217,7 +232,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "ruined-l-wall",
     name: "Ruined L-wall",
-    asset: "/assets/map-stamps/ruined-l-wall-01.png",
+    assets: stampAssets("ruined-l-wall"),
+    rotationMode: "orthogonal",
     width: 5,
     height: 4,
     mask: [
@@ -232,7 +248,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "bone-scatter",
     name: "Bone scatter",
-    asset: "/assets/map-stamps/bone-scatter-01.png",
+    assets: stampAssets("bone-scatter"),
+    rotationMode: "fixed",
     width: 3,
     height: 2,
     mask: rectangleMask(3, 2),
@@ -244,7 +261,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "cave-bone-lair",
     name: "Bone-strewn lair",
-    asset: "/assets/map-stamps/cave-bone-lair-01.png",
+    assets: stampAssets("cave-bone-lair"),
+    rotationMode: "fixed",
     width: 5,
     height: 3,
     mask: [
@@ -260,7 +278,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "stalagmite-cluster",
     name: "Stalagmite cluster",
-    asset: "/assets/map-stamps/stalagmite-cluster-01.png",
+    assets: stampAssets("stalagmite-cluster"),
+    rotationMode: "fixed",
     width: 3,
     height: 3,
     mask: [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
@@ -272,7 +291,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "campfire",
     name: "Campfire",
-    asset: "/assets/map-stamps/campfire-01.png",
+    assets: stampAssets("campfire"),
+    rotationMode: "fixed",
     width: 2,
     height: 2,
     mask: rectangleMask(2, 2),
@@ -284,7 +304,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "rope-bridge",
     name: "Rope bridge",
-    asset: "/assets/map-stamps/rope-bridge-01.png",
+    assets: stampAssets("rope-bridge"),
+    rotationMode: "orthogonal",
     width: 6,
     height: 2,
     mask: rectangleMask(6, 2),
@@ -296,7 +317,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "stone-crypt",
     name: "Stone crypt",
-    asset: "/assets/map-stamps/stone-crypt-01.png",
+    assets: stampAssets("stone-crypt"),
+    rotationMode: "orthogonal",
     width: 4,
     height: 3,
     mask: rectangleMask(4, 3),
@@ -308,7 +330,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "ruined-moon-shrine",
     name: "Ruined moon shrine",
-    asset: "/assets/map-stamps/ruined-moon-shrine-01.png",
+    assets: stampAssets("ruined-moon-shrine"),
+    rotationMode: "fixed",
     width: 6,
     height: 5,
     mask: [
@@ -326,7 +349,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "boulder-outcrop",
     name: "Boulder outcrop",
-    asset: "/assets/map-stamps/boulder-outcrop-01.png",
+    assets: stampAssets("boulder-outcrop"),
+    rotationMode: "fixed",
     width: 4,
     height: 3,
     mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
@@ -338,7 +362,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "thorn-thicket",
     name: "Thorn thicket",
-    asset: "/assets/map-stamps/thorn-thicket-01.png",
+    assets: stampAssets("thorn-thicket"),
+    rotationMode: "fixed",
     width: 4,
     height: 3,
     mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
@@ -350,7 +375,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "crates-and-barrels",
     name: "Crates & barrels",
-    asset: "/assets/map-stamps/crates-and-barrels-01.png",
+    assets: stampAssets("crates-and-barrels"),
+    rotationMode: "fixed",
     width: 3,
     height: 2,
     mask: rectangleMask(3, 2),
@@ -362,7 +388,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "stone-altar",
     name: "Stone altar",
-    asset: "/assets/map-stamps/stone-altar-01.png",
+    assets: stampAssets("stone-altar"),
+    rotationMode: "orthogonal",
     width: 3,
     height: 2,
     mask: rectangleMask(3, 2),
@@ -374,7 +401,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "prison-bars",
     name: "Prison bars",
-    asset: "/assets/map-stamps/prison-bars-01.png",
+    assets: stampAssets("prison-bars"),
+    rotationMode: "orthogonal",
     width: 4,
     height: 1,
     mask: rectangleMask(4, 1),
@@ -386,7 +414,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "glow-mushrooms",
     name: "Glow mushrooms",
-    asset: "/assets/map-stamps/glow-mushrooms-01.png",
+    assets: stampAssets("glow-mushrooms"),
+    rotationMode: "fixed",
     width: 3,
     height: 2,
     mask: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
@@ -398,7 +427,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "broken-fountain",
     name: "Broken fountain",
-    asset: "/assets/map-stamps/broken-fountain-01.png",
+    assets: stampAssets("broken-fountain"),
+    rotationMode: "fixed",
     width: 4,
     height: 4,
     mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 1, y: 3 }, { x: 2, y: 3 }],
@@ -410,7 +440,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "abandoned-cart",
     name: "Abandoned cart",
-    asset: "/assets/map-stamps/abandoned-cart-01.png",
+    assets: stampAssets("abandoned-cart"),
+    rotationMode: "orthogonal",
     width: 4,
     height: 2,
     mask: rectangleMask(4, 2),
@@ -422,7 +453,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "spike-pit",
     name: "Spike pit",
-    asset: "/assets/map-stamps/spike-pit-01.png",
+    assets: stampAssets("spike-pit"),
+    rotationMode: "fixed",
     width: 3,
     height: 3,
     mask: rectangleMask(3, 3),
@@ -434,7 +466,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "warding-rune",
     name: "Warding rune",
-    asset: "/assets/map-stamps/warding-rune-01.png",
+    assets: stampAssets("warding-rune"),
+    rotationMode: "fixed",
     width: 2,
     height: 2,
     mask: rectangleMask(2, 2),
@@ -446,7 +479,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "twisted-mangroves",
     name: "Twisted mangroves",
-    asset: "/assets/map-stamps/twisted-mangroves-01.png",
+    assets: stampAssets("twisted-mangroves"),
+    rotationMode: "fixed",
     width: 5,
     height: 4,
     mask: [{ x: 1, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 1, y: 3 }, { x: 3, y: 3 }],
@@ -458,7 +492,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "reed-bed",
     name: "Reed bed",
-    asset: "/assets/map-stamps/reed-bed-01.png",
+    assets: stampAssets("reed-bed"),
+    rotationMode: "fixed",
     width: 4,
     height: 3,
     mask: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
@@ -470,7 +505,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "wind-carved-dunes",
     name: "Wind-carved dunes",
-    asset: "/assets/map-stamps/wind-carved-dunes-01.png",
+    assets: stampAssets("wind-carved-dunes"),
+    rotationMode: "fixed",
     width: 5,
     height: 3,
     mask: rectangleMask(5, 3),
@@ -482,7 +518,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "ice-spires",
     name: "Ice spires",
-    asset: "/assets/map-stamps/ice-spires-01.png",
+    assets: stampAssets("ice-spires"),
+    rotationMode: "fixed",
     width: 4,
     height: 3,
     mask: [{ x: 1, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 2, y: 2 }],
@@ -494,7 +531,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "lava-vent",
     name: "Lava vent",
-    asset: "/assets/map-stamps/lava-vent-01.png",
+    assets: stampAssets("lava-vent"),
+    rotationMode: "fixed",
     width: 3,
     height: 3,
     mask: rectangleMask(3, 3),
@@ -506,7 +544,8 @@ export const STAMP_LIBRARY: StampDefinition[] = [
   {
     id: "coastal-wreck",
     name: "Coastal wreck",
-    asset: "/assets/map-stamps/coastal-wreck-01.png",
+    assets: stampAssets("coastal-wreck"),
+    rotationMode: "orthogonal",
     width: 6,
     height: 3,
     mask: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 4, y: 2 }],
@@ -514,6 +553,292 @@ export const STAMP_LIBRARY: StampDefinition[] = [
     category: "structure",
     biomes: ["coast", "swamp"],
     renderKind: "wreck",
+  },
+  {
+    id: "pine-cluster",
+    name: "Pine cluster",
+    assets: stampAssets("pine-cluster"),
+    rotationMode: "fixed",
+    width: 4,
+    height: 4,
+    mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 1, y: 3 }, { x: 2, y: 3 }],
+    description: "A compact evergreen stand with layered, irregular crowns.",
+    category: "nature",
+    biomes: ["forest", "tundra"],
+    renderKind: "image",
+  },
+  {
+    id: "birch-grove",
+    name: "Birch grove",
+    assets: stampAssets("birch-grove"),
+    rotationMode: "fixed",
+    width: 5,
+    height: 4,
+    mask: [{ x: 1, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 1, y: 3 }, { x: 3, y: 3 }],
+    description: "A loose pale-barked grove with playable gaps between canopies.",
+    category: "nature",
+    biomes: ["forest", "tundra"],
+    renderKind: "image",
+  },
+  {
+    id: "tree-stump",
+    name: "Tree stump",
+    assets: stampAssets("tree-stump"),
+    rotationMode: "fixed",
+    width: 2,
+    height: 2,
+    mask: rectangleMask(2, 2),
+    description: "A broad weathered stump, exposed roots, and small forest debris.",
+    category: "nature",
+    biomes: ["forest", "ruins", "swamp"],
+    renderKind: "image",
+  },
+  {
+    id: "shrub-cluster",
+    name: "Shrub cluster",
+    assets: stampAssets("shrub-cluster"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 2,
+    mask: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
+    description: "Low mixed shrubs for soft cover and varied forest edges.",
+    category: "nature",
+    biomes: ["forest", "ruins", "swamp", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "fern-patch",
+    name: "Fern patch",
+    assets: stampAssets("fern-patch"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 2,
+    mask: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
+    description: "A low understory patch with several distinct fern crowns.",
+    category: "detail",
+    biomes: ["forest", "swamp", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "rock-pile",
+    name: "Rock pile",
+    assets: stampAssets("rock-pile"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 2,
+    mask: rectangleMask(3, 2),
+    description: "A compact mound of hand-sized and medium fieldstones.",
+    category: "nature",
+    biomes: ["forest", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "pebble-scatter",
+    name: "Pebble scatter",
+    assets: stampAssets("pebble-scatter"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 2,
+    mask: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 1, y: 1 }],
+    description: "Sparse stones that add texture without creating a major obstacle.",
+    category: "detail",
+    biomes: ["forest", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "dead-tree",
+    name: "Dead tree",
+    assets: stampAssets("dead-tree"),
+    rotationMode: "fixed",
+    width: 4,
+    height: 4,
+    mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 3 }, { x: 2, y: 3 }],
+    description: "A leafless snag with a broad root flare and broken limbs.",
+    category: "nature",
+    biomes: ["forest", "ruins", "swamp", "desert", "tundra", "volcanic"],
+    renderKind: "image",
+  },
+  {
+    id: "wooden-table",
+    name: "Wooden table",
+    assets: stampAssets("wooden-table"),
+    rotationMode: "orthogonal",
+    width: 3,
+    height: 2,
+    mask: rectangleMask(3, 2),
+    description: "A sturdy scarred table with sparse room-specific clutter.",
+    category: "furnishing",
+    biomes: ["dungeon", "cave", "ruins", "forest", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "bedroll-camp",
+    name: "Bedroll camp",
+    assets: stampAssets("bedroll-camp"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 3,
+    mask: rectangleMask(3, 3),
+    description: "A small resting camp with bedrolls, packs, and cookware.",
+    category: "furnishing",
+    biomes: ["forest", "cave", "ruins", "dungeon", "swamp", "desert", "tundra", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "weapon-rack",
+    name: "Weapon rack",
+    assets: stampAssets("weapon-rack"),
+    rotationMode: "orthogonal",
+    width: 3,
+    height: 1,
+    mask: rectangleMask(3, 1),
+    description: "A long low rack of assorted mundane arms and shields.",
+    category: "furnishing",
+    biomes: ["dungeon", "ruins"],
+    renderKind: "image",
+  },
+  {
+    id: "bookshelf",
+    name: "Bookshelf",
+    assets: stampAssets("bookshelf"),
+    rotationMode: "orthogonal",
+    width: 4,
+    height: 1,
+    mask: rectangleMask(4, 1),
+    description: "A long bookcase seen from above, with varied books and scrolls.",
+    category: "furnishing",
+    biomes: ["dungeon", "ruins"],
+    renderKind: "image",
+  },
+  {
+    id: "treasure-chest",
+    name: "Treasure chest",
+    assets: stampAssets("treasure-chest"),
+    rotationMode: "orthogonal",
+    width: 2,
+    height: 1,
+    mask: rectangleMask(2, 1),
+    description: "A reinforced chest with distinct wear, lock, and trim variations.",
+    category: "furnishing",
+    biomes: ["dungeon", "cave", "ruins", "forest", "swamp", "desert", "tundra", "volcanic", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "rubble-heap",
+    name: "Rubble heap",
+    assets: stampAssets("rubble-heap"),
+    rotationMode: "fixed",
+    width: 4,
+    height: 3,
+    mask: [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
+    description: "Collapsed masonry, fractured beams, and irregular broken stone.",
+    category: "structure",
+    biomes: ["dungeon", "ruins", "cave", "desert", "volcanic", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "dungeon-column",
+    name: "Dungeon column",
+    assets: stampAssets("dungeon-column"),
+    rotationMode: "fixed",
+    width: 2,
+    height: 2,
+    mask: rectangleMask(2, 2),
+    description: "A substantial carved pillar or column base viewed from above.",
+    category: "structure",
+    biomes: ["dungeon", "ruins"],
+    renderKind: "image",
+  },
+  {
+    id: "ruined-arch",
+    name: "Ruined arch",
+    assets: stampAssets("ruined-arch"),
+    rotationMode: "orthogonal",
+    width: 4,
+    height: 2,
+    mask: [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }],
+    description: "A broken freestanding stone arch with a passable center.",
+    category: "structure",
+    biomes: ["ruins", "dungeon", "desert", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "stone-statue",
+    name: "Stone statue",
+    assets: stampAssets("stone-statue"),
+    rotationMode: "fixed",
+    width: 2,
+    height: 2,
+    mask: rectangleMask(2, 2),
+    description: "A weathered figure on a square plinth with varied subjects.",
+    category: "structure",
+    biomes: ["dungeon", "ruins", "forest", "desert", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "old-well",
+    name: "Old well",
+    assets: stampAssets("old-well"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 3,
+    mask: [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }],
+    description: "A round stone well with different rims, ropes, and covers.",
+    category: "structure",
+    biomes: ["forest", "ruins", "dungeon", "swamp", "desert", "coast"],
+    renderKind: "image",
+  },
+  {
+    id: "grave-markers",
+    name: "Grave markers",
+    assets: stampAssets("grave-markers"),
+    rotationMode: "fixed",
+    width: 4,
+    height: 3,
+    mask: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 1, y: 1 }, { x: 3, y: 1 }, { x: 0, y: 2 }, { x: 2, y: 2 }],
+    description: "A scattered cluster of worn headstones and small grave slabs.",
+    category: "detail",
+    biomes: ["ruins", "forest", "swamp", "dungeon"],
+    renderKind: "image",
+  },
+  {
+    id: "brazier",
+    name: "Brazier",
+    assets: stampAssets("brazier"),
+    rotationMode: "fixed",
+    width: 2,
+    height: 2,
+    mask: rectangleMask(2, 2),
+    description: "A metal fire bowl with varied stands, coals, and flame shapes.",
+    category: "furnishing",
+    biomes: ["dungeon", "ruins", "cave", "desert", "volcanic"],
+    renderKind: "image",
+  },
+  {
+    id: "cactus-cluster",
+    name: "Cactus cluster",
+    assets: stampAssets("cactus-cluster"),
+    rotationMode: "fixed",
+    width: 3,
+    height: 3,
+    mask: [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
+    description: "A desert plant cluster with several distinct silhouettes.",
+    category: "nature",
+    biomes: ["desert"],
+    renderKind: "image",
+  },
+  {
+    id: "snow-drift",
+    name: "Snow drift",
+    assets: stampAssets("snow-drift"),
+    rotationMode: "fixed",
+    width: 4,
+    height: 2,
+    mask: rectangleMask(4, 2),
+    description: "An irregular wind-packed snow bank with a soft readable edge.",
+    category: "nature",
+    biomes: ["tundra"],
+    renderKind: "image",
   },
 ];
 
@@ -541,7 +866,21 @@ export function definitionFor(id: string) {
   return STAMP_LIBRARY.find((definition) => definition.id === id) ?? STAMP_LIBRARY[0];
 }
 
+export function stampVariantFor(definition: StampDefinition, seed: string, stampId: string, requested?: number) {
+  if (Number.isInteger(requested) && requested! >= 0 && requested! < definition.assets.length) return requested!;
+  return seedHash(`${seed}:${stampId}:${definition.id}:art`) % definition.assets.length;
+}
+
+export function stampAssetFor(definition: StampDefinition, seed: string, stampId: string, requested?: number) {
+  return definition.assets[stampVariantFor(definition, seed, stampId, requested)];
+}
+
+export function effectiveStampRotation(definition: StampDefinition, rotation: MapRotation): MapRotation {
+  return definition.rotationMode === "fixed" ? 0 : rotation;
+}
+
 export function rotatedMask(definition: StampDefinition, rotation: MapRotation) {
+  rotation = effectiveStampRotation(definition, rotation);
   if (rotation === 0) return { width: definition.width, height: definition.height, cells: definition.mask };
   if (rotation === 90) return {
     width: definition.height,
@@ -615,7 +954,7 @@ function addRoom(map: MapPackage, x: number, y: number, width: number, height: n
 
 function placeStamp(map: MapPackage, definitionId: string, random: () => number, occupied: Set<string>, attempts = 180) {
   const definition = definitionFor(definitionId);
-  const rotations: MapRotation[] = [0, 90, 180, 270];
+  const rotations: MapRotation[] = definition.rotationMode === "fixed" ? [0] : [0, 90, 180, 270];
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const rotation = rotations[Math.floor(random() * rotations.length)];
     const mask = rotatedMask(definition, rotation);
@@ -623,7 +962,15 @@ function placeStamp(map: MapPackage, definitionId: string, random: () => number,
     const y = Math.floor(random() * Math.max(1, map.height - mask.height + 1));
     if (!mask.cells.every((cell) => !occupied.has(`${x + cell.x}:${y + cell.y}`))) continue;
     mask.cells.forEach((cell) => occupied.add(`${x + cell.x}:${y + cell.y}`));
-    map.stamps.push({ id: `${definitionId}-${map.stamps.length}-${seedHash(`${map.seed}:${definitionId}:${map.stamps.length}`)}`, definitionId, x, y, rotation, flipX: random() > 0.5 });
+    map.stamps.push({
+      id: `${definitionId}-${map.stamps.length}-${seedHash(`${map.seed}:${definitionId}:${map.stamps.length}`)}`,
+      definitionId,
+      x,
+      y,
+      rotation,
+      flipX: definition.rotationMode === "orthogonal" && random() > 0.5,
+      variant: Math.floor(random() * definition.assets.length),
+    });
     return true;
   }
   return false;
@@ -662,10 +1009,12 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
     if (safeSettings.pathStyle !== "none") paintPath(map, "earth", safeSettings.pathStyle, random, random() > 0.72 ? 2 : 1);
     if (safeSettings.water === "stream") paintStream(map, random);
     if (safeSettings.water === "pond") paintEllipse(map, "water", map.width * (0.62 + random() * 0.2), map.height * (0.62 + random() * 0.18), Math.max(2, map.width / 10), Math.max(1.5, map.height / 8), 0.22);
-    for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, "ancient-oak", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, "l-grove", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 3 === 2 ? "standing-stones" : "fallen-log", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 3 === 0 ? "boulder-outcrop" : "thorn-thicket", random, occupied);
+    const forestLandmarks = ["ancient-oak", "pine-cluster", "birch-grove"];
+    const forestUnderstory = ["l-grove", "shrub-cluster", "fern-patch", "thorn-thicket"];
+    const forestDebris = ["fallen-log", "tree-stump", "rock-pile", "pebble-scatter", "dead-tree"];
+    for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, forestLandmarks[count % forestLandmarks.length], random, occupied);
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, forestUnderstory[count % forestUnderstory.length], random, occupied);
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, forestDebris[count % forestDebris.length], random, occupied);
     if (safeSettings.pathStyle !== "none" && random() > 0.48) placeStamp(map, "abandoned-cart", random, occupied);
   } else if (safeSettings.biome === "dungeon") {
     const roomCount = safeSettings.density === "open" ? 3 : safeSettings.density === "balanced" ? 5 : 7;
@@ -678,7 +1027,9 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
       if (index > 0) map.portals.push({ id: `door-${index}`, x, y: clamp(y + Math.floor(roomHeight / 2), 0, map.height), orientation: "vertical", kind: "door", open: false });
     }
     for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 2 ? "bone-scatter" : "stone-crypt", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 3 === 0 ? "stone-altar" : "crates-and-barrels", random, occupied);
+    const dungeonFurnishings = ["stone-altar", "crates-and-barrels", "wooden-table", "weapon-rack", "bookshelf", "treasure-chest"];
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, dungeonFurnishings[count % dungeonFurnishings.length], random, occupied);
+    if (safeSettings.landmarks > 1) placeStamp(map, random() > 0.5 ? "dungeon-column" : "stone-statue", random, occupied);
     if (safeSettings.density !== "open") placeStamp(map, "prison-bars", random, occupied);
     if (safeSettings.density === "dense") placeStamp(map, "spike-pit", random, occupied);
   } else if (safeSettings.biome === "cave") {
@@ -690,7 +1041,8 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
     addWall(map, 0, map.height * 0.62, map.width * 0.14, map.height * 0.55, "cave");
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, "cave-bone-lair", random, occupied);
     for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, count % 3 === 2 ? "bone-scatter" : "stalagmite-cluster", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 2 ? "glow-mushrooms" : "boulder-outcrop", random, occupied);
+    const caveDetails = ["glow-mushrooms", "boulder-outcrop", "rock-pile", "pebble-scatter"];
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, caveDetails[count % caveDetails.length], random, occupied);
   } else if (safeSettings.biome === "ruins") {
     paintEllipse(map, "stone", map.width * 0.5, map.height * 0.5, map.width * 0.34, map.height * 0.31, 0.25);
     for (let count = 0; count < Math.max(2, densityCount); count += 1) paintEllipse(map, "rubble", random() * map.width, random() * map.height, 1.5 + random() * 2.5, 1 + random() * 2, 0.3);
@@ -701,8 +1053,10 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
       addRoom(map, 1 + Math.floor(random() * Math.max(1, map.width - width - 2)), 1 + Math.floor(random() * Math.max(1, map.height - height - 2)), width, height, "ruined", true);
     }
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, count === 0 ? "ruined-moon-shrine" : "standing-stones", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 2 ? "ruined-l-wall" : "bone-scatter", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 3 === 0 ? "broken-fountain" : count % 3 === 1 ? "abandoned-cart" : "crates-and-barrels", random, occupied);
+    const ruinStructures = ["ruined-l-wall", "ruined-arch", "rubble-heap", "grave-markers"];
+    const ruinDetails = ["broken-fountain", "abandoned-cart", "crates-and-barrels", "stone-statue", "old-well"];
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, ruinStructures[count % ruinStructures.length], random, occupied);
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, ruinDetails[count % ruinDetails.length], random, occupied);
     if (safeSettings.mood === "moonlight") placeStamp(map, "warding-rune", random, occupied);
   } else if (safeSettings.biome === "swamp") {
     for (let count = 0; count < densityCount + 2; count += 1) paintEllipse(map, count % 2 ? "water" : "grass", random() * map.width, random() * map.height, 1.5 + random() * 3.5, 1 + random() * 2.5, 0.34);
@@ -710,12 +1064,14 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
     if (safeSettings.pathStyle !== "none") paintPath(map, "earth", safeSettings.pathStyle, random, 1);
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, "twisted-mangroves", random, occupied);
     for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, count % 2 ? "reed-bed" : "twisted-mangroves", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 2 ? "glow-mushrooms" : "thorn-thicket", random, occupied);
+    const swampDetails = ["glow-mushrooms", "thorn-thicket", "shrub-cluster", "fern-patch", "dead-tree"];
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, swampDetails[count % swampDetails.length], random, occupied);
   } else if (safeSettings.biome === "desert") {
     if (safeSettings.pathStyle !== "none") paintPath(map, "earth", safeSettings.pathStyle, random, random() > 0.65 ? 2 : 1);
     if (safeSettings.water === "pond") paintEllipse(map, "water", map.width * (0.58 + random() * 0.2), map.height * (0.42 + random() * 0.28), Math.max(2, map.width / 11), Math.max(1.5, map.height / 9), 0.22);
     for (let count = 0; count < densityCount; count += 1) paintEllipse(map, count % 2 ? "stone" : "earth", random() * map.width, random() * map.height, 1.4 + random() * 2.8, 1 + random() * 2, 0.28);
-    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, count % 3 === 0 ? "boulder-outcrop" : "wind-carved-dunes", random, occupied);
+    const desertNature = ["boulder-outcrop", "wind-carved-dunes", "cactus-cluster", "rock-pile", "dead-tree"];
+    for (let count = 0; count < densityCount + 2; count += 1) placeStamp(map, desertNature[count % desertNature.length], random, occupied);
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, count % 2 ? "standing-stones" : "abandoned-cart", random, occupied);
     if (safeSettings.density !== "open") placeStamp(map, "crates-and-barrels", random, occupied);
   } else if (safeSettings.biome === "tundra") {
@@ -723,14 +1079,16 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
     if (safeSettings.water === "stream") paintStream(map, random);
     if (safeSettings.water === "pond") paintEllipse(map, "water", map.width * 0.62, map.height * 0.58, Math.max(2, map.width / 9), Math.max(1.5, map.height / 7), 0.2);
     for (let count = 0; count < densityCount; count += 1) paintEllipse(map, count % 2 ? "stone" : "rubble", random() * map.width, random() * map.height, 1.5 + random() * 2.5, 1 + random() * 2, 0.24);
-    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, count % 2 ? "ice-spires" : "boulder-outcrop", random, occupied);
+    const tundraNature = ["ice-spires", "boulder-outcrop", "snow-drift", "pine-cluster", "rock-pile"];
+    for (let count = 0; count < densityCount + 2; count += 1) placeStamp(map, tundraNature[count % tundraNature.length], random, occupied);
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, count % 2 ? "standing-stones" : "ruined-l-wall", random, occupied);
   } else if (safeSettings.biome === "volcanic") {
     paintStream(map, random);
     map.terrain = map.terrain.map((kind) => kind === "water" ? "lava" : kind);
     for (let count = 0; count < densityCount + 1; count += 1) paintEllipse(map, count % 2 ? "rubble" : "stone", random() * map.width, random() * map.height, 1.5 + random() * 3, 1 + random() * 2.2, 0.34);
     if (safeSettings.pathStyle !== "none") paintPath(map, "stone", safeSettings.pathStyle, random, 1);
-    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, count % 2 ? "lava-vent" : "boulder-outcrop", random, occupied);
+    const volcanicNature = ["lava-vent", "boulder-outcrop", "rock-pile", "dead-tree"];
+    for (let count = 0; count < densityCount + 2; count += 1) placeStamp(map, volcanicNature[count % volcanicNature.length], random, occupied);
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, count % 2 ? "stone-altar" : "standing-stones", random, occupied);
     if (safeSettings.density === "dense") placeStamp(map, "spike-pit", random, occupied);
   } else {
@@ -738,7 +1096,8 @@ export function generateMap(settings: GeneratorSettings): MapPackage {
     for (let count = 0; count < densityCount; count += 1) paintEllipse(map, count % 2 ? "rubble" : "grass", random() * map.width * 0.66, random() * map.height, 1.5 + random() * 3, 1 + random() * 2.2, 0.28);
     if (safeSettings.pathStyle !== "none") paintPath(map, "earth", safeSettings.pathStyle, random, 1);
     for (let count = 0; count < safeSettings.landmarks; count += 1) placeStamp(map, "coastal-wreck", random, occupied);
-    for (let count = 0; count < densityCount; count += 1) placeStamp(map, count % 3 === 0 ? "reed-bed" : count % 3 === 1 ? "boulder-outcrop" : "wind-carved-dunes", random, occupied);
+    const coastNature = ["reed-bed", "boulder-outcrop", "wind-carved-dunes", "pebble-scatter", "shrub-cluster"];
+    for (let count = 0; count < densityCount + 1; count += 1) placeStamp(map, coastNature[count % coastNature.length], random, occupied);
     if (safeSettings.density !== "open") placeStamp(map, "crates-and-barrels", random, occupied);
   }
 
@@ -893,15 +1252,17 @@ export function parseMapPackage(value: unknown): MapPackage | null {
     if (!stamp || typeof stamp !== "object") return [];
     const definition = STAMP_LIBRARY.find((item) => item.id === stamp.definitionId);
     if (!definition || ![0, 90, 180, 270].includes(Number(stamp.rotation))) return [];
-    const rotation = Number(stamp.rotation) as MapRotation;
+    const rotation = effectiveStampRotation(definition, Number(stamp.rotation) as MapRotation);
     const mask = rotatedMask(definition, rotation);
+    const id = text(stamp.id, 80) || `stamp-${index}`;
     return [{
-      id: text(stamp.id, 80) || `stamp-${index}`,
+      id,
       definitionId: definition.id,
       x: Math.round(number(stamp.x, 0, Math.max(0, candidate.width! - mask.width))),
       y: Math.round(number(stamp.y, 0, Math.max(0, candidate.height! - mask.height))),
       rotation,
-      flipX: Boolean(stamp.flipX),
+      flipX: definition.rotationMode === "orthogonal" && Boolean(stamp.flipX),
+      variant: stampVariantFor(definition, text(candidate.seed, 80), id, Number(stamp.variant)),
     }];
   });
   const walls = candidate.walls.flatMap((wall, index): WallSegment[] => {

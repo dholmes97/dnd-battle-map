@@ -290,9 +290,9 @@ test("includes the durable multi-biome map workshop, prompt composer, and irregu
   assert.match(workshopSource, /Private until applied/);
   assert.match(workshopSource, /draggable onDragStart=\{\(event\) => onStampDragStart/);
   assert.match(workshopSource, /onDragOver=\{onMapDragOver\} onDrop=\{onMapDrop\}/);
-  assert.match(workshopSource, /Drag to map/);
+  assert.match(workshopSource, /Drag a piece onto the map/);
   assert.doesNotMatch(workshopSource, /onClick=\{\(\) => addStamp\(/);
-  assert.match(packageSource, /const rotations: MapRotation\[\] = \[0, 90, 180, 270\]/);
+  assert.match(packageSource, /const rotations: MapRotation\[\] = definition\.rotationMode === "fixed" \? \[0\] : \[0, 90, 180, 270\]/);
   assert.match(packageSource, /rotation = rotations\[Math\.floor\(random\(\) \* rotations\.length\)\]/);
   assert.match(workshopSource, /function createTerrainMask\(/);
   assert.match(workshopSource, /function organicEdgeNoise\(/);
@@ -318,11 +318,11 @@ test("includes the durable multi-biome map workshop, prompt composer, and irregu
   assert.match(mapMigration, /ADD `grid_width` integer DEFAULT 16 NOT NULL/);
 
   const assets = [
-    ["forest-ancient-oak-01.png", 1254, 1254],
-    ["forest-l-grove-01.png", 1254, 1254],
-    ["forest-fallen-log-01.png", 1774, 887],
-    ["cave-bone-lair-01.png", 1619, 971],
-    ["ruined-moon-shrine-01.png", 1375, 1144],
+    ["forest-ancient-oak-01.png", 768, 768],
+    ["forest-l-grove-01.png", 768, 768],
+    ["forest-fallen-log-01.png", 768, 384],
+    ["cave-bone-lair-01.png", 768, 460],
+    ["ruined-moon-shrine-01.png", 768, 639],
   ];
   for (const [file, width, height] of assets) {
     const png = await readFile(new URL(`../public/assets/map-stamps/${file}`, import.meta.url));

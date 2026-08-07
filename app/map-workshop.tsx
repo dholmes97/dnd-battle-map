@@ -19,9 +19,12 @@ import {
   cloneMapPackage,
   composeMapFromPrompt,
   definitionFor,
+  effectiveStampRotation,
   generateMap,
   parseMapPackage,
   rotatedMask,
+  stampAssetFor,
+  stampVariantFor,
   seedHash,
   terrainIndex,
   type Cell,
@@ -40,7 +43,7 @@ import {
 type WorkshopTool = "select" | "terrain" | "wall" | "door" | "window" | "label" | "note";
 type WorkshopMap = MapPackage;
 type DragState = { pointerId: number; stampId: string; offsetX: number; offsetY: number };
-type StampDropPreview = { definitionId: string; x: number; y: number };
+type StampDropPreview = { definitionId: string; x: number; y: number; variant: number };
 type WallPreview = { start: Cell; end: Cell };
 type SavedMapPreset = {
   id: string;
@@ -226,7 +229,7 @@ function drawProceduralStamp(
   const definition = definitionFor(stamp.definitionId);
   // Finished library entries never render the legacy canvas placeholder while
   // their raster image is loading or if a browser temporarily misses the asset.
-  if (definition.asset) return;
+  if (definition.assets.length) return;
   const mask = rotatedMask(definition, stamp.rotation);
   const left = stamp.x * cellWidth;
   const top = stamp.y * cellHeight;
@@ -491,7 +494,8 @@ export function renderMapPackageToCanvas(
   for (const stamp of map.stamps) {
     const definition = definitionFor(stamp.definitionId);
     const mask = rotatedMask(definition, stamp.rotation);
-    const image = images.get(definition.asset);
+    const asset = stampAssetFor(definition, map.seed, stamp.id, stamp.variant);
+    const image = images.get(asset);
     if (image) {
       const drawWidth = definition.width * cellWidth;
       const drawHeight = definition.height * cellHeight;
@@ -499,7 +503,7 @@ export function renderMapPackageToCanvas(
       const centerY = (stamp.y + mask.height / 2) * cellHeight;
       context.save();
       context.translate(centerX, centerY);
-      context.rotate((stamp.rotation * Math.PI) / 180);
+      context.rotate((effectiveStampRotation(definition, stamp.rotation) * Math.PI) / 180);
       if (stamp.flipX) context.scale(-1, 1);
       context.shadowColor = "rgba(15, 19, 10, 0.48)";
       context.shadowBlur = Math.max(4, Math.min(cellWidth, cellHeight) * 0.24);
@@ -554,7 +558,8 @@ function drawWorkshop(
   for (const stamp of map.stamps) {
     const definition = definitionFor(stamp.definitionId);
     const mask = rotatedMask(definition, stamp.rotation);
-    const image = images.get(definition.asset);
+    const asset = stampAssetFor(definition, map.seed, stamp.id, stamp.variant);
+    const image = images.get(asset);
     const x = stamp.x * cellWidth;
     const y = stamp.y * cellHeight;
     const width = mask.width * cellWidth;
@@ -575,7 +580,7 @@ function drawWorkshop(
     if (image) {
       context.save();
       context.translate(x + width / 2, y + height / 2);
-      context.rotate((stamp.rotation * Math.PI) / 180);
+      context.rotate((effectiveStampRotation(definition, stamp.rotation) * Math.PI) / 180);
       if (stamp.flipX) context.scale(-1, 1);
       context.shadowColor = "rgba(15, 19, 10, 0.48)";
       context.shadowBlur = Math.max(4, Math.min(cellWidth, cellHeight) * 0.24);
@@ -588,7 +593,7 @@ function drawWorkshop(
 
   if (dropPreview) {
     const definition = definitionFor(dropPreview.definitionId);
-    const image = images.get(definition.asset);
+    const image = images.get(definition.assets[dropPreview.variant]);
     context.save();
     context.fillStyle = "rgba(245, 198, 92, 0.24)";
     context.strokeStyle = "rgba(255, 218, 135, 0.95)";
@@ -697,6 +702,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const paletteDragDefinitionRef = useRef<string | null>(null);
+  const paletteDragVariantRef = useRef<number | null>(null);
   const manualStampCounterRef = useRef(0);
   const rerollCounterRef = useRef(0);
   const wallStartRef = useRef<{ pointerId: number; cell: Cell } | null>(null);
@@ -711,14 +717,13 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const draftMatchesLoadedPreset = Boolean(loadedPreset && JSON.stringify(loadedPreset.mapPackage) === JSON.stringify(map));
   const visibleStamps = STAMP_LIBRARY.filter((stamp) => {
     const query = paletteQuery.trim().toLowerCase();
-    return stamp.biomes.includes(map.biome)
-      && (paletteCategory === "all" || stamp.category === paletteCategory)
+    return (paletteCategory === "all" || stamp.category === paletteCategory)
       && (!query || `${stamp.name} ${stamp.description} ${stamp.category}`.toLowerCase().includes(query));
   });
 
   const assets = useMemo(() => [
     ...Object.values(TERRAIN_ASSETS),
-    ...STAMP_LIBRARY.map((stamp) => stamp.asset),
+    ...STAMP_LIBRARY.flatMap((stamp) => stamp.assets),
   ], []);
 
   const syncHistoryCounts = () => setHistoryCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
@@ -921,7 +926,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   };
 
   const rotateSelected = () => {
-    if (!selectedStamp) return;
+    if (!selectedStamp || definitionFor(selectedStamp.definitionId).rotationMode === "fixed") return;
     commitMap((current) => ({
       ...current,
       stamps: current.stamps.map((stamp) => {
@@ -934,7 +939,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   };
 
   const flipSelected = () => {
-    if (!selectedStamp) return;
+    if (!selectedStamp || definitionFor(selectedStamp.definitionId).rotationMode === "fixed") return;
     commitMap((current) => ({ ...current, stamps: current.stamps.map((stamp) => stamp.id === selectedStamp.id ? { ...stamp, flipX: !stamp.flipX } : stamp) }));
   };
 
@@ -954,11 +959,22 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       stamps: [...current.stamps, {
         ...selectedStamp,
         id,
+        variant: ((selectedStamp.variant ?? stampVariantFor(definitionFor(selectedStamp.definitionId), mapRef.current.seed, selectedStamp.id)) + 1) % 5,
         x: Math.min(current.width - mask.width, selectedStamp.x + 1),
         y: Math.min(current.height - mask.height, selectedStamp.y + 1),
       }],
     }));
     setSelectedStampId(id);
+  };
+
+  const shuffleSelectedVariant = () => {
+    if (!selectedStamp) return;
+    const definition = definitionFor(selectedStamp.definitionId);
+    const currentVariant = stampVariantFor(definition, mapRef.current.seed, selectedStamp.id, selectedStamp.variant);
+    commitMap((current) => ({
+      ...current,
+      stamps: current.stamps.map((stamp) => stamp.id === selectedStamp.id ? { ...stamp, variant: (currentVariant + 1) % definition.assets.length } : stamp),
+    }));
   };
 
   const moveSelectedLayer = (position: "front" | "back") => {
@@ -986,48 +1002,56 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     setDirty(true);
   };
 
-  const addStampAt = (definitionId: string, x: number, y: number) => {
+  const addStampAt = (definitionId: string, x: number, y: number, requestedVariant?: number) => {
     const definition = definitionFor(definitionId);
     manualStampCounterRef.current += 1;
     const id = `${definitionId}-manual-${manualStampCounterRef.current}`;
+    const variant = stampVariantFor(definition, mapRef.current.seed, id, requestedVariant);
     commitMap((current) => ({
       ...current,
-      stamps: [...current.stamps, { id, definitionId, x: Math.max(0, Math.min(current.width - definition.width, x)), y: Math.max(0, Math.min(current.height - definition.height, y)), rotation: 0 }],
+      stamps: [...current.stamps, { id, definitionId, x: Math.max(0, Math.min(current.width - definition.width, x)), y: Math.max(0, Math.min(current.height - definition.height, y)), rotation: 0, variant }],
     }));
     setSelectedStampId(id); setTool("select");
   };
 
-  const stampDropPosition = (canvas: HTMLCanvasElement, definitionId: string, clientX: number, clientY: number) => {
+  const stampDropPosition = (canvas: HTMLCanvasElement, definitionId: string, variant: number, clientX: number, clientY: number) => {
     const definition = definitionFor(definitionId);
     const cell = canvasCell(canvas, map, clientX, clientY);
     return {
       definitionId,
+      variant,
       x: Math.max(0, Math.min(map.width - definition.width, cell.x - Math.floor(definition.width / 2))),
       y: Math.max(0, Math.min(map.height - definition.height, cell.y - Math.floor(definition.height / 2))),
     };
   };
 
   const onStampDragStart = (event: ReactDragEvent<HTMLButtonElement>, definitionId: string) => {
+    const definition = definitionFor(definitionId);
     paletteDragDefinitionRef.current = definitionId;
+    paletteDragVariantRef.current = seedHash(`${mapRef.current.seed}:${definitionId}:manual:${manualStampCounterRef.current + 1}`) % definition.assets.length;
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData("application/x-map-stamp", definitionId);
   };
 
   const onMapDragOver = (event: ReactDragEvent<HTMLCanvasElement>) => {
     const definitionId = paletteDragDefinitionRef.current;
-    if (!definitionId) return;
+    const variant = paletteDragVariantRef.current;
+    if (!definitionId || variant === null) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
-    setDropPreview(stampDropPosition(event.currentTarget, definitionId, event.clientX, event.clientY));
+    setDropPreview(stampDropPosition(event.currentTarget, definitionId, variant, event.clientX, event.clientY));
   };
 
   const onMapDrop = (event: ReactDragEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     const definitionId = event.dataTransfer.getData("application/x-map-stamp") || paletteDragDefinitionRef.current;
     if (!definitionId) return;
-    const position = stampDropPosition(event.currentTarget, definitionId, event.clientX, event.clientY);
-    addStampAt(definitionId, position.x, position.y);
+    const definition = definitionFor(definitionId);
+    const variant = paletteDragVariantRef.current ?? seedHash(`${mapRef.current.seed}:${definitionId}:manual:${manualStampCounterRef.current + 1}`) % definition.assets.length;
+    const position = stampDropPosition(event.currentTarget, definitionId, variant, event.clientX, event.clientY);
+    addStampAt(definitionId, position.x, position.y, position.variant);
     paletteDragDefinitionRef.current = null;
+    paletteDragVariantRef.current = null;
     setDropPreview(null);
   };
 
@@ -1166,7 +1190,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
             <div className="workshop-section-heading"><small>Stamp palette</small><strong>Map pieces</strong></div>
             <p className="workshop-help">Drag a piece onto the map. Its footprint snaps around your drop point.</p>
             <div className="palette-filters"><input aria-label="Search stamp palette" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} placeholder="Search pieces…" /><select aria-label="Filter stamp category" value={paletteCategory} onChange={(event) => setPaletteCategory(event.target.value as "all" | StampCategory)}><option value="all">All types</option><option value="nature">Nature</option><option value="structure">Structures</option><option value="hazard">Hazards</option><option value="furnishing">Furnishings</option><option value="detail">Details</option></select></div>
-            <div className="stamp-palette">{visibleStamps.map((stamp) => <button key={stamp.id} draggable onDragStart={(event) => onStampDragStart(event, stamp.id)} onDragEnd={() => { paletteDragDefinitionRef.current = null; setDropPreview(null); }} aria-label={`Drag ${stamp.name} onto the map`}><NextImage src={stamp.asset} alt="" width={64} height={64} unoptimized draggable={false} /><span><strong>{stamp.name}</strong><small>{stamp.width} × {stamp.height} · Drag to map</small></span></button>)}</div>
+            <div className="stamp-palette">{visibleStamps.map((stamp) => <button key={stamp.id} draggable onDragStart={(event) => onStampDragStart(event, stamp.id)} onDragEnd={() => { paletteDragDefinitionRef.current = null; paletteDragVariantRef.current = null; setDropPreview(null); }} aria-label={`Drag ${stamp.name} onto the map`}><NextImage src={stamp.assets[seedHash(`${map.seed}:${stamp.id}:palette`) % stamp.assets.length]} alt="" width={64} height={64} unoptimized draggable={false} /><span><strong>{stamp.name}</strong><small>{stamp.width} × {stamp.height} · 5 variants</small></span></button>)}</div>
             {!visibleStamps.length ? <p className="workshop-help">No pieces match this filter.</p> : null}
           </section>
 
@@ -1193,8 +1217,8 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
           {selectedStamp && selectedDefinition ? <section className="selected-stamp-panel">
             <div className="workshop-section-heading"><small>Selected stamp</small><strong>{selectedDefinition.name}</strong></div>
             <p>{selectedDefinition.description}</p>
-            <div className="stamp-stats"><span>Footprint <strong>{rotatedMask(selectedDefinition, selectedStamp.rotation).cells.length} cells</strong></span><span>Rotation <strong>{selectedStamp.rotation}°</strong></span></div>
-            <div className="button-row stamp-edit-actions"><button className="secondary-button" onClick={rotateSelected}>Rotate 90°</button><button className="secondary-button" onClick={flipSelected}>Flip</button><button className="secondary-button" onClick={duplicateSelected}>Duplicate</button><button className="secondary-button" onClick={() => moveSelectedLayer("back")}>Send back</button><button className="secondary-button" onClick={() => moveSelectedLayer("front")}>Bring front</button><button className="danger-button" onClick={deleteSelected}>Delete</button></div>
+            <div className="stamp-stats"><span>Footprint <strong>{rotatedMask(selectedDefinition, selectedStamp.rotation).cells.length} cells</strong></span><span>Rotation <strong>{selectedDefinition.rotationMode === "fixed" ? "Fixed" : `${selectedStamp.rotation}°`}</strong></span><span>Artwork <strong>{stampVariantFor(selectedDefinition, map.seed, selectedStamp.id, selectedStamp.variant) + 1} of 5</strong></span></div>
+            <div className="button-row stamp-edit-actions"><button className="secondary-button" disabled={selectedDefinition.rotationMode === "fixed"} title={selectedDefinition.rotationMode === "fixed" ? "This artwork has a fixed camera perspective" : undefined} onClick={rotateSelected}>Rotate 90°</button><button className="secondary-button" disabled={selectedDefinition.rotationMode === "fixed"} title={selectedDefinition.rotationMode === "fixed" ? "This artwork has a fixed camera perspective" : undefined} onClick={flipSelected}>Flip</button><button className="secondary-button" onClick={shuffleSelectedVariant}>Next art</button><button className="secondary-button" onClick={duplicateSelected}>Duplicate</button><button className="secondary-button" onClick={() => moveSelectedLayer("back")}>Send back</button><button className="secondary-button" onClick={() => moveSelectedLayer("front")}>Bring front</button><button className="danger-button" onClick={deleteSelected}>Delete</button></div>
             <small className="shadow-note">Neutral contact shadow is rendered by the workshop, not baked into the artwork.</small>
           </section> : null}
         </aside>

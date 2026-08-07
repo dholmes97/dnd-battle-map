@@ -37,21 +37,31 @@ feature signature, terrain layout, and stamp/wall composition.
 - `terrain-lava-crust-01.png`
 
 All five are 1254 × 1254 RGB PNG terrain textures generated with the built-in
-image workflow and copied into `public/assets/terrain/`. The complete 28-piece
-stamp library now resolves to dedicated transparent RGBA raster artwork in
-`public/assets/map-stamps/`, including environment-specific mangroves, reeds,
-dunes, ice spires, lava vents, and coastal wrecks. Rotation, flipping, layering,
-and package export continue to operate on the stamp definitions independently
-of their art assets.
+image workflow and copied into `public/assets/terrain/`. The complete stamp
+library now contains fifty families with five dedicated transparent RGBA raster
+variants apiece: 250 unique files in `public/assets/map-stamps/`. It includes
+environment-specific mangroves, reeds, dunes, ice spires, lava vents, coastal
+wrecks, expanded trees and rocks, furnishings, ruins, camps, and small details.
+Variant choice is deterministic from the package seed, while the selected-stamp
+editor can deliberately advance to another variant. Orthographic pieces retain
+rotation and flipping; perspective-sensitive art is fixed to its authored
+orientation. Layering and package export remain independent of the art files.
+Stamp images are web-optimized to a maximum 768-pixel dimension, which remains
+well above their rendered map size while keeping the complete public release
+within the Sites artifact limit.
 
 ## Verification
 
 - `npm test` validates all nine environment generators, all twenty theme
   signatures, package round-trips, signature stamps/terrain, and unique package
-  fingerprints. It also requires all 28 stamp definitions to resolve to unique
-  PNG files with preserved RGBA transparency.
-- `npm run maps:seed-prompts` is idempotent by exact source prompt and reported
-  twenty creations plus six original updates on the first expanded run.
+  fingerprints. It also requires exactly fifty stamp definitions, five unique
+  PNG variants each, preserved RGBA transparency, seed-stable choices, and
+  fixed rotation for perspective-sensitive art.
+- `npm run maps:seed-prompts` is idempotent by exact source prompt. The August 7
+  variant migration updated all twenty-six local presets without creating
+  duplicates.
 - `npm run maps:verify-prompts` independently read the D1-backed encounter state
   and confirmed 20/20 additional maps are durable, distinct, editable, and
   visible only to DMs.
+- Browser verification confirmed all fifty families are available in the
+  workshop palette and the five-variant/fixed-orientation controls render.

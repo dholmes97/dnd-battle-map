@@ -604,7 +604,7 @@ export default function BattleMapPrototype() {
     if (!mapPackage) return;
     const assets = [...new Set([
       ...Object.values(TERRAIN_ASSETS),
-      ...STAMP_LIBRARY.flatMap((stamp) => stamp.asset ? [stamp.asset] : []),
+      ...STAMP_LIBRARY.flatMap((stamp) => stamp.assets),
     ])];
     let disposed = false;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
