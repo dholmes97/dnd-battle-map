@@ -20,6 +20,11 @@ import {
 } from "../shared/token-control.mjs";
 import { deriveHistoryActionIds } from "../shared/action-history.mjs";
 import { healthBand } from "../shared/health.mjs";
+import {
+  SPELL_EFFECT_KIND,
+  SPELL_EFFECTS,
+  spellEffectById,
+} from "../shared/spell-effects";
 
 interface Env {
   ASSETS: Fetcher;
@@ -316,6 +321,29 @@ function cleanCode(value: string): string {
   } catch {
     return "";
   }
+}
+
+function scenarioCodeFromName(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20) || "NEW-SCENARIO";
+}
+
+async function uniqueScenarioCode(env: Env, name: string): Promise<string> {
+  const base = scenarioCodeFromName(name);
+  for (let attempt = 1; attempt <= 99; attempt += 1) {
+    const suffix = attempt === 1 ? "" : `-${attempt}`;
+    const candidate = `${base.slice(0, 24 - suffix.length)}${suffix}`;
+    const existing = await env.DB.prepare("SELECT 1 AS found FROM encounters WHERE code = ? LIMIT 1")
+      .bind(candidate)
+      .first<{ found: number }>();
+    if (!existing) return candidate;
+  }
+  return `${base.slice(0, 15)}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
 function cleanName(value: unknown): string {
@@ -981,6 +1009,7 @@ async function handleCreatureCatalogImport(request: Request, env: Env): Promise<
 async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
   const artAsset = typeof value === "string" ? value : "";
   if (CHARACTER_ART_ASSETS.includes(artAsset)) return true;
+  if (SPELL_EFFECTS.some((spell) => spell.artAsset === artAsset)) return true;
   if (!artAsset) return false;
   const creature = await env.DB.prepare(
     "SELECT 1 AS found FROM creature_catalog WHERE token_asset = ? AND is_active = 1 LIMIT 1",
@@ -1739,6 +1768,96 @@ async function handleCommand(
     return json({ redone: true, actionType: action.action_type, state: await state() });
   }
 
+  if (command === "create-scenario") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const name = cleanText(body.name, 64);
+    const mode = body.mode === "duplicate" ? "duplicate" : "party";
+    if (name.length < 3) {
+      return json({ error: "Scenario name must be at least three characters." }, { status: 400 });
+    }
+    const code = await uniqueScenarioCode(env, name);
+    const scenarioId = crypto.randomUUID();
+    const newParticipantId = crypto.randomUUID();
+    const newSessionSecret = crypto.randomUUID();
+    const sourceTokens = await env.DB.prepare(
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+              summoner_token_id, initiative, initiative_group_id, initiative_order,
+              turn_complete, movement_used, movement_origin_x, movement_origin_y,
+              owner_participant_id, owner_name
+       FROM tokens WHERE encounter_id = ? ORDER BY id`,
+    ).bind(encounter.id).all<TokenRow>();
+    const selectedTokens = mode === "duplicate"
+      ? sourceTokens.results
+      : sourceTokens.results.filter((token) => !token.summoner_token_id && baseTokenControllerName(token) !== "Kevin");
+    if (selectedTokens.length === 0) {
+      return json({ error: "The current encounter has no player characters to seed the new scenario." }, { status: 409 });
+    }
+    const copiedIds = new Map(selectedTokens.map((token) => [token.id, crypto.randomUUID()]));
+    const duplicateMap = mode === "duplicate";
+    const statements = [
+      env.DB.prepare(
+        `INSERT INTO encounters
+         (id, code, name, version, status, map_asset, map_package_json, active_map_preset_id,
+          grid_width, grid_height, current_round, active_initiative_order, updated_at)
+         VALUES (?, ?, ?, 1, 'setup', ?, ?, ?, ?, ?, 0, NULL, ?)`,
+      ).bind(
+        scenarioId,
+        code,
+        name,
+        duplicateMap ? encounter.map_asset : "",
+        duplicateMap ? encounter.map_package_json : null,
+        null,
+        encounter.grid_width,
+        encounter.grid_height,
+        now,
+      ),
+      ...selectedTokens.map((token) => env.DB.prepare(
+        `INSERT INTO tokens
+         (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp,
+          is_hidden, summoner_token_id, initiative, initiative_group_id, initiative_order,
+          turn_complete, movement_used, movement_origin_x, movement_origin_y,
+          owner_participant_id, owner_name, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
+      ).bind(
+        copiedIds.get(token.id),
+        scenarioId,
+        token.name,
+        token.x,
+        token.y,
+        token.art_asset,
+        token.kind,
+        token.size,
+        token.speed,
+        duplicateMap ? token.hp : token.max_hp,
+        token.max_hp,
+        duplicateMap ? token.is_hidden : 0,
+        token.summoner_token_id ? copiedIds.get(token.summoner_token_id) ?? null : null,
+        now,
+      )),
+      env.DB.prepare(
+        `INSERT INTO participants
+         (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
+         VALUES (?, ?, 'Kevin', 'dm', ?, ?, ?)`,
+      ).bind(newParticipantId, scenarioId, newSessionSecret, now, now),
+    ];
+    await env.DB.batch(statements);
+    await recordAction(env, scenarioId, newParticipantId, "scenario_created", {
+      sourceEncounterId: encounter.id,
+      mode,
+      tokenCount: selectedTokens.length,
+    }, now);
+    const newParticipant: ParticipantRow = { id: newParticipantId, name: "Kevin", role: "dm" };
+    return json({
+      created: true,
+      participantId: newParticipantId,
+      sessionSecret: newSessionSecret,
+      role: "dm",
+      scenario: { code, name, status: "setup", updatedAt: now },
+      state: await encounterState(env, code, newParticipant),
+    });
+  }
+
   if (command === "set-initiative") {
     const tokenId = cleanTokenId(body.tokenId);
     const initiative = Math.trunc(Number(body.initiative));
@@ -2077,12 +2196,53 @@ async function handleCommand(
     return json({ configured: true, state: await state() });
   }
 
+  if (command === "create-spell-effect") {
+    const spell = spellEffectById(body.spellId);
+    if (!spell) return json({ error: "That spell effect is not available." }, { status: 400 });
+    const summonerTokenId = cleanTokenId(body.summonerTokenId) || null;
+    let summoner: TokenRow | null = null;
+    if (summonerTokenId) {
+      summoner = await env.DB.prepare(
+        `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+                summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
+                movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
+         FROM tokens WHERE id = ? AND encounter_id = ?`,
+      ).bind(summonerTokenId, encounter.id).first<TokenRow>();
+      if (!summoner) return json({ error: "Caster token not found." }, { status: 404 });
+    }
+    if (participant.role === "player") {
+      if (!summoner || summoner.kind !== "character" || summoner.summoner_token_id || !(await canControlToken(env, encounter.id, summoner, participant))) {
+        return json({ error: "Player spell effects must belong to your character." }, { status: 403 });
+      }
+    }
+    const x = clampTokenCoordinate(body.x, encounter.grid_width, spell.size);
+    const y = clampTokenCoordinate(body.y, encounter.grid_height, spell.size);
+    const tokenId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO tokens
+       (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+        summoner_token_id, initiative, initiative_order, turn_complete,
+        movement_used, owner_participant_id, owner_name, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, 0, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
+    ).bind(tokenId, encounter.id, spell.name, x, y, spell.artAsset, SPELL_EFFECT_KIND, spell.size,
+      summonerTokenId, summoner?.initiative ?? null, summoner?.initiative_order ?? null, now).run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "token_created", {
+      tokenId,
+      token: {
+        tokenId, name: spell.name, kind: SPELL_EFFECT_KIND, size: spell.size, x, y, speed: 0,
+        hp: null, maxHp: null, hidden: false, summonerTokenId, artAsset: spell.artAsset,
+        initiative: summoner?.initiative ?? null, initiativeGroupId: null,
+        initiativeOrder: summoner?.initiative_order ?? null,
+      },
+    }, now);
+    return json({ created: true, tokenId, state: await state() });
+  }
+
   if (command === "create-token") {
-    const denied = requireDm();
-    if (denied) return denied;
     const name = cleanText(body.name, 48);
     if (!name) return json({ error: "Token name is required." }, { status: 400 });
-    const kind = ["character", "monster", "summon", "familiar"].includes(String(body.kind))
+    const requestedKind = ["character", "monster", "summon", "familiar"].includes(String(body.kind))
       ? String(body.kind)
       : "monster";
     const requestedArtAsset = String(body.artAsset ?? "");
@@ -2096,22 +2256,25 @@ async function handleCommand(
     const maxHp = Number.isFinite(Number(body.maxHp)) ? Math.max(1, Math.trunc(Number(body.maxHp))) : null;
     const hp = maxHp === null ? null : Math.min(maxHp, Math.max(0, Math.trunc(Number(body.hp)) || maxHp));
     const summonerTokenId = cleanTokenId(body.summonerTokenId) || null;
-    let inherited: {
-      initiative: number | null;
-      initiative_order: number | null;
-    } | null = null;
+    let summoner: TokenRow | null = null;
     if (summonerTokenId) {
-      inherited = await env.DB.prepare(
-        `SELECT initiative, initiative_order
+      summoner = await env.DB.prepare(
+        `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+                summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
+                movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
          FROM tokens WHERE id = ? AND encounter_id = ?`,
       )
         .bind(summonerTokenId, encounter.id)
-        .first<{
-          initiative: number | null;
-          initiative_order: number | null;
-        }>();
-      if (!inherited) return json({ error: "Summoner token not found." }, { status: 404 });
+        .first<TokenRow>();
+      if (!summoner) return json({ error: "Summoner token not found." }, { status: 404 });
     }
+    if (participant.role === "player") {
+      if (!summoner || summoner.kind !== "character" || summoner.summoner_token_id || !await canControlToken(env, encounter.id, summoner, participant)) {
+        return json({ error: "Player-created creatures must be summons of your character." }, { status: 403 });
+      }
+    }
+    const kind = participant.role === "player" ? "summon" : requestedKind;
+    const hidden = participant.role === "dm" && Boolean(body.hidden);
     const tokenId = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO tokens
@@ -2132,10 +2295,10 @@ async function handleCommand(
         speed,
         hp,
         maxHp,
-        body.hidden ? 1 : 0,
+        hidden ? 1 : 0,
         summonerTokenId,
-        inherited?.initiative ?? null,
-        inherited?.initiative_order ?? null,
+        summoner?.initiative ?? null,
+        summoner?.initiative_order ?? null,
         null,
         null,
         now,
@@ -2144,7 +2307,7 @@ async function handleCommand(
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "token_created", {
       tokenId,
-      token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden: Boolean(body.hidden), summonerTokenId, artAsset, initiative: inherited?.initiative ?? null, initiativeGroupId: null, initiativeOrder: inherited?.initiative_order ?? null },
+      token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden, summonerTokenId, artAsset, initiative: summoner?.initiative ?? null, initiativeGroupId: null, initiativeOrder: summoner?.initiative_order ?? null },
     }, now);
     return json({ created: true, tokenId, state: await state() });
   }
@@ -2451,9 +2614,17 @@ async function handleCommand(
   }
 
   if (command === "delete-token") {
-    const denied = requireDm();
-    if (denied) return denied;
     const tokenId = cleanTokenId(body.tokenId);
+    const token = await env.DB.prepare(
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+              summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
+              movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
+       FROM tokens WHERE id = ? AND encounter_id = ?`,
+    ).bind(tokenId, encounter.id).first<TokenRow>();
+    if (!token) return json({ error: "Token not found." }, { status: 404 });
+    if (participant.role !== "dm" && (token.kind !== SPELL_EFFECT_KIND || !(await canControlToken(env, encounter.id, token, participant)))) {
+      return json({ error: "Only the DM can delete this token." }, { status: 403 });
+    }
     await env.DB.prepare("DELETE FROM tokens WHERE id = ? AND encounter_id = ?")
       .bind(tokenId, encounter.id)
       .run();
@@ -2619,14 +2790,15 @@ async function handleApi(
     }
     const x = clampTokenCoordinate(requestedX, encounter.grid_width, token.size);
     const y = clampTokenCoordinate(requestedY, encounter.grid_height, token.size);
+    const isSpellEffect = token.kind === SPELL_EFFECT_KIND;
     const previous = { x: token.x, y: token.y };
     const previousMovementOrigin = token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
       ? null
       : { x: token.movement_origin_x, y: token.movement_origin_y };
-    const movementOrigin = encounter.status === "active" ? previousMovementOrigin ?? previous : previousMovementOrigin;
-    const distance = directDistance(movementOrigin ?? previous, { x, y });
-    const overBudget = encounter.status === "active" && distance > token.speed + 0.05;
-    const movementUsed = encounter.status === "active"
+    const movementOrigin = isSpellEffect ? null : encounter.status === "active" ? previousMovementOrigin ?? previous : previousMovementOrigin;
+    const distance = isSpellEffect ? 0 : directDistance(movementOrigin ?? previous, { x, y });
+    const overBudget = !isSpellEffect && encounter.status === "active" && distance > token.speed + 0.05;
+    const movementUsed = isSpellEffect ? 0 : encounter.status === "active"
       ? distance
       : token.movement_used;
     const result = await env.DB.prepare(

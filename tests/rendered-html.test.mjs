@@ -48,6 +48,28 @@ test("server-renders the finished encounter join surface", async () => {
   assert.match(clientSource, /api<\{ items: EncounterSummary\[\] \}>\("\/api\/encounters"\)/);
 });
 
+test("gives the DM a durable scenario creation workflow", async () => {
+  const [clientSource, workerSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /aria-label="Create scenario" data-tooltip="Create scenario"/);
+  assert.match(clientSource, /Fresh scenario — current party only/);
+  assert.match(clientSource, /Duplicate current map and tokens/);
+  assert.match(clientSource, /command: "create-scenario", name, mode: scenarioMode/);
+  assert.match(clientSource, /setParticipant\(joined\);\s+setState\(result\.state\);\s+setEncounterCode\(result\.scenario\.code\)/);
+  assert.match(clientSource, /next\.encounter\.code !== current\.encounter\.code/);
+  assert.match(workerSource, /if \(command === "create-scenario"\)/);
+  assert.match(workerSource, /const denied = requireDm\(\)/);
+  assert.match(workerSource, /async function uniqueScenarioCode/);
+  assert.match(workerSource, /baseTokenControllerName\(token\) !== "Kevin"/);
+  assert.match(workerSource, /duplicateMap \? encounter\.map_package_json : null/);
+  assert.match(workerSource, /role: "dm",\s+scenario: \{ code, name, status: "setup", updatedAt: now \}/);
+  assert.match(styles, /\.scenario-dialog label/);
+});
+
 test("stores creature originals and generated thumbnails in R2", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("asset-test", `${process.pid}-${Date.now()}`);
@@ -148,7 +170,12 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
   assert.match(workerSource, /resolveTokenControllerName\(token, tokenById\)/);
   assert.match(workerSource, /identityControlsToken\(participant, baseTokenControllerName\(current\)\)/);
-  assert.match(clientSource, /controller: summoner\?\.controller \?\? \{ name: "Kevin" \}/);
+  assert.match(clientSource, /controller: summoner\?\.controller \?\? \{ name: participant\.name \}/);
+  assert.match(clientSource, /Anything you place is summoned by/);
+  assert.match(clientSource, /const effectivePlacementSummonerId = participant\?\.role === "player"/);
+  assert.match(workerSource, /const kind = participant\.role === "player" \? "summon" : requestedKind/);
+  assert.match(workerSource, /Player-created creatures must be summons of your character/);
+  assert.match(workerSource, /!await canControlToken\(env, encounter\.id, summoner, participant\)/);
   assert.match(clientSource, /api<CreatureCatalogPage>\(`\/api\/creatures/);
   assert.match(clientSource, /loading="lazy" unoptimized/);
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
@@ -177,6 +204,35 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   }
   for (const size of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
     assert.match(catalogSource, new RegExp(`${size}: \\d`));
+  }
+});
+
+test("ships persistent animated Moonbeam and Flaming Sphere spell entities", async () => {
+  const [clientSource, workerSource, spellSource, moonbeam, flamingSphere] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/spell-effects.ts", import.meta.url), "utf8"),
+    readFile(new URL("../public/assets/spells/moonbeam-vfx-source.png", import.meta.url)),
+    readFile(new URL("../public/assets/spells/flaming-sphere-vfx-source.png", import.meta.url)),
+  ]);
+
+  assert.match(spellSource, /id: "moonbeam"[\s\S]+size: "large"/);
+  assert.match(spellSource, /id: "flaming-sphere"[\s\S]+size: "medium"/);
+  assert.match(clientSource, /function drawSpellEffect\(/);
+  assert.match(clientSource, /globalCompositeOperation = "screen"/);
+  assert.match(clientSource, /requestAnimationFrame\(animate\)/);
+  assert.match(clientSource, /1000 \/ 24/);
+  assert.match(clientSource, /aria-label="Spell effects"/);
+  assert.match(clientSource, /Drag an effect onto the battlefield/);
+  assert.match(clientSource, /void placeSpellEffect\(spell, point\)/);
+  assert.match(workerSource, /command === "create-spell-effect"/);
+  assert.match(workerSource, /Player spell effects must belong to your character/);
+  assert.match(workerSource, /token\.kind !== SPELL_EFFECT_KIND \|\| !\(await canControlToken/);
+  for (const [name, asset] of [["moonbeam", moonbeam], ["flaming sphere", flamingSphere]]) {
+    assert.deepEqual([...asset.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${name} PNG signature`);
+    assert.equal(asset.readUInt32BE(16), 768, `${name} width`);
+    assert.equal(asset.readUInt32BE(20), 768, `${name} height`);
+    assert.ok(asset.byteLength > 500_000, `${name} should retain detailed source art`);
   }
 });
 
@@ -227,8 +283,8 @@ test("moves immediately on pointer release without token reservations", async ()
   assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
   assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
   assert.match(workerSource, /SET x = \?, y = \?, movement_used = \?, movement_origin_x = \?, movement_origin_y = \?, updated_at = \?/);
-  assert.match(workerSource, /const movementOrigin = encounter\.status === "active" \? previousMovementOrigin \?\? previous : previousMovementOrigin/);
-  assert.match(workerSource, /const distance = directDistance\(movementOrigin \?\? previous, \{ x, y \}\)/);
+  assert.match(workerSource, /const movementOrigin = isSpellEffect \? null : encounter\.status === "active" \? previousMovementOrigin \?\? previous : previousMovementOrigin/);
+  assert.match(workerSource, /const distance = isSpellEffect \? 0 : directDistance\(movementOrigin \?\? previous, \{ x, y \}\)/);
   assert.doesNotMatch(workerSource, /token\.movement_used \+ distance/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
@@ -243,6 +299,7 @@ test("places and deletes tokens optimistically without freezing the map", async 
   assert.match(clientSource, /pendingCreatesRef = useRef<Map<string, SharedToken>>/);
   assert.match(clientSource, /pendingDeletesRef = useRef<Set<string>>/);
   assert.match(placementFlow, /tokens: \[\.\.\.current\.tokens, optimisticToken\]/);
+  assert.match(placementFlow, /summonerTokenId: effectivePlacementSummonerId \|\| undefined/);
   assert.match(placementFlow, /pendingCreatesRef\.current\.delete\(temporaryId\)/);
   assert.doesNotMatch(placementFlow, /setBusy\(/);
   assert.match(deletionFlow, /tokens: current\.tokens\.filter\(\(currentToken\) => currentToken\.id !== token\.id\)/);
@@ -287,13 +344,23 @@ test("explains pause and confirms combat reset with responsive controls", async 
   ]);
 
   assert.match(clientSource, /data-tooltip="Temporarily freezes movement and turn advancement\. The current round and initiative are preserved\."/);
+  assert.match(clientSource, /The DM paused the encounter\. Movement and turn advancement are temporarily disabled\./);
+  assert.match(clientSource, /Movement is paused until shared state is current\./);
   assert.match(clientSource, />\{encounterAction === "reset" \? "Resetting…" : "Reset"\}<\/button>/);
   assert.match(clientSource, /role="dialog" aria-modal="true" aria-labelledby="reset-encounter-title"/);
   assert.match(clientSource, /Reset combat\?/);
+  assert.match(clientSource, /if \(inCombat\) setRestartConfirmOpen\(true\); else startCombatOptimistically\(\)/);
+  assert.match(clientSource, /role="dialog" aria-modal="true" aria-labelledby="restart-combat-title"/);
+  assert.match(clientSource, /This returns combat to round 1 and rebuilds the turn order from the current initiative numbers/);
+  assert.match(clientSource, /setRestartConfirmOpen\(false\); startCombatOptimistically\(\)/);
+  assert.match(clientSource, /data-tooltip=\{inCombat \? "Start again at round 1 using the current initiative\./);
+  assert.match(clientSource, /data-tooltip="Exit combat and return to setup\. Clears the round, active turn, and movement tracking/);
+  assert.match(clientSource, /aria-describedby="restart-combat-help"/);
+  assert.match(clientSource, /aria-describedby="reset-encounter-help"/);
   assert.match(clientSource, /clears the current round, active turn, and movement tracking/);
   assert.match(clientSource, /event\.key === "Escape"/);
   assert.match(styles, /\.secondary-button:active:not\(:disabled\)/);
-  assert.match(styles, /\.encounter-state-controls \[data-tooltip\]:hover::after/);
+  assert.match(styles, /\.panel-foot \[data-tooltip\]:hover::after/);
 });
 
 test("lets the DM select and drag any token directly from the map", async () => {
@@ -318,7 +385,7 @@ test("shows a straight movement ruler and never rejects movement overage", async
   assert.match(clientSource, /const label = `\$\{distance\} ft`/);
   assert.match(clientSource, /overMovement \? "#ef6656" : "#f5c65c"/);
   assert.doesNotMatch(clientSource, /gesture\.path|previewPath/);
-  assert.match(workerSource, /const overBudget = encounter\.status === "active" && distance > token\.speed \+ 0\.05/);
+  assert.match(workerSource, /const overBudget = !isSpellEffect && encounter\.status === "active" && distance > token\.speed \+ 0\.05/);
   assert.match(clientSource, /hitToken\.movementOrigin \?\? gesture\.origin/);
   assert.doesNotMatch(workerSource, /body\.path|pathDistance|remains this turn/);
 });

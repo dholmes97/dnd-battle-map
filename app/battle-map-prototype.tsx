@@ -21,6 +21,13 @@ import {
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
 import { displayHealth, healthBand } from "@/shared/health.mjs";
+import {
+  SPELL_EFFECT_KIND,
+  SPELL_EFFECTS,
+  spellEffectByArt,
+  spellEffectById,
+  type SpellEffectDefinition,
+} from "@/shared/spell-effects";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
@@ -100,6 +107,7 @@ type EncounterState = {
 type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
 type PlacementPreview = MapPoint & { creature: CreatureTemplate };
+type SpellPlacementPreview = MapPoint & { spell: SpellEffectDefinition };
 type PendingMove = MapPoint & { sequence: number; movementUsed: number; movementOrigin: MapPoint | null };
 type OptimisticMutation = { apply: (state: EncounterState) => EncounterState };
 type DragGesture = {
@@ -158,6 +166,7 @@ const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
   "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token", "move",
+  "create-spell-effect",
 ]);
 
 // Stroked 20x20 paths so every tool reads at the same weight. The glyph
@@ -170,7 +179,9 @@ const ICON_PATHS = {
   spotlight: "M10 3v2M10 15v2M3 10h2M15 10h2M5.2 5.2l1.4 1.4M13.4 13.4l1.4 1.4M14.8 5.2l-1.4 1.4M6.6 13.4l-1.4 1.4M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
   clear: "M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14M5 5l10 10",
   creatures: "M7 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M13 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M4 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M16 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M10 9.5c2 0 3.6 1.7 3.9 3.3.3 1.6-.8 3.2-2.5 3.2h-2.8c-1.7 0-2.8-1.6-2.5-3.2C6.4 11.2 8 9.5 10 9.5",
+  spells: "M10 2.8 11.6 7l4.4-1.4-2.5 3.8 3.7 2.7-4.6.2.2 4.7-2.8-3.7L7.2 17l.2-4.7-4.6-.2 3.7-2.7L4 5.6 8.4 7zM15.5 3.5h.01M3.8 15.8h.01",
   workshop: "M3 5.6 7.6 3.5l4.8 2.1L17 3.5v10.9l-4.6 2.1-4.8-2.1L3 16.5zM7.6 3.5v10.9M12.4 5.6v10.9",
+  scenarios: "M3 5h5l1.7 2H17v9H3zM6 10h8M6 13h5",
   undo: "M7 5 3.5 8.5 7 12M3.5 8.5H12a4.5 4.5 0 0 1 0 9h-3",
   redo: "M13 5l3.5 3.5L13 12M16.5 8.5H8a4.5 4.5 0 0 0 0 9h3",
   fit: "M3.5 7.5v-4h4M16.5 7.5v-4h-4M3.5 12.5v4h4M16.5 12.5v4h-4",
@@ -266,7 +277,8 @@ function buildRosterRows(
   expandedGroups: ReadonlySet<string>,
 ): RosterRow[] {
   const needle = filter.trim().toLocaleLowerCase();
-  const visible = needle ? tokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : tokens;
+  const rosterTokens = tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND);
+  const visible = needle ? rosterTokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : rosterTokens;
   if (inCombat) {
     const rows: RosterRow[] = [];
     const groups = new Map<string, SharedToken[]>();
@@ -448,11 +460,127 @@ function viewerHeaders(participant: Participant) {
   };
 }
 
+function spellParticleSeed(value: string, index: number) {
+  let hash = 2166136261 ^ index;
+  for (let character = 0; character < value.length; character += 1) {
+    hash ^= value.charCodeAt(character);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 4294967295;
+}
+
+function drawSpellEffect(
+  context: CanvasRenderingContext2D,
+  token: SharedToken,
+  x: number,
+  y: number,
+  radius: number,
+  art: HTMLImageElement | null,
+  animationNow: number,
+  selected: boolean,
+  owned: boolean,
+) {
+  const spell = spellEffectByArt(token.artAsset);
+  if (!spell) return;
+  const time = animationNow / 1_000;
+  const isMoonbeam = spell.id === "moonbeam";
+  const pulse = 1 + Math.sin(time * (isMoonbeam ? 2.1 : 5.2) + spellParticleSeed(token.id, 1) * 5) * (isMoonbeam ? 0.055 : 0.095);
+  const visualRadius = radius * (isMoonbeam ? 1.25 : 1.36);
+
+  context.save();
+  if (token.hidden) context.globalAlpha = 0.48;
+  const aura = context.createRadialGradient(x, y, visualRadius * 0.08, x, y, visualRadius * 1.22);
+  if (isMoonbeam) {
+    aura.addColorStop(0, "rgba(245,248,255,.78)");
+    aura.addColorStop(0.38, "rgba(154,186,255,.28)");
+    aura.addColorStop(0.75, "rgba(120,102,255,.12)");
+    aura.addColorStop(1, "rgba(80,70,210,0)");
+  } else {
+    aura.addColorStop(0, "rgba(255,244,178,.9)");
+    aura.addColorStop(0.3, "rgba(255,125,24,.38)");
+    aura.addColorStop(0.72, "rgba(221,40,12,.16)");
+    aura.addColorStop(1, "rgba(170,20,0,0)");
+  }
+  context.globalCompositeOperation = "screen";
+  context.fillStyle = aura;
+  context.beginPath(); context.arc(x, y, visualRadius * 1.22 * pulse, 0, Math.PI * 2); context.fill();
+
+  if (art) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(time * (isMoonbeam ? 0.13 : 0.72));
+    const plateRadius = visualRadius * pulse;
+    context.globalAlpha *= isMoonbeam ? 0.86 : 0.94;
+    context.drawImage(art, -plateRadius, -plateRadius, plateRadius * 2, plateRadius * 2);
+    context.restore();
+    context.save();
+    context.translate(x, y);
+    context.rotate(-time * (isMoonbeam ? 0.22 : 0.46));
+    const echoRadius = visualRadius * (isMoonbeam ? 0.76 : 0.7) * (2 - pulse);
+    context.globalAlpha *= isMoonbeam ? 0.34 : 0.46;
+    context.drawImage(art, -echoRadius, -echoRadius, echoRadius * 2, echoRadius * 2);
+    context.restore();
+  }
+
+  if (isMoonbeam) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(-time * 0.18);
+    context.strokeStyle = "rgba(226,235,255,.8)";
+    context.shadowColor = "#a9c7ff";
+    context.shadowBlur = Math.max(8, radius * 0.24);
+    context.lineWidth = Math.max(1.2, radius * 0.025);
+    context.setLineDash([radius * 0.16, radius * 0.11]);
+    context.beginPath(); context.arc(0, 0, radius * 1.05, 0, Math.PI * 2); context.stroke();
+    context.setLineDash([]);
+    context.restore();
+    for (let index = 0; index < 12; index += 1) {
+      const seed = spellParticleSeed(token.id, index + 10);
+      const orbit = visualRadius * (0.38 + seed * 0.7);
+      const angle = seed * Math.PI * 2 + time * (0.18 + (index % 3) * 0.07);
+      const flicker = 0.35 + 0.65 * Math.abs(Math.sin(time * 2.3 + seed * 12));
+      context.globalAlpha = flicker;
+      context.fillStyle = index % 3 === 0 ? "#ffffff" : "#b8d0ff";
+      context.shadowColor = "#d8e5ff"; context.shadowBlur = 8;
+      context.beginPath(); context.arc(x + Math.cos(angle) * orbit, y + Math.sin(angle) * orbit, Math.max(1.2, radius * (0.022 + seed * 0.025)), 0, Math.PI * 2); context.fill();
+    }
+  } else {
+    for (let index = 0; index < 18; index += 1) {
+      const seed = spellParticleSeed(token.id, index + 30);
+      const cycle = (time * (0.42 + seed * 0.35) + seed * 5) % 1;
+      const orbit = visualRadius * (0.45 + cycle * 0.9);
+      const angle = seed * Math.PI * 2 + time * (0.9 + seed);
+      context.globalAlpha = (1 - cycle) * (0.45 + seed * 0.55);
+      context.fillStyle = seed > 0.64 ? "#fff4a8" : seed > 0.3 ? "#ff9b21" : "#ff3b0a";
+      context.shadowColor = "#ff5a00"; context.shadowBlur = 7;
+      const emberSize = Math.max(1.2, radius * (0.018 + seed * 0.035));
+      context.beginPath(); context.arc(x + Math.cos(angle) * orbit, y + Math.sin(angle) * orbit, emberSize, 0, Math.PI * 2); context.fill();
+    }
+    context.globalAlpha = 0.28 + Math.sin(time * 8) * 0.06;
+    context.strokeStyle = "#ffd05a";
+    context.lineWidth = Math.max(1.5, radius * 0.045);
+    context.beginPath(); context.arc(x, y, radius * (0.72 + Math.sin(time * 4.4) * 0.05), 0, Math.PI * 2); context.stroke();
+  }
+
+  context.globalCompositeOperation = "source-over";
+  context.globalAlpha = 1;
+  context.shadowBlur = 0;
+  if (selected || owned) {
+    context.strokeStyle = selected ? "#f5c65c" : spell.accent;
+    context.lineWidth = selected ? 2.4 : 1.2;
+    context.globalAlpha = selected ? 0.95 : 0.48;
+    context.setLineDash(selected ? [5, 5] : [2, 5]);
+    context.beginPath(); context.arc(x, y, radius * 1.22, 0, Math.PI * 2); context.stroke();
+  }
+  context.restore();
+}
+
 function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
   preview: TokenPreview | null,
   placementPreview: PlacementPreview | null,
+  spellPlacementPreview: SpellPlacementPreview | null,
   dragOrigin: MapPoint | null,
   participant: Participant,
   mapScene: HTMLCanvasElement | null,
@@ -548,45 +676,56 @@ function drawMap(
     context.restore();
   }
 
+  state.tokens.filter((token) => token.kind === SPELL_EFFECT_KIND).forEach((token) => {
+    const position = preview?.tokenId === token.id ? preview : token;
+    const x = screenX(position.x);
+    const y = screenY(position.y);
+    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
+    drawSpellEffect(context, token, x, y, radius, token.artAsset ? tokenArt.get(token.artAsset) ?? null : null,
+      animationNow, token.id === selectedTokenId, token.controlledByViewer);
+  });
+
   if (preview && dragOrigin) {
     const movingToken = state.tokens.find((token) => token.id === preview.tokenId);
-    const distance = calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell);
-    const overMovement = Boolean(movingToken && distance > movingToken.speed + 0.05);
-    const rulerColor = overMovement ? "#ef6656" : "#f5c65c";
-    const startX = screenX(dragOrigin.x);
-    const startY = screenY(dragOrigin.y);
-    const endX = screenX(preview.x);
-    const endY = screenY(preview.y);
-    const middleX = (startX + endX) / 2;
-    const middleY = (startY + endY) / 2;
-    const label = `${distance} ft`;
+    if (movingToken?.kind !== SPELL_EFFECT_KIND) {
+      const distance = calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell);
+      const overMovement = Boolean(movingToken && distance > movingToken.speed + 0.05);
+      const rulerColor = overMovement ? "#ef6656" : "#f5c65c";
+      const startX = screenX(dragOrigin.x);
+      const startY = screenY(dragOrigin.y);
+      const endX = screenX(preview.x);
+      const endY = screenY(preview.y);
+      const middleX = (startX + endX) / 2;
+      const middleY = (startY + endY) / 2;
+      const label = `${distance} ft`;
 
-    context.save();
-    context.strokeStyle = rulerColor;
-    context.lineWidth = 3;
-    context.setLineDash([3, 7]);
-    context.beginPath();
-    context.moveTo(startX, startY);
-    context.lineTo(endX, endY);
-    context.stroke();
-    context.setLineDash([]);
-    context.fillStyle = rulerColor;
-    context.beginPath(); context.arc(startX, startY, 5, 0, Math.PI * 2); context.fill();
-    context.font = "700 12px ui-monospace, SFMono-Regular, Menlo, monospace";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    const labelWidth = context.measureText(label).width + 14;
-    context.fillStyle = "rgba(24, 22, 19, 0.92)";
-    context.fillRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
-    context.strokeStyle = rulerColor;
-    context.lineWidth = 1.5;
-    context.strokeRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
-    context.fillStyle = rulerColor;
-    context.fillText(label, middleX, middleY + 0.5);
-    context.restore();
+      context.save();
+      context.strokeStyle = rulerColor;
+      context.lineWidth = 3;
+      context.setLineDash([3, 7]);
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.lineTo(endX, endY);
+      context.stroke();
+      context.setLineDash([]);
+      context.fillStyle = rulerColor;
+      context.beginPath(); context.arc(startX, startY, 5, 0, Math.PI * 2); context.fill();
+      context.font = "700 12px ui-monospace, SFMono-Regular, Menlo, monospace";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      const labelWidth = context.measureText(label).width + 14;
+      context.fillStyle = "rgba(24, 22, 19, 0.92)";
+      context.fillRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
+      context.strokeStyle = rulerColor;
+      context.lineWidth = 1.5;
+      context.strokeRect(middleX - labelWidth / 2, middleY - 12, labelWidth, 24);
+      context.fillStyle = rulerColor;
+      context.fillText(label, middleX, middleY + 0.5);
+      context.restore();
+    }
   }
 
-  state.tokens.forEach((token, index) => {
+  state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND).forEach((token, index) => {
     const position = preview?.tokenId === token.id ? preview : token;
     const owned = token.controller.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
     const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
@@ -711,6 +850,37 @@ function drawMap(
     if (art) context.drawImage(art, x - radius, y - radius, radius * 2, radius * 2);
     context.restore();
   }
+  if (spellPlacementPreview) {
+    const spellToken: SharedToken = {
+      id: `spell-preview-${spellPlacementPreview.spell.id}`,
+      name: spellPlacementPreview.spell.name,
+      artAsset: spellPlacementPreview.spell.artAsset,
+      kind: SPELL_EFFECT_KIND,
+      size: spellPlacementPreview.spell.size,
+      speed: 0,
+      hp: null,
+      maxHp: null,
+      healthState: null,
+      hidden: false,
+      summonerTokenId: null,
+      initiative: null,
+      initiativeGroupId: null,
+      initiativeOrder: null,
+      turnComplete: false,
+      movementUsed: 0,
+      movementOrigin: null,
+      effects: [],
+      controller: { name: participant.name },
+      controlledByViewer: true,
+      x: spellPlacementPreview.x,
+      y: spellPlacementPreview.y,
+    };
+    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(spellToken.size);
+    context.save(); context.globalAlpha = 0.78;
+    drawSpellEffect(context, spellToken, screenX(spellToken.x), screenY(spellToken.y), radius,
+      tokenArt.get(spellToken.artAsset ?? "") ?? null, animationNow, true, true);
+    context.restore();
+  }
 }
 
 export default function BattleMapPrototype() {
@@ -741,9 +911,16 @@ export default function BattleMapPrototype() {
   const [effectEditorTokenId, setEffectEditorTokenId] = useState<string | null>(null);
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
+  const [scenarioCreatorOpen, setScenarioCreatorOpen] = useState(false);
+  const [scenarioName, setScenarioName] = useState("");
+  const [scenarioMode, setScenarioMode] = useState<"party" | "duplicate">("party");
+  const [scenarioCreating, setScenarioCreating] = useState(false);
+  const [scenarioError, setScenarioError] = useState("");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
   const [encounterAction, setEncounterAction] = useState<"pause" | "resume" | "reset" | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [spellPaletteOpen, setSpellPaletteOpen] = useState(false);
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
   const [creatureQuery, setCreatureQuery] = useState("");
@@ -753,6 +930,8 @@ export default function BattleMapPrototype() {
   const [creatureCatalogError, setCreatureCatalogError] = useState("");
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
+  const [armedSpellId, setArmedSpellId] = useState<string | null>(null);
+  const [spellPlacementPreview, setSpellPlacementPreview] = useState<SpellPlacementPreview | null>(null);
   const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "", fit: false });
   const [panning, setPanning] = useState(false);
@@ -782,6 +961,7 @@ export default function BattleMapPrototype() {
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
+      if (current && next.encounter.code !== current.encounter.code) return current;
       if (current && next.encounter.version < current.encounter.version) return current;
       const pendingMoves = pendingMovesRef.current;
       const pendingCreates = pendingCreatesRef.current;
@@ -807,15 +987,22 @@ export default function BattleMapPrototype() {
   const selectedEncounter = encounters.find((encounter) => encounter.code === normalizedCode) ?? encounters[0] ?? DEFAULT_ENCOUNTER;
   const joinedCode = state?.encounter.code;
   const controlledTokens = state?.tokens.filter((token) => token.controlledByViewer) ?? [];
+  const playerCharacter = participant?.role === "player"
+    ? controlledTokens.find((token) => token.kind === "character" && !token.summonerTokenId) ?? null
+    : null;
+  const effectivePlacementSummonerId = participant?.role === "player"
+    ? playerCharacter?.id ?? ""
+    : placementSummonerId;
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
+  const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const distance = state && dragOrigin && preview
     ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
     : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
   const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
-  const placementArtAsset = placementPreview?.creature.artAsset ?? null;
+  const placementArtAsset = placementPreview?.creature.artAsset ?? spellPlacementPreview?.spell.artAsset ?? null;
 
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
@@ -858,6 +1045,50 @@ export default function BattleMapPrototype() {
       window.clearTimeout(timeout);
       setJoiningIdentity(null);
       setBusy(false);
+    }
+  };
+
+  const createScenario = async () => {
+    if (!participant || participant.role !== "dm" || !state || scenarioCreating) return;
+    const name = scenarioName.trim();
+    if (name.length < 3) {
+      setScenarioError("Enter a scenario name of at least three characters.");
+      return;
+    }
+    setScenarioCreating(true);
+    setScenarioError("");
+    try {
+      const result = await api<{
+        participantId: string;
+        sessionSecret: string;
+        role: Role;
+        scenario: EncounterSummary;
+        state: EncounterState;
+      }>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
+        method: "POST",
+        body: sessionPayload(participant, { command: "create-scenario", name, mode: scenarioMode }),
+      });
+      pendingMovesRef.current.clear();
+      pendingCreatesRef.current.clear();
+      pendingDeletesRef.current.clear();
+      pendingOptimisticRef.current.clear();
+      localUndoHistoryRef.current = [];
+      localRedoHistoryRef.current = [];
+      const joined = { id: result.participantId, name: "Kevin", role: result.role, sessionSecret: result.sessionSecret };
+      setParticipant(joined);
+      setState(result.state);
+      setEncounterCode(result.scenario.code);
+      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
+      setSelectedTokenId(null);
+      setScenarioCreatorOpen(false);
+      setScenarioName("");
+      setScenarioMode("party");
+      setConnection("connecting");
+      setNotice(`${result.scenario.name} created.`);
+    } catch (scenarioCreateError) {
+      setScenarioError(scenarioCreateError instanceof Error ? scenarioCreateError.message : "The scenario could not be created.");
+    } finally {
+      setScenarioCreating(false);
     }
   };
 
@@ -939,7 +1170,7 @@ export default function BattleMapPrototype() {
   }, []);
 
   useEffect(() => {
-    if (!paletteOpen || participant?.role !== "dm") return;
+    if (!paletteOpen || !participant?.role) return;
     const requestId = ++creatureCatalogRequestRef.current;
     const timer = window.setTimeout(() => {
       setCreatureCatalogLoading(true);
@@ -1006,8 +1237,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId);
-  }, [dragOrigin, effectiveSelectedTokenId, participant, placementPreview, preview, renderedMapScene, state, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId);
+  }, [dragOrigin, effectiveSelectedTokenId, participant, placementPreview, preview, renderedMapScene, spellPlacementPreview, state, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -1018,15 +1249,18 @@ export default function BattleMapPrototype() {
       const startedAt = pingStartedAtRef.current.get(annotation.id);
       return annotation.type === "ping" && startedAt !== undefined && Date.now() - startedAt < PING_DURATION_MS;
     });
-    if (!hasAnimatingPing()) return;
+    const hasPersistentSpell = state?.tokens.some((token) => token.kind === SPELL_EFFECT_KIND) || Boolean(spellPlacementPreview);
+    if (!hasAnimatingPing() && !hasPersistentSpell) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { redraw(); return; }
     let frameId = 0;
-    const animate = () => {
-      redraw(Date.now());
-      if (hasAnimatingPing()) frameId = requestAnimationFrame(animate);
+    let lastPaint = 0;
+    const animate = (now: number) => {
+      if (now - lastPaint >= 1000 / 24) { redraw(Date.now()); lastPaint = now; }
+      if (hasAnimatingPing() || hasPersistentSpell) frameId = requestAnimationFrame(animate);
     };
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
-  }, [redraw, state?.annotations]);
+  }, [redraw, spellPlacementPreview, state?.annotations, state?.tokens]);
 
   const refreshAfterError = async () => {
     if (!participant || !state) return;
@@ -1420,13 +1654,17 @@ export default function BattleMapPrototype() {
   };
 
   useEffect(() => {
-    if (!resetConfirmOpen) return;
+    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioCreatorOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setResetConfirmOpen(false);
+      if (event.key === "Escape") {
+        setResetConfirmOpen(false);
+        setRestartConfirmOpen(false);
+        if (!scenarioCreating) setScenarioCreatorOpen(false);
+      }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [resetConfirmOpen]);
+  }, [resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen]);
 
   const loadMoreCreatures = async () => {
     if (!creatureCursor || creatureCatalogLoading) return;
@@ -1455,24 +1693,28 @@ export default function BattleMapPrototype() {
   };
 
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
-    if (!participant || !state || participant.role !== "dm" || !movementEnabled) return;
+    if (!participant || !state || !movementEnabled) return;
+    if (participant.role === "player" && !effectivePlacementSummonerId) {
+      setError("Your character is not available in this scenario, so a summon cannot be placed.");
+      return;
+    }
     const matchingCount = state.tokens.filter((token) => token.artAsset === creature.artAsset).length;
     const name = matchingCount === 0 ? creature.name : `${creature.name} ${matchingCount + 1}`;
-    const summoner = placementSummonerId ? state.tokens.find((token) => token.id === placementSummonerId) : null;
+    const summoner = effectivePlacementSummonerId ? state.tokens.find((token) => token.id === effectivePlacementSummonerId) : null;
     const temporaryId = `pending-create-${Date.now()}-${++tokenMutationSequenceRef.current}`;
     const historyMutationId = ++optimisticSequenceRef.current;
     const optimisticToken: SharedToken = {
       id: temporaryId,
       name,
       artAsset: creature.artAsset,
-      kind: placementSummonerId ? "summon" : "monster",
+      kind: effectivePlacementSummonerId ? "summon" : "monster",
       size: creature.size,
       speed: creature.defaultSpeed,
       hp: creature.defaultHp,
       maxHp: creature.defaultHp,
       healthState: null,
       hidden: false,
-      summonerTokenId: placementSummonerId || null,
+      summonerTokenId: effectivePlacementSummonerId || null,
       initiative: summoner?.initiative ?? null,
       initiativeGroupId: null,
       initiativeOrder: summoner?.initiativeOrder ?? null,
@@ -1480,7 +1722,7 @@ export default function BattleMapPrototype() {
       movementUsed: 0,
       movementOrigin: null,
       effects: [],
-      controller: summoner?.controller ?? { name: "Kevin" },
+      controller: summoner?.controller ?? { name: participant.name },
       controlledByViewer: true,
       x: point.x,
       y: point.y,
@@ -1497,13 +1739,13 @@ export default function BattleMapPrototype() {
     try {
       await command<{ tokenId: string; state: EncounterState }>("create-token", {
         name,
-        kind: placementSummonerId ? "summon" : "monster",
+        kind: effectivePlacementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
         maxHp: creature.defaultHp,
         hp: creature.defaultHp,
         artAsset: creature.artAsset,
-        summonerTokenId: placementSummonerId || undefined,
+        summonerTokenId: effectivePlacementSummonerId || undefined,
         x: point.x,
         y: point.y,
       }, (confirmed) => {
@@ -1521,8 +1763,74 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const placeSpellEffect = async (spell: SpellEffectDefinition, point: MapPoint) => {
+    if (!participant || !state || !movementEnabled) return;
+    if (participant.role === "player" && !effectivePlacementSummonerId) {
+      setError("Your character is not available in this scenario, so the spell cannot be placed.");
+      return;
+    }
+    const matchingCount = state.tokens.filter((token) => token.kind === SPELL_EFFECT_KIND && token.artAsset === spell.artAsset).length;
+    const name = matchingCount === 0 ? spell.name : `${spell.name} ${matchingCount + 1}`;
+    const caster = effectivePlacementSummonerId ? state.tokens.find((token) => token.id === effectivePlacementSummonerId) : null;
+    const temporaryId = `pending-create-${Date.now()}-${++tokenMutationSequenceRef.current}`;
+    const historyMutationId = ++optimisticSequenceRef.current;
+    const optimisticToken: SharedToken = {
+      id: temporaryId,
+      name,
+      artAsset: spell.artAsset,
+      kind: SPELL_EFFECT_KIND,
+      size: spell.size,
+      speed: 0,
+      hp: null,
+      maxHp: null,
+      healthState: null,
+      hidden: false,
+      summonerTokenId: effectivePlacementSummonerId || null,
+      initiative: caster?.initiative ?? null,
+      initiativeGroupId: null,
+      initiativeOrder: caster?.initiativeOrder ?? null,
+      turnComplete: false,
+      movementUsed: 0,
+      movementOrigin: null,
+      effects: [],
+      controller: caster?.controller ?? { name: participant.name },
+      controlledByViewer: true,
+      x: point.x,
+      y: point.y,
+    };
+    pendingCreatesRef.current.set(temporaryId, optimisticToken);
+    setState((current) => {
+      if (!current) return current;
+      localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
+      localRedoHistoryRef.current = [];
+      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: [...current.tokens, optimisticToken] };
+    });
+    setSpellPlacementPreview(null);
+    setError("");
+    try {
+      await command<{ tokenId: string; state: EncounterState }>("create-spell-effect", {
+        spellId: spell.id,
+        summonerTokenId: effectivePlacementSummonerId || undefined,
+        x: point.x,
+        y: point.y,
+      }, (confirmed) => {
+        pendingCreatesRef.current.delete(temporaryId);
+        setState((current) => current ? { ...current, tokens: current.tokens.filter((token) => token.id !== temporaryId) } : current);
+        setSelectedTokenId(confirmed.tokenId);
+      });
+      setNotice(`${spell.name} manifested.`);
+    } catch (placementError) {
+      pendingCreatesRef.current.delete(temporaryId);
+      localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== historyMutationId);
+      setState((current) => current ? { ...current, tokens: current.tokens.filter((token) => token.id !== temporaryId) } : current);
+      setError(placementError instanceof Error ? placementError.message : "Spell placement was rejected.");
+      await refreshAfterError();
+    }
+  };
+
   const deleteToken = async (token: SharedToken) => {
-    if (!participant || !state || participant.role !== "dm" || pendingCreatesRef.current.has(token.id)) return;
+    if (!participant || !state || pendingCreatesRef.current.has(token.id)) return;
+    if (participant.role !== "dm" && (token.kind !== SPELL_EFFECT_KIND || !token.controlledByViewer)) return;
     pendingDeletesRef.current.add(token.id);
     pendingMovesRef.current.delete(token.id);
     setState((current) => current ? { ...current, tokens: current.tokens.filter((currentToken) => currentToken.id !== token.id) } : current);
@@ -1532,7 +1840,7 @@ export default function BattleMapPrototype() {
       await command("delete-token", { tokenId: token.id }, () => {
         pendingDeletesRef.current.delete(token.id);
       });
-      setNotice("Token removed.");
+      setNotice(token.kind === SPELL_EFFECT_KIND ? `${token.name} dismissed.` : "Token removed.");
     } catch (deleteError) {
       pendingDeletesRef.current.delete(token.id);
       setState((current) => current && !current.tokens.some((currentToken) => currentToken.id === token.id)
@@ -1551,8 +1859,21 @@ export default function BattleMapPrototype() {
     setArmedCreatureId(creature.id);
   };
 
+  const onSpellDragStart = (event: ReactDragEvent<HTMLButtonElement>, spell: SpellEffectDefinition) => {
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData("application/x-spell-effect-id", spell.id);
+    setArmedSpellId(spell.id);
+  };
+
   const onMapDragOver = (event: ReactDragEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || participant.role !== "dm" || !movementEnabled) return;
+    if (!state || !participant || !movementEnabled || (participant.role === "player" && !playerCharacter)) return;
+    const spell = spellEffectById(event.dataTransfer.getData("application/x-spell-effect-id") || armedSpellId);
+    if (spell) {
+      event.preventDefault(); event.dataTransfer.dropEffect = "copy";
+      const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(spell.size));
+      setSpellPlacementPreview({ spell, ...point });
+      return;
+    }
     const creature = paletteCreature(event.dataTransfer.getData("application/x-creature-id") || armedCreatureId);
     if (!creature) return;
     event.preventDefault();
@@ -1562,7 +1883,14 @@ export default function BattleMapPrototype() {
   };
 
   const onMapDrop = (event: ReactDragEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || participant.role !== "dm" || !movementEnabled) return;
+    if (!state || !participant || !movementEnabled || (participant.role === "player" && !playerCharacter)) return;
+    const spell = spellEffectById(event.dataTransfer.getData("application/x-spell-effect-id") || armedSpellId);
+    if (spell) {
+      event.preventDefault();
+      const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(spell.size));
+      void placeSpellEffect(spell, point);
+      return;
+    }
     const creature = paletteCreature(event.dataTransfer.getData("application/x-creature-id") || armedCreatureId);
     if (!creature) return;
     event.preventDefault();
@@ -1578,10 +1906,10 @@ export default function BattleMapPrototype() {
       if (!current) return current;
       const movingToken = current.tokens.find((token) => token.id === tokenId);
       if (!movingToken) return current;
-      const movementOrigin = current.encounter.status === "active"
+      const movementOrigin = movingToken.kind === SPELL_EFFECT_KIND ? null : current.encounter.status === "active"
         ? movingToken.movementOrigin ?? { x: movingToken.x, y: movingToken.y }
         : movingToken.movementOrigin;
-      const movementUsed = current.encounter.status === "active" && movementOrigin
+      const movementUsed = movingToken.kind === SPELL_EFFECT_KIND ? 0 : current.encounter.status === "active" && movementOrigin
         ? calculateDirectDistance(movementOrigin, destination, current.grid.feetPerCell)
         : movingToken.movementUsed;
       pendingMovesRef.current.set(tokenId, { ...destination, sequence, movementUsed, movementOrigin });
@@ -1597,9 +1925,12 @@ export default function BattleMapPrototype() {
       );
       if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
       acceptAuthoritativeState(result.state);
-      setNotice(result.overBudget
-        ? `Move confirmed · ${result.distance} ft · over movement.`
-        : `Move confirmed · ${result.distance} ft.`);
+      const movedToken = state?.tokens.find((token) => token.id === tokenId);
+      setNotice(movedToken?.kind === SPELL_EFFECT_KIND
+        ? `${movedToken.name} repositioned.`
+        : result.overBudget
+          ? `Move confirmed · ${result.distance} ft · over movement.`
+          : `Move confirmed · ${result.distance} ft.`);
     } catch (moveError) {
       if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
       localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== historyMutationId);
@@ -1652,11 +1983,18 @@ export default function BattleMapPrototype() {
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!state || !participant || !movementEnabled) return;
     if (event.button !== 0) return;
-    const armedCreature = participant.role === "dm" ? paletteCreature(armedCreatureId) : null;
+    const armedCreature = participant.role === "dm" || playerCharacter ? paletteCreature(armedCreatureId) : null;
     if (armedCreature) {
       event.preventDefault();
       const placementPoint = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(armedCreature.size));
       void placeCreature(armedCreature, placementPoint);
+      return;
+    }
+    const armedSpell = participant.role === "dm" || playerCharacter ? spellEffectById(armedSpellId) : null;
+    if (armedSpell) {
+      event.preventDefault();
+      const placementPoint = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(armedSpell.size));
+      void placeSpellEffect(armedSpell, placementPoint);
       return;
     }
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
@@ -1690,7 +2028,7 @@ export default function BattleMapPrototype() {
         grabOffset: { x: point.x - hitToken.x, y: point.y - hitToken.y },
       };
       dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: hitToken.id, x: hitToken.x, y: hitToken.y });
-      setDragOrigin(state.encounter.status === "active" ? hitToken.movementOrigin ?? gesture.origin : gesture.origin);
+      setDragOrigin(hitToken.kind === SPELL_EFFECT_KIND ? null : state.encounter.status === "active" ? hitToken.movementOrigin ?? gesture.origin : gesture.origin);
       return;
     }
     if (!panGestureRef.current) {
@@ -1865,7 +2203,7 @@ export default function BattleMapPrototype() {
   }
 
   const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
-  const initiativeTokens = [...state.tokens].filter((token) => token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
+  const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
 
   if (participant.role === "dm" && workshopOpen) return <MapWorkshop
     activeMapPackage={state.encounter.mapPackage}
@@ -1878,9 +2216,9 @@ export default function BattleMapPrototype() {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const inCombat = state.encounter.status === "active";
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups);
-  const selectedHealth = selectedToken ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
+  const selectedHealth = selectedToken && !selectedSpell ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
   const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
-  const activeTurnMembers = state.tokens.filter((token) =>
+  const activeTurnMembers = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND &&
     token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder);
   const activeOwnTurnToken = activeTurnMembers.find((token) =>
     token.controlledByViewer && !token.turnComplete) ?? null;
@@ -1944,10 +2282,12 @@ export default function BattleMapPrototype() {
           {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Place spotlight", "S") : null}
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
         </div>
-        {participant.role === "dm" ? <div className="map-tool-group" role="group" aria-label="Map content">
-          <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
-          <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button>
-        </div> : null}
+        <div className="map-tool-group" role="group" aria-label="Map content">
+          <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
+          <button className={`icon-tool${spellPaletteOpen ? " tool-active" : ""}`} aria-label="Spell effects" data-tooltip="Spell effects" aria-pressed={spellPaletteOpen} onClick={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="spells" /></button>
+          {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button> : null}
+          {participant.role === "dm" ? <button className="icon-tool" aria-label="Create scenario" data-tooltip="Create scenario" onClick={() => { setScenarioError(""); setScenarioCreatorOpen(true); }}><Icon name="scenarios" /></button> : null}
+        </div>
         <div className="map-tool-group" role="group" aria-label="Action history">
           <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><Icon name="undo" /></button>
           <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button>
@@ -1979,10 +2319,12 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
-            {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            {paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}><Icon name="close" /></button></div>
-              <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
+              {participant.role === "dm"
+                ? <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
+                : <p className="palette-controller">Anything you place is summoned by {playerCharacter?.name ?? "your character"} and controlled by you.</p>}
               <div className="palette-search">
                 <label><span>Find</span><input type="search" value={creatureQuery} onChange={(event) => { setCreatureQuery(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }} placeholder="Search creatures" autoComplete="off" /></label>
                 <label><span>Family</span><select value={creatureFamily} onChange={(event) => { setCreatureFamily(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }}><option value="">All</option>{creatureFamilies.map((family) => <option value={family} key={family}>{family}</option>)}</select></label>
@@ -2001,8 +2343,21 @@ export default function BattleMapPrototype() {
               {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
               <p className="palette-hint">Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
             </section> : null}
+            {spellPaletteOpen ? <section className="spell-palette" aria-label="Spell effects palette">
+              <div className="palette-heading"><div><small>Persistent magic</small><h2>Spell effects</h2></div><button aria-label="Close spell effects" onClick={() => { setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); }}><Icon name="close" /></button></div>
+              <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
+              <div className="spell-grid">
+                {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedSpellId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onSpellDragStart(event, spell)} onDragEnd={() => setSpellPlacementPreview(null)} onClick={() => setArmedSpellId((current) => current === spell.id ? null : spell.id)} aria-pressed={armedSpellId === spell.id}>
+                  <span className="spell-art"><NextImage src={spell.artAsset} alt="" width={240} height={240} unoptimized /></span>
+                  <span className="spell-copy"><small>{spell.areaLabel}</small><strong>{spell.name}</strong><em>{spell.description}</em></span>
+                </button>)}
+              </div>
+              {participant.role === "player" ? <p className="palette-controller">Your effects are controlled by {playerCharacter?.name ?? "your character"}.</p> : <p className="palette-controller">DM effects are controlled by Kevin.</p>}
+              {armedSpellId ? <button className="palette-cancel" onClick={() => { setArmedSpellId(null); setSpellPlacementPreview(null); }}>Cancel spell placement</button> : null}
+              <p className="palette-hint">Drag onto the map, or select an effect and click to place it.</p>
+            </section> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
-            {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
+            {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>{state.encounter.status === "paused" ? "The DM paused the encounter. Movement and turn advancement are temporarily disabled." : "Movement is paused until shared state is current."}</span></div> : null}
             {presenting ? <button className="present-exit" onClick={togglePresenting}>Exit presentation · Esc</button> : null}
           </div>
           </div>
@@ -2064,7 +2419,12 @@ export default function BattleMapPrototype() {
             ) : rosterRow(row.token, row.grouped))}
           </div>
 
-          {selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
+          {selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
+            <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
+            <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
+            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>Drag directly</strong></span></div>
+            {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
+          </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
             <div className="token-heading">
               {selectedToken.artAsset ? <NextImage className="token-portrait" src={selectedToken.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(selectedToken)}</span>}
               <div><small>{`${selectedToken.hidden ? "Hidden · " : ""}${selectedToken.kind} · controlled by ${selectedToken.controller.name}`}</small><h2>{selectedToken.name}</h2></div>
@@ -2126,7 +2486,8 @@ export default function BattleMapPrototype() {
               : null}
             {participant.role === "dm" ? <>
               <div className="button-row">
-                <button className="primary-button" onClick={startCombatOptimistically}>{inCombat ? "Restart combat" : "Start combat"}</button>
+                <button className="primary-button" aria-describedby="restart-combat-help" data-tooltip={inCombat ? "Start again at round 1 using the current initiative. Keeps the map, tokens, HP, effects, and initiative values." : "Begin combat at round 1 using the entered initiative values."} onClick={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}>{inCombat ? "Restart combat" : "Start combat"}</button>
+                <span id="restart-combat-help" className="visually-hidden">Restart begins combat again at round 1 using the current initiative values while preserving the map, tokens, HP, and effects.</span>
                 <button className="secondary-button" onClick={advanceTurnOptimistically} disabled={!inCombat}>Advance</button>
               </div>
               <div className="button-row encounter-state-controls">
@@ -2139,7 +2500,8 @@ export default function BattleMapPrototype() {
                   onClick={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
                 >{encounterAction === "pause" ? "Pausing…" : encounterAction === "resume" ? "Resuming…" : state.encounter.status === "paused" ? "Resume" : "Pause"}</button>
                 <span id="pause-encounter-help" className="visually-hidden">Temporarily freezes movement and turn advancement while preserving the current round and initiative.</span>
-                <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
+                <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} aria-describedby="reset-encounter-help" data-tooltip="Exit combat and return to setup. Clears the round, active turn, and movement tracking; keeps the map, tokens, HP, effects, and initiative values." disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
+                <span id="reset-encounter-help" className="visually-hidden">Reset exits combat and returns the encounter to setup while preserving the map, tokens, HP, effects, and initiative values.</span>
               </div>
               {initiativeTokens.length ? <details className="turn-correction-details">
                 <summary>Correct turn</summary>
@@ -2157,6 +2519,35 @@ export default function BattleMapPrototype() {
           <div className="button-row">
             <button className="secondary-button" autoFocus onClick={() => setResetConfirmOpen(false)}>Cancel</button>
             <button className="danger-button" onClick={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}>Reset combat</button>
+          </div>
+        </section>
+      </div> : null}
+      {participant.role === "dm" && restartConfirmOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRestartConfirmOpen(false); }}>
+        <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="restart-combat-title" aria-describedby="restart-combat-description">
+          <div className="eyebrow">Encounter control</div>
+          <h2 id="restart-combat-title">Restart combat?</h2>
+          <p id="restart-combat-description">This returns combat to round 1 and rebuilds the turn order from the current initiative numbers. Movement and completed-turn tracking reset. The map, tokens, HP, and effects stay intact.</p>
+          <div className="button-row">
+            <button className="secondary-button" autoFocus onClick={() => setRestartConfirmOpen(false)}>Cancel</button>
+            <button className="danger-button" onClick={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}>Restart combat</button>
+          </div>
+        </section>
+      </div> : null}
+      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating) setScenarioCreatorOpen(false); }}>
+        <section className="confirm-dialog scenario-dialog" role="dialog" aria-modal="true" aria-labelledby="create-scenario-title" aria-describedby="create-scenario-description">
+          <div className="eyebrow">Scenario library</div>
+          <h2 id="create-scenario-title">Create a scenario</h2>
+          <p id="create-scenario-description">The new scenario gets its own map, tokens, combat state, and history. You will switch to it immediately.</p>
+          <label>Scenario name<input autoFocus maxLength={64} value={scenarioName} onChange={(event) => setScenarioName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void createScenario(); } }} placeholder="The Sunken Observatory" disabled={scenarioCreating} /></label>
+          <label>Starting point<select value={scenarioMode} onChange={(event) => setScenarioMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenarioCreating}>
+            <option value="party">Fresh scenario — current party only</option>
+            <option value="duplicate">Duplicate current map and tokens</option>
+          </select></label>
+          <p className="scenario-mode-help">{scenarioMode === "duplicate" ? "Copies the map and every token. Combat, initiative, effects, and history start clean." : "Copies Dar'eleth, Jelton, and Malichar at full health. Choose a map and add encounters afterward."}</p>
+          {scenarioError ? <div className="form-error" role="alert">{scenarioError}</div> : null}
+          <div className="button-row">
+            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating}>Cancel</button>
+            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
           </div>
         </section>
       </div> : null}

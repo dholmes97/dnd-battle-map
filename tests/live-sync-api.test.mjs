@@ -177,16 +177,17 @@ test("fixed identities independently move disposable summons without reservation
   assert.deepEqual(danJoin.state.grid, barryJoin.state.grid);
 
   try {
-    const danSummon = await command(dm, "create-token", {
+    const danSummon = await command(dan, "create-token", {
       name: `Dan sync summon ${Date.now()}`,
-      kind: "summon",
+      kind: "monster",
       size: "small",
       speed: 30,
+      hidden: true,
       summonerTokenId: FIXED_IDENTITIES.dan.tokenId,
       x: 3.25,
       y: 3.25,
     });
-    const barrySummon = await command(dm, "create-token", {
+    const barrySummon = await command(barry, "create-token", {
       name: `Barry sync summon ${Date.now()}`,
       kind: "summon",
       size: "small",
@@ -200,8 +201,71 @@ test("fixed identities independently move disposable summons without reservation
     createdIds.push(danSummon.body.tokenId, barrySummon.body.tokenId);
     const aliceToken = danSummon.body.state.tokens.find((token) => token.id === danSummon.body.tokenId);
     const bobToken = barrySummon.body.state.tokens.find((token) => token.id === barrySummon.body.tokenId);
+    assert.equal(aliceToken.kind, "summon");
+    assert.equal(aliceToken.hidden, false);
     assert.equal(aliceToken.controller.name, "Dan");
     assert.equal(bobToken.controller.name, "Barry");
+
+    const moonbeam = await command(dan, "create-spell-effect", {
+      spellId: "moonbeam",
+      summonerTokenId: FIXED_IDENTITIES.dan.tokenId,
+      x: 8.5,
+      y: 4.5,
+    });
+    const flamingSphere = await command(barry, "create-spell-effect", {
+      spellId: "flaming-sphere",
+      summonerTokenId: FIXED_IDENTITIES.barry.tokenId,
+      x: 10.5,
+      y: 5.5,
+    });
+    assert.equal(moonbeam.response.status, 200);
+    assert.equal(flamingSphere.response.status, 200);
+    createdIds.push(moonbeam.body.tokenId, flamingSphere.body.tokenId);
+    const moonbeamToken = moonbeam.body.state.tokens.find((token) => token.id === moonbeam.body.tokenId);
+    const sphereToken = flamingSphere.body.state.tokens.find((token) => token.id === flamingSphere.body.tokenId);
+    assert.equal(moonbeamToken.kind, "spell-effect");
+    assert.equal(moonbeamToken.size, "large");
+    assert.equal(moonbeamToken.controller.name, "Dan");
+    assert.equal(sphereToken.kind, "spell-effect");
+    assert.equal(sphereToken.size, "medium");
+    assert.equal(sphereToken.controller.name, "Barry");
+    const moveMoonbeam = await request("move", {
+      method: "POST",
+      body: participantBody(dan, moonbeam.body.tokenId, { x: 9.25, y: 6.25 }),
+    });
+    assert.equal(moveMoonbeam.response.status, 200);
+    assert.equal(moveMoonbeam.body.distance, 0);
+    assert.equal(moveMoonbeam.body.movementUsed, 0);
+    const forbiddenForeignSpell = await command(dan, "create-spell-effect", {
+      spellId: "flaming-sphere",
+      summonerTokenId: FIXED_IDENTITIES.barry.tokenId,
+      x: 2,
+      y: 2,
+    });
+    assert.equal(forbiddenForeignSpell.response.status, 403);
+    const dismissMoonbeam = await command(dan, "delete-token", { tokenId: moonbeam.body.tokenId });
+    assert.equal(dismissMoonbeam.response.status, 200);
+    assert.equal(dismissMoonbeam.body.state.tokens.some((token) => token.id === moonbeam.body.tokenId), false);
+
+    const forbiddenUnattachedCreature = await command(dan, "create-token", {
+      name: "Not a summon",
+      kind: "monster",
+      size: "small",
+      speed: 30,
+      x: 2,
+      y: 2,
+    });
+    assert.equal(forbiddenUnattachedCreature.response.status, 403);
+    const forbiddenForeignSummon = await command(dan, "create-token", {
+      name: "Wrong summoner",
+      kind: "summon",
+      size: "small",
+      speed: 30,
+      summonerTokenId: FIXED_IDENTITIES.barry.tokenId,
+      x: 2,
+      y: 2,
+    });
+    assert.equal(forbiddenForeignSummon.response.status, 403);
 
     const heartbeat = await request("heartbeat", {
       method: "POST",
