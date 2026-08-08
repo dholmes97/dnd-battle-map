@@ -42,3 +42,6 @@ next-env.d.ts
 /.working/
 /outputs/
 /work/
+
+# Generated creature art is uploaded to R2 in ten-item batches, not bundled in Sites.
+/catalog/art/
