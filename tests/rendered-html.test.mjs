@@ -93,6 +93,8 @@ test("ships the drag-and-drop creature palette with durable size controls", asyn
   assert.match(clientSource, /aria-label="Token size"/);
   assert.match(workerSource, /size TEXT DEFAULT 'medium' NOT NULL/);
   assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
+  assert.match(workerSource, /CASE WHEN t\.summoner_token_id IS NOT NULL[\s\S]+THEN summoner\.owner_participant_id/);
+  assert.match(workerSource, /if \(!token\.summoner_token_id\) return token\.owner_participant_id === participant\.id/);
   assert.match(sizeMigration, /ALTER TABLE `tokens` ADD `size` text DEFAULT 'medium' NOT NULL/);
   assert.equal((catalogSource.match(/id: "/g) ?? []).length, 17);
   for (const size of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
@@ -225,6 +227,7 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
 
   assert.match(styles, /-webkit-appearance: none/);
   assert.match(styles, /\.join-card select \{ min-height: 3rem/);
+  assert.match(clientSource, /name="encounter-alias" autoComplete="off" autoCorrect="off" spellCheck=\{false\}/);
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\)/);

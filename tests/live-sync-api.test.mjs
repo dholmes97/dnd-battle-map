@@ -474,11 +474,31 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(untrackedCharacter.response.status, 200);
     const untrackedCharacterId = untrackedCharacter.body.tokenId;
     createdIds.push(untrackedCharacterId);
+
+    const preclaimSummon = await command(dm, "create-token", {
+      name: `Imp ${suffix}`,
+      kind: "summon",
+      size: "tiny",
+      speed: 40,
+      artAsset: "/assets/tokens/creatures/imp-01.png",
+      summonerTokenId: untrackedCharacterId,
+      x: 7.5,
+      y: 8.5,
+    });
+    assert.equal(preclaimSummon.response.status, 200);
+    const preclaimSummonId = preclaimSummon.body.tokenId;
+    createdIds.push(preclaimSummonId);
+    assert.equal(preclaimSummon.body.state.tokens.find((token) => token.id === preclaimSummonId).owner, null);
+
     const untrackedClaim = await request("claim", {
       method: "POST",
       body: participantBody(latePlayer, untrackedCharacterId),
     });
     assert.equal(untrackedClaim.response.status, 200);
+    assert.equal(
+      untrackedClaim.body.state.tokens.find((token) => token.id === preclaimSummonId).owner.participantId,
+      latePlayer.id,
+    );
 
     const claim = await request("claim", {
       method: "POST",
@@ -557,6 +577,19 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
         untrackedMove.body.state.tokens.find((token) => token.id === untrackedCharacterId),
       ),
       { x: 7.35, y: 8.15 },
+    );
+
+    const inheritedSummonMove = await request("move", {
+      method: "POST",
+      body: participantBody(latePlayer, preclaimSummonId, {
+        x: 8.1,
+        y: 8.2,
+      }),
+    });
+    assert.equal(inheritedSummonMove.response.status, 200);
+    assert.equal(
+      inheritedSummonMove.body.state.tokens.find((token) => token.id === preclaimSummonId).owner.participantId,
+      latePlayer.id,
     );
 
     const unauthorizedMonsterMove = await request("move", {

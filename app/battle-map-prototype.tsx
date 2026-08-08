@@ -1108,7 +1108,7 @@ export default function BattleMapPrototype() {
         <div className="eyebrow">Living encounter · Tactical companion</div>
         <h1 id="join-title">Enter the Ember Keep</h1>
         <p>Join as a player to claim a character, or as the DM to build and run the encounter.</p>
-        <label>Display name<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void join(); }} placeholder="e.g. Dar’eleth" autoFocus maxLength={32} /></label>
+        <label>Display name<input name="encounter-alias" autoComplete="off" autoCorrect="off" spellCheck={false} value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void join(); }} placeholder="e.g. Dar’eleth" autoFocus maxLength={32} /></label>
         <label>Role<select value={joinRole} onChange={(event) => setJoinRole(event.target.value as Role)}><option value="player">Player</option><option value="dm">Dungeon Master</option></select></label>
         <label>Encounter code<input value={encounterCode} onChange={(event) => setEncounterCode(event.target.value.toUpperCase())} maxLength={24} spellCheck={false} /></label>
         {error ? <div className="form-error" role="alert">{error}</div> : null}

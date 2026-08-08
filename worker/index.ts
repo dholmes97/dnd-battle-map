@@ -690,10 +690,17 @@ async function encounterState(
   await expireAnnotations(env, encounter);
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
-    `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
-            summoner_token_id, initiative, initiative_order, turn_complete,
-            movement_used, owner_participant_id, owner_name
-     FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
+    `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
+            t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
+            t.initiative_order, t.turn_complete, t.movement_used,
+            CASE WHEN t.summoner_token_id IS NOT NULL
+              THEN summoner.owner_participant_id ELSE t.owner_participant_id END AS owner_participant_id,
+            CASE WHEN t.summoner_token_id IS NOT NULL
+              THEN summoner.owner_name ELSE t.owner_name END AS owner_name
+     FROM tokens t
+     LEFT JOIN tokens summoner
+       ON summoner.id = t.summoner_token_id AND summoner.encounter_id = t.encounter_id
+     WHERE t.encounter_id = ? ORDER BY t.name, t.id`,
   )
     .bind(encounter!.id)
     .all<TokenRow>();
@@ -914,10 +921,8 @@ async function canControlToken(
   token: TokenRow,
   participant: ParticipantRow,
 ): Promise<boolean> {
-  if (participant.role === "dm" || token.owner_participant_id === participant.id) {
-    return true;
-  }
-  if (!token.summoner_token_id) return false;
+  if (participant.role === "dm") return true;
+  if (!token.summoner_token_id) return token.owner_participant_id === participant.id;
   const summoner = await env.DB.prepare(
     `SELECT owner_participant_id FROM tokens
      WHERE id = ? AND encounter_id = ?`,
@@ -1423,20 +1428,16 @@ async function handleCommand(
     const hp = maxHp === null ? null : Math.min(maxHp, Math.max(0, Math.trunc(Number(body.hp)) || maxHp));
     const summonerTokenId = cleanTokenId(body.summonerTokenId) || null;
     let inherited: {
-      owner_participant_id: string | null;
-      owner_name: string | null;
       initiative: number | null;
       initiative_order: number | null;
     } | null = null;
     if (summonerTokenId) {
       inherited = await env.DB.prepare(
-        `SELECT owner_participant_id, owner_name, initiative, initiative_order
+        `SELECT initiative, initiative_order
          FROM tokens WHERE id = ? AND encounter_id = ?`,
       )
         .bind(summonerTokenId, encounter.id)
         .first<{
-          owner_participant_id: string | null;
-          owner_name: string | null;
           initiative: number | null;
           initiative_order: number | null;
         }>();
@@ -1466,8 +1467,8 @@ async function handleCommand(
         summonerTokenId,
         inherited?.initiative ?? null,
         inherited?.initiative_order ?? null,
-        inherited?.owner_participant_id ?? null,
-        inherited?.owner_name ?? null,
+        null,
+        null,
         now,
       )
       .run();
@@ -1619,12 +1620,11 @@ async function handleCommand(
         summoner_token_id: string | null;
       }>();
     if (!effect) return json({ error: "Effect not found." }, { status: 404 });
-    const allowed = participant.role === "dm" || effect.owner_participant_id === participant.id ||
-      (effect.summoner_token_id
-        ? await env.DB.prepare("SELECT 1 AS found FROM tokens WHERE id = ? AND owner_participant_id = ?")
-          .bind(effect.summoner_token_id, participant.id)
-          .first<{ found: number }>()
-        : null);
+    const allowed = participant.role === "dm" || (effect.summoner_token_id
+      ? await env.DB.prepare("SELECT 1 AS found FROM tokens WHERE id = ? AND owner_participant_id = ?")
+        .bind(effect.summoner_token_id, participant.id)
+        .first<{ found: number }>()
+      : effect.owner_participant_id === participant.id);
     if (!allowed) return json({ error: "You cannot remove this effect." }, { status: 403 });
     await env.DB.prepare("DELETE FROM effects WHERE id = ? AND encounter_id = ?")
       .bind(effectId, encounter.id)
