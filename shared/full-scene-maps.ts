@@ -17,6 +17,8 @@ type FullSceneDefinition = {
   mood: MapPackage["mood"];
   assetUrl: string;
   sceneKitId: string;
+  width?: number;
+  height?: number;
 };
 
 export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
@@ -137,6 +139,28 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     assetUrl: "/map-assets/haunted-graveyard-chapel-01.jpg",
     sceneKitId: "none",
   },
+  {
+    id: "cliffside-switchbacks-v1",
+    name: "Cliffside Switchbacks",
+    description: "A long mountain descent with broad switchbacks, narrow ledges, rocky cover, and staging areas at the summit and valley floor.",
+    biome: "tundra",
+    mood: "daylight",
+    assetUrl: "/map-assets/cliffside-switchbacks-01.jpg",
+    sceneKitId: "none",
+    width: 45,
+    height: 30,
+  },
+  {
+    id: "underwater-ruins-v1",
+    name: "Underwater Ruins",
+    description: "A submerged reef basin with sandy channels, coral ridges, ancient ruins, a broken shipwreck, rock arches, and deep trenches.",
+    biome: "coast",
+    mood: "daylight",
+    assetUrl: "/map-assets/underwater-ruins-01.jpg",
+    sceneKitId: "none",
+    width: 45,
+    height: 30,
+  },
 ];
 
 export const SCENE_KITS: Record<string, SceneKitDefinition[]> = {
@@ -156,8 +180,8 @@ export const SCENE_KITS: Record<string, SceneKitDefinition[]> = {
 };
 
 export function createFullSceneMap(definition: FullSceneDefinition): MapPackage {
-  const width = 24;
-  const height = 16;
+  const width = definition.width ?? 24;
+  const height = definition.height ?? 16;
   return {
     format: "dnd-battle-map",
     version: 1,

@@ -138,6 +138,8 @@ const MAP_ASSET_KEYS = new Set([
   "goblin-mineworks-01.jpg",
   "river-gorge-bridge-01.jpg",
   "haunted-graveyard-chapel-01.jpg",
+  "cliffside-switchbacks-01.jpg",
+  "underwater-ruins-01.jpg",
   "scene-kits/forest-log.png",
   "scene-kits/forest-rocks.png",
   "scene-kits/temple-debris.png",

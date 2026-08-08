@@ -6,12 +6,14 @@ import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap } from "../shared/full-
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
-  assert.equal(FULL_SCENE_MAPS.length, 13);
+  assert.equal(FULL_SCENE_MAPS.length, 15);
   for (const definition of FULL_SCENE_MAPS) {
     const map = createFullSceneMap(definition);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
     assert.equal(parsed?.visual.pixelWidth, 3072);
     assert.equal(parsed?.visual.pixelHeight, 2048);
+    assert.equal(parsed?.width, definition.width ?? 24);
+    assert.equal(parsed?.height, definition.height ?? 16);
     assert.equal(parsed?.visual.assetUrl, definition.assetUrl);
     assert.deepEqual(parsed?.sceneObjects, []);
     assert.equal("terrain" in map, false);
@@ -30,6 +32,10 @@ test("full-scene maps are package-safe production assets", async () => {
       assert.equal(png[25], 6, `${item.id} must preserve RGBA transparency`);
     }
   }
+  assert.deepEqual(FULL_SCENE_MAPS.filter((definition) => definition.width === 45).map((definition) => [definition.id, definition.width, definition.height]), [
+    ["cliffside-switchbacks-v1", 45, 30],
+    ["underwater-ruins-v1", 45, 30],
+  ]);
 });
 
 test("full-scene packages round-trip with semantic additions", () => {

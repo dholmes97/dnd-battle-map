@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  type CSSProperties,
   type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -110,7 +109,14 @@ type PanGesture = {
   viewport: Viewport;
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight";
-type Viewport = { zoom: number; panX: number; panY: number };
+type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string };
+type ViewportGeometry = Viewport & {
+  cellSize: number;
+  visibleWidth: number;
+  visibleHeight: number;
+  panX: number;
+  panY: number;
+};
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
 
 const DEFAULT_CODE = "EMBER-KEEP";
@@ -169,9 +175,10 @@ function pointerToMap(
   radius?: number,
 ) {
   const rect = canvas.getBoundingClientRect();
+  const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
   return clampMapPoint(state, {
-    x: viewport.panX + ((clientX - rect.left) / rect.width) * state.grid.width / viewport.zoom,
-    y: viewport.panY + ((clientY - rect.top) / rect.height) * state.grid.height / viewport.zoom,
+    x: geometry.panX + (clientX - rect.left) / geometry.cellSize,
+    y: geometry.panY + (clientY - rect.top) / geometry.cellSize,
   }, radius);
 }
 
@@ -180,25 +187,50 @@ function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell: numb
   return Math.round(squares * feetPerCell * 10) / 10;
 }
 
-function clampViewport(viewport: Viewport, state: EncounterState): Viewport {
-  const visibleWidth = state.grid.width / viewport.zoom;
-  const visibleHeight = state.grid.height / viewport.zoom;
+function viewportGeometry(viewport: Viewport, state: EncounterState, width: number, height: number): ViewportGeometry {
+  const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
+  const matchesMap = viewport.mapKey === mapKey;
+  const zoom = matchesMap ? Math.max(1, Math.min(3, viewport.zoom)) : 1;
+  const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
+  const cellSize = Math.max(1, baseCellSize * zoom);
+  const visibleWidth = Math.min(state.grid.width, width / cellSize);
+  const visibleHeight = Math.min(state.grid.height, height / cellSize);
+  const requestedCenterX = matchesMap ? viewport.centerX : state.grid.width / 2;
+  const requestedCenterY = matchesMap ? viewport.centerY : state.grid.height / 2;
+  const centerX = Math.max(visibleWidth / 2, Math.min(state.grid.width - visibleWidth / 2, requestedCenterX));
+  const centerY = Math.max(visibleHeight / 2, Math.min(state.grid.height - visibleHeight / 2, requestedCenterY));
   return {
-    ...viewport,
-    panX: Math.max(0, Math.min(state.grid.width - visibleWidth, viewport.panX)),
-    panY: Math.max(0, Math.min(state.grid.height - visibleHeight, viewport.panY)),
+    zoom,
+    centerX,
+    centerY,
+    mapKey,
+    cellSize,
+    visibleWidth,
+    visibleHeight,
+    panX: centerX - visibleWidth / 2,
+    panY: centerY - visibleHeight / 2,
   };
 }
 
-function zoomViewportAt(viewport: Viewport, state: EncounterState, zoom: number, focusX = 0.5, focusY = 0.5): Viewport {
+function clampViewport(viewport: Viewport, state: EncounterState, width: number, height: number): Viewport {
+  const geometry = viewportGeometry(viewport, state, width, height);
+  return { zoom: geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey };
+}
+
+function zoomViewportAt(viewport: Viewport, state: EncounterState, width: number, height: number, zoom: number, focusX = 0.5, focusY = 0.5): Viewport {
+  const current = viewportGeometry(viewport, state, width, height);
   const nextZoom = Math.max(1, Math.min(3, zoom));
-  const mapX = viewport.panX + focusX * state.grid.width / viewport.zoom;
-  const mapY = viewport.panY + focusY * state.grid.height / viewport.zoom;
+  const mapX = current.panX + focusX * current.visibleWidth;
+  const mapY = current.panY + focusY * current.visibleHeight;
+  const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
+  const visibleWidth = Math.min(state.grid.width, width / (baseCellSize * nextZoom));
+  const visibleHeight = Math.min(state.grid.height, height / (baseCellSize * nextZoom));
   return clampViewport({
     zoom: nextZoom,
-    panX: mapX - focusX * state.grid.width / nextZoom,
-    panY: mapY - focusY * state.grid.height / nextZoom,
-  }, state);
+    centerX: mapX + (0.5 - focusX) * visibleWidth,
+    centerY: mapY + (0.5 - focusY) * visibleHeight,
+    mapKey: current.mapKey,
+  }, state, width, height);
 }
 
 function playPingSound(context: AudioContext) {
@@ -270,16 +302,17 @@ function drawMap(
   if (!context) return;
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
   context.clearRect(0, 0, rect.width, rect.height);
-  const cellWidth = rect.width / state.grid.width * viewport.zoom;
-  const cellHeight = rect.height / state.grid.height * viewport.zoom;
-  const screenX = (mapX: number) => (mapX - viewport.panX) * cellWidth;
-  const screenY = (mapY: number) => (mapY - viewport.panY) * cellHeight;
+  const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
+  const cellWidth = geometry.cellSize;
+  const cellHeight = geometry.cellSize;
+  const screenX = (mapX: number) => (mapX - geometry.panX) * geometry.cellSize;
+  const screenY = (mapY: number) => (mapY - geometry.panY) * geometry.cellSize;
   const mapPackage = state.encounter.mapPackage;
   if (mapScene && mapPackage) {
-    const sourceWidth = mapScene.width / viewport.zoom;
-    const sourceHeight = mapScene.height / viewport.zoom;
-    const sourceX = Math.max(0, Math.min(mapScene.width - sourceWidth, (viewport.panX / state.grid.width) * mapScene.width));
-    const sourceY = Math.max(0, Math.min(mapScene.height - sourceHeight, (viewport.panY / state.grid.height) * mapScene.height));
+    const sourceWidth = geometry.visibleWidth / state.grid.width * mapScene.width;
+    const sourceHeight = geometry.visibleHeight / state.grid.height * mapScene.height;
+    const sourceX = geometry.panX / state.grid.width * mapScene.width;
+    const sourceY = geometry.panY / state.grid.height * mapScene.height;
     context.drawImage(mapScene, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, rect.width, rect.height);
   } else {
     context.fillStyle = "#4b4b42";
@@ -465,7 +498,7 @@ export default function BattleMapPrototype() {
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [placementSummonerId, setPlacementSummonerId] = useState("");
-  const [viewport, setViewport] = useState<Viewport>({ zoom: 1, panX: 0, panY: 0 });
+  const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "" });
   const [panning, setPanning] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -849,7 +882,7 @@ export default function BattleMapPrototype() {
   const eraseAnnotationAtPoint = (canvas: HTMLCanvasElement, point: MapPoint) => {
     if (!state) return;
     const rect = canvas.getBoundingClientRect();
-    const cellPixels = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom;
+    const cellPixels = viewportGeometry(viewport, state, rect.width, rect.height).cellSize;
     const annotation = drawingAtPoint(state.annotations, point, 10 / Math.max(1, cellPixels));
     if (!annotation) {
       setNotice("Click closer to a drawn line.");
@@ -881,12 +914,13 @@ export default function BattleMapPrototype() {
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
+    const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     const hitToken = [...state.tokens].reverse().find((token) => {
       const controllable = participant.role === "dm" || token.owner?.participantId === participant.id;
       if (!controllable) return false;
-      const deltaX = ((point.x - token.x) / state.grid.width) * rect.width * viewport.zoom;
-      const deltaY = ((point.y - token.y) / state.grid.height) * rect.height * viewport.zoom;
-      const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(token.size);
+      const deltaX = (point.x - token.x) * geometry.cellSize;
+      const deltaY = (point.y - token.y) * geometry.cellSize;
+      const radius = geometry.cellSize * tokenRadiusCells(token.size);
       return Math.hypot(deltaX, deltaY) <= radius;
     });
     if (hitToken && !dragGestureRef.current) {
@@ -900,7 +934,7 @@ export default function BattleMapPrototype() {
       setDragOrigin(gesture.origin);
       return;
     }
-    if (viewport.zoom > 1 && !panGestureRef.current) {
+    if (!panGestureRef.current) {
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
       panGestureRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, viewport };
       setPanning(true);
@@ -920,11 +954,12 @@ export default function BattleMapPrototype() {
     if (pan?.pointerId === event.pointerId && state) {
       event.preventDefault();
       const rect = event.currentTarget.getBoundingClientRect();
+      const geometry = viewportGeometry(pan.viewport, state, rect.width, rect.height);
       setViewport(clampViewport({
         ...pan.viewport,
-        panX: pan.viewport.panX - (event.clientX - pan.clientX) / rect.width * state.grid.width / pan.viewport.zoom,
-        panY: pan.viewport.panY - (event.clientY - pan.clientY) / rect.height * state.grid.height / pan.viewport.zoom,
-      }, state));
+        centerX: pan.viewport.centerX - (event.clientX - pan.clientX) / geometry.cellSize,
+        centerY: pan.viewport.centerY - (event.clientY - pan.clientY) / geometry.cellSize,
+      }, state, rect.width, rect.height));
       return;
     }
     const gesture = dragGestureRef.current;
@@ -974,7 +1009,25 @@ export default function BattleMapPrototype() {
     const rect = event.currentTarget.getBoundingClientRect();
     const focusX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     const focusY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-    setViewport((current) => zoomViewportAt(current, state, current.zoom * Math.exp(-event.deltaY * 0.0015), focusX, focusY));
+    setViewport((current) => zoomViewportAt(current, state, rect.width, rect.height, current.zoom * Math.exp(-event.deltaY * 0.0015), focusX, focusY));
+  };
+
+  const nudgeViewport = (deltaX: number, deltaY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    setViewport((current) => clampViewport({
+      ...current,
+      centerX: current.centerX + deltaX / current.zoom,
+      centerY: current.centerY + deltaY / current.zoom,
+    }, state, rect.width, rect.height));
+  };
+
+  const changeZoom = (amount: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    setViewport((current) => zoomViewportAt(current, state, rect.width, rect.height, current.zoom + amount));
   };
 
   if (!participant || !state) {
@@ -1024,17 +1077,17 @@ export default function BattleMapPrototype() {
             {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
             <span className="toolbar-spacer" />
             <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
-              <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => setViewport((view) => ({ ...view, panX: Math.max(0, view.panX - 1 / view.zoom) }))}>←</button>
-              <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
-              <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => setViewport((view) => ({ ...view, panY: Math.min(state.grid.height - state.grid.height / view.zoom, view.panY + 1 / view.zoom) }))}>↓</button>
-              <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => setViewport((view) => ({ ...view, panX: Math.min(state.grid.width - state.grid.width / view.zoom, view.panX + 1 / view.zoom) }))}>→</button>
-              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => setViewport((view) => zoomViewportAt(view, state, view.zoom - 0.5))}>−</button>
-              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => setViewport((view) => zoomViewportAt(view, state, view.zoom + 0.5))}>+</button>
-              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
+              <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => nudgeViewport(-1, 0)}>←</button>
+              <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => nudgeViewport(0, -1)}>↑</button>
+              <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => nudgeViewport(0, 1)}>↓</button>
+              <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => nudgeViewport(1, 0)}>→</button>
+              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => changeZoom(-0.5)}>−</button>
+              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => changeZoom(0.5)}>+</button>
+              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` })}>{Math.round(viewport.zoom * 100)}%</button>
             </div>
           </div>
           <div className="map-stage">
-          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}`, "--map-aspect": state.grid.width / state.grid.height } as CSSProperties}>
+          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>

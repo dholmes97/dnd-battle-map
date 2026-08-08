@@ -213,7 +213,7 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 18\.5rem/);
 });
 
-test("normalizes Safari form controls and fits the desktop map to the viewport", async () => {
+test("normalizes Safari form controls and fills the desktop map stage", async () => {
   const [clientSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -226,11 +226,12 @@ test("normalizes Safari form controls and fits the desktop map to the viewport",
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
   assert.match(styles, /justify-content: stretch/);
-  assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: center; overflow: hidden; container-type: size; \}/);
-  assert.match(styles, /\.map-frame \{ width: min\(100cqw, calc\(100cqh \* var\(--map-aspect\)\)\); max-width: 100%; \}/);
-  assert.match(styles, /\.map-canvas \{[\s\S]+height: auto;[\s\S]+aspect-ratio: inherit;/);
+  assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: stretch; overflow: hidden; \}/);
+  assert.match(styles, /\.map-frame \{ width: 100%; height: 100%; max-width: none; \}/);
+  assert.match(styles, /\.map-canvas \{[\s\S]+height: 100%;[\s\S]+aspect-ratio: auto;/);
   assert.match(clientSource, /className="map-stage"/);
-  assert.match(clientSource, /"--map-aspect": state\.grid\.width \/ state\.grid\.height/);
+  assert.match(clientSource, /className="map-frame" style=\{\{ aspectRatio:/);
+  assert.doesNotMatch(clientSource, /--map-aspect/);
   assert.doesNotMatch(clientSource, /mapFit|mapStageRef/);
   assert.doesNotMatch(clientSource, /className=\{`map-canvas[^\n]+style=\{\{ aspectRatio:/);
 });
@@ -243,9 +244,12 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
 
   assert.match(clientSource, /function zoomViewportAt\(/);
   assert.match(clientSource, /Math\.exp\(-event\.deltaY \* 0\.0015\)/);
+  assert.match(clientSource, /Math\.max\(width \/ state\.grid\.width, height \/ state\.grid\.height\)/);
+  assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
+  assert.match(clientSource, /const sourceWidth = geometry\.visibleWidth \/ state\.grid\.width \* mapScene\.width/);
   assert.match(clientSource, /onWheel=\{onCanvasWheel\}/);
   assert.match(clientSource, /panGestureRef\.current = \{ pointerId: event\.pointerId, clientX: event\.clientX, clientY: event\.clientY, viewport \}/);
-  assert.match(clientSource, /panX: pan\.viewport\.panX - \(event\.clientX - pan\.clientX\)/);
+  assert.match(clientSource, /centerX: pan\.viewport\.centerX - \(event\.clientX - pan\.clientX\) \/ geometry\.cellSize/);
   assert.match(styles, /\.map-canvas\.is-dragging, \.map-canvas\.is-panning \{ cursor: grabbing; \}/);
 });
 
@@ -290,6 +294,7 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workshopSource, /onKitDragStart/);
   assert.match(workshopSource, /onDrop=\{onMapDrop\}/);
   assert.match(workshopSource, /Artwork for this scene/);
+  assert.match(workshopSource, /\{scene\.width \?\? 24\} × \{scene\.height \?\? 16\}/);
   assert.match(workshopSource, /save-map-preset/);
   assert.match(workshopSource, /apply-map-package/);
   assert.match(workshopSource, /setWallPreview/);
