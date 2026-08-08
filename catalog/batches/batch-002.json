@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-axe-beak",
+      "name": "Axe Beak",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "axe-beak",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/axe-beak"
+      },
+      "artDirection": "Original tactical fantasy depiction of Axe Beak, a Large beast.",
+      "image": "../art/full/srd-axe-beak.png",
+      "thumbnail": "../art/thumbnails/srd-axe-beak.png"
+    },
+    {
+      "id": "srd-azer",
+      "name": "Azer",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "azer",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/azer"
+      },
+      "artDirection": "Original tactical fantasy depiction of Azer, a Medium elemental.",
+      "image": "../art/full/srd-azer.png",
+      "thumbnail": "../art/thumbnails/srd-azer.png"
+    },
+    {
+      "id": "srd-baboon",
+      "name": "Baboon",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 3,
+      "hitDice": "1d6",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "baboon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/baboon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Baboon, a Small beast.",
+      "image": "../art/full/srd-baboon.png",
+      "thumbnail": "../art/thumbnails/srd-baboon.png"
+    },
+    {
+      "id": "srd-badger",
+      "name": "Badger",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 3,
+      "hitDice": "1d4",
+      "armorClass": 10,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 5
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "badger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/badger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Badger, a Tiny beast.",
+      "image": "../art/full/srd-badger.png",
+      "thumbnail": "../art/thumbnails/srd-badger.png"
+    },
+    {
+      "id": "srd-balor",
+      "name": "Balor",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "huge",
+      "defaultHp": 262,
+      "hitDice": "21d12",
+      "armorClass": 19,
+      "challengeRating": "19",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "balor",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/balor"
+      },
+      "artDirection": "Original tactical fantasy depiction of Balor, a Huge fiend (demon).",
+      "image": "../art/full/srd-balor.png",
+      "thumbnail": "../art/thumbnails/srd-balor.png"
+    },
+    {
+      "id": "srd-bandit",
+      "name": "Bandit",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bandit",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bandit"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bandit, a Medium humanoid (any race).",
+      "image": "../art/full/srd-bandit.png",
+      "thumbnail": "../art/thumbnails/srd-bandit.png"
+    },
+    {
+      "id": "srd-bandit-captain",
+      "name": "Bandit Captain",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 65,
+      "hitDice": "10d8",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bandit-captain",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bandit-captain"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bandit Captain, a Medium humanoid (any race).",
+      "image": "../art/full/srd-bandit-captain.png",
+      "thumbnail": "../art/thumbnails/srd-bandit-captain.png"
+    },
+    {
+      "id": "srd-barbed-devil",
+      "name": "Barbed Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "medium",
+      "defaultHp": 110,
+      "hitDice": "13d8",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "barbed-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/barbed-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Barbed Devil, a Medium fiend (devil).",
+      "image": "../art/full/srd-barbed-devil.png",
+      "thumbnail": "../art/thumbnails/srd-barbed-devil.png"
+    },
+    {
+      "id": "srd-basilisk",
+      "name": "Basilisk",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "basilisk",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/basilisk"
+      },
+      "artDirection": "Original tactical fantasy depiction of Basilisk, a Medium monstrosity.",
+      "image": "../art/full/srd-basilisk.png",
+      "thumbnail": "../art/thumbnails/srd-basilisk.png"
+    },
+    {
+      "id": "srd-bat",
+      "name": "Bat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 5,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bat, a Tiny beast.",
+      "image": "../art/full/srd-bat.png",
+      "thumbnail": "../art/thumbnails/srd-bat.png"
+    }
+  ]
+}

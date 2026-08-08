@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-crocodile",
+      "name": "Crocodile",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "crocodile",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/crocodile"
+      },
+      "artDirection": "Original tactical fantasy depiction of Crocodile, a Large beast.",
+      "image": "../art/full/srd-crocodile.png",
+      "thumbnail": "../art/thumbnails/srd-crocodile.png"
+    },
+    {
+      "id": "srd-cult-fanatic",
+      "name": "Cult Fanatic",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "6d8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cult-fanatic",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cult-fanatic"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cult Fanatic, a Medium humanoid (any race).",
+      "image": "../art/full/srd-cult-fanatic.png",
+      "thumbnail": "../art/thumbnails/srd-cult-fanatic.png"
+    },
+    {
+      "id": "srd-cultist",
+      "name": "Cultist",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 9,
+      "hitDice": "2d8",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cultist",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cultist"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cultist, a Medium humanoid (any race).",
+      "image": "../art/full/srd-cultist.png",
+      "thumbnail": "../art/thumbnails/srd-cultist.png"
+    },
+    {
+      "id": "srd-darkmantle",
+      "name": "Darkmantle",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "darkmantle",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/darkmantle"
+      },
+      "artDirection": "Original tactical fantasy depiction of Darkmantle, a Small monstrosity.",
+      "image": "../art/full/srd-darkmantle.png",
+      "thumbnail": "../art/thumbnails/srd-darkmantle.png"
+    },
+    {
+      "id": "srd-death-dog",
+      "name": "Death Dog",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "death-dog",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/death-dog"
+      },
+      "artDirection": "Original tactical fantasy depiction of Death Dog, a Medium monstrosity.",
+      "image": "../art/full/srd-death-dog.png",
+      "thumbnail": "../art/thumbnails/srd-death-dog.png"
+    },
+    {
+      "id": "srd-deep-gnome-svirfneblin",
+      "name": "Deep Gnome (Svirfneblin)",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "gnome",
+      "size": "small",
+      "defaultHp": 16,
+      "hitDice": "3d6",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "deep-gnome-svirfneblin",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/deep-gnome-svirfneblin"
+      },
+      "artDirection": "Original tactical fantasy depiction of Deep Gnome (Svirfneblin), a Small humanoid (gnome).",
+      "image": "../art/full/srd-deep-gnome-svirfneblin.png",
+      "thumbnail": "../art/thumbnails/srd-deep-gnome-svirfneblin.png"
+    },
+    {
+      "id": "srd-deer",
+      "name": "Deer",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 4,
+      "hitDice": "1d8",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "deer",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/deer"
+      },
+      "artDirection": "Original tactical fantasy depiction of Deer, a Medium beast.",
+      "image": "../art/full/srd-deer.png",
+      "thumbnail": "../art/thumbnails/srd-deer.png"
+    },
+    {
+      "id": "srd-deva",
+      "name": "Deva",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 136,
+      "hitDice": "16d8",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 30,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "deva",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/deva"
+      },
+      "artDirection": "Original tactical fantasy depiction of Deva, a Medium celestial.",
+      "image": "../art/full/srd-deva.png",
+      "thumbnail": "../art/thumbnails/srd-deva.png"
+    },
+    {
+      "id": "srd-djinni",
+      "name": "Djinni",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 161,
+      "hitDice": "14d10",
+      "armorClass": 17,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 30,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "djinni",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/djinni"
+      },
+      "artDirection": "Original tactical fantasy depiction of Djinni, a Large elemental.",
+      "image": "../art/full/srd-djinni.png",
+      "thumbnail": "../art/thumbnails/srd-djinni.png"
+    },
+    {
+      "id": "srd-doppelganger",
+      "name": "Doppelganger",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": "shapechanger",
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "doppelganger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/doppelganger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Doppelganger, a Medium monstrosity (shapechanger).",
+      "image": "../art/full/srd-doppelganger.png",
+      "thumbnail": "../art/thumbnails/srd-doppelganger.png"
+    }
+  ]
+}

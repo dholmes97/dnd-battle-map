@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-chuul",
+      "name": "Chuul",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 93,
+      "hitDice": "11d10",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "chuul",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/chuul"
+      },
+      "artDirection": "Original tactical fantasy depiction of Chuul, a Large aberration.",
+      "image": "../art/full/srd-chuul.png",
+      "thumbnail": "../art/thumbnails/srd-chuul.png"
+    },
+    {
+      "id": "srd-clay-golem",
+      "name": "Clay Golem",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 133,
+      "hitDice": "14d10",
+      "armorClass": 14,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "clay-golem",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/clay-golem"
+      },
+      "artDirection": "Original tactical fantasy depiction of Clay Golem, a Large construct.",
+      "image": "../art/full/srd-clay-golem.png",
+      "thumbnail": "../art/thumbnails/srd-clay-golem.png"
+    },
+    {
+      "id": "srd-cloaker",
+      "name": "Cloaker",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 78,
+      "hitDice": "12d10",
+      "armorClass": 14,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cloaker",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cloaker"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cloaker, a Large aberration.",
+      "image": "../art/full/srd-cloaker.png",
+      "thumbnail": "../art/thumbnails/srd-cloaker.png"
+    },
+    {
+      "id": "srd-cloud-giant",
+      "name": "Cloud Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 200,
+      "hitDice": "16d12",
+      "armorClass": 14,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cloud-giant",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cloud-giant"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cloud Giant, a Huge giant.",
+      "image": "../art/full/srd-cloud-giant.png",
+      "thumbnail": "../art/thumbnails/srd-cloud-giant.png"
+    },
+    {
+      "id": "srd-cockatrice",
+      "name": "Cockatrice",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cockatrice",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cockatrice"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cockatrice, a Small monstrosity.",
+      "image": "../art/full/srd-cockatrice.png",
+      "thumbnail": "../art/thumbnails/srd-cockatrice.png"
+    },
+    {
+      "id": "srd-commoner",
+      "name": "Commoner",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 4,
+      "hitDice": "1d8",
+      "armorClass": 10,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "commoner",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/commoner"
+      },
+      "artDirection": "Original tactical fantasy depiction of Commoner, a Medium humanoid (any race).",
+      "image": "../art/full/srd-commoner.png",
+      "thumbnail": "../art/thumbnails/srd-commoner.png"
+    },
+    {
+      "id": "srd-constrictor-snake",
+      "name": "Constrictor Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 13,
+      "hitDice": "2d10",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "constrictor-snake",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/constrictor-snake"
+      },
+      "artDirection": "Original tactical fantasy depiction of Constrictor Snake, a Large beast.",
+      "image": "../art/full/srd-constrictor-snake.png",
+      "thumbnail": "../art/thumbnails/srd-constrictor-snake.png"
+    },
+    {
+      "id": "srd-copper-dragon-wyrmling",
+      "name": "Copper Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "copper-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/copper-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Copper Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-copper-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-copper-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-couatl",
+      "name": "Couatl",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 97,
+      "hitDice": "13d8",
+      "armorClass": 19,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "couatl",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/couatl"
+      },
+      "artDirection": "Original tactical fantasy depiction of Couatl, a Medium celestial.",
+      "image": "../art/full/srd-couatl.png",
+      "thumbnail": "../art/thumbnails/srd-couatl.png"
+    },
+    {
+      "id": "srd-crab",
+      "name": "Crab",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "crab",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/crab"
+      },
+      "artDirection": "Original tactical fantasy depiction of Crab, a Tiny beast.",
+      "image": "../art/full/srd-crab.png",
+      "thumbnail": "../art/thumbnails/srd-crab.png"
+    }
+  ]
+}

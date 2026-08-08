@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-bearded-devil",
+      "name": "Bearded Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bearded-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bearded-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bearded Devil, a Medium fiend (devil).",
+      "image": "../art/full/srd-bearded-devil.png",
+      "thumbnail": "../art/thumbnails/srd-bearded-devil.png"
+    },
+    {
+      "id": "srd-behir",
+      "name": "Behir",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12",
+      "armorClass": 17,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "behir",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/behir"
+      },
+      "artDirection": "Original tactical fantasy depiction of Behir, a Huge monstrosity.",
+      "image": "../art/full/srd-behir.png",
+      "thumbnail": "../art/thumbnails/srd-behir.png"
+    },
+    {
+      "id": "srd-berserker",
+      "name": "Berserker",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 67,
+      "hitDice": "9d8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "berserker",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/berserker"
+      },
+      "artDirection": "Original tactical fantasy depiction of Berserker, a Medium humanoid (any race).",
+      "image": "../art/full/srd-berserker.png",
+      "thumbnail": "../art/thumbnails/srd-berserker.png"
+    },
+    {
+      "id": "srd-black-dragon-wyrmling",
+      "name": "Black Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "black-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/black-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Black Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-black-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-black-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-black-pudding",
+      "name": "Black Pudding",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10",
+      "armorClass": 7,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "black-pudding",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/black-pudding"
+      },
+      "artDirection": "Original tactical fantasy depiction of Black Pudding, a Large ooze.",
+      "image": "../art/full/srd-black-pudding.png",
+      "thumbnail": "../art/thumbnails/srd-black-pudding.png"
+    },
+    {
+      "id": "srd-blink-dog",
+      "name": "Blink Dog",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "blink-dog",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blink-dog"
+      },
+      "artDirection": "Original tactical fantasy depiction of Blink Dog, a Medium fey.",
+      "image": "../art/full/srd-blink-dog.png",
+      "thumbnail": "../art/thumbnails/srd-blink-dog.png"
+    },
+    {
+      "id": "srd-blood-hawk",
+      "name": "Blood Hawk",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "blood-hawk",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blood-hawk"
+      },
+      "artDirection": "Original tactical fantasy depiction of Blood Hawk, a Small beast.",
+      "image": "../art/full/srd-blood-hawk.png",
+      "thumbnail": "../art/thumbnails/srd-blood-hawk.png"
+    },
+    {
+      "id": "srd-blue-dragon-wyrmling",
+      "name": "Blue Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "blue-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blue-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Blue Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-blue-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-blue-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-boar",
+      "name": "Boar",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "boar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/boar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Boar, a Medium beast.",
+      "image": "../art/full/srd-boar.png",
+      "thumbnail": "../art/thumbnails/srd-boar.png"
+    },
+    {
+      "id": "srd-bone-devil",
+      "name": "Bone Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "large",
+      "defaultHp": 142,
+      "hitDice": "15d10",
+      "armorClass": 19,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bone-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bone-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bone Devil, a Large fiend (devil).",
+      "image": "../art/full/srd-bone-devil.png",
+      "thumbnail": "../art/thumbnails/srd-bone-devil.png"
+    }
+  ]
+}

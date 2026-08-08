@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-draft-horse",
+      "name": "Draft Horse",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 10,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "draft-horse",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/draft-horse"
+      },
+      "artDirection": "Original tactical fantasy depiction of Draft Horse, a Large beast.",
+      "image": "../art/full/srd-draft-horse.png",
+      "thumbnail": "../art/thumbnails/srd-draft-horse.png"
+    },
+    {
+      "id": "srd-dragon-turtle",
+      "name": "Dragon Turtle",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 341,
+      "hitDice": "22d20",
+      "armorClass": 20,
+      "challengeRating": "17",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "dragon-turtle",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dragon-turtle"
+      },
+      "artDirection": "Original tactical fantasy depiction of Dragon Turtle, a Gargantuan dragon.",
+      "image": "../art/full/srd-dragon-turtle.png",
+      "thumbnail": "../art/thumbnails/srd-dragon-turtle.png"
+    },
+    {
+      "id": "srd-dretch",
+      "name": "Dretch",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "dretch",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dretch"
+      },
+      "artDirection": "Original tactical fantasy depiction of Dretch, a Small fiend (demon).",
+      "image": "../art/full/srd-dretch.png",
+      "thumbnail": "../art/thumbnails/srd-dretch.png"
+    },
+    {
+      "id": "srd-drider",
+      "name": "Drider",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 123,
+      "hitDice": "13d10",
+      "armorClass": 19,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "drider",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/drider"
+      },
+      "artDirection": "Original tactical fantasy depiction of Drider, a Large monstrosity.",
+      "image": "../art/full/srd-drider.png",
+      "thumbnail": "../art/thumbnails/srd-drider.png"
+    },
+    {
+      "id": "srd-drow",
+      "name": "Drow",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "elf",
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "drow",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/drow"
+      },
+      "artDirection": "Original tactical fantasy depiction of Drow, a Medium humanoid (elf).",
+      "image": "../art/full/srd-drow.png",
+      "thumbnail": "../art/thumbnails/srd-drow.png"
+    },
+    {
+      "id": "srd-druid",
+      "name": "Druid",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "druid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/druid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Druid, a Medium humanoid (any race).",
+      "image": "../art/full/srd-druid.png",
+      "thumbnail": "../art/thumbnails/srd-druid.png"
+    },
+    {
+      "id": "srd-dryad",
+      "name": "Dryad",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "dryad",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dryad"
+      },
+      "artDirection": "Original tactical fantasy depiction of Dryad, a Medium fey.",
+      "image": "../art/full/srd-dryad.png",
+      "thumbnail": "../art/thumbnails/srd-dryad.png"
+    },
+    {
+      "id": "srd-duergar",
+      "name": "Duergar",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "dwarf",
+      "size": "medium",
+      "defaultHp": 26,
+      "hitDice": "4d8",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "duergar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/duergar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Duergar, a Medium humanoid (dwarf).",
+      "image": "../art/full/srd-duergar.png",
+      "thumbnail": "../art/thumbnails/srd-duergar.png"
+    },
+    {
+      "id": "srd-dust-mephit",
+      "name": "Dust Mephit",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 17,
+      "hitDice": "5d6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "dust-mephit",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dust-mephit"
+      },
+      "artDirection": "Original tactical fantasy depiction of Dust Mephit, a Small elemental.",
+      "image": "../art/full/srd-dust-mephit.png",
+      "thumbnail": "../art/thumbnails/srd-dust-mephit.png"
+    },
+    {
+      "id": "srd-eagle",
+      "name": "Eagle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 3,
+      "hitDice": "1d6",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "eagle",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/eagle"
+      },
+      "artDirection": "Original tactical fantasy depiction of Eagle, a Small beast.",
+      "image": "../art/full/srd-eagle.png",
+      "thumbnail": "../art/thumbnails/srd-eagle.png"
+    }
+  ]
+}

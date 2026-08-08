@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-brass-dragon-wyrmling",
+      "name": "Brass Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 16,
+      "hitDice": "3d8",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "brass-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/brass-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Brass Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-brass-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-brass-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-bronze-dragon-wyrmling",
+      "name": "Bronze Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bronze-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bronze-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bronze Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-bronze-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-bronze-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-brown-bear",
+      "name": "Brown Bear",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 34,
+      "hitDice": "4d10",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "brown-bear",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/brown-bear"
+      },
+      "artDirection": "Original tactical fantasy depiction of Brown Bear, a Large beast.",
+      "image": "../art/full/srd-brown-bear.png",
+      "thumbnail": "../art/thumbnails/srd-brown-bear.png"
+    },
+    {
+      "id": "srd-bugbear",
+      "name": "Bugbear",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "goblinoid",
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bugbear",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bugbear"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bugbear, a Medium humanoid (goblinoid).",
+      "image": "../art/full/srd-bugbear.png",
+      "thumbnail": "../art/thumbnails/srd-bugbear.png"
+    },
+    {
+      "id": "srd-bulette",
+      "name": "Bulette",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 94,
+      "hitDice": "9d10",
+      "armorClass": 17,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 40
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "bulette",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bulette"
+      },
+      "artDirection": "Original tactical fantasy depiction of Bulette, a Large monstrosity.",
+      "image": "../art/full/srd-bulette.png",
+      "thumbnail": "../art/thumbnails/srd-bulette.png"
+    },
+    {
+      "id": "srd-camel",
+      "name": "Camel",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 15,
+      "hitDice": "2d10",
+      "armorClass": 9,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "camel",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/camel"
+      },
+      "artDirection": "Original tactical fantasy depiction of Camel, a Large beast.",
+      "image": "../art/full/srd-camel.png",
+      "thumbnail": "../art/thumbnails/srd-camel.png"
+    },
+    {
+      "id": "srd-cat",
+      "name": "Cat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "cat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/cat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Cat, a Tiny beast.",
+      "image": "../art/full/srd-cat.png",
+      "thumbnail": "../art/thumbnails/srd-cat.png"
+    },
+    {
+      "id": "srd-centaur",
+      "name": "Centaur",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "centaur",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/centaur"
+      },
+      "artDirection": "Original tactical fantasy depiction of Centaur, a Large monstrosity.",
+      "image": "../art/full/srd-centaur.png",
+      "thumbnail": "../art/thumbnails/srd-centaur.png"
+    },
+    {
+      "id": "srd-chain-devil",
+      "name": "Chain Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "medium",
+      "defaultHp": 85,
+      "hitDice": "10d8",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "chain-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/chain-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Chain Devil, a Medium fiend (devil).",
+      "image": "../art/full/srd-chain-devil.png",
+      "thumbnail": "../art/thumbnails/srd-chain-devil.png"
+    },
+    {
+      "id": "srd-chimera",
+      "name": "Chimera",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10",
+      "armorClass": 14,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "chimera",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/chimera"
+      },
+      "artDirection": "Original tactical fantasy depiction of Chimera, a Large monstrosity.",
+      "image": "../art/full/srd-chimera.png",
+      "thumbnail": "../art/thumbnails/srd-chimera.png"
+    }
+  ]
+}
