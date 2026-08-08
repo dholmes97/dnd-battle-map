@@ -1,0 +1,1 @@
+ALTER TABLE `tokens` ADD `initiative_group_id` text;

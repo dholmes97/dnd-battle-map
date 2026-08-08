@@ -19,6 +19,7 @@ import {
   resolveTokenControllerName,
 } from "../shared/token-control.mjs";
 import { deriveHistoryActionIds } from "../shared/action-history.mjs";
+import { healthBand } from "../shared/health.mjs";
 
 interface Env {
   ASSETS: Fetcher;
@@ -72,6 +73,7 @@ type TokenRow = {
   is_hidden: number;
   summoner_token_id: string | null;
   initiative: number | null;
+  initiative_group_id: string | null;
   initiative_order: number | null;
   turn_complete: number;
   movement_used: number;
@@ -408,6 +410,7 @@ async function ensureSchema(env: Env): Promise<void> {
           is_hidden INTEGER DEFAULT 0 NOT NULL,
           summoner_token_id TEXT,
           initiative INTEGER,
+          initiative_group_id TEXT,
           initiative_order INTEGER,
           turn_complete INTEGER DEFAULT 0 NOT NULL,
           movement_used REAL DEFAULT 0 NOT NULL,
@@ -589,6 +592,7 @@ async function ensureSchema(env: Env): Promise<void> {
         ["is_hidden", "ALTER TABLE tokens ADD COLUMN is_hidden INTEGER DEFAULT 0 NOT NULL"],
         ["summoner_token_id", "ALTER TABLE tokens ADD COLUMN summoner_token_id TEXT"],
         ["initiative", "ALTER TABLE tokens ADD COLUMN initiative INTEGER"],
+        ["initiative_group_id", "ALTER TABLE tokens ADD COLUMN initiative_group_id TEXT"],
         ["initiative_order", "ALTER TABLE tokens ADD COLUMN initiative_order INTEGER"],
         ["turn_complete", "ALTER TABLE tokens ADD COLUMN turn_complete INTEGER DEFAULT 0 NOT NULL"],
         ["movement_used", "ALTER TABLE tokens ADD COLUMN movement_used REAL DEFAULT 0 NOT NULL"],
@@ -744,6 +748,22 @@ async function ensureSchema(env: Env): Promise<void> {
         await db.prepare(
           "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
         ).bind(now, "encounter-ember-keep").run();
+      }
+      const legacyHpBackfill = await db.prepare(
+        `UPDATE tokens SET
+          hp = (SELECT default_hp FROM creature_catalog
+                WHERE token_asset = tokens.art_asset AND is_active = 1 LIMIT 1),
+          max_hp = (SELECT default_hp FROM creature_catalog
+                    WHERE token_asset = tokens.art_asset AND is_active = 1 LIMIT 1),
+          updated_at = ?
+         WHERE kind = 'monster' AND hp IS NULL AND max_hp IS NULL
+         AND EXISTS (SELECT 1 FROM creature_catalog
+                     WHERE token_asset = tokens.art_asset AND is_active = 1)`,
+      ).bind(now).run();
+      if ((legacyHpBackfill.meta.changes ?? 0) > 0) {
+        await db.prepare(
+          "UPDATE encounters SET version = version + 1, updated_at = ?",
+        ).bind(now).run();
       }
       const defaultScene = createFullSceneMap(FULL_SCENE_MAPS[0]);
       const migratedScenes = await db.prepare(
@@ -1017,11 +1037,7 @@ async function expireAnnotations(
 }
 
 function coarseHealth(hp: number | null, maxHp: number | null): string | null {
-  if (hp === null || maxHp === null || maxHp <= 0) return null;
-  const ratio = hp / maxHp;
-  if (ratio <= 0.25) return "near-death";
-  if (ratio <= 0.5) return "bloodied";
-  return "steady";
+  return healthBand(hp, maxHp);
 }
 
 async function encounterState(
@@ -1036,7 +1052,7 @@ async function encounterState(
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
-            t.initiative_order, t.turn_complete, t.movement_used,
+            t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used,
             t.owner_participant_id, t.owner_name
      FROM tokens t
      WHERE t.encounter_id = ? ORDER BY t.name, t.id`,
@@ -1129,6 +1145,7 @@ async function encounterState(
         hidden: Boolean(token.is_hidden),
         summonerTokenId: token.summoner_token_id,
         initiative: token.initiative,
+        initiativeGroupId: token.initiative_group_id,
         initiativeOrder: token.initiative_order,
         turnComplete: Boolean(token.turn_complete),
         movementUsed: token.movement_used,
@@ -1210,6 +1227,7 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "token_moved",
   "hp_changed",
   "initiative_set",
+  "initiative_group_set",
   "effect_added",
   "effect_removed",
   "annotation_added",
@@ -1272,7 +1290,7 @@ async function canControlToken(
     const summoner = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
-              movement_used, owner_participant_id, owner_name
+              movement_used, owner_participant_id, owner_name, initiative_group_id
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
       .bind(current.summoner_token_id, encounterId)
@@ -1385,13 +1403,27 @@ async function handleCommand(
       changes = result.meta.changes ?? 0;
     } else if (action.action_type === "initiative_set") {
       const result = await env.DB.prepare(
-        `UPDATE tokens SET initiative = ?, initiative_order = NULL,
+        `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
          turn_complete = 0, movement_used = 0, updated_at = ?
-         WHERE id = ? AND encounter_id = ? AND initiative = ?`,
+         WHERE id = ? AND encounter_id = ? AND initiative = ? AND initiative_group_id IS NULL`,
       )
-        .bind(payload.from ?? null, now, tokenId, encounter.id, payload.to)
+        .bind(payload.from ?? null, payload.fromGroupId ?? null, now, tokenId, encounter.id, payload.to)
         .run();
       changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "initiative_group_set") {
+      const members = Array.isArray(payload.members) ? payload.members as Array<Record<string, unknown>> : [];
+      const groupId = cleanTokenId(payload.groupId);
+      const current = members.length ? await env.DB.prepare(
+        `SELECT id FROM tokens WHERE encounter_id = ? AND initiative_group_id = ? AND initiative = ?`,
+      ).bind(encounter.id, groupId, payload.to).all<{ id: string }>() : { results: [] };
+      if (current.results.length === members.length && members.every((member) => current.results.some((row) => row.id === cleanTokenId(member.tokenId)))) {
+        const results = await env.DB.batch(members.map((member) => env.DB.prepare(
+          `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
+           turn_complete = 0, movement_used = 0, updated_at = ?
+           WHERE id = ? AND encounter_id = ? AND initiative_group_id = ? AND initiative = ?`,
+        ).bind(member.from ?? null, member.fromGroupId ?? null, now, cleanTokenId(member.tokenId), encounter.id, groupId, payload.to)));
+        changes = results.reduce((sum, result) => sum + (result.meta.changes ?? 0), 0);
+      }
     } else if (action.action_type === "effect_added") {
       const result = await env.DB.prepare(
         "DELETE FROM effects WHERE id = ? AND encounter_id = ?",
@@ -1457,7 +1489,10 @@ async function handleCommand(
         changes = result.meta.changes ?? 0;
       }
     }
-    if (changes !== 1) {
+    const expectedChanges = action.action_type === "initiative_group_set"
+      ? (Array.isArray(payload.members) ? payload.members.length : 0)
+      : 1;
+    if (changes !== expectedChanges || expectedChanges === 0) {
       return json({ error: "That action can no longer be undone because its shared state changed." }, { status: 409 });
     }
     await bumpEncounter(env, encounter.id, now);
@@ -1501,13 +1536,27 @@ async function handleCommand(
       changes = result.meta.changes ?? 0;
     } else if (action.action_type === "initiative_set") {
       const result = await env.DB.prepare(
-        `UPDATE tokens SET initiative = ?, initiative_order = NULL,
+        `UPDATE tokens SET initiative = ?, initiative_group_id = NULL, initiative_order = NULL,
          turn_complete = 0, movement_used = 0, updated_at = ?
-         WHERE id = ? AND encounter_id = ? AND initiative IS ?`,
+         WHERE id = ? AND encounter_id = ? AND initiative IS ? AND initiative_group_id IS ?`,
       )
-        .bind(payload.to, now, tokenId, encounter.id, payload.from ?? null)
+        .bind(payload.to, now, tokenId, encounter.id, payload.from ?? null, payload.fromGroupId ?? null)
         .run();
       changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "initiative_group_set") {
+      const members = Array.isArray(payload.members) ? payload.members as Array<Record<string, unknown>> : [];
+      const groupId = cleanTokenId(payload.groupId);
+      const valid = members.length > 0 && await Promise.all(members.map((member) => env.DB.prepare(
+        `SELECT id FROM tokens WHERE id = ? AND encounter_id = ? AND initiative IS ? AND initiative_group_id IS ?`,
+      ).bind(cleanTokenId(member.tokenId), encounter.id, member.from ?? null, member.fromGroupId ?? null).first<{ id: string }>())) ;
+      if (valid && valid.every(Boolean)) {
+        const results = await env.DB.batch(members.map((member) => env.DB.prepare(
+          `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
+           turn_complete = 0, movement_used = 0, updated_at = ?
+           WHERE id = ? AND encounter_id = ? AND initiative IS ? AND initiative_group_id IS ?`,
+        ).bind(payload.to, groupId, now, cleanTokenId(member.tokenId), encounter.id, member.from ?? null, member.fromGroupId ?? null)));
+        changes = results.reduce((sum, result) => sum + (result.meta.changes ?? 0), 0);
+      }
     } else if (action.action_type === "effect_added") {
       const effect = (payload.effect ?? payload) as Record<string, unknown>;
       const result = await env.DB.prepare(
@@ -1573,7 +1622,10 @@ async function handleCommand(
         changes = result.meta.changes ?? 0;
       }
     }
-    if (changes !== 1) {
+    const expectedChanges = action.action_type === "initiative_group_set"
+      ? (Array.isArray(payload.members) ? payload.members.length : 0)
+      : 1;
+    if (changes !== expectedChanges || expectedChanges === 0) {
       return json({ error: "That action can no longer be redone because its shared state changed." }, { status: 409 });
     }
     await bumpEncounter(env, encounter.id, now);
@@ -1589,7 +1641,7 @@ async function handleCommand(
     const initiative = Math.trunc(Number(body.initiative));
     const token = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
-              summoner_token_id, initiative, initiative_order, turn_complete,
+              summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
@@ -1606,7 +1658,7 @@ async function handleCommand(
       return json({ error: "Initiative must be a whole number from 0 to 99." }, { status: 400 });
     }
     await env.DB.prepare(
-      `UPDATE tokens SET initiative = ?, initiative_order = NULL,
+      `UPDATE tokens SET initiative = ?, initiative_group_id = NULL, initiative_order = NULL,
        turn_complete = 0, movement_used = 0, updated_at = ?
        WHERE id = ? AND encounter_id = ?`,
     )
@@ -1616,16 +1668,62 @@ async function handleCommand(
     await recordAction(env, encounter.id, participant.id, "initiative_set", {
       tokenId,
       from: token.initiative,
+      fromGroupId: token.initiative_group_id,
       to: initiative,
     }, now);
     return json({ updated: true, state: await state() });
+  }
+
+  if (command === "set-initiative-group") {
+    const denied = requireDm();
+    if (denied) return denied;
+    if (encounter.status === "active") {
+      return json({ error: "Reset combat before changing initiative groups." }, { status: 409 });
+    }
+    const initiative = Math.trunc(Number(body.initiative));
+    if (!Number.isInteger(initiative) || initiative < 0 || initiative > 99) {
+      return json({ error: "Initiative must be a whole number from 0 to 99." }, { status: 400 });
+    }
+    const tokenIds = [...new Set(Array.isArray(body.tokenIds) ? body.tokenIds.map(cleanTokenId).filter(Boolean) : [])].slice(0, 100);
+    if (tokenIds.length < 2) {
+      return json({ error: "Choose at least two creatures for a shared initiative group." }, { status: 400 });
+    }
+    const placeholders = tokenIds.map(() => "?").join(", ");
+    const tokens = await env.DB.prepare(
+      `SELECT id, initiative, initiative_group_id, summoner_token_id
+       FROM tokens WHERE encounter_id = ? AND id IN (${placeholders})`,
+    ).bind(encounter.id, ...tokenIds).all<{
+      id: string;
+      initiative: number | null;
+      initiative_group_id: string | null;
+      summoner_token_id: string | null;
+    }>();
+    if (tokens.results.length !== tokenIds.length || tokens.results.some((token) => token.summoner_token_id)) {
+      return json({ error: "Every initiative-group member must be a top-level creature in this encounter." }, { status: 400 });
+    }
+    const groupId = crypto.randomUUID();
+    await env.DB.batch(tokens.results.map((token) => env.DB.prepare(
+      `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
+       turn_complete = 0, movement_used = 0, updated_at = ? WHERE id = ? AND encounter_id = ?`,
+    ).bind(initiative, groupId, now, token.id, encounter.id)));
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "initiative_group_set", {
+      groupId,
+      to: initiative,
+      members: tokens.results.map((token) => ({
+        tokenId: token.id,
+        from: token.initiative,
+        fromGroupId: token.initiative_group_id,
+      })),
+    }, now);
+    return json({ updated: true, groupId, state: await state() });
   }
 
   if (command === "start-combat") {
     const denied = requireDm();
     if (denied) return denied;
     const tokens = await env.DB.prepare(
-      `SELECT id, name, initiative, summoner_token_id FROM tokens
+      `SELECT id, name, initiative, initiative_group_id, summoner_token_id FROM tokens
        WHERE encounter_id = ? ORDER BY name, id`,
     )
       .bind(encounter.id)
@@ -1633,6 +1731,7 @@ async function handleCommand(
         id: string;
         name: string;
         initiative: number | null;
+        initiative_group_id: string | null;
         summoner_token_id: string | null;
       }>();
     const leaders = tokens.results
@@ -1641,13 +1740,24 @@ async function handleCommand(
     if (leaders.length === 0) {
       return json({ error: "Enter at least one initiative before starting combat." }, { status: 409 });
     }
-    const statements = leaders.flatMap((leader, order) => [
+    const groups = new Map<string, typeof leaders>();
+    for (const leader of leaders) {
+      const key = leader.initiative_group_id || leader.id;
+      const members = groups.get(key);
+      if (members) members.push(leader); else groups.set(key, [leader]);
+    }
+    const orderedGroups = [...groups.values()].sort((a, b) =>
+      (b[0].initiative ?? 0) - (a[0].initiative ?? 0) || a[0].name.localeCompare(b[0].name));
+    const statements = [env.DB.prepare(
+      `UPDATE tokens SET initiative_order = NULL, turn_complete = 0,
+       movement_used = 0, updated_at = ? WHERE encounter_id = ?`,
+    ).bind(now, encounter.id), ...orderedGroups.flatMap((members, order) => members.map((leader) =>
       env.DB.prepare(
         `UPDATE tokens SET initiative_order = ?, turn_complete = 0,
          movement_used = 0, updated_at = ?
          WHERE encounter_id = ? AND (id = ? OR summoner_token_id = ?)`,
       ).bind(order, now, encounter.id, leader.id, leader.id),
-    ]);
+    ))];
     statements.push(
       env.DB.prepare(
         `UPDATE encounters SET status = 'active', current_round = 1,
@@ -1657,7 +1767,7 @@ async function handleCommand(
     await env.DB.batch(statements);
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "combat_started", {
-      groups: leaders.map((leader, order) => ({ tokenId: leader.id, order })),
+      groups: orderedGroups.map((members, order) => ({ tokenIds: members.map((member) => member.id), order })),
     }, now);
     return json({ started: true, state: await state() });
   }
@@ -1688,21 +1798,8 @@ async function handleCommand(
       }
       await env.DB.prepare(
         `UPDATE tokens SET turn_complete = 1, updated_at = ?
-         WHERE id = ? AND encounter_id = ?`,
-      )
-        .bind(now, tokenId, encounter.id)
-        .run();
-      const remaining = await env.DB.prepare(
-        `SELECT count(*) AS count FROM tokens
-         WHERE encounter_id = ? AND initiative_order = ? AND turn_complete = 0`,
-      )
-        .bind(encounter.id, encounter.active_initiative_order)
-        .first<{ count: number }>();
-      if ((remaining?.count ?? 0) > 0) {
-        await bumpEncounter(env, encounter.id, now);
-        await recordAction(env, encounter.id, participant.id, "turn_member_ended", { tokenId }, now);
-        return json({ advanced: false, state: await state() });
-      }
+         WHERE encounter_id = ? AND initiative_order = ?`,
+      ).bind(now, encounter.id, encounter.active_initiative_order).run();
     } else {
       await env.DB.prepare(
         `UPDATE tokens SET turn_complete = 1, updated_at = ?
@@ -1943,7 +2040,7 @@ async function handleCommand(
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "token_created", {
       tokenId,
-      token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden: Boolean(body.hidden), summonerTokenId, artAsset, initiative: inherited?.initiative ?? null, initiativeOrder: inherited?.initiative_order ?? null },
+      token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden: Boolean(body.hidden), summonerTokenId, artAsset, initiative: inherited?.initiative ?? null, initiativeGroupId: null, initiativeOrder: inherited?.initiative_order ?? null },
     }, now);
     return json({ created: true, tokenId, state: await state() });
   }

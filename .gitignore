@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Generated creature art is uploaded to R2 in ten-item batches, not bundled in Sites.
 /catalog/art/
+
+# Claude Code machine-local permissions
+/.claude/settings.local.json

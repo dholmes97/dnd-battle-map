@@ -147,6 +147,8 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
   assert.match(workerSource, /creature-catalog\/original/);
   assert.match(workerSource, /creature-catalog\/thumbnails/);
+  assert.match(workerSource, /WHERE kind = 'monster' AND hp IS NULL AND max_hp IS NULL/);
+  assert.match(workerSource, /WHERE token_asset = tokens\.art_asset AND is_active = 1/);
   assert.match(workerSource, /SELECT id, name, family, creature_type, size, default_hp, hit_dice/);
   assert.match(workerSource, /CATALOG_IMPORT_TOKEN/);
   assert.match(workerSource, /entries\.length === 0 \|\| entries\.length > 10/);
@@ -256,7 +258,8 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
   assert.match(clientSource, /annotations: current\.annotations\.filter/);
   assert.match(clientSource, /tokens: current\.tokens\.map\(\(item\) => item\.id === token\.id \? \{ \.\.\.item, initiative/);
-  assert.match(clientSource, /void applyHpToToken\(token\)/);
+  assert.match(clientSource, /void applyHpToToken\(token, -hpStep\)/);
+  assert.match(clientSource, /void applyHpToToken\(token, hpStep\)/);
   assert.match(clientSource, /removeEffectFromToken\(token\.id, effect\.id\)/);
   assert.match(clientSource, /startCombatOptimistically/);
   assert.match(clientSource, /advanceTurnOptimistically/);
@@ -336,7 +339,10 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   ]);
 
   assert.match(clientSource, /<small>Size<\/small><strong>/);
-  assert.match(clientSource, /<small>Speed<\/small><strong>\{token\.speed\} ft<\/strong>/);
+  assert.match(clientSource, /<small>Speed<\/small><strong>\{selectedToken\.speed\} ft<\/strong>/);
+  // Unselected rows stay a single compact line: no per-row stat grid.
+  assert.match(clientSource, /className="roster-row/);
+  assert.doesNotMatch(clientSource, /className="token-card/);
   assert.match(clientSource, />\+ Effect<\/button>/);
   assert.doesNotMatch(clientSource, /<small>Position<\/small>/);
   assert.doesNotMatch(clientSource, /Claim token|Reconnect this token|Release token|unclaimed/);
@@ -344,7 +350,7 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.match(clientSource, /tokenEditorTokenId === token\.id \? <div className="token-config">/);
   assert.match(clientSource, /Edit details/);
   assert.match(styles, /\.initiative-editor input \{ width: 3\.1rem/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 18\.5rem/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 19\.5rem/);
 });
 
 test("assigns every token to a fixed identity without claim state", async () => {
@@ -380,7 +386,7 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
+  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\)/);
   assert.match(styles, /justify-content: stretch/);
   assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: stretch; overflow: hidden; \}/);
   assert.match(styles, /\.map-frame \{ width: 100%; height: 100%; max-width: none; \}/);
@@ -404,7 +410,7 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
   assert.match(clientSource, /const fitZoom = Math\.min\(width \/ state\.grid\.width, height \/ state\.grid\.height\) \/ baseCellSize/);
   assert.match(clientSource, /const zoom = fit \? fitZoom : Math\.max\(1, Math\.min\(3, requestedZoom\)\)/);
   assert.match(clientSource, /aria-label="Fit whole map"/);
-  assert.match(clientSource, /onClick=\{fitViewport\}>⛶<\/button>/);
+  assert.match(clientSource, /onClick=\{fitViewport\}><Icon name="fit" \/><\/button>/);
   assert.match(clientSource, /viewport\.fit \? "Fit"/);
   assert.match(clientSource, /offsetX: Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
   assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
@@ -425,16 +431,20 @@ test("offers compact icon tools and precise line erasing", async () => {
 
   assert.match(clientSource, /type AnnotationMode = "move" \| "ping" \| "drawing" \| "erase" \| "spotlight"/);
   assert.match(clientSource, /drawingAtPoint\(state\.annotations, point/);
-  assert.match(clientSource, /aria-label="Erase line"/);
-  assert.match(clientSource, /aria-label="Move tokens"/);
-  assert.match(clientSource, /data-tooltip="Move tokens"/);
-  assert.match(clientSource, /data-tooltip="Erase line"/);
+  assert.match(clientSource, /aria-label=\{label\}\s+data-tooltip=\{`\$\{label\} — \$\{shortcut\}`\}/);
+  assert.match(clientSource, /toolButton\("move", "move", "Move tokens", "V"\)/);
+  assert.match(clientSource, /toolButton\("erase", "erase", "Erase line", "E"\)/);
+  assert.match(clientSource, /toolButton\("ping", "ping", "Ping map", "P"\)/);
+  assert.match(clientSource, /toolButton\("drawing", "line", "Draw line", "L"\)/);
+  // Stroked SVG paths replaced the glyph characters that rendered unevenly.
+  assert.match(clientSource, /const ICON_PATHS = \{/);
+  assert.doesNotMatch(clientSource, /aria-hidden="true">✥|aria-hidden="true">◉|aria-hidden="true">⌫/);
   assert.doesNotMatch(clientSource, />Move<\/button>|>Ping<\/button>|>Draw line<\/button>|>Erase<\/button>/);
   assert.match(workerSource, /if \(command === "remove-annotation"\)/);
   assert.match(workerSource, /You can only erase lines you drew/);
   assert.match(workerSource, /"annotation_removed"/);
-  assert.match(styles, /\.map-toolbar \.icon-tool/);
-  assert.match(styles, /\.map-toolbar \[data-tooltip\]::after/);
+  assert.match(styles, /\.command-bar \.icon-tool/);
+  assert.match(styles, /\.command-bar \[data-tooltip\]::after/);
   assert.match(styles, /\[data-tooltip\]:focus-visible::after/);
 });
 
@@ -453,6 +463,7 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
   assert.match(historyFlow, /if \(!confirmed\) setNotice\(""\)/);
   assert.match(clientSource, /const wantsUndo = modifier && key === "z" && !event\.shiftKey/);
   assert.match(clientSource, /event\.ctrlKey && !event\.metaKey && key === "y"/);
+  assert.match(clientSource, /const runHistoryFromShortcut = useEffectEvent/);
   assert.match(clientSource, /target\?\.closest\("input, textarea, select"\)/);
   assert.doesNotMatch(clientSource, /className="undo-button"/);
   assert.doesNotMatch(styles, /\.undo-button/);
@@ -495,4 +506,87 @@ test("includes a durable full-scene workshop with no retired editor path", async
   for (const source of [battleMapSource, workshopSource, packageSource, workerSource]) {
     assert.doesNotMatch(source, /map-stamps|assets\/terrain|STAMP_LIBRARY|TERRAIN_ASSETS|Legacy procedural|stamp palette/i);
   }
+});
+
+test("spends the viewport on the map with one command bar and no static footer", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  // Encounter identity and connection state ride in the tool row itself.
+  assert.match(clientSource, /className="command-bar"/);
+  assert.match(clientSource, /className="encounter-identity"/);
+  assert.doesNotMatch(clientSource, /className="topbar"|className="map-footer"/);
+  assert.doesNotMatch(styles, /^\.topbar \{|^\.map-footer \{/m);
+  // Static trivia that never changed during play is gone for good.
+  assert.doesNotMatch(clientSource, /squares<\/span>|Server version|equal-cost diagonals/i);
+  // Panning by button was redundant with dragging empty map space.
+  assert.doesNotMatch(clientSource, /aria-label="Pan left"|nudgeViewport/);
+});
+
+test("collapses the sidebar and presents the map full bleed", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /aria-label="Presentation mode"/);
+  assert.match(clientSource, /requestFullscreen\?\.\(\)/);
+  assert.match(clientSource, /hidden=\{!sidebarOpen \|\| presenting\}/);
+  assert.match(styles, /\.app-shell\.is-collapsed \.workspace, \.app-shell\.is-presenting \.workspace \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  // Shortcuts must never fire while the DM is typing in a field.
+  assert.match(clientSource, /if \(key === "\\\\"\) \{ event\.preventDefault\(\); setSidebarOpen/);
+  assert.match(clientSource, /if \(key === "f"\) \{ event\.preventDefault\(\); togglePresenting\(\); return; \}/);
+  assert.match(clientSource, /target\?\.closest\?\.\("input, textarea, select"\)/);
+});
+
+test("shows one roster that folds identical mobs and orders combat by initiative", async () => {
+  const [clientSource, workerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /function buildRosterRows\(/);
+  assert.match(clientSource, /const ROSTER_GROUP_THRESHOLD = 3;/);
+  // In combat the roster is the turn order, nothing else.
+  assert.match(clientSource, /\(a\.initiativeOrder \?\? 999\) - \(b\.initiativeOrder \?\? 999\) \|\| compareTokenNames\(a, b\)/);
+  // Grouping keys off creature kind, not ownership: the DM controls everything.
+  assert.match(clientSource, /token\.kind === "character" \? \(token\.controlledByViewer \? 0 : 1\)/);
+  // The separate initiative list is gone; one list serves both jobs.
+  assert.doesNotMatch(clientSource, /className="initiative-list"|className="initiative-entry/);
+  // Encounter controls are always reachable instead of below the whole roster.
+  assert.match(clientSource, /className="panel-foot"/);
+  assert.match(clientSource, /pendingDeleteTokenId === token\.id/);
+  assert.match(clientSource, />Confirm delete<\/button>/);
+  assert.match(clientSource, /"set-initiative-group"/);
+  assert.match(clientSource, /Initiative for all \$\{row\.label\} creatures/);
+  assert.match(clientSource, /"Group turn ended\."/);
+  assert.match(workerSource, /initiative_group_id/);
+  assert.match(workerSource, /WHERE encounter_id = \? AND initiative_order = \?/);
+  // Render must not read the pending-create ref.
+  assert.match(clientSource, /function isPendingCreate\(token: SharedToken\)/);
+});
+
+test("hides exact hit points from players and snaps their rings to bands", async () => {
+  const [clientSource, workerSource, healthSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/health.mjs", import.meta.url), "utf8"),
+  ]);
+
+  // The server is what actually withholds the numbers.
+  assert.match(workerSource, /hp: canSeeExactHp \? token\.hp : null/);
+  assert.match(workerSource, /maxHp: canSeeExactHp \? token\.max_hp : null/);
+  assert.match(workerSource, /return healthBand\(hp, maxHp\)/);
+  // One shared band table so the ring and the server cannot drift apart.
+  assert.match(healthSource, /if \(ratio > 0\.5\) return "injured"/);
+  assert.match(healthSource, /if \(ratio > 0\.25\) return "bloodied"/);
+  assert.match(healthSource, /injured: 0\.75/);
+  assert.match(healthSource, /bloodied: 0\.5/);
+  // Token rings and roster bars both go through displayHealth.
+  assert.match(clientSource, /const health = displayHealth\(token\.hp, token\.maxHp, token\.healthState\)/);
+  assert.match(clientSource, /health\.ratio \* Math\.PI \* 2/);
+  // A row prints digits only when the server sent them.
+  assert.match(clientSource, /token\.hp !== null && token\.maxHp !== null \? `\$\{token\.hp\}\/\$\{token\.maxHp\}` : ""/);
 });

@@ -6,6 +6,7 @@ import {
   type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
 } from "react";
@@ -19,6 +20,7 @@ import {
   tokenRadiusCells,
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
+import { displayHealth, healthBand } from "@/shared/health.mjs";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
@@ -46,6 +48,7 @@ type SharedToken = MapPoint & {
   hidden: boolean;
   summonerTokenId: string | null;
   initiative: number | null;
+  initiativeGroupId: string | null;
   initiativeOrder: number | null;
   turnComplete: boolean;
   movementUsed: number;
@@ -137,14 +140,48 @@ const JOIN_IDENTITIES: JoinIdentity[] = [
   { label: "Join as Kevin (DM)", participantName: "Kevin", role: "dm" },
 ];
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
+// Below this cell size a name under every token turns the map into noise.
+const TOKEN_LABEL_MIN_CELL_PX = 30;
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
 const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
-  "set-initiative", "apply-hp", "add-effect", "remove-effect",
+  "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token", "move",
 ]);
+
+// Stroked 20x20 paths so every tool reads at the same weight. The glyph
+// characters they replace rendered inconsistently across fonts.
+const ICON_PATHS = {
+  move: "M10 3v14M3 10h14M10 3 7.6 5.4M10 3l2.4 2.4M10 17l-2.4-2.4M10 17l2.4-2.4M3 10l2.4-2.4M3 10l2.4 2.4M17 10l-2.4-2.4M17 10l-2.4 2.4",
+  ping: "M10 10h.01M6.1 13.9a5.5 5.5 0 0 1 0-7.8M13.9 6.1a5.5 5.5 0 0 1 0 7.8M3.6 16.4a9 9 0 0 1 0-12.8M16.4 3.6a9 9 0 0 1 0 12.8",
+  line: "M5 15 15 5M5 15h.01M15 5h.01",
+  erase: "m4 13 6.5-6.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 16H7zM4 16h12",
+  spotlight: "M10 3v2M10 15v2M3 10h2M15 10h2M5.2 5.2l1.4 1.4M13.4 13.4l1.4 1.4M14.8 5.2l-1.4 1.4M6.6 13.4l-1.4 1.4M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
+  clear: "M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14M5 5l10 10",
+  creatures: "M7 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M13 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M4 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M16 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M10 9.5c2 0 3.6 1.7 3.9 3.3.3 1.6-.8 3.2-2.5 3.2h-2.8c-1.7 0-2.8-1.6-2.5-3.2C6.4 11.2 8 9.5 10 9.5",
+  workshop: "M3 5.6 7.6 3.5l4.8 2.1L17 3.5v10.9l-4.6 2.1-4.8-2.1L3 16.5zM7.6 3.5v10.9M12.4 5.6v10.9",
+  undo: "M7 5 3.5 8.5 7 12M3.5 8.5H12a4.5 4.5 0 0 1 0 9h-3",
+  redo: "M13 5l3.5 3.5L13 12M16.5 8.5H8a4.5 4.5 0 0 0 0 9h3",
+  fit: "M3.5 7.5v-4h4M16.5 7.5v-4h-4M3.5 12.5v4h4M16.5 12.5v4h-4",
+  zoomOut: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5M6.8 9h4.4",
+  zoomIn: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5M6.8 9h4.4M9 6.8v4.4",
+  sidebar: "M3 4.5h14v11H3zM12.5 4.5v11",
+  present: "M3 7.5v-3h3M17 7.5v-3h-3M3 12.5v3h3M17 12.5v3h-3",
+  close: "M5 5l10 10M15 5L5 15",
+  search: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5",
+} as const;
+
+type IconName = keyof typeof ICON_PATHS;
+
+function Icon({ name }: { name: IconName }) {
+  return (
+    <svg className="ui-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d={ICON_PATHS[name]} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function roundCoordinate(value: number) {
   return Math.round(value * 1_000) / 1_000;
@@ -177,6 +214,94 @@ function tokenInitial(token: SharedToken) {
 
 function artLabel(path: string) {
   return path.split("/").at(-1)?.replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Artwork";
+}
+
+type RosterRow =
+  | { type: "token"; token: SharedToken; grouped: boolean }
+  | { type: "group"; key: string; label: string; tokens: SharedToken[]; expanded: boolean };
+
+// A pack of identical mobs collapses into one row once it reaches this size.
+const ROSTER_GROUP_THRESHOLD = 3;
+
+// Optimistic tokens carry this id prefix until the server confirms them, which
+// lets render read pending state without touching a ref.
+function isPendingCreate(token: SharedToken) {
+  return token.id.startsWith("pending-create-");
+}
+
+function rosterBaseName(name: string) {
+  return name.replace(/\s+\d+$/, "").trim() || name;
+}
+
+function rosterGroupKey(token: SharedToken) {
+  return `${rosterBaseName(token.name)}|${token.artAsset ?? ""}`;
+}
+
+function compareTokenNames(a: SharedToken, b: SharedToken) {
+  return a.name.localeCompare(b.name, undefined, { numeric: true });
+}
+
+// During combat the roster is strictly the turn order. Outside it, the tokens
+// the viewer actually controls come first and identical mobs fold together.
+function buildRosterRows(
+  tokens: SharedToken[],
+  inCombat: boolean,
+  filter: string,
+  expandedGroups: ReadonlySet<string>,
+): RosterRow[] {
+  const needle = filter.trim().toLocaleLowerCase();
+  const visible = needle ? tokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : tokens;
+  if (inCombat) {
+    const rows: RosterRow[] = [];
+    const groups = new Map<string, SharedToken[]>();
+    for (const token of [...visible].sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || compareTokenNames(a, b))) {
+      const key = token.initiativeOrder === null ? `untracked:${token.id}` : `initiative:${token.initiativeOrder}`;
+      const members = groups.get(key);
+      if (members) members.push(token); else groups.set(key, [token]);
+    }
+    for (const [key, members] of groups) {
+      if (members.length === 1 || members[0].initiativeOrder === null) {
+        rows.push({ type: "token", token: members[0], grouped: false });
+        continue;
+      }
+      const leader = members.find((token) => !token.summonerTokenId) ?? members[0];
+      const sameKind = members.every((token) => rosterBaseName(token.name) === rosterBaseName(leader.name));
+      const expanded = expandedGroups.has(key);
+      rows.push({ type: "group", key, label: sameKind ? rosterBaseName(leader.name) : `${leader.name}’s group`, tokens: members, expanded });
+      if (expanded) for (const token of members) rows.push({ type: "token", token, grouped: true });
+    }
+    return rows;
+  }
+  if (needle) {
+    return [...visible].sort(compareTokenNames).map((token) => ({ type: "token", token, grouped: false }));
+  }
+  // Ownership cannot drive this: the DM controls everything, and a roster that
+  // never groups is exactly the screen the DM is drowning in.
+  const priority = (token: SharedToken) =>
+    token.kind === "character" ? (token.controlledByViewer ? 0 : 1)
+      : token.summonerTokenId ? 2
+      : 3;
+  const rows: RosterRow[] = visible
+    .filter((token) => priority(token) < 3)
+    .sort((a, b) => priority(a) - priority(b) || compareTokenNames(a, b))
+    .map((token) => ({ type: "token", token, grouped: false }));
+  const groups = new Map<string, SharedToken[]>();
+  for (const token of visible.filter((token) => priority(token) === 3).sort(compareTokenNames)) {
+    const key = rosterGroupKey(token);
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(token);
+    else groups.set(key, [token]);
+  }
+  for (const [key, members] of groups) {
+    if (members.length < ROSTER_GROUP_THRESHOLD) {
+      for (const token of members) rows.push({ type: "token", token, grouped: false });
+      continue;
+    }
+    const expanded = expandedGroups.has(key);
+    rows.push({ type: "group", key, label: rosterBaseName(members[0].name), tokens: members, expanded });
+    if (expanded) for (const token of members) rows.push({ type: "token", token, grouped: true });
+  }
+  return rows;
 }
 
 function clampMapPoint(state: EncounterState, point: MapPoint, radius = tokenRadiusCells("medium")): MapPoint {
@@ -319,6 +444,7 @@ function drawMap(
   viewport: Viewport,
   pingStartedAt: ReadonlyMap<string, number>,
   animationNow: number,
+  selectedTokenId: string | null,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -449,11 +575,17 @@ function drawMap(
     const position = preview?.tokenId === token.id ? preview : token;
     const owned = token.controller.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
     const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+    const selected = token.id === selectedTokenId;
+    // Exact when the server trusted this viewer with numbers, otherwise the
+    // ring snaps to the band so players read "bloodied", never "37/104".
+    const health = displayHealth(token.hp, token.maxHp, token.healthState);
+    const down = health?.band === "down";
     const x = screenX(position.x);
     const y = screenY(position.y);
     const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
     context.save();
     if (token.hidden) context.globalAlpha *= 0.48;
+    if (down) context.globalAlpha *= 0.55;
     context.shadowColor = "rgba(0,0,0,.45)";
     context.shadowBlur = 10;
     context.fillStyle = active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length];
@@ -488,9 +620,62 @@ function drawMap(
     context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
     context.lineWidth = owned || active ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
     context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
+
+    if (health) {
+      const healthRadius = radius * 1.12;
+      const healthWidth = Math.max(2.5, radius * 0.17);
+      context.lineCap = "butt";
+      context.lineWidth = healthWidth;
+      context.strokeStyle = "rgba(12, 11, 10, 0.72)";
+      context.beginPath(); context.arc(x, y, healthRadius, 0, Math.PI * 2); context.stroke();
+      if (health.ratio > 0) {
+        context.strokeStyle = health.color;
+        context.beginPath();
+        context.arc(x, y, healthRadius, -Math.PI / 2, -Math.PI / 2 + health.ratio * Math.PI * 2);
+        context.stroke();
+      }
+      if (down) {
+        context.strokeStyle = health.color;
+        context.lineWidth = Math.max(2, radius * 0.14);
+        context.lineCap = "round";
+        const slash = radius * 0.6;
+        context.beginPath();
+        context.moveTo(x - slash, y - slash); context.lineTo(x + slash, y + slash);
+        context.moveTo(x + slash, y - slash); context.lineTo(x - slash, y + slash);
+        context.stroke();
+      }
+      context.lineCap = "butt";
+    }
+
     if (token.effects.length > 0) {
       context.fillStyle = token.effects.some((effect) => effect.due) ? "#d95f59" : "#8ec9a0";
       context.beginPath(); context.arc(x + radius * 0.72, y - radius * 0.72, radius * 0.24, 0, Math.PI * 2); context.fill();
+    }
+
+    if (selected) {
+      context.globalAlpha = 1;
+      context.strokeStyle = "#f5c65c";
+      context.lineWidth = 2;
+      context.setLineDash([4, 4]);
+      context.beginPath(); context.arc(x, y, radius * 1.32, 0, Math.PI * 2); context.stroke();
+      context.setLineDash([]);
+    }
+
+    if (geometry.cellSize >= TOKEN_LABEL_MIN_CELL_PX) {
+      const label = token.name.length > 16 ? `${token.name.slice(0, 15)}…` : token.name;
+      const fontSize = Math.max(9, Math.min(13, geometry.cellSize * 0.23));
+      context.globalAlpha = token.hidden ? 0.6 : 1;
+      context.font = `650 ${fontSize}px ui-sans-serif, system-ui`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      const labelY = y + radius * 1.12 + fontSize * 0.95;
+      const labelWidth = context.measureText(label).width + fontSize * 0.7;
+      context.fillStyle = "rgba(14, 13, 12, 0.78)";
+      context.beginPath();
+      context.roundRect(x - labelWidth / 2, labelY - fontSize * 0.72, labelWidth, fontSize * 1.44, fontSize * 0.36);
+      context.fill();
+      context.fillStyle = active ? "#f7dc9d" : owned ? "#efe6d6" : "#c8bfb1";
+      context.fillText(label, x, labelY);
     }
     context.restore();
   });
@@ -532,7 +717,7 @@ export default function BattleMapPrototype() {
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
   const [initiativeStatuses, setInitiativeStatuses] = useState<Record<string, "editing" | "saving" | "saved">>({});
   const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; maxHp?: string; artAsset?: string }>>({});
-  const [hpDelta, setHpDelta] = useState("-1");
+  const [hpAmount, setHpAmount] = useState("5");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
   const [effectDuration, setEffectDuration] = useState("1");
@@ -555,6 +740,11 @@ export default function BattleMapPrototype() {
   const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "", fit: false });
   const [panning, setPanning] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [presenting, setPresenting] = useState(false);
+  const [rosterFilter, setRosterFilter] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
@@ -778,8 +968,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow);
-  }, [dragOrigin, participant, placementPreview, preview, renderedMapScene, state, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId);
+  }, [dragOrigin, effectiveSelectedTokenId, participant, placementPreview, preview, renderedMapScene, state, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -908,6 +1098,10 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const runHistoryFromShortcut = useEffectEvent((direction: "undo" | "redo") => {
+    void runHistoryOptimistically(direction);
+  });
+
   useEffect(() => {
     if (!participant || !state) return;
     const onHistoryShortcut = (event: KeyboardEvent) => {
@@ -920,10 +1114,10 @@ export default function BattleMapPrototype() {
       if (busy || (!wantsUndo && !wantsRedo)) return;
       if (wantsUndo && state.undo.available > 0) {
         event.preventDefault();
-        void runHistoryOptimistically("undo");
+        runHistoryFromShortcut("undo");
       } else if (wantsRedo && state.undo.redoAvailable > 0) {
         event.preventDefault();
-        void runHistoryOptimistically("redo");
+        runHistoryFromShortcut("redo");
       }
     };
     window.addEventListener("keydown", onHistoryShortcut);
@@ -962,6 +1156,38 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const saveInitiativeGroup = async (key: string, tokens: SharedToken[]) => {
+    const draftKey = `group:${key}`;
+    const draft = initiativeDrafts[draftKey];
+    if (draft === undefined || draft === "") return;
+    const initiative = Number(draft);
+    if (!Number.isInteger(initiative) || initiative < 0 || initiative > 99) {
+      setError("Initiative must be a whole number from 0 to 99.");
+      return;
+    }
+    if (tokens.every((token) => token.initiative === initiative && token.initiativeGroupId && token.initiativeGroupId === tokens[0].initiativeGroupId)) {
+      setInitiativeDrafts((current) => { const next = { ...current }; delete next[draftKey]; return next; });
+      return;
+    }
+    setInitiativeStatuses((current) => ({ ...current, [draftKey]: "saving" }));
+    const optimisticGroupId = `pending-group-${++tokenMutationSequenceRef.current}`;
+    const tokenIds = new Set(tokens.map((token) => token.id));
+    const result = await runOptimisticCommand(
+      "set-initiative-group",
+      { tokenIds: [...tokenIds], initiative },
+      (current) => ({ ...current, tokens: current.tokens.map((token) => tokenIds.has(token.id)
+        ? { ...token, initiative, initiativeGroupId: optimisticGroupId, initiativeOrder: null, turnComplete: false, movementUsed: 0 }
+        : token) }),
+      `${rosterBaseName(tokens[0].name)} initiative set for all ${tokens.length}.`,
+    );
+    if (result) {
+      setInitiativeDrafts((current) => { const next = { ...current }; delete next[draftKey]; return next; });
+      setInitiativeStatuses((current) => ({ ...current, [draftKey]: "saved" }));
+    } else {
+      setInitiativeStatuses((current) => ({ ...current, [draftKey]: "editing" }));
+    }
+  };
+
   const addEffectToToken = async (tokenId: string) => {
     const name = effectName.trim();
     if (!name) return;
@@ -986,14 +1212,13 @@ export default function BattleMapPrototype() {
     if (!result) { setEffectEditorTokenId(tokenId); setEffectName(name); }
   };
 
-  const applyHpToToken = async (token: SharedToken) => {
-    const delta = Number(hpDelta);
+  const applyHpToToken = async (token: SharedToken, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
     const hp = Math.min(token.maxHp, Math.max(0, (token.hp ?? token.maxHp) + Math.trunc(delta)));
     const result = await runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }>(
       "apply-hp",
       { tokenId: token.id, delta },
-      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp, healthState: hp <= token.maxHp! * 0.25 ? "near-death" : hp <= token.maxHp! * 0.5 ? "bloodied" : "steady" } : item) }),
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp, healthState: healthBand(hp, token.maxHp) } : item) }),
     );
     if (result) setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.");
   };
@@ -1037,13 +1262,17 @@ export default function BattleMapPrototype() {
         const leaders = current.tokens
           .filter((token) => !token.summonerTokenId && token.initiative !== null)
           .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name));
-        const orders = new Map(leaders.map((leader, order) => [leader.id, order]));
+        const groupKeys = [...new Set(leaders.map((leader) => leader.initiativeGroupId || leader.id))];
+        const groupOrders = new Map(groupKeys.map((key, order) => [key, order]));
+        const orders = new Map(leaders.map((leader) => [leader.id, groupOrders.get(leader.initiativeGroupId || leader.id)!]));
         return {
           ...current,
           encounter: { ...current.encounter, status: "active", currentRound: 1, activeInitiativeOrder: 0 },
           tokens: current.tokens.map((token) => {
             const leaderId = token.summonerTokenId ?? token.id;
-            return orders.has(leaderId) ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0 } : token;
+            return orders.has(leaderId)
+              ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0 }
+              : { ...token, initiativeOrder: null, turnComplete: false, movementUsed: 0 };
           }),
         };
       },
@@ -1071,12 +1300,8 @@ export default function BattleMapPrototype() {
     void runOptimisticCommand(
       "end-turn",
       { tokenId: token.id },
-      (current) => {
-        const marked = { ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, turnComplete: true } : item) };
-        const remaining = marked.tokens.some((item) => item.initiativeOrder === current.encounter.activeInitiativeOrder && !item.turnComplete);
-        return remaining ? marked : advanceTurnState(marked, false);
-      },
-      "Turn ended.",
+      (current) => advanceTurnState(current, true),
+      "Group turn ended.",
     );
   };
 
@@ -1162,6 +1387,7 @@ export default function BattleMapPrototype() {
       hidden: false,
       summonerTokenId: placementSummonerId || null,
       initiative: summoner?.initiative ?? null,
+      initiativeGroupId: null,
       initiativeOrder: summoner?.initiativeOrder ?? null,
       turnComplete: false,
       movementUsed: 0,
@@ -1454,17 +1680,6 @@ export default function BattleMapPrototype() {
     setViewport((current) => zoomViewportAt(current, state, rect.width, rect.height, current.zoom * Math.exp(-event.deltaY * 0.0015), focusX, focusY));
   };
 
-  const nudgeViewport = (deltaX: number, deltaY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    setViewport((current) => clampViewport({
-      ...current,
-      centerX: current.centerX + deltaX / current.zoom,
-      centerY: current.centerY + deltaY / current.zoom,
-    }, state, rect.width, rect.height));
-  };
-
   const changeZoom = (amount: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1484,6 +1699,51 @@ export default function BattleMapPrototype() {
       fit: true,
     });
   };
+
+  const togglePresenting = useCallback(() => {
+    setPresenting((current) => {
+      const next = !current;
+      // Browser fullscreen is a bonus, not the mechanism: the class alone
+      // already hides every panel, so a rejected request still presents.
+      if (next) void document.documentElement.requestFullscreen?.().catch(() => undefined);
+      else if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setPresenting(false);
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      if (!participant || !state) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest?.("input, textarea, select")) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLocaleLowerCase();
+      if (key === "escape" && presenting) { event.preventDefault(); togglePresenting(); return; }
+      const tool: Record<string, AnnotationMode> = { v: "move", p: "ping", l: "drawing", e: "erase", s: "spotlight" };
+      if (tool[key] && (tool[key] !== "spotlight" || participant?.role === "dm")) {
+        event.preventDefault();
+        if (tool[key] === "ping") enablePingAudio();
+        setAnnotationMode(tool[key]);
+        return;
+      }
+      if (key === "\\") { event.preventDefault(); setSidebarOpen((open) => !open); return; }
+      if (key === "f") { event.preventDefault(); togglePresenting(); return; }
+      if (key === "0") { event.preventDefault(); fitViewport(); return; }
+      if (key === "=" || key === "+") { event.preventDefault(); changeZoom(0.5); return; }
+      if (key === "-" || key === "_") { event.preventDefault(); changeZoom(-0.5); }
+    };
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participant?.role, presenting, togglePresenting, state]);
 
   if (!participant || !state) {
     return (
@@ -1514,48 +1774,109 @@ export default function BattleMapPrototype() {
     onClose={() => setWorkshopOpen(false)}
   />;
 
+  const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
+  const inCombat = state.encounter.status === "active";
+  const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups);
+  const selectedHealth = selectedToken ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
+  const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
+  const roundLabel = state.encounter.currentRound > 0 ? `Round ${state.encounter.currentRound}` : state.encounter.status;
+  const activeOwnTurnToken = state.tokens.find((token) =>
+    token.controlledByViewer && !token.turnComplete
+    && token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder) ?? null;
+
+  const toolButton = (mode: AnnotationMode, icon: IconName, label: string, shortcut: string) => (
+    <button
+      className={`icon-tool${annotationMode === mode ? " tool-active" : ""}`}
+      aria-label={label}
+      data-tooltip={`${label} — ${shortcut}`}
+      aria-pressed={annotationMode === mode}
+      onClick={() => { if (mode === "ping") enablePingAudio(); setAnnotationMode(mode); }}
+    ><Icon name={icon} /></button>
+  );
+
+  const healthBar = (token: SharedToken) => {
+    const health = displayHealth(token.hp, token.maxHp, token.healthState);
+    if (!health) return <span className="roster-health is-unknown" aria-hidden="true" />;
+    return (
+      <span className={`roster-health is-${health.band}`} title={health.label ?? undefined}>
+        <span className="roster-health-fill" style={{ width: `${Math.round(health.ratio * 100)}%`, background: health.color }} />
+      </span>
+    );
+  };
+
+  const rosterRow = (token: SharedToken, grouped: boolean) => {
+    const selected = token.id === selectedToken?.id;
+    const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+    const pendingCreate = isPendingCreate(token);
+    return (
+      <button
+        key={token.id}
+        type="button"
+        className={`roster-row${selected ? " is-selected" : ""}${active ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}${grouped ? " is-grouped" : ""}${token.controlledByViewer ? " is-mine" : ""}`}
+        aria-pressed={selected}
+        disabled={pendingCreate}
+        onClick={() => setSelectedTokenId(token.id)}
+      >
+        {token.artAsset
+          ? <NextImage className="roster-portrait" src={token.artAsset} alt="" width={44} height={44} unoptimized />
+          : <span className="roster-portrait roster-initial">{tokenInitial(token)}</span>}
+        <span className="roster-name">{token.name}{token.hidden ? <em> · hidden</em> : null}</span>
+        {healthBar(token)}
+        <span className="roster-hp">{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : ""}</span>
+        {token.effects.length > 0
+          ? <span className={`roster-effects${token.effects.some((effect) => effect.due) ? " is-due" : ""}`}>{token.effects.length}</span>
+          : null}
+        <span className="roster-initiative">{token.initiative ?? "—"}</span>
+      </button>
+    );
+  };
+
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div><div className="eyebrow">{state.encounter.status} · {state.encounter.code}</div><h1>{state.encounter.name}{state.encounter.currentRound > 0 ? ` · Round ${state.encounter.currentRound}` : ""}</h1></div>
-        <div className={`connection-pill connection-${connection}`} aria-live="polite"><span className="connection-dot" />{connectionLabel}</div>
-      </header>
+    <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
+      <div className="command-bar" aria-label="Map tools and encounter status">
+        <div className="map-tool-group" role="group" aria-label="Tactical tools">
+          {toolButton("move", "move", "Move tokens", "V")}
+          {toolButton("ping", "ping", "Ping map", "P")}
+          {toolButton("drawing", "line", "Draw line", "L")}
+          {toolButton("erase", "erase", "Erase line", "E")}
+          {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Place spotlight", "S") : null}
+          {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
+        </div>
+        {participant.role === "dm" ? <div className="map-tool-group" role="group" aria-label="Map content">
+          <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
+          <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button>
+        </div> : null}
+        <div className="map-tool-group" role="group" aria-label="Action history">
+          <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><Icon name="undo" /></button>
+          <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button>
+        </div>
+
+        <div className="encounter-identity">
+          <strong>{state.encounter.name}</strong>
+          <span>{roundLabel}</span>
+        </div>
+
+        <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
+          <button className={`icon-tool${viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={viewport.fit} onClick={fitViewport}><Icon name="fit" /></button>
+          <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => changeZoom(-0.5)}><Icon name="zoomOut" /></button>
+          <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey, fit: false })}>{viewport.fit ? "Fit" : `${Math.round((viewport.mapKey === mapKey ? viewport.zoom : 1) * 100)}%`}</button>
+          <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => changeZoom(0.5)}><Icon name="zoomIn" /></button>
+        </div>
+        <div className={`connection-pill connection-${connection}`} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
+        <div className="map-tool-group" role="group" aria-label="Layout">
+          <button className={`icon-tool${sidebarOpen ? "" : " tool-active"}`} aria-label={sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="sidebar" /></button>
+          <button className={`icon-tool${presenting ? " tool-active" : ""}`} aria-label="Presentation mode" data-tooltip="Presentation mode — F" aria-pressed={presenting} onClick={togglePresenting}><Icon name="present" /></button>
+        </div>
+      </div>
+
       <div className="workspace">
         <section className="map-panel" aria-label="Shared battle map">
-          <div className="map-toolbar" aria-label="Map tools">
-            <div className="map-tool-group" role="group" aria-label="Tactical tools">
-              <button className={`icon-tool${annotationMode === "move" ? " tool-active" : ""}`} aria-label="Move tokens" aria-pressed={annotationMode === "move"} data-tooltip="Move tokens" onClick={() => setAnnotationMode("move")}><span aria-hidden="true">✥</span></button>
-              <button className={`icon-tool${annotationMode === "ping" ? " tool-active" : ""}`} aria-label="Ping map" aria-pressed={annotationMode === "ping"} data-tooltip="Ping map" onClick={() => { enablePingAudio(); setAnnotationMode("ping"); }}><span aria-hidden="true">◉</span></button>
-              <button className={`icon-tool${annotationMode === "drawing" ? " tool-active" : ""}`} aria-label="Draw line" aria-pressed={annotationMode === "drawing"} data-tooltip="Draw line" onClick={() => setAnnotationMode("drawing")}><span aria-hidden="true">╱</span></button>
-              <button className={`icon-tool${annotationMode === "erase" ? " tool-active" : ""}`} aria-label="Erase line" aria-pressed={annotationMode === "erase"} data-tooltip="Erase line" onClick={() => setAnnotationMode("erase")}><span aria-hidden="true">⌫</span></button>
-              {participant.role === "dm" ? <button className={`icon-tool${annotationMode === "spotlight" ? " tool-active" : ""}`} aria-label="Place spotlight" aria-pressed={annotationMode === "spotlight"} data-tooltip="Spotlight" onClick={() => setAnnotationMode("spotlight")}><span aria-hidden="true">◎</span></button> : null}
-              {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><span aria-hidden="true">⊘</span></button> : null}
-            </div>
-            {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
-            {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><span aria-hidden="true">▦</span></button> : null}
-            <div className="map-tool-group" role="group" aria-label="Action history">
-              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
-              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
-            </div>
-            <span className="toolbar-spacer" />
-            <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
-              <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => nudgeViewport(-1, 0)}>←</button>
-              <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => nudgeViewport(0, -1)}>↑</button>
-              <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => nudgeViewport(0, 1)}>↓</button>
-              <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => nudgeViewport(1, 0)}>→</button>
-              <button className={`icon-tool${viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" aria-pressed={viewport.fit} data-tooltip="Fit whole map" onClick={fitViewport}>⛶</button>
-              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => changeZoom(-0.5)}>−</button>
-              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => changeZoom(0.5)}>+</button>
-              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`, fit: false })}>{viewport.fit ? "Fit" : `${Math.round((viewport.mapKey === `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` ? viewport.zoom : 1) * 100)}%`}</button>
-            </div>
-          </div>
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
-              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
+              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}><Icon name="close" /></button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
-              <p>Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
               <div className="palette-search">
                 <label><span>Find</span><input type="search" value={creatureQuery} onChange={(event) => { setCreatureQuery(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }} placeholder="Search creatures" autoComplete="off" /></label>
                 <label><span>Family</span><select value={creatureFamily} onChange={(event) => { setCreatureFamily(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }}><option value="">All</option>{creatureFamilies.map((family) => <option value={family} key={family}>{family}</option>)}</select></label>
@@ -1572,87 +1893,151 @@ export default function BattleMapPrototype() {
               {creatureCatalogError ? <div className="palette-status is-error" role="alert">{creatureCatalogError}</div> : null}
               {creatureCursor ? <button className="palette-load-more" onClick={() => void loadMoreCreatures()} disabled={creatureCatalogLoading}>{creatureCatalogLoading ? "Loading…" : "Load more creatures"}</button> : null}
               {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
+              <p className="palette-hint">Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
             </section> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
+            {presenting ? <button className="present-exit" onClick={togglePresenting}>Exit presentation · Esc</button> : null}
           </div>
           </div>
-          <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>
         </section>
 
-        <aside className="control-panel" aria-label="Encounter controls">
-          <div className="participant-row"><span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span><span><small>{participant.role === "dm" ? "Dungeon Master" : "Joined as"}</small><strong>{participant.name}</strong></span></div>
-          <div className="panel-rule" />
+        <aside className="control-panel" aria-label="Encounter controls" hidden={!sidebarOpen || presenting}>
+          <div className="panel-head">
+            <div className="participant-row"><span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span><span><small>{participant.role === "dm" ? "Dungeon Master" : "Joined as"}</small><strong>{participant.name}</strong></span></div>
+            <span className="panel-round">{state.tokens.length} tokens</span>
+          </div>
+          <label className="roster-filter">
+            <Icon name="search" />
+            <input type="search" value={rosterFilter} onChange={(event) => setRosterFilter(event.target.value)} placeholder={inCombat ? "Filter turn order" : "Filter tokens"} aria-label="Filter tokens" autoComplete="off" />
+          </label>
 
-          <section className="initiative-panel">
-            <div className="section-heading"><div><small>Combat clock</small><h2>Initiative</h2></div><strong>{state.encounter.currentRound ? `Round ${state.encounter.currentRound}` : "Setup"}</strong></div>
-            <div className="initiative-list">
-              {initiativeTokens.length ? initiativeTokens.map((token) => <div key={token.id} className={`initiative-entry${token.initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}`}><span>{token.initiative ?? "—"}</span><strong>{token.name}</strong><small>{token.turnComplete ? "Done" : token.initiativeOrder === state.encounter.activeInitiativeOrder ? "Active" : `#${(token.initiativeOrder ?? 0) + 1}`}</small></div>) : <p className="empty-copy">Enter initiative on token cards.</p>}
-            </div>
-            {participant.role === "dm" ? <div className="button-row"><button className="primary-button" onClick={startCombatOptimistically}>Start combat</button><button className="secondary-button" onClick={advanceTurnOptimistically} disabled={state.encounter.status !== "active"}>Advance</button></div> : null}
-            {participant.role === "dm" && initiativeTokens.length ? <div className="turn-correction"><label>Correct round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => correctTurnOptimistically(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => correctTurnOptimistically(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div> : null}
-          </section>
-
-          <div className="panel-rule" />
-          <div className="token-roster">
-            {state.tokens.map((token) => {
-              const pendingCreate = pendingCreatesRef.current.has(token.id);
-              const controlled = token.controlledByViewer;
-              const selected = token.id === selectedToken?.id;
-              const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
-              return <section className={`token-card${selected ? " is-owned" : ""}`} key={token.id}>
-                <button className="token-heading token-select" onClick={() => setSelectedTokenId(token.id)} disabled={pendingCreate}>
-                  {token.artAsset ? <NextImage className="token-portrait" src={token.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(token)}</span>}
-                  <div><small>{pendingCreate ? "Placing…" : `${token.hidden ? "Hidden · " : ""}${token.kind} · controlled by ${token.controller.name}`}</small><h2>{token.name}</h2></div>
+          <div className="token-roster" role="list" aria-label={inCombat ? "Turn order" : "Tokens"}>
+            {rosterRows.length === 0 ? <p className="empty-copy">No tokens match “{rosterFilter}”.</p> : null}
+            {rosterRows.map((row) => row.type === "group" ? (
+              <div className={`roster-group${row.tokens[0].initiativeOrder !== null && row.tokens[0].initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}`} key={row.key}>
+                <button
+                  type="button"
+                  className="roster-row is-group"
+                  aria-expanded={row.expanded}
+                  onClick={() => setExpandedGroups((current) => {
+                    const next = new Set(current);
+                    if (next.has(row.key)) next.delete(row.key); else next.add(row.key);
+                    return next;
+                  })}
+                >
+                  {row.tokens[0].artAsset
+                    ? <NextImage className="roster-portrait" src={row.tokens[0].artAsset} alt="" width={44} height={44} unoptimized />
+                    : <span className="roster-portrait roster-initial">{tokenInitial(row.tokens[0])}</span>}
+                  <span className="roster-name">{row.label}<em> ×{row.tokens.length}</em></span>
+                  <span className="roster-group-toggle">{row.expanded ? "Hide" : "Show"}</span>
+                  <span className="roster-initiative">{row.tokens[0].initiative ?? "—"}</span>
                 </button>
-                <div className="token-meta">
-                  <span><small>Size</small><strong>{token.size.charAt(0).toUpperCase() + token.size.slice(1)}</strong></span>
-                  <span><small>Speed</small><strong>{token.speed} ft</strong></span>
-                  <span><small>HP</small><strong>{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : "—"}</strong></span>
-                </div>
-                {selected ? <>
-                  <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
-                  {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-row"><strong>HP {token.hp}/{token.maxHp}</strong><input aria-label="HP change" type="number" value={hpDelta} onChange={(event) => setHpDelta(event.target.value)} /><button onClick={() => void applyHpToToken(token)}>Apply</button></div> : null}
-                  <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)}>×</button> : null}</span>)}</div>
-                  {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
-                  {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
-                  {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
-                  {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
-                  {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => endTurnOptimistically(token)}>End Turn</button> : null}
-                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void deleteToken(token)}>Delete</button></div> : null}
-                  {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
-                    <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
-                    <div className="form-grid">
-                      <label>Size<select aria-label="Token size" value={tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
-                      <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /></label>
-                      <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
-                    </div>
-                    <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
-                    <button className="secondary-button" onClick={() => void saveTokenDetails(token)}>Save details</button>
-                  </div> : null}
-                </> : null}
-              </section>;
-            })}
+                {!inCombat && participant.role === "dm" ? <div className="roster-group-initiative">
+                  <label htmlFor={`initiative-${row.key}`}>All</label>
+                  <input
+                    id={`initiative-${row.key}`}
+                    aria-label={`Initiative for all ${row.label} creatures`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={2}
+                    placeholder={row.tokens.every((token) => token.initiative === row.tokens[0].initiative) && row.tokens[0].initiative !== null ? String(row.tokens[0].initiative) : "—"}
+                    value={initiativeDrafts[`group:${row.key}`] ?? ""}
+                    onChange={(event) => {
+                      const next = event.target.value.replace(/\D/g, "").slice(0, 2);
+                      setInitiativeDrafts((current) => ({ ...current, [`group:${row.key}`]: next }));
+                      setInitiativeStatuses((current) => ({ ...current, [`group:${row.key}`]: "editing" }));
+                    }}
+                    onBlur={() => void saveInitiativeGroup(row.key, row.tokens)}
+                    onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                  />
+                  <span aria-live="polite">{initiativeStatuses[`group:${row.key}`] === "saving" ? "Saving…" : "initiative"}</span>
+                </div> : null}
+              </div>
+            ) : rosterRow(row.token, row.grouped))}
           </div>
 
-          {participant.role === "dm" ? <section className="dm-panel">
-            <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
-            <div className="button-row encounter-state-controls">
-              <button
-                className={`secondary-button${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`}
-                aria-busy={encounterAction === "pause" || encounterAction === "resume"}
-                aria-describedby="pause-encounter-help"
-                data-tooltip="Temporarily freezes movement and turn advancement. The current round and initiative are preserved."
-                disabled={encounterAction !== null}
-                onClick={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
-              >{encounterAction === "pause" ? "Pausing…" : encounterAction === "resume" ? "Resuming…" : state.encounter.status === "paused" ? "Resume" : "Pause"}</button>
-              <span id="pause-encounter-help" className="visually-hidden">Temporarily freezes movement and turn advancement while preserving the current round and initiative.</span>
-              <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
+          {selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
+            <div className="token-heading">
+              {selectedToken.artAsset ? <NextImage className="token-portrait" src={selectedToken.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(selectedToken)}</span>}
+              <div><small>{`${selectedToken.hidden ? "Hidden · " : ""}${selectedToken.kind} · controlled by ${selectedToken.controller.name}`}</small><h2>{selectedToken.name}</h2></div>
             </div>
+            <div className="token-meta">
+              <span><small>Size</small><strong>{selectedToken.size.charAt(0).toUpperCase() + selectedToken.size.slice(1)}</strong></span>
+              <span><small>Speed</small><strong>{selectedToken.speed} ft</strong></span>
+              <span><small>HP</small><strong>{selectedHealth?.label ?? "—"}</strong></span>
+            </div>
+            {(() => {
+              const token = selectedToken;
+              const controlled = token.controlledByViewer;
+              const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+              return <>
+                <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
+                {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-panel">
+                  <div className="hp-readout"><strong>HP {token.hp}/{token.maxHp}</strong><span className={`hp-track is-${selectedHealth?.band ?? "unharmed"}`}><span className="hp-track-fill" style={{ width: `${Math.round((selectedHealth?.ratio ?? 0) * 100)}%`, background: selectedHealth?.color }} /></span></div>
+                  <div className="hp-row">
+                    <button className="hp-step" aria-label="Decrease amount" onClick={() => setHpAmount(String(Math.max(1, hpStep - 1)))}>−</button>
+                    <input aria-label="HP change amount" type="text" inputMode="numeric" pattern="[0-9]*" value={hpAmount} onChange={(event) => setHpAmount(event.target.value.replace(/\D/g, "").slice(0, 3))} onKeyDown={(event) => { if (event.key === "Enter") void applyHpToToken(token, -hpStep); }} />
+                    <button className="hp-step" aria-label="Increase amount" onClick={() => setHpAmount(String(hpStep + 1))}>+</button>
+                    <button className="hp-apply is-damage" onClick={() => void applyHpToToken(token, -hpStep)}>Damage</button>
+                    <button className="hp-apply is-heal" onClick={() => void applyHpToToken(token, hpStep)}>Heal</button>
+                  </div>
+                </div> : null}
+                <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)}>×</button> : null}</span>)}</div>
+                {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
+                {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
+                {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
+                {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
+                {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => endTurnOptimistically(token)}>End Group Turn</button> : null}
+                {participant.role === "dm" ? <div className="token-actions">
+                  <button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button>
+                  <button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button>
+                  {pendingDeleteTokenId === token.id
+                    ? <><button className="inline-action is-danger is-confirming" onClick={() => { setPendingDeleteTokenId(null); void deleteToken(token); }}>Confirm delete</button><button className="inline-action" onClick={() => setPendingDeleteTokenId(null)}>Keep</button></>
+                    : <button className="inline-action is-danger" onClick={() => setPendingDeleteTokenId(token.id)}>Delete</button>}
+                </div> : null}
+                {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
+                  <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
+                  <div className="form-grid">
+                    <label>Size<select aria-label="Token size" value={tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
+                    <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /></label>
+                    <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
+                  </div>
+                  <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
+                  <button className="secondary-button" onClick={() => void saveTokenDetails(token)}>Save details</button>
+                </div> : null}
+              </>;
+            })()}
           </section> : null}
 
-          {error ? <div className="form-error" role="alert">{error}</div> : null}
-          {notice ? <div className="toast" role="status">{notice}</div> : null}
+          <div className="panel-foot">
+            {activeOwnTurnToken && participant.role !== "dm"
+              ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>End Group Turn</button>
+              : null}
+            {participant.role === "dm" ? <>
+              <div className="button-row">
+                <button className="primary-button" onClick={startCombatOptimistically}>{inCombat ? "Restart combat" : "Start combat"}</button>
+                <button className="secondary-button" onClick={advanceTurnOptimistically} disabled={!inCombat}>Advance</button>
+              </div>
+              <div className="button-row encounter-state-controls">
+                <button
+                  className={`secondary-button${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`}
+                  aria-busy={encounterAction === "pause" || encounterAction === "resume"}
+                  aria-describedby="pause-encounter-help"
+                  data-tooltip="Temporarily freezes movement and turn advancement. The current round and initiative are preserved."
+                  disabled={encounterAction !== null}
+                  onClick={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
+                >{encounterAction === "pause" ? "Pausing…" : encounterAction === "resume" ? "Resuming…" : state.encounter.status === "paused" ? "Resume" : "Pause"}</button>
+                <span id="pause-encounter-help" className="visually-hidden">Temporarily freezes movement and turn advancement while preserving the current round and initiative.</span>
+                <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
+              </div>
+              {initiativeTokens.length ? <details className="turn-correction-details">
+                <summary>Correct turn</summary>
+                <div className="turn-correction"><label>Round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => correctTurnOptimistically(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => correctTurnOptimistically(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div>
+              </details> : null}
+            </> : null}
+          </div>
         </aside>
       </div>
       {participant.role === "dm" && resetConfirmOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetConfirmOpen(false); }}>

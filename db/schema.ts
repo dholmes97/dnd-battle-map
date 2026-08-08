@@ -114,6 +114,7 @@ export const tokens = sqliteTable(
     isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
     summonerTokenId: text("summoner_token_id"),
     initiative: integer("initiative"),
+    initiativeGroupId: text("initiative_group_id"),
     initiativeOrder: integer("initiative_order"),
     turnComplete: integer("turn_complete", { mode: "boolean" }).notNull().default(false),
     movementUsed: real("movement_used").notNull().default(0),

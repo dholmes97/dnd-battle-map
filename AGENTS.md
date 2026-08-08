@@ -5,6 +5,7 @@
 - Keep the battle map visually dominant: desktop layouts must fit the map within the browser viewport, with controls and sidebars scrolling independently when needed.
 - Keep global map launchers in the compact top toolbar; do not duplicate creature-palette or map-workshop controls in the right sidebar.
 - Keep per-participant undo and redo durable and server-authoritative. Present both as compact top-toolbar icons, with Cmd/Ctrl+Z for undo and Cmd/Ctrl+Shift+Z plus Ctrl+Y for redo; never intercept these shortcuts while editing a field.
+- Treat initiative as a shared turn window: identical monster packs may receive one durable group initiative, and a character plus their summons always share one turn. Members can act in any order, and one End Group Turn advances the entire group; editing one member individually splits it from an explicit pack group.
 - Size the desktop map from its live CSS container; do not freeze its dimensions from an early JavaScript layout measurement, and explicitly stretch the desktop grid column so the base flex layout's centered content rule cannot shrink-wrap it.
 - Preserve the map navigation convention: the desktop viewport fills the entire available stage, 100% uses a centered cover view with square grid cells, the dedicated Fit control or zooming out from 100% enters a whole-map Fit view (the only letterboxed state), scroll zooms toward the pointer, and left-dragging empty map space reveals cropped edges while token dragging remains direct; do not require right-click.
 - The DM must be able to press and immediately drag any visible token on the map without selecting its sidebar card first.
@@ -15,6 +16,8 @@
 - Resolve ownership from stable identities rather than browser sessions: Dan owns Dar'eleth and his summons, Barry owns Jelton and his summons, Scott owns Malichar and his summons, and Kevin owns everything else; the DM may control every token. Never restore claim, reconnect, release, unclaimed, or expiring-ownership UI.
 - Keep the creature library storage-backed and lazy: searchable metadata belongs in D1, original/thumbnail bytes belong in R2, palette results are paged, thumbnails load only when visible, and full token art loads only for placement previews or tokens on the active map.
 - Creature catalog records must carry placement-ready defaults: average HP, hit dice, AC, challenge rating, creature type, size, and separate walk/fly/swim/climb/burrow speeds. Placement initializes current and maximum HP from the catalog default.
+- Backfill legacy catalog-backed monster HP only when both current and maximum HP are null; never overwrite deliberately customized values.
 - Grow the production creature catalog through the secret-protected batch importer in groups of at most ten; never commit its bearer token or authorize imports through the selectable DM role.
+- Keep live synchronization tests aligned with the four fixed identities and use disposable tokens with guaranteed cleanup; never restore tests for claims, reservations, or expiring ownership.
 - Verify changes locally first. Publish the Sites project only when the user explicitly asks.
 - Preserve server-authoritative shared state, durable D1 history, temporary browser drafts, and the public accountless trusted-group model.
