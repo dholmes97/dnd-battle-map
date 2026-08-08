@@ -52,6 +52,7 @@ type SharedToken = MapPoint & {
   initiativeOrder: number | null;
   turnComplete: boolean;
   movementUsed: number;
+  movementOrigin: MapPoint | null;
   effects: SharedEffect[];
   controller: { name: string };
   controlledByViewer: boolean;
@@ -99,7 +100,7 @@ type EncounterState = {
 type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
 type PlacementPreview = MapPoint & { creature: CreatureTemplate };
-type PendingMove = MapPoint & { sequence: number };
+type PendingMove = MapPoint & { sequence: number; movementUsed: number; movementOrigin: MapPoint | null };
 type OptimisticMutation = { apply: (state: EncounterState) => EncounterState };
 type DragGesture = {
   pointerId: number;
@@ -131,8 +132,15 @@ type CreatureCatalogPage = {
   families: string[];
   nextCursor: string | null;
 };
+type EncounterSummary = {
+  code: string;
+  name: string;
+  status: "setup" | "active" | "paused";
+  updatedAt: number;
+};
 
 const DEFAULT_CODE = "EMBER-KEEP";
+const DEFAULT_ENCOUNTER: EncounterSummary = { code: DEFAULT_CODE, name: "The Ember Keep", status: "setup", updatedAt: 0 };
 const JOIN_IDENTITIES: JoinIdentity[] = [
   { label: "Join as Dan (Dar'eleth)", participantName: "Dan", role: "player" },
   { label: "Join as Barry (Jelton)", participantName: "Barry", role: "player" },
@@ -543,8 +551,7 @@ function drawMap(
   if (preview && dragOrigin) {
     const movingToken = state.tokens.find((token) => token.id === preview.tokenId);
     const distance = calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell);
-    const remaining = movingToken ? Math.max(0, movingToken.speed - movingToken.movementUsed) : 0;
-    const overMovement = Boolean(movingToken && distance > remaining + 0.05);
+    const overMovement = Boolean(movingToken && distance > movingToken.speed + 0.05);
     const rulerColor = overMovement ? "#ef6656" : "#f5c65c";
     const startX = screenX(dragOrigin.x);
     const startY = screenY(dragOrigin.y);
@@ -708,6 +715,7 @@ function drawMap(
 
 export default function BattleMapPrototype() {
   const [encounterCode, setEncounterCode] = useState(DEFAULT_CODE);
+  const [encounters, setEncounters] = useState<EncounterSummary[]>([DEFAULT_ENCOUNTER]);
   const [joiningIdentity, setJoiningIdentity] = useState<string | null>(null);
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
@@ -769,6 +777,7 @@ export default function BattleMapPrototype() {
   const moveSequenceRef = useRef(0);
   const tokenMutationSequenceRef = useRef(0);
   const optimisticSequenceRef = useRef(0);
+  const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
@@ -783,7 +792,7 @@ export default function BattleMapPrototype() {
         .filter((token) => !pendingDeletes.has(token.id))
         .map((token) => {
           const pending = pendingMoves.get(token.id);
-          return pending ? { ...token, x: pending.x, y: pending.y } : token;
+          return pending ? { ...token, x: pending.x, y: pending.y, movementUsed: pending.movementUsed, movementOrigin: pending.movementOrigin } : token;
         });
       let merged = {
         ...next,
@@ -795,6 +804,7 @@ export default function BattleMapPrototype() {
   }, []);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
+  const selectedEncounter = encounters.find((encounter) => encounter.code === normalizedCode) ?? encounters[0] ?? DEFAULT_ENCOUNTER;
   const joinedCode = state?.encounter.code;
   const controlledTokens = state?.tokens.filter((token) => token.controlledByViewer) ?? [];
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
@@ -803,8 +813,8 @@ export default function BattleMapPrototype() {
   const distance = state && dragOrigin && preview
     ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
     : 0;
-  const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
-  const overMovement = distance > remainingMovement + 0.05;
+  const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
+  const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
   const placementArtAsset = placementPreview?.creature.artAsset ?? null;
 
   const enablePingAudio = () => {
@@ -814,6 +824,18 @@ export default function BattleMapPrototype() {
     }
     if (pingAudioContextRef.current.state === "suspended") void pingAudioContextRef.current.resume().catch(() => undefined);
   };
+
+  useEffect(() => {
+    let disposed = false;
+    void api<{ items: EncounterSummary[] }>("/api/encounters")
+      .then(({ items }) => {
+        if (disposed || items.length === 0) return;
+        setEncounters(items);
+        setEncounterCode((current) => items.some((encounter) => encounter.code === current) ? current : items[0].code);
+      })
+      .catch(() => undefined);
+    return () => { disposed = true; };
+  }, []);
 
   const join = async (identity: JoinIdentity) => {
     const name = identity.participantName;
@@ -1041,6 +1063,7 @@ export default function BattleMapPrototype() {
     success?: string,
     beforeAccept?: (result: T) => void,
     trackHistory = OPTIMISTIC_HISTORY_COMMANDS.has(name),
+    serializeTurnAdvance = false,
   ): Promise<T | null> => {
     const mutationId = ++optimisticSequenceRef.current;
     const applyOptimistic = (current: EncounterState) => {
@@ -1063,7 +1086,15 @@ export default function BattleMapPrototype() {
     });
     setError("");
     try {
-      const result = await command<T>(name, extra);
+      const send = () => command<T>(name, extra);
+      let result: T;
+      if (serializeTurnAdvance) {
+        const queued = turnAdvanceQueueRef.current.then(send);
+        turnAdvanceQueueRef.current = queued.then(() => undefined, () => undefined);
+        result = await queued;
+      } else {
+        result = await send();
+      }
       beforeAccept?.(result);
       pendingOptimisticRef.current.delete(mutationId);
       acceptAuthoritativeState(result.state);
@@ -1170,7 +1201,7 @@ export default function BattleMapPrototype() {
           "set-initiative-group",
           { tokenIds: [...packIds], initiative },
           (current) => ({ ...current, tokens: current.tokens.map((item) => packIds.has(item.id)
-            ? { ...item, initiative, initiativeGroupId: optimisticGroupId, turnComplete: false, movementUsed: 0 }
+            ? { ...item, initiative, initiativeGroupId: optimisticGroupId, turnComplete: false, movementUsed: 0, movementOrigin: null }
             : item) }),
           `${rosterBaseName(token.name)} initiative set for all ${packMembers.length}.`,
         )
@@ -1178,7 +1209,7 @@ export default function BattleMapPrototype() {
           "set-initiative",
           { tokenId: token.id, initiative },
           (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id
-            ? { ...item, initiative, initiativeGroupId: null, initiativeOrder: null, turnComplete: false, movementUsed: 0 }
+            ? { ...item, initiative, initiativeGroupId: null, initiativeOrder: null, turnComplete: false, movementUsed: 0, movementOrigin: null }
             : item) }),
         );
     if (result) {
@@ -1195,7 +1226,7 @@ export default function BattleMapPrototype() {
       "set-initiative",
       { tokenId: token.id, initiative: token.initiative },
       (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id
-        ? { ...item, initiativeGroupId: null, turnComplete: false, movementUsed: 0 }
+        ? { ...item, initiativeGroupId: null, turnComplete: false, movementUsed: 0, movementOrigin: null }
         : item) }),
       `${token.name} split from its initiative pack.`,
     );
@@ -1221,7 +1252,7 @@ export default function BattleMapPrototype() {
       "set-initiative-group",
       { tokenIds: [...tokenIds], initiative },
       (current) => ({ ...current, tokens: current.tokens.map((token) => tokenIds.has(token.id)
-        ? { ...token, initiative, initiativeGroupId: optimisticGroupId, initiativeOrder: null, turnComplete: false, movementUsed: 0 }
+        ? { ...token, initiative, initiativeGroupId: optimisticGroupId, initiativeOrder: null, turnComplete: false, movementUsed: 0, movementOrigin: null }
         : token) }),
       `${rosterBaseName(tokens[0].name)} initiative set for all ${tokens.length}.`,
     );
@@ -1316,8 +1347,8 @@ export default function BattleMapPrototype() {
           tokens: current.tokens.map((token) => {
             const leaderId = token.summonerTokenId ?? token.id;
             return orders.has(leaderId)
-              ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0 }
-              : { ...token, initiativeOrder: null, turnComplete: false, movementUsed: 0 };
+              ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0, movementOrigin: null }
+              : { ...token, initiativeOrder: null, turnComplete: false, movementUsed: 0, movementOrigin: null };
           }),
         };
       },
@@ -1336,7 +1367,7 @@ export default function BattleMapPrototype() {
       ...current,
       encounter: { ...current.encounter, activeInitiativeOrder: nextOrder, currentRound: Math.max(1, current.encounter.currentRound) + (wrapped ? 1 : 0) },
       tokens: current.tokens.map((token) => token.initiativeOrder === nextOrder
-        ? { ...token, turnComplete: false, movementUsed: 0 }
+        ? { ...token, turnComplete: false, movementUsed: 0, movementOrigin: null }
         : completeCurrentGroup && token.initiativeOrder === active ? { ...token, turnComplete: true } : token),
     };
   };
@@ -1347,11 +1378,22 @@ export default function BattleMapPrototype() {
       { tokenId: token.id },
       (current) => advanceTurnState(current, true),
       "Group turn ended.",
+      undefined,
+      undefined,
+      true,
     );
   };
 
   const advanceTurnOptimistically = () => {
-    void runOptimisticCommand("advance-turn", {}, (current) => advanceTurnState(current, true), "Turn advanced.");
+    void runOptimisticCommand(
+      "advance-turn",
+      {},
+      (current) => advanceTurnState(current, true),
+      "Turn advanced.",
+      undefined,
+      undefined,
+      true,
+    );
   };
 
   const correctTurnOptimistically = (round: number, activeOrder: number) => {
@@ -1361,7 +1403,7 @@ export default function BattleMapPrototype() {
       (current) => ({
         ...current,
         encounter: { ...current.encounter, status: "active", currentRound: round, activeInitiativeOrder: activeOrder },
-        tokens: current.tokens.map((token) => token.initiativeOrder === activeOrder ? { ...token, turnComplete: false, movementUsed: 0 } : token),
+        tokens: current.tokens.map((token) => token.initiativeOrder === activeOrder ? { ...token, turnComplete: false, movementUsed: 0, movementOrigin: null } : token),
       }),
       "Turn corrected.",
     );
@@ -1436,6 +1478,7 @@ export default function BattleMapPrototype() {
       initiativeOrder: summoner?.initiativeOrder ?? null,
       turnComplete: false,
       movementUsed: 0,
+      movementOrigin: null,
       effects: [],
       controller: summoner?.controller ?? { name: "Kevin" },
       controlledByViewer: true,
@@ -1531,12 +1574,20 @@ export default function BattleMapPrototype() {
     if (!participant || !encounter) return;
     const sequence = ++moveSequenceRef.current;
     const historyMutationId = ++optimisticSequenceRef.current;
-    pendingMovesRef.current.set(tokenId, { ...destination, sequence });
     setState((current) => {
       if (!current) return current;
+      const movingToken = current.tokens.find((token) => token.id === tokenId);
+      if (!movingToken) return current;
+      const movementOrigin = current.encounter.status === "active"
+        ? movingToken.movementOrigin ?? { x: movingToken.x, y: movingToken.y }
+        : movingToken.movementOrigin;
+      const movementUsed = current.encounter.status === "active" && movementOrigin
+        ? calculateDirectDistance(movementOrigin, destination, current.grid.feetPerCell)
+        : movingToken.movementUsed;
+      pendingMovesRef.current.set(tokenId, { ...destination, sequence, movementUsed, movementOrigin });
       localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
       localRedoHistoryRef.current = [];
-      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination } : token) };
+      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination, movementUsed, movementOrigin } : token) };
     });
     setPreview(null); setDragOrigin(null); setError("");
     try {
@@ -1639,7 +1690,7 @@ export default function BattleMapPrototype() {
         grabOffset: { x: point.x - hitToken.x, y: point.y - hitToken.y },
       };
       dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: hitToken.id, x: hitToken.x, y: hitToken.y });
-      setDragOrigin(gesture.origin);
+      setDragOrigin(state.encounter.status === "active" ? hitToken.movementOrigin ?? gesture.origin : gesture.origin);
       return;
     }
     if (!panGestureRef.current) {
@@ -1794,8 +1845,13 @@ export default function BattleMapPrototype() {
     return (
       <main className="join-shell"><section className="join-card" aria-labelledby="join-title">
         <div className="eyebrow">Living encounter · Tactical companion</div>
-        <h1 id="join-title">Enter the Ember Keep</h1>
-        <p>Choose your seat for this encounter.</p>
+        <h1 id="join-title">Choose a scenario</h1>
+        <p>Select the prepared encounter, then choose your seat.</p>
+        <label className="scenario-picker">Scenario
+          <select value={selectedEncounter.code} onChange={(event) => setEncounterCode(event.target.value)} disabled={busy}>
+            {encounters.map((encounter) => <option key={encounter.code} value={encounter.code}>{encounter.name}</option>)}
+          </select>
+        </label>
         {error ? <div className="form-error" role="alert">{error}</div> : null}
         <div className="join-options" role="group" aria-label="Choose participant">
           {JOIN_IDENTITIES.map((identity, index) => (
@@ -1824,9 +1880,11 @@ export default function BattleMapPrototype() {
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups);
   const selectedHealth = selectedToken ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
   const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
-  const activeOwnTurnToken = state.tokens.find((token) =>
-    token.controlledByViewer && !token.turnComplete
-    && token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder) ?? null;
+  const activeTurnMembers = state.tokens.filter((token) =>
+    token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder);
+  const activeOwnTurnToken = activeTurnMembers.find((token) =>
+    token.controlledByViewer && !token.turnComplete) ?? null;
+  const activeOwnTurnIsGroup = activeTurnMembers.length > 1;
 
   const toolButton = (mode: AnnotationMode, icon: IconName, label: string, shortcut: string) => (
     <button
@@ -2019,7 +2077,6 @@ export default function BattleMapPrototype() {
             {(() => {
               const token = selectedToken;
               const controlled = token.controlledByViewer;
-              const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
               const packMembers = initiativePackMembers(token, state.tokens);
               return <>
                 <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
@@ -2042,7 +2099,6 @@ export default function BattleMapPrototype() {
                 {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
                 {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                 {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
-                {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => endTurnOptimistically(token)}>End Group Turn</button> : null}
                 {participant.role === "dm" ? <div className="token-actions">
                   <button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button>
                   <button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button>
@@ -2066,7 +2122,7 @@ export default function BattleMapPrototype() {
 
           <div className="panel-foot">
             {activeOwnTurnToken && participant.role !== "dm"
-              ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>End Group Turn</button>
+              ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button>
               : null}
             {participant.role === "dm" ? <>
               <div className="button-row">

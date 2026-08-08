@@ -77,6 +77,8 @@ type TokenRow = {
   initiative_order: number | null;
   turn_complete: number;
   movement_used: number;
+  movement_origin_x?: number | null;
+  movement_origin_y?: number | null;
   owner_participant_id: string | null;
   owner_name: string | null;
 };
@@ -414,6 +416,8 @@ async function ensureSchema(env: Env): Promise<void> {
           initiative_order INTEGER,
           turn_complete INTEGER DEFAULT 0 NOT NULL,
           movement_used REAL DEFAULT 0 NOT NULL,
+          movement_origin_x REAL,
+          movement_origin_y REAL,
           owner_participant_id TEXT REFERENCES participants(id) ON DELETE SET NULL,
           owner_name TEXT,
           updated_at INTEGER NOT NULL
@@ -596,6 +600,8 @@ async function ensureSchema(env: Env): Promise<void> {
         ["initiative_order", "ALTER TABLE tokens ADD COLUMN initiative_order INTEGER"],
         ["turn_complete", "ALTER TABLE tokens ADD COLUMN turn_complete INTEGER DEFAULT 0 NOT NULL"],
         ["movement_used", "ALTER TABLE tokens ADD COLUMN movement_used REAL DEFAULT 0 NOT NULL"],
+        ["movement_origin_x", "ALTER TABLE tokens ADD COLUMN movement_origin_x REAL"],
+        ["movement_origin_y", "ALTER TABLE tokens ADD COLUMN movement_origin_y REAL"],
       ] as const;
       for (const [columnName, statement] of tokenAdditions) {
         if (!tokenColumns.results.some((column) => column.name === columnName)) {
@@ -993,6 +999,23 @@ async function findEncounter(env: Env, code: string): Promise<EncounterRow | nul
     .first<EncounterRow>();
 }
 
+async function handleEncounterList(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
+  }
+  await ensureSchema(env);
+  const encounters = await env.DB.prepare(
+    `SELECT code, name, status, updated_at
+     FROM encounters ORDER BY updated_at DESC, name, code`,
+  ).all<{ code: string; name: string; status: "setup" | "active" | "paused"; updated_at: number }>();
+  return json({ items: encounters.results.map((encounter) => ({
+    code: encounter.code,
+    name: encounter.name,
+    status: encounter.status,
+    updatedAt: encounter.updated_at,
+  })) });
+}
+
 async function participantFromHeaders(
   request: Request,
   env: Env,
@@ -1053,6 +1076,7 @@ async function encounterState(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
             t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used,
+            t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
      FROM tokens t
      WHERE t.encounter_id = ? ORDER BY t.name, t.id`,
@@ -1149,6 +1173,9 @@ async function encounterState(
         initiativeOrder: token.initiative_order,
         turnComplete: Boolean(token.turn_complete),
         movementUsed: token.movement_used,
+        movementOrigin: token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
+          ? null
+          : { x: token.movement_origin_x, y: token.movement_origin_y },
         effects: effects.results
           .filter((effect) => effect.token_id === token.id)
           .map((effect) => ({
@@ -1398,7 +1425,8 @@ async function advanceInitiative(
     : encounter.current_round;
   await env.DB.batch([
     env.DB.prepare(
-      `UPDATE tokens SET turn_complete = 0, movement_used = 0, updated_at = ?
+      `UPDATE tokens SET turn_complete = 0, movement_used = 0,
+       movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
        WHERE encounter_id = ? AND initiative_order = ?`,
     ).bind(now, encounter.id, nextOrder),
     env.DB.prepare(
@@ -1445,11 +1473,15 @@ async function handleCommand(
     if (action.action_type === "token_moved") {
       const from = payload.from as { x?: unknown; y?: unknown } | undefined;
       const to = payload.to as { x?: unknown; y?: unknown } | undefined;
+      const previousMovementOrigin = payload.previousMovementOrigin as { x?: unknown; y?: unknown } | null | undefined;
       const result = await env.DB.prepare(
-        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, updated_at = ?
+        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND x = ? AND y = ?`,
       )
-        .bind(Number(from?.x), Number(from?.y), Number(payload.previousMovementUsed) || 0, now, tokenId, encounter.id, Number(to?.x), Number(to?.y))
+        .bind(Number(from?.x), Number(from?.y), Number(payload.previousMovementUsed) || 0,
+          previousMovementOrigin ? Number(previousMovementOrigin.x) : null,
+          previousMovementOrigin ? Number(previousMovementOrigin.y) : null,
+          now, tokenId, encounter.id, Number(to?.x), Number(to?.y))
         .run();
       changes = result.meta.changes ?? 0;
     } else if (action.action_type === "hp_changed") {
@@ -1462,7 +1494,7 @@ async function handleCommand(
     } else if (action.action_type === "initiative_set") {
       const result = await env.DB.prepare(
         `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
-         turn_complete = 0, movement_used = 0, updated_at = ?
+         turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND initiative = ? AND initiative_group_id IS NULL`,
       )
         .bind(payload.from ?? null, payload.fromGroupId ?? null, now, tokenId, encounter.id, payload.to)
@@ -1477,7 +1509,7 @@ async function handleCommand(
       if (current.results.length === members.length && members.every((member) => current.results.some((row) => row.id === cleanTokenId(member.tokenId)))) {
         const results = await env.DB.batch(members.map((member) => env.DB.prepare(
           `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
-           turn_complete = 0, movement_used = 0, updated_at = ?
+           turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
            WHERE id = ? AND encounter_id = ? AND initiative_group_id = ? AND initiative = ?`,
         ).bind(member.from ?? null, member.fromGroupId ?? null, now, cleanTokenId(member.tokenId), encounter.id, groupId, payload.to)));
         changes = results.reduce((sum, result) => sum + (result.meta.changes ?? 0), 0);
@@ -1584,11 +1616,15 @@ async function handleCommand(
     if (action.action_type === "token_moved") {
       const from = payload.from as { x?: unknown; y?: unknown } | undefined;
       const to = payload.to as { x?: unknown; y?: unknown } | undefined;
+      const movementOrigin = payload.movementOrigin as { x?: unknown; y?: unknown } | null | undefined;
       const result = await env.DB.prepare(
-        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, updated_at = ?
+        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND x = ? AND y = ?`,
       )
-        .bind(Number(to?.x), Number(to?.y), Number(payload.movementUsed) || 0, now, tokenId, encounter.id, Number(from?.x), Number(from?.y))
+        .bind(Number(to?.x), Number(to?.y), Number(payload.movementUsed) || 0,
+          movementOrigin ? Number(movementOrigin.x) : null,
+          movementOrigin ? Number(movementOrigin.y) : null,
+          now, tokenId, encounter.id, Number(from?.x), Number(from?.y))
         .run();
       changes = result.meta.changes ?? 0;
     } else if (action.action_type === "hp_changed") {
@@ -1601,7 +1637,7 @@ async function handleCommand(
     } else if (action.action_type === "initiative_set") {
       const result = await env.DB.prepare(
         `UPDATE tokens SET initiative = ?, initiative_group_id = NULL, initiative_order = NULL,
-         turn_complete = 0, movement_used = 0, updated_at = ?
+         turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND initiative IS ? AND initiative_group_id IS ?`,
       )
         .bind(payload.to, now, tokenId, encounter.id, payload.from ?? null, payload.fromGroupId ?? null)
@@ -1616,7 +1652,7 @@ async function handleCommand(
       if (valid && valid.every(Boolean)) {
         const results = await env.DB.batch(members.map((member) => env.DB.prepare(
           `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
-           turn_complete = 0, movement_used = 0, updated_at = ?
+           turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
            WHERE id = ? AND encounter_id = ? AND initiative IS ? AND initiative_group_id IS ?`,
         ).bind(payload.to, groupId, now, cleanTokenId(member.tokenId), encounter.id, member.from ?? null, member.fromGroupId ?? null)));
         changes = results.reduce((sum, result) => sum + (result.meta.changes ?? 0), 0);
@@ -1727,7 +1763,7 @@ async function handleCommand(
     const activeLeaderIds = await activeInitiativeLeaderIds(env, encounter);
     await env.DB.prepare(
       `UPDATE tokens SET initiative = ?, initiative_group_id = NULL, initiative_order = NULL,
-       turn_complete = 0, movement_used = 0, updated_at = ?
+       turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
        WHERE id = ? AND encounter_id = ?`,
     )
       .bind(initiative, now, tokenId, encounter.id)
@@ -1771,7 +1807,7 @@ async function handleCommand(
     const groupId = crypto.randomUUID();
     await env.DB.batch(tokens.results.map((token) => env.DB.prepare(
       `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
-       turn_complete = 0, movement_used = 0, updated_at = ? WHERE id = ? AND encounter_id = ?`,
+       turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ? WHERE id = ? AND encounter_id = ?`,
     ).bind(initiative, groupId, now, token.id, encounter.id)));
     await rebuildInitiativeOrders(env, encounter, now, activeLeaderIds);
     await bumpEncounter(env, encounter.id, now);
@@ -1818,11 +1854,11 @@ async function handleCommand(
       (b[0].initiative ?? 0) - (a[0].initiative ?? 0) || a[0].name.localeCompare(b[0].name));
     const statements = [env.DB.prepare(
       `UPDATE tokens SET initiative_order = NULL, turn_complete = 0,
-       movement_used = 0, updated_at = ? WHERE encounter_id = ?`,
+       movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ? WHERE encounter_id = ?`,
     ).bind(now, encounter.id), ...orderedGroups.flatMap((members, order) => members.map((leader) =>
       env.DB.prepare(
         `UPDATE tokens SET initiative_order = ?, turn_complete = 0,
-         movement_used = 0, updated_at = ?
+         movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
          WHERE encounter_id = ? AND (id = ? OR summoner_token_id = ?)`,
       ).bind(order, now, encounter.id, leader.id, leader.id),
     ))];
@@ -1904,7 +1940,7 @@ async function handleCommand(
          active_initiative_order = ?, updated_at = ? WHERE id = ?`,
       ).bind(round, activeOrder, now, encounter.id),
       env.DB.prepare(
-        `UPDATE tokens SET turn_complete = 0, movement_used = 0, updated_at = ?
+        `UPDATE tokens SET turn_complete = 0, movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ?
          WHERE encounter_id = ? AND initiative_order = ?`,
       ).bind(now, encounter.id, activeOrder),
     ]);
@@ -2022,7 +2058,7 @@ async function handleCommand(
         ).bind(now, encounter.id),
         env.DB.prepare(
           `UPDATE tokens SET initiative_order = NULL, turn_complete = 0,
-           movement_used = 0, updated_at = ? WHERE encounter_id = ?`,
+           movement_used = 0, movement_origin_x = NULL, movement_origin_y = NULL, updated_at = ? WHERE encounter_id = ?`,
         ).bind(now, encounter.id),
       ]);
     } else {
@@ -2539,7 +2575,7 @@ async function handleApi(
   const token = await env.DB.prepare(
     `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
-            movement_used, owner_participant_id, owner_name
+            movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,
   )
     .bind(tokenId, encounter.id)
@@ -2584,18 +2620,21 @@ async function handleApi(
     const x = clampTokenCoordinate(requestedX, encounter.grid_width, token.size);
     const y = clampTokenCoordinate(requestedY, encounter.grid_height, token.size);
     const previous = { x: token.x, y: token.y };
-    const distance = directDistance(previous, { x, y });
-    const remainingBeforeMove = Math.max(0, token.speed - token.movement_used);
-    const overBudget = encounter.status === "active" && distance > remainingBeforeMove + 0.05;
+    const previousMovementOrigin = token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
+      ? null
+      : { x: token.movement_origin_x, y: token.movement_origin_y };
+    const movementOrigin = encounter.status === "active" ? previousMovementOrigin ?? previous : previousMovementOrigin;
+    const distance = directDistance(movementOrigin ?? previous, { x, y });
+    const overBudget = encounter.status === "active" && distance > token.speed + 0.05;
     const movementUsed = encounter.status === "active"
-      ? Math.round((token.movement_used + distance) * 10) / 10
+      ? distance
       : token.movement_used;
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET x = ?, y = ?, movement_used = ?, updated_at = ?
+       SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
        WHERE id = ? AND encounter_id = ?`,
     )
-      .bind(x, y, movementUsed, now, tokenId, encounter.id)
+      .bind(x, y, movementUsed, movementOrigin?.x ?? null, movementOrigin?.y ?? null, now, tokenId, encounter.id)
       .run();
     if ((result.meta.changes ?? 0) !== 1) {
       return json(
@@ -2610,6 +2649,8 @@ async function handleApi(
       to: { x, y },
       distance,
       previousMovementUsed: token.movement_used,
+      previousMovementOrigin,
+      movementOrigin,
       movementUsed,
       overBudget,
     });
@@ -2629,6 +2670,15 @@ const worker = {
       } catch (error) {
         console.error("Creature catalog API error", error);
         return json({ error: "The creature catalog is temporarily unavailable." }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/api/encounters") {
+      try {
+        return await handleEncounterList(request, env);
+      } catch (error) {
+        console.error("Encounter list API error", error);
+        return json({ error: "The scenario list is temporarily unavailable." }, { status: 500 });
       }
     }
 

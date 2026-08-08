@@ -118,6 +118,8 @@ export const tokens = sqliteTable(
     initiativeOrder: integer("initiative_order"),
     turnComplete: integer("turn_complete", { mode: "boolean" }).notNull().default(false),
     movementUsed: real("movement_used").notNull().default(0),
+    movementOriginX: real("movement_origin_x"),
+    movementOriginY: real("movement_origin_y"),
     ownerParticipantId: text("owner_participant_id").references(
       () => participants.id,
       { onDelete: "set null" },

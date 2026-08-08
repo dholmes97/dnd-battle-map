@@ -87,6 +87,15 @@ async function viewerState(participant) {
   });
 }
 
+test("lists durable scenarios for the join chooser", async () => {
+  const response = await fetch(`${baseUrl}/api/encounters`, { headers: { accept: "application/json" } });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.ok(Array.isArray(body.items));
+  assert.ok(body.items.some((encounter) => encounter.code === code && encounter.name === "The Ember Keep"));
+  assert.ok(body.items.every((encounter) => typeof encounter.status === "string" && Number.isFinite(encounter.updatedAt)));
+});
+
 async function waitForPolledState(since, predicate, timeoutMs = 15_000, headers = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -645,15 +654,28 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       }),
     });
     assert.equal(overBudgetMove.response.status, 200);
-    assert.equal(overBudgetMove.body.distance, 30);
+    assert.equal(overBudgetMove.body.distance, 40);
     assert.equal(overBudgetMove.body.movementUsed, 40);
     assert.equal(overBudgetMove.body.overBudget, true);
+    assert.deepEqual(overBudgetMove.body.state.tokens.find((token) => token.id === characterId).movementOrigin, { x: 2.25, y: 2.5 });
+
+    const revisedMove = await request("move", {
+      method: "POST",
+      body: participantBody(player, characterId, {
+        x: 5.25,
+        y: 3.5,
+      }),
+    });
+    assert.equal(revisedMove.response.status, 200);
+    assert.equal(revisedMove.body.distance, 15);
+    assert.equal(revisedMove.body.movementUsed, 15);
+    assert.equal(revisedMove.body.overBudget, false);
     const afterOverBudgetMove = await viewerState(player);
     assert.deepEqual(
-      (({ x, y, movementUsed }) => ({ x, y, movementUsed }))(
+      (({ x, y, movementUsed, movementOrigin }) => ({ x, y, movementUsed, movementOrigin }))(
         afterOverBudgetMove.body.tokens.find((token) => token.id === characterId),
       ),
-      { x: 10.25, y: 3.5, movementUsed: 40 },
+      { x: 5.25, y: 3.5, movementUsed: 15, movementOrigin: { x: 2.25, y: 2.5 } },
     );
 
     const dmOverrideMove = await request("move", {
@@ -688,6 +710,8 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     });
     assert.equal(correction.response.status, 200);
     assert.equal(correction.body.state.encounter.currentRound, 2);
+    assert.equal(correction.body.state.tokens.find((token) => token.id === characterId).movementUsed, 0);
+    assert.equal(correction.body.state.tokens.find((token) => token.id === characterId).movementOrigin, null);
     assert.equal(
       correction.body.state.tokens.find((token) => token.id === characterId).effects[0].due,
       true,

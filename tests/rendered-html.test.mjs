@@ -35,15 +35,17 @@ test("server-renders the finished encounter join surface", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Ember Keep Encounter \| D&amp;D Battle Map<\/title>/i);
-  assert.match(html, /Enter the Ember Keep/);
+  assert.match(html, /Choose a scenario/);
+  assert.match(html, /<select[^>]*><option value="EMBER-KEEP" selected="">The Ember Keep<\/option><\/select>/);
   assert.match(html, /Join as Dan \(Dar&#x27;eleth\)/);
   assert.match(html, /Join as Barry \(Jelton\)/);
   assert.match(html, /Join as Scott \(Malichar\)/);
   assert.match(html, /Join as Kevin \(DM\)/);
-  assert.doesNotMatch(html, /Display name|Encounter code|<select/i);
+  assert.doesNotMatch(html, /Display name|Encounter code/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Building your site/i);
   assert.match(clientSource, /const JOIN_TIMEOUT_MS = 12_000;/);
   assert.match(clientSource, /The encounter took too long to respond\. Please try again\./);
+  assert.match(clientSource, /api<\{ items: EncounterSummary\[\] \}>\("\/api\/encounters"\)/);
 });
 
 test("stores creature originals and generated thumbnails in R2", async () => {
@@ -217,14 +219,17 @@ test("moves immediately on pointer release without token reservations", async ()
     clientSource,
     /void publishMove\(gesture\.tokenId, gesture\.latest\);/,
   );
-  assert.match(clientSource, /pendingMovesRef\.current\.set\(tokenId, \{ \.\.\.destination, sequence \}\)/);
-  assert.match(clientSource, /tokens: current\.tokens\.map\(\(token\) => token\.id === tokenId \? \{ \.\.\.token, \.\.\.destination \} : token\)/);
+  assert.match(clientSource, /pendingMovesRef\.current\.set\(tokenId, \{ \.\.\.destination, sequence, movementUsed, movementOrigin \}\)/);
+  assert.match(clientSource, /tokens: current\.tokens\.map\(\(token\) => token\.id === tokenId \? \{ \.\.\.token, \.\.\.destination, movementUsed, movementOrigin \} : token\)/);
   assert.match(clientSource, /if \(pendingMovesRef\.current\.get\(tokenId\)\?\.sequence === sequence\) pendingMovesRef\.current\.delete\(tokenId\)/);
   assert.doesNotMatch(clientSource, /const publishMove[\s\S]{0,220}setBusy\(true\)/);
   assert.doesNotMatch(clientSource, /Movement reserved|Being moved by|\/lock|\/unlock|lockState/);
   assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
   assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
-  assert.match(workerSource, /WHERE id = \? AND encounter_id = \?`,\s+\)\s+\.bind\(x, y, movementUsed, now, tokenId, encounter\.id\)/);
+  assert.match(workerSource, /SET x = \?, y = \?, movement_used = \?, movement_origin_x = \?, movement_origin_y = \?, updated_at = \?/);
+  assert.match(workerSource, /const movementOrigin = encounter\.status === "active" \? previousMovementOrigin \?\? previous : previousMovementOrigin/);
+  assert.match(workerSource, /const distance = directDistance\(movementOrigin \?\? previous, \{ x, y \}\)/);
+  assert.doesNotMatch(workerSource, /token\.movement_used \+ distance/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_expires_at`/);
@@ -251,13 +256,14 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   const optimisticFlow = clientSource.match(/const runOptimisticCommand = async[\s\S]+?const runHistoryOptimistically/)?.[0] ?? "";
 
   assert.match(clientSource, /pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>/);
+  assert.match(clientSource, /turnAdvanceQueueRef = useRef<Promise<void>>\(Promise\.resolve\(\)\)/);
   assert.match(clientSource, /for \(const mutation of pendingOptimistic\.values\(\)\) merged = mutation\.apply\(merged\)/);
   assert.match(clientSource, /import \{ flushSync \} from "react-dom"/);
   assert.match(optimisticFlow, /flushSync\(\(\) => \{\s+setState\(\(current\) =>/);
   assert.match(optimisticFlow, /setState\(\(current\) =>/);
-  assert.match(optimisticFlow, /const result = await command<T>\(name, extra\)/);
-  assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("await command<T>(name, extra)"));
-  assert.ok(optimisticFlow.indexOf("flushSync(() =>") < optimisticFlow.indexOf("await command<T>(name, extra)"));
+  assert.match(optimisticFlow, /const send = \(\) => command<T>\(name, extra\)/);
+  assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("const send = () => command<T>(name, extra)"));
+  assert.ok(optimisticFlow.indexOf("flushSync(() =>") < optimisticFlow.indexOf("const send = () => command<T>(name, extra)"));
   assert.doesNotMatch(optimisticFlow, /setBusy\(/);
   assert.match(clientSource, /pending-annotation-/);
   assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
@@ -268,6 +274,8 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   assert.match(clientSource, /removeEffectFromToken\(token\.id, effect\.id\)/);
   assert.match(clientSource, /startCombatOptimistically/);
   assert.match(clientSource, /advanceTurnOptimistically/);
+  assert.match(optimisticFlow, /const queued = turnAdvanceQueueRef\.current\.then\(send\)/);
+  assert.match(optimisticFlow, /turnAdvanceQueueRef\.current = queued\.then\(\(\) => undefined, \(\) => undefined\)/);
   assert.match(clientSource, /configureEncounterOptimistically/);
   assert.match(clientSource, /runHistoryOptimistically\("undo"\)/);
 });
@@ -310,7 +318,8 @@ test("shows a straight movement ruler and never rejects movement overage", async
   assert.match(clientSource, /const label = `\$\{distance\} ft`/);
   assert.match(clientSource, /overMovement \? "#ef6656" : "#f5c65c"/);
   assert.doesNotMatch(clientSource, /gesture\.path|previewPath/);
-  assert.match(workerSource, /const overBudget = encounter\.status === "active" && distance > remainingBeforeMove \+ 0\.05/);
+  assert.match(workerSource, /const overBudget = encounter\.status === "active" && distance > token\.speed \+ 0\.05/);
+  assert.match(clientSource, /hitToken\.movementOrigin \?\? gesture\.origin/);
   assert.doesNotMatch(workerSource, /body\.path|pathDistance|remains this turn/);
 });
 
@@ -573,6 +582,9 @@ test("shows one roster that folds identical mobs and orders combat by initiative
   assert.match(clientSource, /Changes apply to all \$\{packMembers\.length\} matching creatures/);
   assert.match(clientSource, />Split from group<\/button>/);
   assert.match(clientSource, /"Group turn ended\."/);
+  assert.equal([...clientSource.matchAll(/className="end-turn-button" onClick=\{\(\) => endTurnOptimistically/g)].length, 1);
+  assert.match(clientSource, /activeOwnTurnIsGroup \? "End Group Turn" : "End Turn"/);
+  assert.match(clientSource, /const activeOwnTurnIsGroup = activeTurnMembers\.length > 1;/);
   assert.match(workerSource, /initiative_group_id/);
   assert.match(workerSource, /async function rebuildInitiativeOrders\(/);
   assert.match(styles, /\.roster-initiative \{ grid-column: 6; width: 100%;/);

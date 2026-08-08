@@ -68,6 +68,19 @@ button:disabled { cursor: not-allowed; }
   line-height: 1.6;
 }
 
+.scenario-picker {
+  margin: 0 0 1.2rem;
+}
+
+.scenario-picker select {
+  min-height: 3.1rem;
+  background-color: #121210;
+  background-image: linear-gradient(45deg, transparent 50%, #bdab8d 50%), linear-gradient(135deg, #bdab8d 50%, transparent 50%);
+  background-position: calc(100% - 1.05rem) 50%, calc(100% - 0.72rem) 50%;
+  background-size: 0.34rem 0.34rem, 0.34rem 0.34rem;
+  background-repeat: no-repeat;
+}
+
 .join-options {
   display: grid;
   gap: 0.72rem;
