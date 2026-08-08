@@ -13,6 +13,11 @@ import {
 } from "../shared/creature-library";
 import { parseMapPackage, type MapPackage } from "../shared/map-package";
 import { FULL_SCENE_MAPS, createFullSceneMap } from "../shared/full-scene-maps";
+import {
+  baseTokenControllerName,
+  identityControlsToken,
+  resolveTokenControllerName,
+} from "../shared/token-control.mjs";
 
 interface Env {
   ASSETS: Fetcher;
@@ -140,10 +145,9 @@ type CreatureCatalogRow = {
   sort_order: number;
 };
 
-const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const PING_TTL_MS = 2_000;
 const API_ROUTE =
-  /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|claim|relinquish|move|command)$/;
+  /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|move|command)$/;
 
 let schemaReady: Promise<void> | null = null;
 
@@ -996,62 +1000,6 @@ async function bumpEncounter(env: Env, encounterId: string, now = Date.now()) {
     .run();
 }
 
-async function expireStaleClaims(
-  env: Env,
-  encounter: EncounterRow,
-): Promise<void> {
-  const now = Date.now();
-  const staleBefore = now - PARTICIPANT_PRESENCE_TTL_MS;
-  const staleClaims = await env.DB.prepare(
-    `SELECT t.id, t.owner_participant_id, t.owner_name, p.last_seen_at
-     FROM tokens t
-     JOIN participants p ON p.id = t.owner_participant_id
-     WHERE t.encounter_id = ? AND p.last_seen_at <= ?`,
-  )
-    .bind(encounter.id, staleBefore)
-    .all<{
-      id: string;
-      owner_participant_id: string;
-      owner_name: string;
-      last_seen_at: number;
-    }>();
-
-  for (const token of staleClaims.results) {
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET owner_participant_id = NULL, owner_name = NULL, updated_at = ?
-       WHERE id = ? AND owner_participant_id = ?
-         AND EXISTS (
-           SELECT 1 FROM participants
-           WHERE id = ? AND last_seen_at <= ?
-         )`,
-    )
-      .bind(
-        now,
-        token.id,
-        token.owner_participant_id,
-        token.owner_participant_id,
-        staleBefore,
-      )
-      .run();
-    if ((result.meta.changes ?? 0) > 0) {
-      await bumpEncounter(env, encounter.id, now);
-      await recordAction(
-        env,
-        encounter.id,
-        token.owner_participant_id,
-        "token_claim_expired",
-        {
-          tokenId: token.id,
-          ownerName: token.owner_name,
-          lastSeenAt: token.last_seen_at,
-        },
-        now,
-      );
-    }
-  }
-}
-
 async function expireAnnotations(
   env: Env,
   encounter: EncounterRow,
@@ -1082,20 +1030,14 @@ async function encounterState(
 ) {
   let encounter = await findEncounter(env, code);
   if (!encounter) return null;
-  await expireStaleClaims(env, encounter);
   await expireAnnotations(env, encounter);
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
             t.initiative_order, t.turn_complete, t.movement_used,
-            CASE WHEN t.summoner_token_id IS NOT NULL
-              THEN summoner.owner_participant_id ELSE t.owner_participant_id END AS owner_participant_id,
-            CASE WHEN t.summoner_token_id IS NOT NULL
-              THEN summoner.owner_name ELSE t.owner_name END AS owner_name
+            t.owner_participant_id, t.owner_name
      FROM tokens t
-     LEFT JOIN tokens summoner
-       ON summoner.id = t.summoner_token_id AND summoner.encounter_id = t.encounter_id
      WHERE t.encounter_id = ? ORDER BY t.name, t.id`,
   )
     .bind(encounter!.id)
@@ -1130,11 +1072,23 @@ async function encounterState(
   }
 
   if (tokens.results.length === 0) return null;
+  const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
+  const controllerNames = new Map<string, string>();
+  const controllerName = (token: TokenRow): string => {
+    const cached = controllerNames.get(token.id);
+    if (cached) return cached;
+    const resolved = resolveTokenControllerName(token, tokenById);
+    controllerNames.set(token.id, resolved);
+    return resolved;
+  };
+  const viewerControls = (token: TokenRow) => Boolean(
+    viewer && identityControlsToken(viewer, controllerName(token)),
+  );
   const visibleTokens = tokens.results.filter(
     (token) =>
       !token.is_hidden ||
       viewer?.role === "dm" ||
-      token.owner_participant_id === viewer?.id,
+      viewerControls(token),
   );
   return {
     encounter: {
@@ -1155,8 +1109,8 @@ async function encounterState(
       lastAction: availableUndo[0]?.action_type ?? null,
     },
     tokens: visibleTokens.map((token) => {
-      const canSeeExactHp =
-        viewer?.role === "dm" || token.owner_participant_id === viewer?.id;
+      const controlledByViewer = viewerControls(token);
+      const canSeeExactHp = viewer?.role === "dm" || controlledByViewer;
       return {
         id: token.id,
         name: token.name,
@@ -1188,13 +1142,8 @@ async function encounterState(
               effect.expires_round !== null &&
               effect.expires_round <= encounter!.current_round,
           })),
-        owner:
-          token.owner_participant_id && token.owner_name
-            ? {
-                participantId: token.owner_participant_id,
-                name: token.owner_name,
-              }
-            : null,
+        controller: { name: controllerName(token) },
+        controlledByViewer,
       };
     }),
     annotations: annotations.results.map((annotation) => ({
@@ -1321,14 +1270,22 @@ async function canControlToken(
   participant: ParticipantRow,
 ): Promise<boolean> {
   if (participant.role === "dm") return true;
-  if (!token.summoner_token_id) return token.owner_participant_id === participant.id;
-  const summoner = await env.DB.prepare(
-    `SELECT owner_participant_id FROM tokens
-     WHERE id = ? AND encounter_id = ?`,
-  )
-    .bind(token.summoner_token_id, encounterId)
-    .first<{ owner_participant_id: string | null }>();
-  return summoner?.owner_participant_id === participant.id;
+  let current = token;
+  const visited = new Set<string>();
+  while (current.summoner_token_id && !visited.has(current.id)) {
+    visited.add(current.id);
+    const summoner = await env.DB.prepare(
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+              summoner_token_id, initiative, initiative_order, turn_complete,
+              movement_used, owner_participant_id, owner_name
+       FROM tokens WHERE id = ? AND encounter_id = ?`,
+    )
+      .bind(current.summoner_token_id, encounterId)
+      .first<TokenRow>();
+    if (!summoner) return false;
+    current = summoner;
+  }
+  return identityControlsToken(participant, baseTokenControllerName(current));
 }
 
 function directDistance(
@@ -2002,7 +1959,10 @@ async function handleCommand(
     const effect = await env.DB.prepare(
       `SELECT e.id, e.token_id, e.name, e.effect_type, e.duration_rounds,
               e.expires_round, e.reminder_timing, e.created_by, e.created_at,
-              t.owner_participant_id, t.summoner_token_id
+              t.name AS token_name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
+              t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
+              t.initiative_order, t.turn_complete, t.movement_used,
+              t.owner_participant_id, t.owner_name
        FROM effects e JOIN tokens t ON t.id = e.token_id
        WHERE e.id = ? AND e.encounter_id = ?`,
     )
@@ -2017,15 +1977,45 @@ async function handleCommand(
         reminder_timing: string;
         created_by: string;
         created_at: number;
+        token_name: string;
+        x: number;
+        y: number;
+        art_asset: string | null;
+        kind: string;
+        size: CreatureSize;
+        speed: number;
+        hp: number | null;
+        max_hp: number | null;
+        is_hidden: number;
         owner_participant_id: string | null;
+        owner_name: string | null;
         summoner_token_id: string | null;
+        initiative: number | null;
+        initiative_order: number | null;
+        turn_complete: number;
+        movement_used: number;
       }>();
     if (!effect) return json({ error: "Effect not found." }, { status: 404 });
-    const allowed = participant.role === "dm" || (effect.summoner_token_id
-      ? await env.DB.prepare("SELECT 1 AS found FROM tokens WHERE id = ? AND owner_participant_id = ?")
-        .bind(effect.summoner_token_id, participant.id)
-        .first<{ found: number }>()
-      : effect.owner_participant_id === participant.id);
+    const allowed = await canControlToken(env, encounter.id, {
+      id: effect.token_id,
+      name: effect.token_name,
+      x: effect.x,
+      y: effect.y,
+      art_asset: effect.art_asset,
+      kind: effect.kind,
+      size: effect.size,
+      speed: effect.speed,
+      hp: effect.hp,
+      max_hp: effect.max_hp,
+      is_hidden: effect.is_hidden,
+      summoner_token_id: effect.summoner_token_id,
+      initiative: effect.initiative,
+      initiative_order: effect.initiative_order,
+      turn_complete: effect.turn_complete,
+      movement_used: effect.movement_used,
+      owner_participant_id: effect.owner_participant_id,
+      owner_name: effect.owner_name,
+    }, participant);
     if (!allowed) return json({ error: "You cannot remove this effect." }, { status: 403 });
     await env.DB.prepare("DELETE FROM effects WHERE id = ? AND encounter_id = ?")
       .bind(effectId, encounter.id)
@@ -2247,10 +2237,7 @@ async function handleApi(
     .run();
 
   if (action === "heartbeat") {
-    return json({
-      present: true,
-      claimExpiresAt: now + PARTICIPANT_PRESENCE_TTL_MS,
-    });
+    return json({ present: true });
   }
 
   if (action === "command") {
@@ -2273,118 +2260,10 @@ async function handleApi(
     return json({ error: "Token not found." }, { status: 404 });
   }
 
-  if (action === "claim") {
-    if (token.summoner_token_id || !["character", "monster"].includes(token.kind)) {
-      return json({ error: "This token is controlled through its summoner." }, { status: 409 });
-    }
-    const participantClaim = await env.DB.prepare(
-      `SELECT id, name FROM tokens
-       WHERE encounter_id = ? AND owner_participant_id = ?
-         AND summoner_token_id IS NULL LIMIT 1`,
-    )
-      .bind(encounter.id, participantId)
-      .first<{ id: string; name: string }>();
-    if (participantClaim && participantClaim.id !== tokenId) {
-      return json(
-        {
-          error: `You already control ${participantClaim.name}. Release it before claiming another token.`,
-          state: await encounterState(env, code, participant),
-        },
-        { status: 409 },
-      );
-    }
-
-    const nameClaim = await env.DB.prepare(
-      `SELECT id, name FROM tokens
-       WHERE encounter_id = ? AND lower(owner_name) = lower(?)
-         AND summoner_token_id IS NULL LIMIT 1`,
-    )
-      .bind(encounter.id, participant.name)
-      .first<{ id: string; name: string }>();
-    if (nameClaim && nameClaim.id !== tokenId) {
-      return json(
-        {
-          error: `${participant.name} already controls ${nameClaim.name}. Use that token or choose a different display name.`,
-          state: await encounterState(env, code, participant),
-        },
-        { status: 409 },
-      );
-    }
-
-    const sameNameRecovery =
-      token.owner_participant_id !== null &&
-      token.owner_participant_id !== participantId &&
-      token.owner_name?.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
-    if (
-      token.owner_participant_id &&
-      token.owner_participant_id !== participantId &&
-      !sameNameRecovery
-    ) {
-      return json(
-        {
-          error: `${token.name} is already claimed by ${token.owner_name ?? "another player"}.`,
-          state: await encounterState(env, code, participant),
-        },
-        { status: 409 },
-      );
-    }
-
-    if (token.owner_participant_id === participantId) {
-      return json({ claimed: true, recovered: false, state: await encounterState(env, code, participant) });
-    }
-
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET owner_participant_id = ?, owner_name = ?, updated_at = ?
-       WHERE id = ? AND encounter_id = ?
-         AND (owner_participant_id IS NULL OR lower(owner_name) = lower(?))`,
-    )
-      .bind(participantId, participant.name, now, tokenId, encounter.id, participant.name)
-      .run();
-    if ((result.meta.changes ?? 0) !== 1) {
-      return json(
-        { error: "That token was claimed by someone else.", state: await encounterState(env, code, participant) },
-        { status: 409 },
-      );
-    }
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(
-      env,
-      encounter.id,
-      participantId,
-      sameNameRecovery ? "token_claim_recovered" : "token_claimed",
-      { tokenId, previousParticipantId: token.owner_participant_id },
-      now,
-    );
-    return json({ claimed: true, recovered: sameNameRecovery, state: await encounterState(env, code, participant) });
-  }
-
-  if (action === "relinquish") {
-    if (token.owner_participant_id !== participantId) {
-      return json(
-        { error: "You do not control this token.", state: await encounterState(env, code, participant) },
-        { status: 403 },
-      );
-    }
-    const result = await env.DB.prepare(
-      `UPDATE tokens
-       SET owner_participant_id = NULL, owner_name = NULL, updated_at = ?
-       WHERE encounter_id = ? AND owner_participant_id = ?
-         AND (id = ? OR summoner_token_id = ?)`,
-    )
-      .bind(now, encounter.id, participantId, tokenId, tokenId)
-      .run();
-    if ((result.meta.changes ?? 0) > 0) {
-      await bumpEncounter(env, encounter.id, now);
-      await recordAction(env, encounter.id, participantId, "token_relinquished", { tokenId }, now);
-    }
-    return json({ released: (result.meta.changes ?? 0) > 0, state: await encounterState(env, code, participant) });
-  }
-
   if (action === "move") {
     if (!(await canControlToken(env, encounter.id, token, participant))) {
       return json(
-        { error: "Claim this token before moving it.", state: await encounterState(env, code, participant) },
+        { error: "You do not control this token.", state: await encounterState(env, code, participant) },
         { status: 403 },
       );
     }

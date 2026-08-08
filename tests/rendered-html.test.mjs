@@ -35,6 +35,7 @@ test("server-renders the finished encounter join surface", async () => {
   assert.match(html, /Enter the Ember Keep/);
   assert.match(html, /Join as Dan \(Dar&#x27;eleth\)/);
   assert.match(html, /Join as Barry \(Jelton\)/);
+  assert.match(html, /Join as Scott \(Malichar\)/);
   assert.match(html, /Join as Kevin \(DM\)/);
   assert.doesNotMatch(html, /Display name|Encounter code|<select/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Building your site/i);
@@ -138,9 +139,9 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(clientSource, /aria-label="Token size"/);
   assert.match(workerSource, /size TEXT DEFAULT 'medium' NOT NULL/);
   assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
-  assert.match(workerSource, /CASE WHEN t\.summoner_token_id IS NOT NULL[\s\S]+THEN summoner\.owner_participant_id/);
-  assert.match(workerSource, /if \(!token\.summoner_token_id\) return token\.owner_participant_id === participant\.id/);
-  assert.match(clientSource, /sameName && !primaryToken && !token\.summonerTokenId/);
+  assert.match(workerSource, /resolveTokenControllerName\(token, tokenById\)/);
+  assert.match(workerSource, /identityControlsToken\(participant, baseTokenControllerName\(current\)\)/);
+  assert.match(clientSource, /controller: summoner\?\.controller \?\? \{ name: "Kevin" \}/);
   assert.match(clientSource, /api<CreatureCatalogPage>\(`\/api\/creatures/);
   assert.match(clientSource, /loading="lazy" unoptimized/);
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
@@ -242,7 +243,7 @@ test("lets the DM select and drag any token directly from the map", async () => 
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
   assert.match(clientSource, /const hitToken = \[\.\.\.state\.tokens\]\.reverse\(\)\.find/);
-  assert.match(clientSource, /participant\.role === "dm" \|\| token\.owner\?\.participantId === participant\.id/);
+  assert.match(clientSource, /const controllable = token\.controlledByViewer/);
   assert.match(clientSource, /setSelectedTokenId\(hitToken\.id\)/);
   assert.match(clientSource, /pointerId: event\.pointerId, tokenId: hitToken\.id/);
   assert.match(clientSource, /participant\.role === "dm" \? "Drag any token to move it/);
@@ -296,11 +297,31 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.match(clientSource, /<small>Size<\/small><strong>/);
   assert.match(clientSource, /<small>Speed<\/small><strong>\{token\.speed\} ft<\/strong>/);
   assert.match(clientSource, />\+ Effect<\/button>/);
-  assert.match(clientSource, /className="inline-action" onClick=\{\(\) => void relinquishToken\(\)\}>Release token/);
+  assert.doesNotMatch(clientSource, /<small>Position<\/small>/);
+  assert.doesNotMatch(clientSource, /Claim token|Reconnect this token|Release token|unclaimed/);
+  assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(clientSource, /tokenEditorTokenId === token\.id \? <div className="token-config">/);
   assert.match(clientSource, /Edit details/);
   assert.match(styles, /\.initiative-editor input \{ width: 3\.1rem/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 18\.5rem/);
+});
+
+test("assigns every token to a fixed identity without claim state", async () => {
+  const [clientSource, workerSource, controllerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/token-control.mjs", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(controllerSource, /"token-bronze-warden": "Dan"/);
+  assert.match(controllerSource, /"token-ash-mystic": "Barry"/);
+  assert.match(controllerSource, /"token-ember-scout": "Scott"/);
+  assert.match(controllerSource, /resolveTokenControllerName\(summoner, tokenById, visited\)/);
+  assert.match(workerSource, /controller: \{ name: controllerName\(token\) \}/);
+  assert.match(workerSource, /controlledByViewer/);
+  assert.match(workerSource, /\(join\|state\|events\|heartbeat\|move\|command\)/);
+  assert.doesNotMatch(workerSource, /action === "claim"|action === "relinquish"|token_claimed|token_relinquished|expireStaleClaims/);
+  assert.doesNotMatch(clientSource, /claimToken|relinquishToken|previousClaimedTokenRef/);
 });
 
 test("normalizes Safari form controls and fills the desktop map stage", async () => {
@@ -312,6 +333,7 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
   assert.match(styles, /-webkit-appearance: none/);
   assert.match(clientSource, /Join as Dan \(Dar'eleth\)/);
   assert.match(clientSource, /Join as Barry \(Jelton\)/);
+  assert.match(clientSource, /Join as Scott \(Malichar\)/);
   assert.match(clientSource, /Join as Kevin \(DM\)/);
   assert.doesNotMatch(clientSource, /name="encounter-alias"|Display name|Encounter code/);
   assert.match(styles, /@media \(min-width: 851px\)/);

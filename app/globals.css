@@ -520,7 +520,7 @@ input:focus {
 }
 .token-heading div { display: grid; gap: 0.08rem; }
 .token-heading h2 { margin: 0; font-size: 0.9rem; font-weight: 650; letter-spacing: -0.01em; }
-.token-meta { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr; gap: 0.3rem; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid #302e2a; }
+.token-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid #302e2a; }
 .token-meta span { min-width: 0; display: grid; gap: 0.12rem; }
 .token-meta small { overflow: hidden; color: #666158; font-size: 0.52rem; letter-spacing: 0.04em; text-overflow: ellipsis; }
 .token-meta strong { overflow: hidden; color: #bcb4a8; font-family: var(--font-geist-mono), monospace; font-size: 0.62rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }

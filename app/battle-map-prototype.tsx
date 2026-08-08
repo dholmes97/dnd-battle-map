@@ -49,7 +49,8 @@ type SharedToken = MapPoint & {
   turnComplete: boolean;
   movementUsed: number;
   effects: SharedEffect[];
-  owner: null | { participantId: string; name: string };
+  controller: { name: string };
+  controlledByViewer: boolean;
 };
 type SharedAnnotation = {
   id: string;
@@ -130,6 +131,7 @@ const DEFAULT_CODE = "EMBER-KEEP";
 const JOIN_IDENTITIES: JoinIdentity[] = [
   { label: "Join as Dan (Dar'eleth)", participantName: "Dan", role: "player" },
   { label: "Join as Barry (Jelton)", participantName: "Barry", role: "player" },
+  { label: "Join as Scott (Malichar)", participantName: "Scott", role: "player" },
   { label: "Join as Kevin (DM)", participantName: "Kevin", role: "dm" },
 ];
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
@@ -439,7 +441,7 @@ function drawMap(
 
   state.tokens.forEach((token, index) => {
     const position = preview?.tokenId === token.id ? preview : token;
-    const owned = token.owner?.participantId === participant.id;
+    const owned = token.controller.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
     const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
     const x = screenX(position.x);
     const y = screenY(position.y);
@@ -547,7 +549,6 @@ export default function BattleMapPrototype() {
   const [panning, setPanning] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
@@ -582,9 +583,7 @@ export default function BattleMapPrototype() {
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedCode = state?.encounter.code;
-  const participantId = participant?.id;
-  const controlledTokens = state?.tokens.filter((token) => token.owner?.participantId === participantId) ?? [];
-  const primaryToken = controlledTokens.find((token) => !token.summonerTokenId) ?? null;
+  const controlledTokens = state?.tokens.filter((token) => token.controlledByViewer) ?? [];
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
@@ -676,15 +675,6 @@ export default function BattleMapPrototype() {
     document.addEventListener("visibilitychange", onVisible); window.addEventListener("focus", heartbeat);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", heartbeat); };
   }, [joinedCode, participant]);
-
-  useEffect(() => {
-    const previous = previousClaimedTokenRef.current;
-    if (previous && !primaryToken) {
-      setPreview(null); setDragOrigin(null);
-      setNotice(`${previous.name} was released after inactivity or reconnected elsewhere.`);
-    }
-    previousClaimedTokenRef.current = primaryToken;
-  }, [primaryToken]);
 
   useEffect(() => {
     if (!notice) return;
@@ -923,7 +913,8 @@ export default function BattleMapPrototype() {
       turnComplete: false,
       movementUsed: 0,
       effects: [],
-      owner: summoner?.owner ?? null,
+      controller: summoner?.controller ?? { name: "Kevin" },
+      controlledByViewer: true,
       x: point.x,
       y: point.y,
     };
@@ -1006,33 +997,6 @@ export default function BattleMapPrototype() {
     void placeCreature(creature, point);
   };
 
-  const claimToken = async (token: SharedToken) => {
-    if (!participant || !state) return;
-    setBusy(true); setError("");
-    try {
-      const result = await api<{ recovered: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/claim`,
-        { method: "POST", body: sessionPayload(participant, { tokenId: token.id }) },
-      );
-      acceptAuthoritativeState(result.state); setSelectedTokenId(token.id);
-      setNotice(result.recovered ? `${token.name} reconnected.` : `${token.name} is yours.`);
-    } catch (claimError) { setError(claimError instanceof Error ? claimError.message : "Unable to claim token."); }
-    finally { setBusy(false); }
-  };
-
-  const relinquishToken = async () => {
-    if (!participant || !state || !primaryToken) return;
-    setBusy(true); setError("");
-    try {
-      const result = await api<{ state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(state.encounter.code)}/relinquish`,
-        { method: "POST", body: sessionPayload(participant, { tokenId: primaryToken.id }) },
-      );
-      previousClaimedTokenRef.current = null; acceptAuthoritativeState(result.state); setSelectedTokenId(null); setNotice(`${primaryToken.name} released.`);
-    } catch (releaseError) { setError(releaseError instanceof Error ? releaseError.message : "Unable to release token."); }
-    finally { setBusy(false); }
-  };
-
   const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
     if (!participant || !encounter) return;
     const sequence = ++moveSequenceRef.current;
@@ -1108,7 +1072,7 @@ export default function BattleMapPrototype() {
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     const hitToken = [...state.tokens].reverse().find((token) => {
       if (pendingCreatesRef.current.has(token.id)) return false;
-      const controllable = participant.role === "dm" || token.owner?.participantId === participant.id;
+      const controllable = token.controlledByViewer;
       if (!controllable) return false;
       const deltaX = (point.x - token.x) * geometry.cellSize;
       const deltaY = (point.y - token.y) * geometry.cellSize;
@@ -1348,18 +1312,15 @@ export default function BattleMapPrototype() {
           <div className="token-roster">
             {state.tokens.map((token) => {
               const pendingCreate = pendingCreatesRef.current.has(token.id);
-              const yours = token.owner?.participantId === participant.id;
-              const controlled = participant.role === "dm" || yours;
-              const sameName = !yours && token.owner?.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
+              const controlled = token.controlledByViewer;
               const selected = token.id === selectedToken?.id;
               const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
               return <section className={`token-card${selected ? " is-owned" : ""}`} key={token.id}>
                 <button className="token-heading token-select" onClick={() => setSelectedTokenId(token.id)} disabled={pendingCreate}>
                   {token.artAsset ? <NextImage className="token-portrait" src={token.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(token)}</span>}
-                  <div><small>{pendingCreate ? "Placing…" : `${token.hidden ? "Hidden · " : ""}${token.kind} · ${token.owner ? `controlled by ${token.owner.name}` : "unclaimed"}`}</small><h2>{token.name}</h2></div>
+                  <div><small>{pendingCreate ? "Placing…" : `${token.hidden ? "Hidden · " : ""}${token.kind} · controlled by ${token.controller.name}`}</small><h2>{token.name}</h2></div>
                 </button>
                 <div className="token-meta">
-                  <span><small>Position</small><strong>{formatPosition(token)}</strong></span>
                   <span><small>Size</small><strong>{token.size.charAt(0).toUpperCase() + token.size.slice(1)}</strong></span>
                   <span><small>Speed</small><strong>{token.speed} ft</strong></span>
                   <span><small>HP</small><strong>{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : "—"}</strong></span>
@@ -1373,9 +1334,6 @@ export default function BattleMapPrototype() {
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                   {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
-                  {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
-                  {sameName && !primaryToken && !token.summonerTokenId ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
-                  {yours && token.id === primaryToken?.id ? <button className="inline-action" onClick={() => void relinquishToken()}>Release token</button> : null}
                   {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void deleteToken(token)}>Delete</button></div> : null}
                   {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
                     <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
