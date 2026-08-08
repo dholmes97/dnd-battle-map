@@ -137,7 +137,9 @@ test("the creature catalog pages metadata and serves artwork only on request", a
   const thumbnailResponse = await fetch(`${baseUrl}${catalog.items[0].thumbnailAsset}`);
   assert.equal(thumbnailResponse.status, 200);
   assert.match(thumbnailResponse.headers.get("content-type") ?? "", /^image\//);
-  assert.ok((await thumbnailResponse.arrayBuffer()).byteLength > 1_000);
+  const thumbnailBytes = (await thumbnailResponse.arrayBuffer()).byteLength;
+  assert.ok(thumbnailBytes > 1_000);
+  assert.ok(thumbnailBytes < 100_000, `Thumbnail should stay lightweight, received ${thumbnailBytes} bytes`);
 });
 
 test("three clients claim and independently move authoritative tokens without reservations", async () => {

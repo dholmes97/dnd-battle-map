@@ -230,28 +230,43 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
   if (!key) return new Response("Not found", { status: 404 });
   const thumbnail = new URL(request.url).searchParams.get("variant") === "thumbnail";
   const cacheHeaders = { "cache-control": "public, max-age=31536000, immutable" };
-  const thumbnailKey = `creature-catalog/thumbnails/${key.replace(/\.[^.]+$/, ".webp")}`;
+  const thumbnailKey = `creature-catalog/thumbnails/${key}`;
   if (thumbnail && env.MAP_ASSETS) {
     const stored = await env.MAP_ASSETS.get(thumbnailKey);
     if (stored) {
-      return new Response(stored.body, { headers: { ...cacheHeaders, "content-type": "image/webp", "x-creature-asset-source": "r2-thumbnail" } });
+      return new Response(stored.body, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": "r2-thumbnail" } });
+    }
+  }
+  if (thumbnail && env.ASSETS) {
+    const seeded = await env.ASSETS.fetch(new Request(new URL(`/assets/creature-thumbnails/${key}`, request.url)));
+    if (seeded.ok) {
+      const thumbnailBytes = await seeded.arrayBuffer();
+      if (env.MAP_ASSETS) {
+        await env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
+          httpMetadata: { contentType: creatureContentType(key), cacheControl: cacheHeaders["cache-control"] },
+        });
+      }
+      return new Response(thumbnailBytes, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": env.MAP_ASSETS ? "seeded-r2-thumbnail" : "packaged-thumbnail" } });
     }
   }
   const bytes = await creatureAssetBytes(env, request, key);
-  if (!bytes) return Response.redirect(new URL(`/assets/${key}`, request.url), 307);
+  if (!bytes) {
+    const fallbackPath = thumbnail ? `/assets/creature-thumbnails/${key}` : `/assets/${key}`;
+    return Response.redirect(new URL(fallbackPath, request.url), 307);
+  }
   if (thumbnail && env.IMAGES) {
     const input = new Response(bytes).body;
     if (input) {
       const transformed = await env.IMAGES.input(input)
         .transform({ width: 144, height: 144, fit: "contain" })
-        .output({ format: "image/webp", quality: 80 });
+        .output({ format: "image/png", quality: 80 });
       const thumbnailBytes = await transformed.response().then((response) => response.arrayBuffer());
       if (env.MAP_ASSETS) {
         await env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
-          httpMetadata: { contentType: "image/webp", cacheControl: cacheHeaders["cache-control"] },
+          httpMetadata: { contentType: "image/png", cacheControl: cacheHeaders["cache-control"] },
         });
       }
-      return new Response(thumbnailBytes, { headers: { ...cacheHeaders, "content-type": "image/webp", "x-creature-asset-source": "generated-thumbnail" } });
+      return new Response(thumbnailBytes, { headers: { ...cacheHeaders, "content-type": "image/png", "x-creature-asset-source": "generated-thumbnail" } });
     }
   }
   return new Response(bytes, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": thumbnail ? "original-thumbnail-fallback" : "r2-original" } });

@@ -71,9 +71,8 @@ test("stores creature originals and generated thumbnails in R2", async () => {
   const url = "http://localhost/creature-assets/tokens/creatures/imp-01.png?variant=thumbnail";
   const first = await worker.fetch(new Request(url), env, { waitUntil() {}, passThroughOnException() {} });
   assert.equal(first.status, 200);
-  assert.equal(first.headers.get("x-creature-asset-source"), "generated-thumbnail");
-  assert.ok(stored.has("creature-catalog/original/tokens/creatures/imp-01.png"));
-  assert.ok(stored.has("creature-catalog/thumbnails/tokens/creatures/imp-01.webp"));
+  assert.equal(first.headers.get("x-creature-asset-source"), "seeded-r2-thumbnail");
+  assert.ok(stored.has("creature-catalog/thumbnails/tokens/creatures/imp-01.png"));
   const second = await worker.fetch(new Request(url), env, { waitUntil() {}, passThroughOnException() {} });
   assert.equal(second.headers.get("x-creature-asset-source"), "r2-thumbnail");
   assert.equal(packagedReads, 1);
@@ -152,6 +151,14 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(catalogIndexMigration, /idx_creature_catalog_active_sort_id/);
   assert.match(sizeMigration, /ALTER TABLE `tokens` ADD `size` text DEFAULT 'medium' NOT NULL/);
   assert.equal((catalogSource.match(/creatureSeed\(\d+/g) ?? []).length, 17);
+  const thumbnailFiles = (await readdir(new URL("../public/assets/creature-thumbnails/", import.meta.url), { recursive: true }))
+    .filter((file) => file.endsWith(".png"));
+  assert.equal(thumbnailFiles.length, 17);
+  for (const thumbnailFile of thumbnailFiles) {
+    const png = await readFile(new URL(`../public/assets/creature-thumbnails/${thumbnailFile}`, import.meta.url));
+    assert.equal(png.readUInt32BE(16), 144, `${thumbnailFile} width`);
+    assert.equal(png.readUInt32BE(20), 144, `${thumbnailFile} height`);
+  }
   for (const size of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
     assert.match(catalogSource, new RegExp(`${size}: \\d`));
   }
