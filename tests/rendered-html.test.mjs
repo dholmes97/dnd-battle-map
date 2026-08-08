@@ -384,7 +384,9 @@ test("includes a durable full-scene workshop with no retired editor path", async
     readFile(new URL("../drizzle/0006_panoramic_scalphunter.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(battleMapSource, /Open Map Workshop/);
+  assert.match(battleMapSource, /aria-label="Open Map Workshop" data-tooltip="Map Workshop"/);
+  assert.doesNotMatch(battleMapSource, />Open creature palette<\/button>/);
+  assert.doesNotMatch(battleMapSource, />Open Map Workshop<\/button>/);
   assert.match(battleMapSource, /participant\.role === "dm" && workshopOpen/);
   assert.match(packageSource, /export type FullSceneVisual/);
   assert.match(packageSource, /kind: "generated-scene"/);

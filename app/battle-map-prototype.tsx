@@ -1287,6 +1287,7 @@ export default function BattleMapPrototype() {
               {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all" onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}><span aria-hidden="true">⊘</span></button> : null}
             </div>
             {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
+            {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><span aria-hidden="true">▦</span></button> : null}
             <span className="toolbar-spacer" />
             <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
               <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => nudgeViewport(-1, 0)}>←</button>
@@ -1394,8 +1395,6 @@ export default function BattleMapPrototype() {
           {participant.role === "dm" ? <section className="dm-panel">
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
             <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
-            <button className="primary-button" onClick={() => { setPaletteOpen(true); setAnnotationMode("move"); }}>Open creature palette</button>
-            <button className="secondary-button workshop-launch" onClick={() => setWorkshopOpen(true)}>Open Map Workshop</button>
           </section> : null}
 
           <button className="undo-button" onClick={() => void runCommand("undo", {}, "Last reversible action undone.")} disabled={busy || state.undo.available === 0}>Undo my last action{state.undo.available ? ` (${state.undo.available}/10)` : ""}</button>
