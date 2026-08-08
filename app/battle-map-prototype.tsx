@@ -6,7 +6,6 @@ import {
   type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -95,6 +94,7 @@ type EncounterState = {
 type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
 type PlacementPreview = MapPoint & { creature: CreatureTemplate };
+type PendingMove = MapPoint & { sequence: number };
 type DragGesture = {
   pointerId: number;
   tokenId: string;
@@ -109,13 +109,15 @@ type PanGesture = {
   viewport: Viewport;
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight";
-type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string };
+type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
 type ViewportGeometry = Viewport & {
   cellSize: number;
   visibleWidth: number;
   visibleHeight: number;
   panX: number;
   panY: number;
+  offsetX: number;
+  offsetY: number;
 };
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
 
@@ -177,8 +179,8 @@ function pointerToMap(
   const rect = canvas.getBoundingClientRect();
   const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
   return clampMapPoint(state, {
-    x: geometry.panX + (clientX - rect.left) / geometry.cellSize,
-    y: geometry.panY + (clientY - rect.top) / geometry.cellSize,
+    x: geometry.panX + (clientX - rect.left - geometry.offsetX) / geometry.cellSize,
+    y: geometry.panY + (clientY - rect.top - geometry.offsetY) / geometry.cellSize,
   }, radius);
 }
 
@@ -190,8 +192,11 @@ function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell: numb
 function viewportGeometry(viewport: Viewport, state: EncounterState, width: number, height: number): ViewportGeometry {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const matchesMap = viewport.mapKey === mapKey;
-  const zoom = matchesMap ? Math.max(1, Math.min(3, viewport.zoom)) : 1;
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
+  const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
+  const fit = matchesMap && viewport.fit;
+  const requestedZoom = matchesMap ? viewport.zoom : 1;
+  const zoom = fit ? fitZoom : Math.max(1, Math.min(3, requestedZoom));
   const cellSize = Math.max(1, baseCellSize * zoom);
   const visibleWidth = Math.min(state.grid.width, width / cellSize);
   const visibleHeight = Math.min(state.grid.height, height / cellSize);
@@ -204,32 +209,39 @@ function viewportGeometry(viewport: Viewport, state: EncounterState, width: numb
     centerX,
     centerY,
     mapKey,
+    fit,
     cellSize,
     visibleWidth,
     visibleHeight,
     panX: centerX - visibleWidth / 2,
     panY: centerY - visibleHeight / 2,
+    offsetX: Math.max(0, (width - state.grid.width * cellSize) / 2),
+    offsetY: Math.max(0, (height - state.grid.height * cellSize) / 2),
   };
 }
 
 function clampViewport(viewport: Viewport, state: EncounterState, width: number, height: number): Viewport {
   const geometry = viewportGeometry(viewport, state, width, height);
-  return { zoom: geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey };
+  return { zoom: geometry.fit ? 1 : geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey, fit: geometry.fit };
 }
 
 function zoomViewportAt(viewport: Viewport, state: EncounterState, width: number, height: number, zoom: number, focusX = 0.5, focusY = 0.5): Viewport {
   const current = viewportGeometry(viewport, state, width, height);
-  const nextZoom = Math.max(1, Math.min(3, zoom));
-  const mapX = current.panX + focusX * current.visibleWidth;
-  const mapY = current.panY + focusY * current.visibleHeight;
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
-  const visibleWidth = Math.min(state.grid.width, width / (baseCellSize * nextZoom));
-  const visibleHeight = Math.min(state.grid.height, height / (baseCellSize * nextZoom));
+  const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
+  const nextFit = zoom < 1;
+  const nextZoom = nextFit ? 1 : Math.min(3, zoom);
+  const effectiveNextZoom = nextFit ? fitZoom : nextZoom;
+  const mapX = current.panX + Math.min(current.visibleWidth, Math.max(0, focusX * width - current.offsetX) / current.cellSize);
+  const mapY = current.panY + Math.min(current.visibleHeight, Math.max(0, focusY * height - current.offsetY) / current.cellSize);
+  const visibleWidth = Math.min(state.grid.width, width / (baseCellSize * effectiveNextZoom));
+  const visibleHeight = Math.min(state.grid.height, height / (baseCellSize * effectiveNextZoom));
   return clampViewport({
     zoom: nextZoom,
     centerX: mapX + (0.5 - focusX) * visibleWidth,
     centerY: mapY + (0.5 - focusY) * visibleHeight,
     mapKey: current.mapKey,
+    fit: nextFit,
   }, state, width, height);
 }
 
@@ -305,27 +317,44 @@ function drawMap(
   const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
   const cellWidth = geometry.cellSize;
   const cellHeight = geometry.cellSize;
-  const screenX = (mapX: number) => (mapX - geometry.panX) * geometry.cellSize;
-  const screenY = (mapY: number) => (mapY - geometry.panY) * geometry.cellSize;
+  const screenX = (mapX: number) => geometry.offsetX + (mapX - geometry.panX) * geometry.cellSize;
+  const screenY = (mapY: number) => geometry.offsetY + (mapY - geometry.panY) * geometry.cellSize;
+  context.fillStyle = "#242622";
+  context.fillRect(0, 0, rect.width, rect.height);
   const mapPackage = state.encounter.mapPackage;
   if (mapScene && mapPackage) {
     const sourceWidth = geometry.visibleWidth / state.grid.width * mapScene.width;
     const sourceHeight = geometry.visibleHeight / state.grid.height * mapScene.height;
     const sourceX = geometry.panX / state.grid.width * mapScene.width;
     const sourceY = geometry.panY / state.grid.height * mapScene.height;
-    context.drawImage(mapScene, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, rect.width, rect.height);
+    context.drawImage(
+      mapScene,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      geometry.offsetX,
+      geometry.offsetY,
+      geometry.visibleWidth * geometry.cellSize,
+      geometry.visibleHeight * geometry.cellSize,
+    );
   } else {
     context.fillStyle = "#4b4b42";
-    context.fillRect(0, 0, rect.width, rect.height);
+    context.fillRect(
+      geometry.offsetX,
+      geometry.offsetY,
+      geometry.visibleWidth * geometry.cellSize,
+      geometry.visibleHeight * geometry.cellSize,
+    );
   }
 
   context.strokeStyle = "rgba(232, 220, 190, 0.17)";
   context.lineWidth = 1;
   for (let x = 0; x <= state.grid.width; x += 1) {
-    context.beginPath(); context.moveTo(screenX(x), 0); context.lineTo(screenX(x), rect.height); context.stroke();
+    context.beginPath(); context.moveTo(screenX(x), geometry.offsetY); context.lineTo(screenX(x), geometry.offsetY + geometry.visibleHeight * geometry.cellSize); context.stroke();
   }
   for (let y = 0; y <= state.grid.height; y += 1) {
-    context.beginPath(); context.moveTo(0, screenY(y)); context.lineTo(rect.width, screenY(y)); context.stroke();
+    context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + geometry.visibleWidth * geometry.cellSize, screenY(y)); context.stroke();
   }
 
   for (const annotation of state.annotations) {
@@ -498,7 +527,7 @@ export default function BattleMapPrototype() {
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [placementSummonerId, setPlacementSummonerId] = useState("");
-  const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "" });
+  const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "", fit: false });
   const [panning, setPanning] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -508,13 +537,28 @@ export default function BattleMapPrototype() {
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
+  const pendingMovesRef = useRef<Map<string, PendingMove>>(new Map());
+  const moveSequenceRef = useRef(0);
+
+  const acceptAuthoritativeState = useCallback((next: EncounterState) => {
+    setState((current) => {
+      if (current && next.encounter.version < current.encounter.version) return current;
+      const pendingMoves = pendingMovesRef.current;
+      if (pendingMoves.size === 0) return next;
+      return {
+        ...next,
+        tokens: next.tokens.map((token) => {
+          const pending = pendingMoves.get(token.id);
+          return pending ? { ...token, x: pending.x, y: pending.y } : token;
+        }),
+      };
+    });
+  }, []);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedCode = state?.encounter.code;
-  const controlledTokens = useMemo(
-    () => state?.tokens.filter((token) => token.owner?.participantId === participant?.id) ?? [],
-    [participant?.id, state?.tokens],
-  );
+  const participantId = participant?.id;
+  const controlledTokens = state?.tokens.filter((token) => token.owner?.participantId === participantId) ?? [];
   const primaryToken = controlledTokens.find((token) => !token.summonerTokenId) ?? null;
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
@@ -567,7 +611,7 @@ export default function BattleMapPrototype() {
     };
     const refresh = async () => {
       const fresh = await api<EncounterState>(`/api/encounters/${encodeURIComponent(joinedCode)}/state`, { headers });
-      if (!disposed) { lastVersion = fresh.encounter.version; setState(fresh); markLive(); }
+      if (!disposed) { lastVersion = fresh.encounter.version; acceptAuthoritativeState(fresh); markLive(); }
     };
     const listen = async () => {
       try { await refresh(); } catch { scheduleLost(); }
@@ -582,7 +626,7 @@ export default function BattleMapPrototype() {
           if (response.status === 204) { markLive(); await new Promise((resolve) => setTimeout(resolve, 250)); continue; }
           if (!response.ok) throw new Error("Live updates are unavailable.");
           const next = (await response.json()) as EncounterState;
-          lastVersion = next.encounter.version; setState(next); markLive();
+          lastVersion = next.encounter.version; acceptAuthoritativeState(next); markLive();
           await new Promise((resolve) => setTimeout(resolve, 250));
         } catch (listenError) {
           if (disposed || (listenError instanceof DOMException && listenError.name === "AbortError")) return;
@@ -703,7 +747,7 @@ export default function BattleMapPrototype() {
       `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
       { headers: viewerHeaders(participant) },
     ).catch(() => null);
-    if (fresh) setState(fresh);
+    if (fresh) acceptAuthoritativeState(fresh);
   };
 
   const command = async <T extends { state: EncounterState }>(name: string, extra: Record<string, unknown> = {}) => {
@@ -711,7 +755,7 @@ export default function BattleMapPrototype() {
     const result = await api<T>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
       method: "POST", body: sessionPayload(participant, { command: name, ...extra }),
     });
-    setState(result.state); return result;
+    acceptAuthoritativeState(result.state); return result;
   };
 
   const runCommand = async (name: string, extra: Record<string, unknown> = {}, success?: string) => {
@@ -833,7 +877,7 @@ export default function BattleMapPrototype() {
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/claim`,
         { method: "POST", body: sessionPayload(participant, { tokenId: token.id }) },
       );
-      setState(result.state); setSelectedTokenId(token.id);
+      acceptAuthoritativeState(result.state); setSelectedTokenId(token.id);
       setNotice(result.recovered ? `${token.name} reconnected.` : `${token.name} is yours.`);
     } catch (claimError) { setError(claimError instanceof Error ? claimError.message : "Unable to claim token."); }
     finally { setBusy(false); }
@@ -847,25 +891,35 @@ export default function BattleMapPrototype() {
         `/api/encounters/${encodeURIComponent(state.encounter.code)}/relinquish`,
         { method: "POST", body: sessionPayload(participant, { tokenId: primaryToken.id }) },
       );
-      previousClaimedTokenRef.current = null; setState(result.state); setSelectedTokenId(null); setNotice(`${primaryToken.name} released.`);
+      previousClaimedTokenRef.current = null; acceptAuthoritativeState(result.state); setSelectedTokenId(null); setNotice(`${primaryToken.name} released.`);
     } catch (releaseError) { setError(releaseError instanceof Error ? releaseError.message : "Unable to release token."); }
     finally { setBusy(false); }
   };
 
   const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
     if (!participant || !encounter) return;
-    setBusy(true); setError("");
+    const sequence = ++moveSequenceRef.current;
+    pendingMovesRef.current.set(tokenId, { ...destination, sequence });
+    setState((current) => current ? {
+      ...current,
+      tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination } : token),
+    } : current);
+    setPreview(null); setDragOrigin(null); setError("");
     try {
       const result = await api<{ distance: number; overBudget: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(encounter)}/move`,
         { method: "POST", body: sessionPayload(participant, { tokenId, ...destination }) },
       );
-      setState(result.state); setPreview(null); setDragOrigin(null);
+      if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
+      acceptAuthoritativeState(result.state);
       setNotice(result.overBudget
         ? `Move confirmed · ${result.distance} ft · over movement.`
         : `Move confirmed · ${result.distance} ft.`);
-    } catch (moveError) { setError(moveError instanceof Error ? moveError.message : "Move rejected."); setPreview(null); setDragOrigin(null); await refreshAfterError(); }
-    finally { setBusy(false); }
+    } catch (moveError) {
+      if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
+      setError(moveError instanceof Error ? moveError.message : "Move rejected.");
+      await refreshAfterError();
+    }
   };
 
   const addAnnotation = async (type: AnnotationMode, start: MapPoint, end?: MapPoint) => {
@@ -940,7 +994,7 @@ export default function BattleMapPrototype() {
         pointerId: event.pointerId,
         clientX: event.clientX,
         clientY: event.clientY,
-        viewport: { zoom: geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey },
+        viewport: { zoom: geometry.fit ? 1 : geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey, fit: geometry.fit },
       };
       setPanning(true);
     }
@@ -1032,7 +1086,20 @@ export default function BattleMapPrototype() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    setViewport((current) => zoomViewportAt(current, state, rect.width, rect.height, current.zoom + amount));
+    setViewport((current) => {
+      const geometry = viewportGeometry(current, state, rect.width, rect.height);
+      return zoomViewportAt(current, state, rect.width, rect.height, geometry.zoom < 1 && amount > 0 ? 1 : geometry.zoom + amount);
+    });
+  };
+
+  const fitViewport = () => {
+    setViewport({
+      zoom: 1,
+      centerX: state.grid.width / 2,
+      centerY: state.grid.height / 2,
+      mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`,
+      fit: true,
+    });
   };
 
   if (!participant || !state) {
@@ -1086,9 +1153,10 @@ export default function BattleMapPrototype() {
               <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => nudgeViewport(0, -1)}>↑</button>
               <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => nudgeViewport(0, 1)}>↓</button>
               <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => nudgeViewport(1, 0)}>→</button>
+              <button className={`icon-tool${viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" aria-pressed={viewport.fit} data-tooltip="Fit whole map" onClick={fitViewport}>⛶</button>
               <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => changeZoom(-0.5)}>−</button>
               <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => changeZoom(0.5)}>+</button>
-              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` })}>{Math.round((viewport.mapKey === `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` ? viewport.zoom : 1) * 100)}%</button>
+              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`, fit: false })}>{viewport.fit ? "Fit" : `${Math.round((viewport.mapKey === `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` ? viewport.zoom : 1) * 100)}%`}</button>
             </div>
           </div>
           <div className="map-stage">

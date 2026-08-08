@@ -139,6 +139,10 @@ test("moves immediately on pointer release without token reservations", async ()
     clientSource,
     /void publishMove\(gesture\.tokenId, gesture\.latest\);/,
   );
+  assert.match(clientSource, /pendingMovesRef\.current\.set\(tokenId, \{ \.\.\.destination, sequence \}\)/);
+  assert.match(clientSource, /tokens: current\.tokens\.map\(\(token\) => token\.id === tokenId \? \{ \.\.\.token, \.\.\.destination \} : token\)/);
+  assert.match(clientSource, /if \(pendingMovesRef\.current\.get\(tokenId\)\?\.sequence === sequence\) pendingMovesRef\.current\.delete\(tokenId\)/);
+  assert.doesNotMatch(clientSource, /const publishMove[\s\S]{0,220}setBusy\(true\)/);
   assert.doesNotMatch(clientSource, /Movement reserved|Being moved by|\/lock|\/unlock|lockState/);
   assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
   assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
@@ -245,10 +249,17 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
   assert.match(clientSource, /function zoomViewportAt\(/);
   assert.match(clientSource, /Math\.exp\(-event\.deltaY \* 0\.0015\)/);
   assert.match(clientSource, /Math\.max\(width \/ state\.grid\.width, height \/ state\.grid\.height\)/);
+  assert.match(clientSource, /const fitZoom = Math\.min\(width \/ state\.grid\.width, height \/ state\.grid\.height\) \/ baseCellSize/);
+  assert.match(clientSource, /const zoom = fit \? fitZoom : Math\.max\(1, Math\.min\(3, requestedZoom\)\)/);
+  assert.match(clientSource, /aria-label="Fit whole map"/);
+  assert.match(clientSource, /onClick=\{fitViewport\}>⛶<\/button>/);
+  assert.match(clientSource, /viewport\.fit \? "Fit"/);
+  assert.match(clientSource, /offsetX: Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
   assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
   assert.match(clientSource, /const sourceWidth = geometry\.visibleWidth \/ state\.grid\.width \* mapScene\.width/);
+  assert.match(clientSource, /geometry\.visibleWidth \* geometry\.cellSize/);
   assert.match(clientSource, /onWheel=\{onCanvasWheel\}/);
-  assert.match(clientSource, /viewport: \{ zoom: geometry\.zoom, centerX: geometry\.centerX, centerY: geometry\.centerY, mapKey: geometry\.mapKey \}/);
+  assert.match(clientSource, /viewport: \{ zoom: geometry\.fit \? 1 : geometry\.zoom, centerX: geometry\.centerX, centerY: geometry\.centerY, mapKey: geometry\.mapKey, fit: geometry\.fit \}/);
   assert.match(clientSource, /centerX: pan\.viewport\.centerX - \(event\.clientX - pan\.clientX\) \/ geometry\.cellSize/);
   assert.match(styles, /\.map-canvas\.is-dragging, \.map-canvas\.is-panning \{ cursor: grabbing; \}/);
 });
