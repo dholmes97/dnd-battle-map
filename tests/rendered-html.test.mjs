@@ -222,6 +222,22 @@ test("moves immediately on pointer release without token reservations", async ()
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_expires_at`/);
 });
 
+test("places and deletes tokens optimistically without freezing the map", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+  const placementFlow = clientSource.match(/const placeCreature = async[\s\S]+?const deleteToken = async/)?.[0] ?? "";
+  const deletionFlow = clientSource.match(/const deleteToken = async[\s\S]+?const paletteCreature/)?.[0] ?? "";
+
+  assert.match(clientSource, /pendingCreatesRef = useRef<Map<string, SharedToken>>/);
+  assert.match(clientSource, /pendingDeletesRef = useRef<Set<string>>/);
+  assert.match(placementFlow, /tokens: \[\.\.\.current\.tokens, optimisticToken\]/);
+  assert.match(placementFlow, /pendingCreatesRef\.current\.delete\(temporaryId\)/);
+  assert.doesNotMatch(placementFlow, /setBusy\(/);
+  assert.match(deletionFlow, /tokens: current\.tokens\.filter\(\(currentToken\) => currentToken\.id !== token\.id\)/);
+  assert.match(deletionFlow, /pendingDeletesRef\.current\.delete\(token\.id\)/);
+  assert.doesNotMatch(deletionFlow, /setBusy\(/);
+  assert.doesNotMatch(clientSource, /runCommand\("delete-token"/);
+});
+
 test("lets the DM select and drag any token directly from the map", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 

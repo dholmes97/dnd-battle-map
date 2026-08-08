@@ -554,20 +554,28 @@ export default function BattleMapPrototype() {
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
   const pendingMovesRef = useRef<Map<string, PendingMove>>(new Map());
+  const pendingCreatesRef = useRef<Map<string, SharedToken>>(new Map());
+  const pendingDeletesRef = useRef<Set<string>>(new Set());
   const moveSequenceRef = useRef(0);
+  const tokenMutationSequenceRef = useRef(0);
   const creatureCatalogRequestRef = useRef(0);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
       if (current && next.encounter.version < current.encounter.version) return current;
       const pendingMoves = pendingMovesRef.current;
-      if (pendingMoves.size === 0) return next;
-      return {
-        ...next,
-        tokens: next.tokens.map((token) => {
+      const pendingCreates = pendingCreatesRef.current;
+      const pendingDeletes = pendingDeletesRef.current;
+      if (pendingMoves.size === 0 && pendingCreates.size === 0 && pendingDeletes.size === 0) return next;
+      const tokens = next.tokens
+        .filter((token) => !pendingDeletes.has(token.id))
+        .map((token) => {
           const pending = pendingMoves.get(token.id);
           return pending ? { ...token, x: pending.x, y: pending.y } : token;
-        }),
+        });
+      return {
+        ...next,
+        tokens: [...tokens, ...[...pendingCreates.values()].filter((token) => !tokens.some((currentToken) => currentToken.id === token.id))],
       };
     });
   }, []);
@@ -796,11 +804,16 @@ export default function BattleMapPrototype() {
     if (fresh) acceptAuthoritativeState(fresh);
   };
 
-  const command = async <T extends { state: EncounterState }>(name: string, extra: Record<string, unknown> = {}) => {
+  const command = async <T extends { state: EncounterState }>(
+    name: string,
+    extra: Record<string, unknown> = {},
+    beforeAccept?: (result: T) => void,
+  ) => {
     if (!participant || !state) throw new Error("Join the encounter first.");
     const result = await api<T>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
       method: "POST", body: sessionPayload(participant, { command: name, ...extra }),
     });
+    beforeAccept?.(result);
     acceptAuthoritativeState(result.state); return result;
   };
 
@@ -891,9 +904,35 @@ export default function BattleMapPrototype() {
     if (!participant || !state || participant.role !== "dm" || !movementEnabled) return;
     const matchingCount = state.tokens.filter((token) => token.artAsset === creature.artAsset).length;
     const name = matchingCount === 0 ? creature.name : `${creature.name} ${matchingCount + 1}`;
-    setBusy(true); setError("");
+    const summoner = placementSummonerId ? state.tokens.find((token) => token.id === placementSummonerId) : null;
+    const temporaryId = `pending-create-${Date.now()}-${++tokenMutationSequenceRef.current}`;
+    const optimisticToken: SharedToken = {
+      id: temporaryId,
+      name,
+      artAsset: creature.artAsset,
+      kind: placementSummonerId ? "summon" : "monster",
+      size: creature.size,
+      speed: creature.defaultSpeed,
+      hp: creature.defaultHp,
+      maxHp: creature.defaultHp,
+      healthState: null,
+      hidden: false,
+      summonerTokenId: placementSummonerId || null,
+      initiative: summoner?.initiative ?? null,
+      initiativeOrder: summoner?.initiativeOrder ?? null,
+      turnComplete: false,
+      movementUsed: 0,
+      effects: [],
+      owner: summoner?.owner ?? null,
+      x: point.x,
+      y: point.y,
+    };
+    pendingCreatesRef.current.set(temporaryId, optimisticToken);
+    setState((current) => current ? { ...current, tokens: [...current.tokens, optimisticToken] } : current);
+    setPlacementPreview(null);
+    setError("");
     try {
-      const result = await command<{ tokenId: string; state: EncounterState }>("create-token", {
+      await command<{ tokenId: string; state: EncounterState }>("create-token", {
         name,
         kind: placementSummonerId ? "summon" : "monster",
         size: creature.size,
@@ -904,15 +943,39 @@ export default function BattleMapPrototype() {
         summonerTokenId: placementSummonerId || undefined,
         x: point.x,
         y: point.y,
+      }, (confirmed) => {
+        pendingCreatesRef.current.delete(temporaryId);
+        setState((current) => current ? { ...current, tokens: current.tokens.filter((token) => token.id !== temporaryId) } : current);
+        setSelectedTokenId(confirmed.tokenId);
       });
-      setSelectedTokenId(result.tokenId);
       setNotice(`${name} placed at ${creature.defaultHp} HP.`);
     } catch (placementError) {
+      pendingCreatesRef.current.delete(temporaryId);
+      setState((current) => current ? { ...current, tokens: current.tokens.filter((token) => token.id !== temporaryId) } : current);
       setError(placementError instanceof Error ? placementError.message : "Creature placement was rejected.");
       await refreshAfterError();
-    } finally {
-      setPlacementPreview(null);
-      setBusy(false);
+    }
+  };
+
+  const deleteToken = async (token: SharedToken) => {
+    if (!participant || !state || participant.role !== "dm" || pendingCreatesRef.current.has(token.id)) return;
+    pendingDeletesRef.current.add(token.id);
+    pendingMovesRef.current.delete(token.id);
+    setState((current) => current ? { ...current, tokens: current.tokens.filter((currentToken) => currentToken.id !== token.id) } : current);
+    setSelectedTokenId((current) => current === token.id ? null : current);
+    setError("");
+    try {
+      await command("delete-token", { tokenId: token.id }, () => {
+        pendingDeletesRef.current.delete(token.id);
+      });
+      setNotice("Token removed.");
+    } catch (deleteError) {
+      pendingDeletesRef.current.delete(token.id);
+      setState((current) => current && !current.tokens.some((currentToken) => currentToken.id === token.id)
+        ? { ...current, tokens: [...current.tokens, token] }
+        : current);
+      setError(deleteError instanceof Error ? deleteError.message : "Token deletion was rejected.");
+      await refreshAfterError();
     }
   };
 
@@ -1044,6 +1107,7 @@ export default function BattleMapPrototype() {
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     const hitToken = [...state.tokens].reverse().find((token) => {
+      if (pendingCreatesRef.current.has(token.id)) return false;
       const controllable = participant.role === "dm" || token.owner?.participantId === participant.id;
       if (!controllable) return false;
       const deltaX = (point.x - token.x) * geometry.cellSize;
@@ -1282,15 +1346,16 @@ export default function BattleMapPrototype() {
           <div className="panel-rule" />
           <div className="token-roster">
             {state.tokens.map((token) => {
+              const pendingCreate = pendingCreatesRef.current.has(token.id);
               const yours = token.owner?.participantId === participant.id;
               const controlled = participant.role === "dm" || yours;
               const sameName = !yours && token.owner?.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
               const selected = token.id === selectedToken?.id;
               const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
               return <section className={`token-card${selected ? " is-owned" : ""}`} key={token.id}>
-                <button className="token-heading token-select" onClick={() => setSelectedTokenId(token.id)}>
+                <button className="token-heading token-select" onClick={() => setSelectedTokenId(token.id)} disabled={pendingCreate}>
                   {token.artAsset ? <NextImage className="token-portrait" src={token.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(token)}</span>}
-                  <div><small>{token.hidden ? "Hidden · " : ""}{token.kind} · {token.owner ? `controlled by ${token.owner.name}` : "unclaimed"}</small><h2>{token.name}</h2></div>
+                  <div><small>{pendingCreate ? "Placing…" : `${token.hidden ? "Hidden · " : ""}${token.kind} · ${token.owner ? `controlled by ${token.owner.name}` : "unclaimed"}`}</small><h2>{token.name}</h2></div>
                 </button>
                 <div className="token-meta">
                   <span><small>Position</small><strong>{formatPosition(token)}</strong></span>
@@ -1310,7 +1375,7 @@ export default function BattleMapPrototype() {
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
                   {sameName && !primaryToken && !token.summonerTokenId ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
                   {yours && token.id === primaryToken?.id ? <button className="inline-action" onClick={() => void relinquishToken()}>Release token</button> : null}
-                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
+                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void deleteToken(token)}>Delete</button></div> : null}
                   {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
                     <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
                     <div className="form-grid">
