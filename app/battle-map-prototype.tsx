@@ -824,8 +824,8 @@ export default function BattleMapPrototype() {
 
   const runCommand = async (name: string, extra: Record<string, unknown> = {}, success?: string) => {
     setError("");
-    try { await command(name, extra); if (success) setNotice(success); }
-    catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); }
+    try { await command(name, extra); if (success) setNotice(success); return true; }
+    catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); return false; }
   };
 
   const runOptimisticCommand = async <T extends { state: EncounterState }>(
@@ -873,11 +873,14 @@ export default function BattleMapPrototype() {
   };
 
   const runHistoryOptimistically = async (direction: "undo" | "redo") => {
+    const historyNotice = direction === "undo" ? "Last action undone." : "Last action redone.";
+    setNotice(historyNotice);
     const source = direction === "undo" ? localUndoHistoryRef : localRedoHistoryRef;
     const destination = direction === "undo" ? localRedoHistoryRef : localUndoHistoryRef;
     const entry = source.current.at(-1);
     if (!entry || !state) {
-      await runCommand(direction, {}, direction === "undo" ? "Last action undone." : "Last action redone.");
+      const confirmed = await runCommand(direction);
+      if (!confirmed) setNotice("");
       return;
     }
     source.current = source.current.slice(0, -1);
@@ -894,11 +897,12 @@ export default function BattleMapPrototype() {
           redoAvailable: direction === "undo" ? Math.min(10, state.undo.redoAvailable + 1) : Math.max(0, state.undo.redoAvailable - 1),
         },
       }),
-      direction === "undo" ? "Last action undone." : "Last action redone.",
+      undefined,
       undefined,
       false,
     );
     if (!result) {
+      setNotice("");
       destination.current = destination.current.filter((item) => item.mutationId !== inverseEntry.mutationId);
       source.current = [...source.current, entry];
     }
@@ -1530,8 +1534,8 @@ export default function BattleMapPrototype() {
             {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
             {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><span aria-hidden="true">▦</span></button> : null}
             <div className="map-tool-group" role="group" aria-label="Action history">
-              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo · Ctrl/⌘ Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
-              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo · Ctrl/⌘ Shift Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
+              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
+              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
             </div>
             <span className="toolbar-spacer" />
             <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">

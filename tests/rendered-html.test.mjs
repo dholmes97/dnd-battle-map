@@ -445,8 +445,12 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /aria-label="Undo last action" data-tooltip="Undo · Ctrl\/⌘ Z"/);
-  assert.match(clientSource, /aria-label="Redo last action" data-tooltip="Redo · Ctrl\/⌘ Shift Z"/);
+  assert.match(clientSource, /aria-label="Undo last action" data-tooltip="Undo — Ctrl\/Cmd \+ Z"/);
+  assert.match(clientSource, /aria-label="Redo last action" data-tooltip="Redo — Ctrl \+ Y or Cmd \+ Shift \+ Z"/);
+  const historyFlow = clientSource.match(/const runHistoryOptimistically = async[\s\S]+?useEffect\(\(\) => \{/)?.[0] ?? "";
+  assert.match(historyFlow, /setNotice\(historyNotice\)/);
+  assert.ok(historyFlow.indexOf("setNotice(historyNotice)") < historyFlow.indexOf("await runOptimisticCommand("));
+  assert.match(historyFlow, /if \(!confirmed\) setNotice\(""\)/);
   assert.match(clientSource, /const wantsUndo = modifier && key === "z" && !event\.shiftKey/);
   assert.match(clientSource, /event\.ctrlKey && !event\.metaKey && key === "y"/);
   assert.match(clientSource, /target\?\.closest\("input, textarea, select"\)/);
