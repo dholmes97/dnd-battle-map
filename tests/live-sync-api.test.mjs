@@ -132,7 +132,7 @@ test("the creature catalog pages metadata and serves artwork only on request", a
   assert.equal(catalog.items.length, 1);
   assert.equal(catalog.items[0].name, "Ember Imp");
   assert.equal(catalog.items[0].artAsset, "/creature-assets/tokens/creatures/imp-01.png");
-  assert.match(catalog.items[0].thumbnailAsset, /variant=thumbnail$/);
+  assert.match(catalog.items[0].thumbnailAsset, /variant=thumbnail&v=2$/);
   assert.ok(catalog.families.includes("fiend"));
   const thumbnailResponse = await fetch(`${baseUrl}${catalog.items[0].thumbnailAsset}`);
   assert.equal(thumbnailResponse.status, 200);

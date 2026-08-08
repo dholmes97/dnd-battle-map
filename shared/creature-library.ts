@@ -35,7 +35,7 @@ function creatureSeed(
 ): CreatureCatalogSeed {
   const assetKey = sourceAsset.replace(/^\/assets\//, "");
   const artAsset = `/creature-assets/${assetKey}`;
-  return { id, name, sourceAsset, artAsset, thumbnailAsset: `${artAsset}?variant=thumbnail`, family, size, defaultSpeed, sortOrder };
+  return { id, name, sourceAsset, artAsset, thumbnailAsset: `${artAsset}?variant=thumbnail&v=2`, family, size, defaultSpeed, sortOrder };
 }
 
 // These records seed D1. The browser reads the catalog from the API, never this array.
