@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-crystal-moth",
+      "name": "Crystal Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Crystal Moth, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-moth.png",
+      "thumbnail": "../art/thumbnails/original-crystal-moth.png"
+    },
+    {
+      "id": "original-crystal-seer",
+      "name": "Crystal Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Crystal Seer, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-seer.png",
+      "thumbnail": "../art/thumbnails/original-crystal-seer.png"
+    },
+    {
+      "id": "original-crystal-serpent",
+      "name": "Crystal Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Crystal Serpent, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-serpent.png",
+      "thumbnail": "../art/thumbnails/original-crystal-serpent.png"
+    },
+    {
+      "id": "original-crystal-stalker",
+      "name": "Crystal Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Crystal Stalker, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-stalker.png",
+      "thumbnail": "../art/thumbnails/original-crystal-stalker.png"
+    },
+    {
+      "id": "original-crystal-titan",
+      "name": "Crystal Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Crystal Titan, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-titan.png",
+      "thumbnail": "../art/thumbnails/original-crystal-titan.png"
+    },
+    {
+      "id": "original-drowned-burrower",
+      "name": "Drowned Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Drowned Burrower, characterized by waterlogged textures, sea growth, and ghostly bubbles; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-drowned-burrower.png",
+      "thumbnail": "../art/thumbnails/original-drowned-burrower.png"
+    },
+    {
+      "id": "original-drowned-crawler",
+      "name": "Drowned Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Drowned Crawler, characterized by waterlogged textures, sea growth, and ghostly bubbles; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-drowned-crawler.png",
+      "thumbnail": "../art/thumbnails/original-drowned-crawler.png"
+    },
+    {
+      "id": "original-drowned-drake",
+      "name": "Drowned Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Drowned Drake, characterized by waterlogged textures, sea growth, and ghostly bubbles; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-drowned-drake.png",
+      "thumbnail": "../art/thumbnails/original-drowned-drake.png"
+    },
+    {
+      "id": "original-drowned-guardian",
+      "name": "Drowned Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Drowned Guardian, characterized by waterlogged textures, sea growth, and ghostly bubbles; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-drowned-guardian.png",
+      "thumbnail": "../art/thumbnails/original-drowned-guardian.png"
+    },
+    {
+      "id": "original-drowned-hound",
+      "name": "Drowned Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Drowned Hound, characterized by waterlogged textures, sea growth, and ghostly bubbles; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-drowned-hound.png",
+      "thumbnail": "../art/thumbnails/original-drowned-hound.png"
+    }
+  ]
+}

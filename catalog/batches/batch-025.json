@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-salamander",
+      "name": "Salamander",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 90,
+      "hitDice": "12d10",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "salamander",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/salamander"
+      },
+      "artDirection": "Original tactical fantasy depiction of Salamander, a Large elemental.",
+      "image": "../art/full/srd-salamander.png",
+      "thumbnail": "../art/thumbnails/srd-salamander.png"
+    },
+    {
+      "id": "srd-satyr",
+      "name": "Satyr",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 31,
+      "hitDice": "7d8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "satyr",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/satyr"
+      },
+      "artDirection": "Original tactical fantasy depiction of Satyr, a Medium fey.",
+      "image": "../art/full/srd-satyr.png",
+      "thumbnail": "../art/thumbnails/srd-satyr.png"
+    },
+    {
+      "id": "srd-scorpion",
+      "name": "Scorpion",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "scorpion",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/scorpion"
+      },
+      "artDirection": "Original tactical fantasy depiction of Scorpion, a Tiny beast.",
+      "image": "../art/full/srd-scorpion.png",
+      "thumbnail": "../art/thumbnails/srd-scorpion.png"
+    },
+    {
+      "id": "srd-scout",
+      "name": "Scout",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 16,
+      "hitDice": "3d8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "scout",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/scout"
+      },
+      "artDirection": "Original tactical fantasy depiction of Scout, a Medium humanoid (any race).",
+      "image": "../art/full/srd-scout.png",
+      "thumbnail": "../art/thumbnails/srd-scout.png"
+    },
+    {
+      "id": "srd-sea-hag",
+      "name": "Sea Hag",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "7d8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "sea-hag",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/sea-hag"
+      },
+      "artDirection": "Original tactical fantasy depiction of Sea Hag, a Medium fey.",
+      "image": "../art/full/srd-sea-hag.png",
+      "thumbnail": "../art/thumbnails/srd-sea-hag.png"
+    },
+    {
+      "id": "srd-sea-horse",
+      "name": "Sea Horse",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 20,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "sea-horse",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/sea-horse"
+      },
+      "artDirection": "Original tactical fantasy depiction of Sea Horse, a Tiny beast.",
+      "image": "../art/full/srd-sea-horse.png",
+      "thumbnail": "../art/thumbnails/srd-sea-horse.png"
+    },
+    {
+      "id": "srd-shadow",
+      "name": "Shadow",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 16,
+      "hitDice": "3d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "shadow",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/shadow"
+      },
+      "artDirection": "Original tactical fantasy depiction of Shadow, a Medium undead.",
+      "image": "../art/full/srd-shadow.png",
+      "thumbnail": "../art/thumbnails/srd-shadow.png"
+    },
+    {
+      "id": "srd-shambling-mound",
+      "name": "Shambling Mound",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 136,
+      "hitDice": "16d10",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "shambling-mound",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/shambling-mound"
+      },
+      "artDirection": "Original tactical fantasy depiction of Shambling Mound, a Large plant.",
+      "image": "../art/full/srd-shambling-mound.png",
+      "thumbnail": "../art/thumbnails/srd-shambling-mound.png"
+    },
+    {
+      "id": "srd-shield-guardian",
+      "name": "Shield Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 142,
+      "hitDice": "15d10",
+      "armorClass": 17,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "shield-guardian",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/shield-guardian"
+      },
+      "artDirection": "Original tactical fantasy depiction of Shield Guardian, a Large construct.",
+      "image": "../art/full/srd-shield-guardian.png",
+      "thumbnail": "../art/thumbnails/srd-shield-guardian.png"
+    },
+    {
+      "id": "srd-shrieker",
+      "name": "Shrieker",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 5,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "shrieker",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/shrieker"
+      },
+      "artDirection": "Original tactical fantasy depiction of Shrieker, a Medium plant.",
+      "image": "../art/full/srd-shrieker.png",
+      "thumbnail": "../art/thumbnails/srd-shrieker.png"
+    }
+  ]
+}

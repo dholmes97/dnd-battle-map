@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-reef-shark",
+      "name": "Reef Shark",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "reef-shark",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/reef-shark"
+      },
+      "artDirection": "Original tactical fantasy depiction of Reef Shark, a Medium beast.",
+      "image": "../art/full/srd-reef-shark.png",
+      "thumbnail": "../art/thumbnails/srd-reef-shark.png"
+    },
+    {
+      "id": "srd-remorhaz",
+      "name": "Remorhaz",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 195,
+      "hitDice": "17d12",
+      "armorClass": 17,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "remorhaz",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/remorhaz"
+      },
+      "artDirection": "Original tactical fantasy depiction of Remorhaz, a Huge monstrosity.",
+      "image": "../art/full/srd-remorhaz.png",
+      "thumbnail": "../art/thumbnails/srd-remorhaz.png"
+    },
+    {
+      "id": "srd-rhinoceros",
+      "name": "Rhinoceros",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10",
+      "armorClass": 11,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "rhinoceros",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/rhinoceros"
+      },
+      "artDirection": "Original tactical fantasy depiction of Rhinoceros, a Large beast.",
+      "image": "../art/full/srd-rhinoceros.png",
+      "thumbnail": "../art/thumbnails/srd-rhinoceros.png"
+    },
+    {
+      "id": "srd-riding-horse",
+      "name": "Riding Horse",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 13,
+      "hitDice": "2d10",
+      "armorClass": 10,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "riding-horse",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/riding-horse"
+      },
+      "artDirection": "Original tactical fantasy depiction of Riding Horse, a Large beast.",
+      "image": "../art/full/srd-riding-horse.png",
+      "thumbnail": "../art/thumbnails/srd-riding-horse.png"
+    },
+    {
+      "id": "srd-roc",
+      "name": "Roc",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 248,
+      "hitDice": "16d20",
+      "armorClass": 15,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 20,
+        "fly": 120,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "roc",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/roc"
+      },
+      "artDirection": "Original tactical fantasy depiction of Roc, a Gargantuan monstrosity.",
+      "image": "../art/full/srd-roc.png",
+      "thumbnail": "../art/thumbnails/srd-roc.png"
+    },
+    {
+      "id": "srd-roper",
+      "name": "Roper",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 93,
+      "hitDice": "11d10",
+      "armorClass": 20,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": null,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "roper",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/roper"
+      },
+      "artDirection": "Original tactical fantasy depiction of Roper, a Large monstrosity.",
+      "image": "../art/full/srd-roper.png",
+      "thumbnail": "../art/thumbnails/srd-roper.png"
+    },
+    {
+      "id": "srd-rug-of-smothering",
+      "name": "Rug of Smothering",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 33,
+      "hitDice": "6d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "rug-of-smothering",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/rug-of-smothering"
+      },
+      "artDirection": "Original tactical fantasy depiction of Rug of Smothering, a Large construct.",
+      "image": "../art/full/srd-rug-of-smothering.png",
+      "thumbnail": "../art/thumbnails/srd-rug-of-smothering.png"
+    },
+    {
+      "id": "srd-rust-monster",
+      "name": "Rust Monster",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "rust-monster",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/rust-monster"
+      },
+      "artDirection": "Original tactical fantasy depiction of Rust Monster, a Medium monstrosity.",
+      "image": "../art/full/srd-rust-monster.png",
+      "thumbnail": "../art/thumbnails/srd-rust-monster.png"
+    },
+    {
+      "id": "srd-saber-toothed-tiger",
+      "name": "Saber-Toothed Tiger",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 52,
+      "hitDice": "7d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "saber-toothed-tiger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/saber-toothed-tiger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Saber-Toothed Tiger, a Large beast.",
+      "image": "../art/full/srd-saber-toothed-tiger.png",
+      "thumbnail": "../art/thumbnails/srd-saber-toothed-tiger.png"
+    },
+    {
+      "id": "srd-sahuagin",
+      "name": "Sahuagin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "sahuagin",
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "sahuagin",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/sahuagin"
+      },
+      "artDirection": "Original tactical fantasy depiction of Sahuagin, a Medium humanoid (sahuagin).",
+      "image": "../art/full/srd-sahuagin.png",
+      "thumbnail": "../art/thumbnails/srd-sahuagin.png"
+    }
+  ]
+}

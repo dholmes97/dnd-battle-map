@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-otyugh",
+      "name": "Otyugh",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "otyugh",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/otyugh"
+      },
+      "artDirection": "Original tactical fantasy depiction of Otyugh, a Large aberration.",
+      "image": "../art/full/srd-otyugh.png",
+      "thumbnail": "../art/thumbnails/srd-otyugh.png"
+    },
+    {
+      "id": "srd-owl",
+      "name": "Owl",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 5,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "owl",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/owl"
+      },
+      "artDirection": "Original tactical fantasy depiction of Owl, a Tiny beast.",
+      "image": "../art/full/srd-owl.png",
+      "thumbnail": "../art/thumbnails/srd-owl.png"
+    },
+    {
+      "id": "srd-panther",
+      "name": "Panther",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "panther",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/panther"
+      },
+      "artDirection": "Original tactical fantasy depiction of Panther, a Medium beast.",
+      "image": "../art/full/srd-panther.png",
+      "thumbnail": "../art/thumbnails/srd-panther.png"
+    },
+    {
+      "id": "srd-pegasus",
+      "name": "Pegasus",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 59,
+      "hitDice": "7d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "pegasus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/pegasus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Pegasus, a Large celestial.",
+      "image": "../art/full/srd-pegasus.png",
+      "thumbnail": "../art/thumbnails/srd-pegasus.png"
+    },
+    {
+      "id": "srd-phase-spider",
+      "name": "Phase Spider",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 32,
+      "hitDice": "5d10",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "phase-spider",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/phase-spider"
+      },
+      "artDirection": "Original tactical fantasy depiction of Phase Spider, a Large monstrosity.",
+      "image": "../art/full/srd-phase-spider.png",
+      "thumbnail": "../art/thumbnails/srd-phase-spider.png"
+    },
+    {
+      "id": "srd-pit-fiend",
+      "name": "Pit Fiend",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "large",
+      "defaultHp": 300,
+      "hitDice": "24d10",
+      "armorClass": 19,
+      "challengeRating": "20",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "pit-fiend",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/pit-fiend"
+      },
+      "artDirection": "Original tactical fantasy depiction of Pit Fiend, a Large fiend (devil).",
+      "image": "../art/full/srd-pit-fiend.png",
+      "thumbnail": "../art/thumbnails/srd-pit-fiend.png"
+    },
+    {
+      "id": "srd-planetar",
+      "name": "Planetar",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 200,
+      "hitDice": "16d10",
+      "armorClass": 19,
+      "challengeRating": "16",
+      "speeds": {
+        "walk": 40,
+        "fly": 120,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "planetar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/planetar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Planetar, a Large celestial.",
+      "image": "../art/full/srd-planetar.png",
+      "thumbnail": "../art/thumbnails/srd-planetar.png"
+    },
+    {
+      "id": "srd-plesiosaurus",
+      "name": "Plesiosaurus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "plesiosaurus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/plesiosaurus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Plesiosaurus, a Large beast.",
+      "image": "../art/full/srd-plesiosaurus.png",
+      "thumbnail": "../art/thumbnails/srd-plesiosaurus.png"
+    },
+    {
+      "id": "srd-poisonous-snake",
+      "name": "Poisonous Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "poisonous-snake",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/poisonous-snake"
+      },
+      "artDirection": "Original tactical fantasy depiction of Poisonous Snake, a Tiny beast.",
+      "image": "../art/full/srd-poisonous-snake.png",
+      "thumbnail": "../art/thumbnails/srd-poisonous-snake.png"
+    },
+    {
+      "id": "srd-polar-bear",
+      "name": "Polar Bear",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 42,
+      "hitDice": "5d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "polar-bear",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/polar-bear"
+      },
+      "artDirection": "Original tactical fantasy depiction of Polar Bear, a Large beast.",
+      "image": "../art/full/srd-polar-bear.png",
+      "thumbnail": "../art/thumbnails/srd-polar-bear.png"
+    }
+  ]
+}

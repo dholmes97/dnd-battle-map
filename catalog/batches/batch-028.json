@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-swarm-of-rats",
+      "name": "Swarm of Rats",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 24,
+      "hitDice": "7d8",
+      "armorClass": 10,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-rats",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-rats"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Rats, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-rats.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-rats.png"
+    },
+    {
+      "id": "srd-swarm-of-ravens",
+      "name": "Swarm of Ravens",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 24,
+      "hitDice": "7d8",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-ravens",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-ravens"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Ravens, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-ravens.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-ravens.png"
+    },
+    {
+      "id": "srd-swarm-of-spiders",
+      "name": "Swarm of Spiders",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-spiders",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-spiders"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Spiders, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-spiders.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-spiders.png"
+    },
+    {
+      "id": "srd-swarm-of-wasps",
+      "name": "Swarm of Wasps",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 5,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-wasps",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-wasps"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Wasps, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-wasps.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-wasps.png"
+    },
+    {
+      "id": "srd-tarrasque",
+      "name": "Tarrasque",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": "titan",
+      "size": "gargantuan",
+      "defaultHp": 676,
+      "hitDice": "33d20",
+      "armorClass": 25,
+      "challengeRating": "30",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "tarrasque",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tarrasque"
+      },
+      "artDirection": "Original tactical fantasy depiction of Tarrasque, a Gargantuan monstrosity (titan).",
+      "image": "../art/full/srd-tarrasque.png",
+      "thumbnail": "../art/thumbnails/srd-tarrasque.png"
+    },
+    {
+      "id": "srd-thug",
+      "name": "Thug",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "thug",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/thug"
+      },
+      "artDirection": "Original tactical fantasy depiction of Thug, a Medium humanoid (any race).",
+      "image": "../art/full/srd-thug.png",
+      "thumbnail": "../art/thumbnails/srd-thug.png"
+    },
+    {
+      "id": "srd-tiger",
+      "name": "Tiger",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 37,
+      "hitDice": "5d10",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "tiger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tiger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Tiger, a Large beast.",
+      "image": "../art/full/srd-tiger.png",
+      "thumbnail": "../art/thumbnails/srd-tiger.png"
+    },
+    {
+      "id": "srd-treant",
+      "name": "Treant",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 138,
+      "hitDice": "12d12",
+      "armorClass": 16,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "treant",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/treant"
+      },
+      "artDirection": "Original tactical fantasy depiction of Treant, a Huge plant.",
+      "image": "../art/full/srd-treant.png",
+      "thumbnail": "../art/thumbnails/srd-treant.png"
+    },
+    {
+      "id": "srd-tribal-warrior",
+      "name": "Tribal Warrior",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "tribal-warrior",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tribal-warrior"
+      },
+      "artDirection": "Original tactical fantasy depiction of Tribal Warrior, a Medium humanoid (any race).",
+      "image": "../art/full/srd-tribal-warrior.png",
+      "thumbnail": "../art/thumbnails/srd-tribal-warrior.png"
+    },
+    {
+      "id": "srd-triceratops",
+      "name": "Triceratops",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 95,
+      "hitDice": "10d12",
+      "armorClass": 13,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "triceratops",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/triceratops"
+      },
+      "artDirection": "Original tactical fantasy depiction of Triceratops, a Huge beast.",
+      "image": "../art/full/srd-triceratops.png",
+      "thumbnail": "../art/thumbnails/srd-triceratops.png"
+    }
+  ]
+}

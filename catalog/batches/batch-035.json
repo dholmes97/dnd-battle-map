@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-ashen-crawler",
+      "name": "Ashen Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Ashen Crawler, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-crawler.png",
+      "thumbnail": "../art/thumbnails/original-ashen-crawler.png"
+    },
+    {
+      "id": "original-ashen-drake",
+      "name": "Ashen Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Ashen Drake, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-drake.png",
+      "thumbnail": "../art/thumbnails/original-ashen-drake.png"
+    },
+    {
+      "id": "original-ashen-guardian",
+      "name": "Ashen Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Ashen Guardian, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-guardian.png",
+      "thumbnail": "../art/thumbnails/original-ashen-guardian.png"
+    },
+    {
+      "id": "original-ashen-hound",
+      "name": "Ashen Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Ashen Hound, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-hound.png",
+      "thumbnail": "../art/thumbnails/original-ashen-hound.png"
+    },
+    {
+      "id": "original-ashen-leviathan",
+      "name": "Ashen Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Ashen Leviathan, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-ashen-leviathan.png"
+    },
+    {
+      "id": "original-ashen-marauder",
+      "name": "Ashen Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Ashen Marauder, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-marauder.png",
+      "thumbnail": "../art/thumbnails/original-ashen-marauder.png"
+    },
+    {
+      "id": "original-ashen-moth",
+      "name": "Ashen Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Ashen Moth, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-moth.png",
+      "thumbnail": "../art/thumbnails/original-ashen-moth.png"
+    },
+    {
+      "id": "original-ashen-seer",
+      "name": "Ashen Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Ashen Seer, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-seer.png",
+      "thumbnail": "../art/thumbnails/original-ashen-seer.png"
+    },
+    {
+      "id": "original-ashen-serpent",
+      "name": "Ashen Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Ashen Serpent, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-serpent.png",
+      "thumbnail": "../art/thumbnails/original-ashen-serpent.png"
+    },
+    {
+      "id": "original-ashen-stalker",
+      "name": "Ashen Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Ashen Stalker, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-stalker.png",
+      "thumbnail": "../art/thumbnails/original-ashen-stalker.png"
+    }
+  ]
+}

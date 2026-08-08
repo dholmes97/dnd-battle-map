@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-white-dragon-wyrmling",
+      "name": "White Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 30,
+        "climb": null,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "white-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/white-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of White Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-white-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-white-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-wight",
+      "name": "Wight",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wight",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wight"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wight, a Medium undead.",
+      "image": "../art/full/srd-wight.png",
+      "thumbnail": "../art/thumbnails/srd-wight.png"
+    },
+    {
+      "id": "srd-will-o-wisp",
+      "name": "Will-o'-Wisp",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "9d4",
+      "armorClass": 19,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 0,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "will-o-wisp",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/will-o-wisp"
+      },
+      "artDirection": "Original tactical fantasy depiction of Will-o'-Wisp, a Tiny undead.",
+      "image": "../art/full/srd-will-o-wisp.png",
+      "thumbnail": "../art/thumbnails/srd-will-o-wisp.png"
+    },
+    {
+      "id": "srd-winter-wolf",
+      "name": "Winter Wolf",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 75,
+      "hitDice": "10d10",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "winter-wolf",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/winter-wolf"
+      },
+      "artDirection": "Original tactical fantasy depiction of Winter Wolf, a Large monstrosity.",
+      "image": "../art/full/srd-winter-wolf.png",
+      "thumbnail": "../art/thumbnails/srd-winter-wolf.png"
+    },
+    {
+      "id": "srd-wolf",
+      "name": "Wolf",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wolf",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wolf"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wolf, a Medium beast.",
+      "image": "../art/full/srd-wolf.png",
+      "thumbnail": "../art/thumbnails/srd-wolf.png"
+    },
+    {
+      "id": "srd-worg",
+      "name": "Worg",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 26,
+      "hitDice": "4d10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "worg",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/worg"
+      },
+      "artDirection": "Original tactical fantasy depiction of Worg, a Large monstrosity.",
+      "image": "../art/full/srd-worg.png",
+      "thumbnail": "../art/thumbnails/srd-worg.png"
+    },
+    {
+      "id": "srd-wraith",
+      "name": "Wraith",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 67,
+      "hitDice": "9d8",
+      "armorClass": 13,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 0,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wraith",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wraith"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wraith, a Medium undead.",
+      "image": "../art/full/srd-wraith.png",
+      "thumbnail": "../art/thumbnails/srd-wraith.png"
+    },
+    {
+      "id": "srd-wyvern",
+      "name": "Wyvern",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 110,
+      "hitDice": "13d10",
+      "armorClass": 13,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 20,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wyvern",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wyvern"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wyvern, a Large dragon.",
+      "image": "../art/full/srd-wyvern.png",
+      "thumbnail": "../art/thumbnails/srd-wyvern.png"
+    },
+    {
+      "id": "srd-xorn",
+      "name": "Xorn",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 73,
+      "hitDice": "7d8",
+      "armorClass": 19,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "xorn",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/xorn"
+      },
+      "artDirection": "Original tactical fantasy depiction of Xorn, a Medium elemental.",
+      "image": "../art/full/srd-xorn.png",
+      "thumbnail": "../art/thumbnails/srd-xorn.png"
+    },
+    {
+      "id": "srd-young-black-dragon",
+      "name": "Young Black Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 127,
+      "hitDice": "15d10",
+      "armorClass": 18,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-black-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-black-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Black Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-black-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-black-dragon.png"
+    }
+  ]
+}

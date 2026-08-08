@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-storm-titan",
+      "name": "Storm Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Storm Titan, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-titan.png",
+      "thumbnail": "../art/thumbnails/original-storm-titan.png"
+    },
+    {
+      "id": "original-verdant-burrower",
+      "name": "Verdant Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Verdant Burrower, characterized by lush leaf growth, green-gold coloring, and living wood details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-verdant-burrower.png",
+      "thumbnail": "../art/thumbnails/original-verdant-burrower.png"
+    },
+    {
+      "id": "original-verdant-crawler",
+      "name": "Verdant Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Verdant Crawler, characterized by lush leaf growth, green-gold coloring, and living wood details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-verdant-crawler.png",
+      "thumbnail": "../art/thumbnails/original-verdant-crawler.png"
+    },
+    {
+      "id": "original-lantern-jelly",
+      "name": "Lantern Jelly",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8+10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A translucent aquatic ooze with warm lantern-like organs and long trailing filaments",
+      "image": "../art/full/original-lantern-jelly.png",
+      "thumbnail": "../art/thumbnails/original-lantern-jelly.png"
+    },
+    {
+      "id": "original-ruin-beak",
+      "name": "Ruin Beak",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 72,
+      "hitDice": "8d10+28",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A massive flightless predatory bird armored in broken stone-like scales",
+      "image": "../art/full/original-ruin-beak.png",
+      "thumbnail": "../art/thumbnails/original-ruin-beak.png"
+    },
+    {
+      "id": "original-candle-wight",
+      "name": "Candle Wight",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A wax-draped undead sentinel with many guttering candles growing from its shoulders",
+      "image": "../art/full/original-candle-wight.png",
+      "thumbnail": "../art/thumbnails/original-candle-wight.png"
+    },
+    {
+      "id": "original-river-knuckle",
+      "name": "River Knuckle",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 90,
+      "hitDice": "12d10+24",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 50,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A broad freshwater elemental shaped from stones, roots, foam, and powerful grasping hands",
+      "image": "../art/full/original-river-knuckle.png",
+      "thumbnail": "../art/thumbnails/original-river-knuckle.png"
+    },
+    {
+      "id": "original-bell-tower-fiend",
+      "name": "Bell-Tower Fiend",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 157,
+      "hitDice": "15d12+60",
+      "armorClass": 18,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A tall iron-skinned fiend with a hollow bell-like torso and long clapper tail",
+      "image": "../art/full/original-bell-tower-fiend.png",
+      "thumbnail": "../art/thumbnails/original-bell-tower-fiend.png"
+    },
+    {
+      "id": "original-starved-oracle",
+      "name": "Starved Oracle",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 66,
+      "hitDice": "12d8+12",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An emaciated many-eyed oracle wrapped in parchment strips and orbiting stone tablets",
+      "image": "../art/full/original-starved-oracle.png",
+      "thumbnail": "../art/thumbnails/original-starved-oracle.png"
+    },
+    {
+      "id": "original-moss-crown-stag",
+      "name": "Moss-Crown Stag",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 75,
+      "hitDice": "10d10+20",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A supernatural stag crowned with branching mossy antlers, flowers, and tiny lights",
+      "image": "../art/full/original-moss-crown-stag.png",
+      "thumbnail": "../art/thumbnails/original-moss-crown-stag.png"
+    }
+  ]
+}

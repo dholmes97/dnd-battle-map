@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-iron-serpent",
+      "name": "Iron Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Iron Serpent, characterized by heavy riveted plates, dark metal, and furnace-orange seams; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-iron-serpent.png",
+      "thumbnail": "../art/thumbnails/original-iron-serpent.png"
+    },
+    {
+      "id": "original-iron-stalker",
+      "name": "Iron Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Iron Stalker, characterized by heavy riveted plates, dark metal, and furnace-orange seams; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-iron-stalker.png",
+      "thumbnail": "../art/thumbnails/original-iron-stalker.png"
+    },
+    {
+      "id": "original-iron-titan",
+      "name": "Iron Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Iron Titan, characterized by heavy riveted plates, dark metal, and furnace-orange seams; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-iron-titan.png",
+      "thumbnail": "../art/thumbnails/original-iron-titan.png"
+    },
+    {
+      "id": "original-mire-burrower",
+      "name": "Mire Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Mire Burrower, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-burrower.png",
+      "thumbnail": "../art/thumbnails/original-mire-burrower.png"
+    },
+    {
+      "id": "original-mire-crawler",
+      "name": "Mire Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Mire Crawler, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-crawler.png",
+      "thumbnail": "../art/thumbnails/original-mire-crawler.png"
+    },
+    {
+      "id": "original-mire-drake",
+      "name": "Mire Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Mire Drake, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-drake.png",
+      "thumbnail": "../art/thumbnails/original-mire-drake.png"
+    },
+    {
+      "id": "original-mire-guardian",
+      "name": "Mire Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Mire Guardian, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-guardian.png",
+      "thumbnail": "../art/thumbnails/original-mire-guardian.png"
+    },
+    {
+      "id": "original-mire-hound",
+      "name": "Mire Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Mire Hound, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-hound.png",
+      "thumbnail": "../art/thumbnails/original-mire-hound.png"
+    },
+    {
+      "id": "original-mire-leviathan",
+      "name": "Mire Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Mire Leviathan, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-mire-leviathan.png"
+    },
+    {
+      "id": "original-mire-marauder",
+      "name": "Mire Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Mire Marauder, characterized by peat-dark hide, swamp plants, mud, and sickly green accents; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-mire-marauder.png",
+      "thumbnail": "../art/thumbnails/original-mire-marauder.png"
+    }
+  ]
+}

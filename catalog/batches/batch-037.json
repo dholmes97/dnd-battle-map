@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-briar-serpent",
+      "name": "Briar Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Briar Serpent, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-serpent.png",
+      "thumbnail": "../art/thumbnails/original-briar-serpent.png"
+    },
+    {
+      "id": "original-briar-stalker",
+      "name": "Briar Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Briar Stalker, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-stalker.png",
+      "thumbnail": "../art/thumbnails/original-briar-stalker.png"
+    },
+    {
+      "id": "original-briar-titan",
+      "name": "Briar Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Briar Titan, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-titan.png",
+      "thumbnail": "../art/thumbnails/original-briar-titan.png"
+    },
+    {
+      "id": "original-crystal-burrower",
+      "name": "Crystal Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Crystal Burrower, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-burrower.png",
+      "thumbnail": "../art/thumbnails/original-crystal-burrower.png"
+    },
+    {
+      "id": "original-crystal-crawler",
+      "name": "Crystal Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Crystal Crawler, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-crawler.png",
+      "thumbnail": "../art/thumbnails/original-crystal-crawler.png"
+    },
+    {
+      "id": "original-crystal-drake",
+      "name": "Crystal Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Crystal Drake, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-drake.png",
+      "thumbnail": "../art/thumbnails/original-crystal-drake.png"
+    },
+    {
+      "id": "original-crystal-guardian",
+      "name": "Crystal Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Crystal Guardian, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-guardian.png",
+      "thumbnail": "../art/thumbnails/original-crystal-guardian.png"
+    },
+    {
+      "id": "original-crystal-hound",
+      "name": "Crystal Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Crystal Hound, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-hound.png",
+      "thumbnail": "../art/thumbnails/original-crystal-hound.png"
+    },
+    {
+      "id": "original-crystal-leviathan",
+      "name": "Crystal Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Crystal Leviathan, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-crystal-leviathan.png"
+    },
+    {
+      "id": "original-crystal-marauder",
+      "name": "Crystal Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Crystal Marauder, characterized by natural crystal growths, refracted light, and angular anatomy; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-crystal-marauder.png",
+      "thumbnail": "../art/thumbnails/original-crystal-marauder.png"
+    }
+  ]
+}

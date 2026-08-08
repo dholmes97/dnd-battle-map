@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-wereboar-hybrid",
+      "name": "Wereboar, Hybrid Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8",
+      "armorClass": 11,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wereboar-hybrid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wereboar-hybrid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wereboar, Hybrid Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wereboar-hybrid.png",
+      "thumbnail": "../art/thumbnails/srd-wereboar-hybrid.png"
+    },
+    {
+      "id": "srd-wererat-human",
+      "name": "Wererat, Human Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wererat-human",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wererat-human"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wererat, Human Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wererat-human.png",
+      "thumbnail": "../art/thumbnails/srd-wererat-human.png"
+    },
+    {
+      "id": "srd-wererat-hybrid",
+      "name": "Wererat, Hybrid Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wererat-hybrid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wererat-hybrid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wererat, Hybrid Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wererat-hybrid.png",
+      "thumbnail": "../art/thumbnails/srd-wererat-hybrid.png"
+    },
+    {
+      "id": "srd-wererat-rat",
+      "name": "Wererat, Rat Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wererat-rat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wererat-rat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wererat, Rat Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wererat-rat.png",
+      "thumbnail": "../art/thumbnails/srd-wererat-rat.png"
+    },
+    {
+      "id": "srd-weretiger-human",
+      "name": "Weretiger, Human Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 120,
+      "hitDice": "16d8",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "weretiger-human",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/weretiger-human"
+      },
+      "artDirection": "Original tactical fantasy depiction of Weretiger, Human Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-weretiger-human.png",
+      "thumbnail": "../art/thumbnails/srd-weretiger-human.png"
+    },
+    {
+      "id": "srd-weretiger-hybrid",
+      "name": "Weretiger, Hybrid Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 120,
+      "hitDice": "16d8",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "weretiger-hybrid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/weretiger-hybrid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Weretiger, Hybrid Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-weretiger-hybrid.png",
+      "thumbnail": "../art/thumbnails/srd-weretiger-hybrid.png"
+    },
+    {
+      "id": "srd-weretiger-tiger",
+      "name": "Weretiger, Tiger Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 120,
+      "hitDice": "16d8",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "weretiger-tiger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/weretiger-tiger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Weretiger, Tiger Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-weretiger-tiger.png",
+      "thumbnail": "../art/thumbnails/srd-weretiger-tiger.png"
+    },
+    {
+      "id": "srd-werewolf-human",
+      "name": "Werewolf, Human Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8",
+      "armorClass": 11,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werewolf-human",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werewolf-human"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werewolf, Human Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werewolf-human.png",
+      "thumbnail": "../art/thumbnails/srd-werewolf-human.png"
+    },
+    {
+      "id": "srd-werewolf-hybrid",
+      "name": "Werewolf, Hybrid Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werewolf-hybrid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werewolf-hybrid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werewolf, Hybrid Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werewolf-hybrid.png",
+      "thumbnail": "../art/thumbnails/srd-werewolf-hybrid.png"
+    },
+    {
+      "id": "srd-werewolf-wolf",
+      "name": "Werewolf, Wolf Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werewolf-wolf",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werewolf-wolf"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werewolf, Wolf Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werewolf-wolf.png",
+      "thumbnail": "../art/thumbnails/srd-werewolf-wolf.png"
+    }
+  ]
+}

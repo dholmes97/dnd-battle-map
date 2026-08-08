@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-giant-fire-beetle",
+      "name": "Giant Fire Beetle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 4,
+      "hitDice": "1d6",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-fire-beetle",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-fire-beetle"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Fire Beetle, a Small beast.",
+      "image": "../art/full/srd-giant-fire-beetle.png",
+      "thumbnail": "../art/thumbnails/srd-giant-fire-beetle.png"
+    },
+    {
+      "id": "srd-giant-frog",
+      "name": "Giant Frog",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 18,
+      "hitDice": "4d8",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-frog",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-frog"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Frog, a Medium beast.",
+      "image": "../art/full/srd-giant-frog.png",
+      "thumbnail": "../art/thumbnails/srd-giant-frog.png"
+    },
+    {
+      "id": "srd-giant-goat",
+      "name": "Giant Goat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-goat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-goat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Goat, a Large beast.",
+      "image": "../art/full/srd-giant-goat.png",
+      "thumbnail": "../art/thumbnails/srd-giant-goat.png"
+    },
+    {
+      "id": "srd-giant-hyena",
+      "name": "Giant Hyena",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-hyena",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-hyena"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Hyena, a Large beast.",
+      "image": "../art/full/srd-giant-hyena.png",
+      "thumbnail": "../art/thumbnails/srd-giant-hyena.png"
+    },
+    {
+      "id": "srd-giant-lizard",
+      "name": "Giant Lizard",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-lizard",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-lizard"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Lizard, a Large beast.",
+      "image": "../art/full/srd-giant-lizard.png",
+      "thumbnail": "../art/thumbnails/srd-giant-lizard.png"
+    },
+    {
+      "id": "srd-giant-octopus",
+      "name": "Giant Octopus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 52,
+      "hitDice": "8d10",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-octopus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-octopus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Octopus, a Large beast.",
+      "image": "../art/full/srd-giant-octopus.png",
+      "thumbnail": "../art/thumbnails/srd-giant-octopus.png"
+    },
+    {
+      "id": "srd-giant-owl",
+      "name": "Giant Owl",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-owl",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-owl"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Owl, a Large beast.",
+      "image": "../art/full/srd-giant-owl.png",
+      "thumbnail": "../art/thumbnails/srd-giant-owl.png"
+    },
+    {
+      "id": "srd-giant-poisonous-snake",
+      "name": "Giant Poisonous Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-poisonous-snake",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-poisonous-snake"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Poisonous Snake, a Medium beast.",
+      "image": "../art/full/srd-giant-poisonous-snake.png",
+      "thumbnail": "../art/thumbnails/srd-giant-poisonous-snake.png"
+    },
+    {
+      "id": "srd-giant-rat-diseased",
+      "name": "Giant Rat (Diseased)",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-rat-diseased",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-rat-diseased"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Rat (Diseased), a Small beast.",
+      "image": "../art/full/srd-giant-rat-diseased.png",
+      "thumbnail": "../art/thumbnails/srd-giant-rat-diseased.png"
+    },
+    {
+      "id": "srd-giant-scorpion",
+      "name": "Giant Scorpion",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 52,
+      "hitDice": "7d10",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-scorpion",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-scorpion"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Scorpion, a Large beast.",
+      "image": "../art/full/srd-giant-scorpion.png",
+      "thumbnail": "../art/thumbnails/srd-giant-scorpion.png"
+    }
+  ]
+}

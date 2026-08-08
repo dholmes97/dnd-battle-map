@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-gloam-crawler",
+      "name": "Gloam Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Gloam Crawler, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-crawler.png",
+      "thumbnail": "../art/thumbnails/original-gloam-crawler.png"
+    },
+    {
+      "id": "original-gloam-drake",
+      "name": "Gloam Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Gloam Drake, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-drake.png",
+      "thumbnail": "../art/thumbnails/original-gloam-drake.png"
+    },
+    {
+      "id": "original-gloam-guardian",
+      "name": "Gloam Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Gloam Guardian, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-guardian.png",
+      "thumbnail": "../art/thumbnails/original-gloam-guardian.png"
+    },
+    {
+      "id": "original-gloam-hound",
+      "name": "Gloam Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Gloam Hound, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-hound.png",
+      "thumbnail": "../art/thumbnails/original-gloam-hound.png"
+    },
+    {
+      "id": "original-gloam-leviathan",
+      "name": "Gloam Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Gloam Leviathan, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-gloam-leviathan.png"
+    },
+    {
+      "id": "original-gloam-marauder",
+      "name": "Gloam Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Gloam Marauder, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-marauder.png",
+      "thumbnail": "../art/thumbnails/original-gloam-marauder.png"
+    },
+    {
+      "id": "original-gloam-moth",
+      "name": "Gloam Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Gloam Moth, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-moth.png",
+      "thumbnail": "../art/thumbnails/original-gloam-moth.png"
+    },
+    {
+      "id": "original-gloam-seer",
+      "name": "Gloam Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Gloam Seer, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-seer.png",
+      "thumbnail": "../art/thumbnails/original-gloam-seer.png"
+    },
+    {
+      "id": "original-gloam-serpent",
+      "name": "Gloam Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Gloam Serpent, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-serpent.png",
+      "thumbnail": "../art/thumbnails/original-gloam-serpent.png"
+    },
+    {
+      "id": "original-gloam-stalker",
+      "name": "Gloam Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Gloam Stalker, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-stalker.png",
+      "thumbnail": "../art/thumbnails/original-gloam-stalker.png"
+    }
+  ]
+}

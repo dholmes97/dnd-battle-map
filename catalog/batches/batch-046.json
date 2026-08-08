@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-sand-guardian",
+      "name": "Sand Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Sand Guardian, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-guardian.png",
+      "thumbnail": "../art/thumbnails/original-sand-guardian.png"
+    },
+    {
+      "id": "original-sand-hound",
+      "name": "Sand Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Sand Hound, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-hound.png",
+      "thumbnail": "../art/thumbnails/original-sand-hound.png"
+    },
+    {
+      "id": "original-sand-leviathan",
+      "name": "Sand Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Sand Leviathan, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-sand-leviathan.png"
+    },
+    {
+      "id": "original-sand-marauder",
+      "name": "Sand Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Sand Marauder, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-marauder.png",
+      "thumbnail": "../art/thumbnails/original-sand-marauder.png"
+    },
+    {
+      "id": "original-sand-moth",
+      "name": "Sand Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Sand Moth, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-moth.png",
+      "thumbnail": "../art/thumbnails/original-sand-moth.png"
+    },
+    {
+      "id": "original-sand-seer",
+      "name": "Sand Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Sand Seer, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-seer.png",
+      "thumbnail": "../art/thumbnails/original-sand-seer.png"
+    },
+    {
+      "id": "original-sand-serpent",
+      "name": "Sand Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Sand Serpent, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-serpent.png",
+      "thumbnail": "../art/thumbnails/original-sand-serpent.png"
+    },
+    {
+      "id": "original-sand-stalker",
+      "name": "Sand Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Sand Stalker, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-stalker.png",
+      "thumbnail": "../art/thumbnails/original-sand-stalker.png"
+    },
+    {
+      "id": "original-sand-titan",
+      "name": "Sand Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Sand Titan, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-titan.png",
+      "thumbnail": "../art/thumbnails/original-sand-titan.png"
+    },
+    {
+      "id": "original-storm-burrower",
+      "name": "Storm Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Storm Burrower, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-burrower.png",
+      "thumbnail": "../art/thumbnails/original-storm-burrower.png"
+    }
+  ]
+}

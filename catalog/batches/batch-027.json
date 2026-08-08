@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-stone-giant",
+      "name": "Stone Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "11d12",
+      "armorClass": 17,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "stone-giant",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/stone-giant"
+      },
+      "artDirection": "Original tactical fantasy depiction of Stone Giant, a Huge giant.",
+      "image": "../art/full/srd-stone-giant.png",
+      "thumbnail": "../art/thumbnails/srd-stone-giant.png"
+    },
+    {
+      "id": "srd-stone-golem",
+      "name": "Stone Golem",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 178,
+      "hitDice": "17d10",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "stone-golem",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/stone-golem"
+      },
+      "artDirection": "Original tactical fantasy depiction of Stone Golem, a Large construct.",
+      "image": "../art/full/srd-stone-golem.png",
+      "thumbnail": "../art/thumbnails/srd-stone-golem.png"
+    },
+    {
+      "id": "srd-storm-giant",
+      "name": "Storm Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 230,
+      "hitDice": "20d12",
+      "armorClass": 16,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 50,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "storm-giant",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/storm-giant"
+      },
+      "artDirection": "Original tactical fantasy depiction of Storm Giant, a Huge giant.",
+      "image": "../art/full/srd-storm-giant.png",
+      "thumbnail": "../art/thumbnails/srd-storm-giant.png"
+    },
+    {
+      "id": "srd-succubus-incubus",
+      "name": "Succubus/Incubus",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "shapechanger",
+      "size": "medium",
+      "defaultHp": 66,
+      "hitDice": "12d8",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "succubus-incubus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/succubus-incubus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Succubus/Incubus, a Medium fiend (shapechanger).",
+      "image": "../art/full/srd-succubus-incubus.png",
+      "thumbnail": "../art/thumbnails/srd-succubus-incubus.png"
+    },
+    {
+      "id": "srd-swarm-of-bats",
+      "name": "Swarm of Bats",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-bats",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-bats"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Bats, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-bats.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-bats.png"
+    },
+    {
+      "id": "srd-swarm-of-beetles",
+      "name": "Swarm of Beetles",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": 5
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-beetles",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-beetles"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Beetles, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-beetles.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-beetles.png"
+    },
+    {
+      "id": "srd-swarm-of-centipedes",
+      "name": "Swarm of Centipedes",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-centipedes",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-centipedes"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Centipedes, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-centipedes.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-centipedes.png"
+    },
+    {
+      "id": "srd-swarm-of-insects",
+      "name": "Swarm of Insects",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-insects",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-insects"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Insects, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-insects.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-insects.png"
+    },
+    {
+      "id": "srd-swarm-of-poisonous-snakes",
+      "name": "Swarm of Poisonous Snakes",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 36,
+      "hitDice": "8d8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-poisonous-snakes",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-poisonous-snakes"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Poisonous Snakes, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-poisonous-snakes.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-poisonous-snakes.png"
+    },
+    {
+      "id": "srd-swarm-of-quippers",
+      "name": "Swarm of Quippers",
+      "family": "swarm of tiny beasts",
+      "creatureType": "swarm of tiny beasts",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 28,
+      "hitDice": "8d8",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "swarm-of-quippers",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-quippers"
+      },
+      "artDirection": "Original tactical fantasy depiction of Swarm of Quippers, a Medium swarm of Tiny beasts.",
+      "image": "../art/full/srd-swarm-of-quippers.png",
+      "thumbnail": "../art/thumbnails/srd-swarm-of-quippers.png"
+    }
+  ]
+}

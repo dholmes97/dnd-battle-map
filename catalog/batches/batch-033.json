@@ -1,0 +1,272 @@
+{
+  "creatures": [
+    {
+      "id": "srd-young-blue-dragon",
+      "name": "Young Blue Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 152,
+      "hitDice": "16d10",
+      "armorClass": 18,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-blue-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-blue-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Blue Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-blue-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-blue-dragon.png"
+    },
+    {
+      "id": "srd-young-brass-dragon",
+      "name": "Young Brass Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 110,
+      "hitDice": "13d10",
+      "armorClass": 17,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-brass-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-brass-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Brass Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-brass-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-brass-dragon.png"
+    },
+    {
+      "id": "srd-young-bronze-dragon",
+      "name": "Young Bronze Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 142,
+      "hitDice": "15d10",
+      "armorClass": 18,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-bronze-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-bronze-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Bronze Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-bronze-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-bronze-dragon.png"
+    },
+    {
+      "id": "srd-young-copper-dragon",
+      "name": "Young Copper Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 119,
+      "hitDice": "14d10",
+      "armorClass": 17,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-copper-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-copper-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Copper Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-copper-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-copper-dragon.png"
+    },
+    {
+      "id": "srd-young-gold-dragon",
+      "name": "Young Gold Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 178,
+      "hitDice": "17d10",
+      "armorClass": 18,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-gold-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-gold-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Gold Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-gold-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-gold-dragon.png"
+    },
+    {
+      "id": "srd-young-red-dragon",
+      "name": "Young Red Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 178,
+      "hitDice": "17d10",
+      "armorClass": 18,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-red-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-red-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Red Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-red-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-red-dragon.png"
+    },
+    {
+      "id": "srd-young-silver-dragon",
+      "name": "Young Silver Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 168,
+      "hitDice": "16d10",
+      "armorClass": 18,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-silver-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-silver-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young Silver Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-silver-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-silver-dragon.png"
+    },
+    {
+      "id": "srd-young-white-dragon",
+      "name": "Young White Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 133,
+      "hitDice": "14d10",
+      "armorClass": 17,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": 40,
+        "climb": null,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "young-white-dragon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-white-dragon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Young White Dragon, a Large dragon.",
+      "image": "../art/full/srd-young-white-dragon.png",
+      "thumbnail": "../art/thumbnails/srd-young-white-dragon.png"
+    },
+    {
+      "id": "srd-zombie",
+      "name": "Zombie",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "3d8",
+      "armorClass": 8,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "zombie",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/zombie"
+      },
+      "artDirection": "Original tactical fantasy depiction of Zombie, a Medium undead.",
+      "image": "../art/full/srd-zombie.png",
+      "thumbnail": "../art/thumbnails/srd-zombie.png"
+    },
+    {
+      "id": "campaign-lonely",
+      "name": "Lonely",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A gaunt sorrow-born horror with long hooked harpoon arms and a mournful eyeless face",
+      "image": "../art/full/campaign-lonely.png",
+      "thumbnail": "../art/thumbnails/campaign-lonely.png"
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-lich",
+      "name": "Lich",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 135,
+      "hitDice": "18d8",
+      "armorClass": 17,
+      "challengeRating": "21",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lich",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lich"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lich, a Medium undead.",
+      "image": "../art/full/srd-lich.png",
+      "thumbnail": "../art/thumbnails/srd-lich.png"
+    },
+    {
+      "id": "srd-lion",
+      "name": "Lion",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 26,
+      "hitDice": "4d10",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lion",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lion"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lion, a Large beast.",
+      "image": "../art/full/srd-lion.png",
+      "thumbnail": "../art/thumbnails/srd-lion.png"
+    },
+    {
+      "id": "srd-lizard",
+      "name": "Lizard",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 10,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lizard",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lizard"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lizard, a Tiny beast.",
+      "image": "../art/full/srd-lizard.png",
+      "thumbnail": "../art/thumbnails/srd-lizard.png"
+    },
+    {
+      "id": "srd-lizardfolk",
+      "name": "Lizardfolk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "lizardfolk",
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lizardfolk",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lizardfolk"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lizardfolk, a Medium humanoid (lizardfolk).",
+      "image": "../art/full/srd-lizardfolk.png",
+      "thumbnail": "../art/thumbnails/srd-lizardfolk.png"
+    },
+    {
+      "id": "srd-mage",
+      "name": "Mage",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 40,
+      "hitDice": "9d8",
+      "armorClass": 15,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "mage",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/mage"
+      },
+      "artDirection": "Original tactical fantasy depiction of Mage, a Medium humanoid (any race).",
+      "image": "../art/full/srd-mage.png",
+      "thumbnail": "../art/thumbnails/srd-mage.png"
+    },
+    {
+      "id": "srd-magma-mephit",
+      "name": "Magma Mephit",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "magma-mephit",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/magma-mephit"
+      },
+      "artDirection": "Original tactical fantasy depiction of Magma Mephit, a Small elemental.",
+      "image": "../art/full/srd-magma-mephit.png",
+      "thumbnail": "../art/thumbnails/srd-magma-mephit.png"
+    },
+    {
+      "id": "srd-magmin",
+      "name": "Magmin",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 9,
+      "hitDice": "2d6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "magmin",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/magmin"
+      },
+      "artDirection": "Original tactical fantasy depiction of Magmin, a Small elemental.",
+      "image": "../art/full/srd-magmin.png",
+      "thumbnail": "../art/thumbnails/srd-magmin.png"
+    },
+    {
+      "id": "srd-mammoth",
+      "name": "Mammoth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "11d12",
+      "armorClass": 13,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "mammoth",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/mammoth"
+      },
+      "artDirection": "Original tactical fantasy depiction of Mammoth, a Huge beast.",
+      "image": "../art/full/srd-mammoth.png",
+      "thumbnail": "../art/thumbnails/srd-mammoth.png"
+    },
+    {
+      "id": "srd-manticore",
+      "name": "Manticore",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "manticore",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/manticore"
+      },
+      "artDirection": "Original tactical fantasy depiction of Manticore, a Large monstrosity.",
+      "image": "../art/full/srd-manticore.png",
+      "thumbnail": "../art/thumbnails/srd-manticore.png"
+    },
+    {
+      "id": "srd-marilith",
+      "name": "Marilith",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "large",
+      "defaultHp": 189,
+      "hitDice": "18d10",
+      "armorClass": 18,
+      "challengeRating": "16",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "marilith",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/marilith"
+      },
+      "artDirection": "Original tactical fantasy depiction of Marilith, a Large fiend (demon).",
+      "image": "../art/full/srd-marilith.png",
+      "thumbnail": "../art/thumbnails/srd-marilith.png"
+    }
+  ]
+}

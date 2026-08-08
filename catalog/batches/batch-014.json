@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-giant-sea-horse",
+      "name": "Giant Sea Horse",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 16,
+      "hitDice": "3d10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-sea-horse",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-sea-horse"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Sea Horse, a Large beast.",
+      "image": "../art/full/srd-giant-sea-horse.png",
+      "thumbnail": "../art/thumbnails/srd-giant-sea-horse.png"
+    },
+    {
+      "id": "srd-giant-shark",
+      "name": "Giant Shark",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "11d12",
+      "armorClass": 13,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 50,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-shark",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-shark"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Shark, a Huge beast.",
+      "image": "../art/full/srd-giant-shark.png",
+      "thumbnail": "../art/thumbnails/srd-giant-shark.png"
+    },
+    {
+      "id": "srd-giant-spider",
+      "name": "Giant Spider",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 26,
+      "hitDice": "4d10",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-spider",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-spider"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Spider, a Large beast.",
+      "image": "../art/full/srd-giant-spider.png",
+      "thumbnail": "../art/thumbnails/srd-giant-spider.png"
+    },
+    {
+      "id": "srd-giant-toad",
+      "name": "Giant Toad",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 39,
+      "hitDice": "6d10",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-toad",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-toad"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Toad, a Large beast.",
+      "image": "../art/full/srd-giant-toad.png",
+      "thumbnail": "../art/thumbnails/srd-giant-toad.png"
+    },
+    {
+      "id": "srd-giant-vulture",
+      "name": "Giant Vulture",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 22,
+      "hitDice": "3d10",
+      "armorClass": 10,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-vulture",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-vulture"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Vulture, a Large beast.",
+      "image": "../art/full/srd-giant-vulture.png",
+      "thumbnail": "../art/thumbnails/srd-giant-vulture.png"
+    },
+    {
+      "id": "srd-giant-wasp",
+      "name": "Giant Wasp",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 50,
+        "swim": 50,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-wasp",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-wasp"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Wasp, a Medium beast.",
+      "image": "../art/full/srd-giant-wasp.png",
+      "thumbnail": "../art/thumbnails/srd-giant-wasp.png"
+    },
+    {
+      "id": "srd-giant-weasel",
+      "name": "Giant Weasel",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 9,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-weasel",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-weasel"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Weasel, a Medium beast.",
+      "image": "../art/full/srd-giant-weasel.png",
+      "thumbnail": "../art/thumbnails/srd-giant-weasel.png"
+    },
+    {
+      "id": "srd-giant-wolf-spider",
+      "name": "Giant Wolf Spider",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-wolf-spider",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-wolf-spider"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Wolf Spider, a Medium beast.",
+      "image": "../art/full/srd-giant-wolf-spider.png",
+      "thumbnail": "../art/thumbnails/srd-giant-wolf-spider.png"
+    },
+    {
+      "id": "srd-gibbering-mouther",
+      "name": "Gibbering Mouther",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 67,
+      "hitDice": "9d8",
+      "armorClass": 9,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 10,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gibbering-mouther",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gibbering-mouther"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gibbering Mouther, a Medium aberration.",
+      "image": "../art/full/srd-gibbering-mouther.png",
+      "thumbnail": "../art/thumbnails/srd-gibbering-mouther.png"
+    },
+    {
+      "id": "srd-glabrezu",
+      "name": "Glabrezu",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "large",
+      "defaultHp": 157,
+      "hitDice": "15d10",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "glabrezu",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/glabrezu"
+      },
+      "artDirection": "Original tactical fantasy depiction of Glabrezu, a Large fiend (demon).",
+      "image": "../art/full/srd-glabrezu.png",
+      "thumbnail": "../art/thumbnails/srd-glabrezu.png"
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-vulture",
+      "name": "Vulture",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 5,
+      "hitDice": "1d8",
+      "armorClass": 10,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 10,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vulture",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vulture"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vulture, a Medium beast.",
+      "image": "../art/full/srd-vulture.png",
+      "thumbnail": "../art/thumbnails/srd-vulture.png"
+    },
+    {
+      "id": "srd-warhorse",
+      "name": "Warhorse",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "warhorse",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/warhorse"
+      },
+      "artDirection": "Original tactical fantasy depiction of Warhorse, a Large beast.",
+      "image": "../art/full/srd-warhorse.png",
+      "thumbnail": "../art/thumbnails/srd-warhorse.png"
+    },
+    {
+      "id": "srd-warhorse-skeleton",
+      "name": "Warhorse Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 22,
+      "hitDice": "3d10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "warhorse-skeleton",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/warhorse-skeleton"
+      },
+      "artDirection": "Original tactical fantasy depiction of Warhorse Skeleton, a Large undead.",
+      "image": "../art/full/srd-warhorse-skeleton.png",
+      "thumbnail": "../art/thumbnails/srd-warhorse-skeleton.png"
+    },
+    {
+      "id": "srd-water-elemental",
+      "name": "Water Elemental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 90,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "water-elemental",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/water-elemental"
+      },
+      "artDirection": "Original tactical fantasy depiction of Water Elemental, a Large elemental.",
+      "image": "../art/full/srd-water-elemental.png",
+      "thumbnail": "../art/thumbnails/srd-water-elemental.png"
+    },
+    {
+      "id": "srd-weasel",
+      "name": "Weasel",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "weasel",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/weasel"
+      },
+      "artDirection": "Original tactical fantasy depiction of Weasel, a Tiny beast.",
+      "image": "../art/full/srd-weasel.png",
+      "thumbnail": "../art/thumbnails/srd-weasel.png"
+    },
+    {
+      "id": "srd-werebear-bear",
+      "name": "Werebear, Bear Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 135,
+      "hitDice": "18d8",
+      "armorClass": 11,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werebear-bear",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werebear-bear"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werebear, Bear Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werebear-bear.png",
+      "thumbnail": "../art/thumbnails/srd-werebear-bear.png"
+    },
+    {
+      "id": "srd-werebear-human",
+      "name": "Werebear, Human Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 135,
+      "hitDice": "18d8",
+      "armorClass": 10,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werebear-human",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werebear-human"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werebear, Human Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werebear-human.png",
+      "thumbnail": "../art/thumbnails/srd-werebear-human.png"
+    },
+    {
+      "id": "srd-werebear-hybrid",
+      "name": "Werebear, Hybrid Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 135,
+      "hitDice": "18d8",
+      "armorClass": 11,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "werebear-hybrid",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/werebear-hybrid"
+      },
+      "artDirection": "Original tactical fantasy depiction of Werebear, Hybrid Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-werebear-hybrid.png",
+      "thumbnail": "../art/thumbnails/srd-werebear-hybrid.png"
+    },
+    {
+      "id": "srd-wereboar-boar",
+      "name": "Wereboar, Boar Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8",
+      "armorClass": 11,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wereboar-boar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wereboar-boar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wereboar, Boar Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wereboar-boar.png",
+      "thumbnail": "../art/thumbnails/srd-wereboar-boar.png"
+    },
+    {
+      "id": "srd-wereboar-human",
+      "name": "Wereboar, Human Form",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8",
+      "armorClass": 10,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "wereboar-human",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wereboar-human"
+      },
+      "artDirection": "Original tactical fantasy depiction of Wereboar, Human Form, a Medium humanoid (human).",
+      "image": "../art/full/srd-wereboar-human.png",
+      "thumbnail": "../art/thumbnails/srd-wereboar-human.png"
+    }
+  ]
+}

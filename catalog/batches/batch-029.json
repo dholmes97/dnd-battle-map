@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-troll",
+      "name": "Troll",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 84,
+      "hitDice": "8d10",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "troll",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/troll"
+      },
+      "artDirection": "Original tactical fantasy depiction of Troll, a Large giant.",
+      "image": "../art/full/srd-troll.png",
+      "thumbnail": "../art/thumbnails/srd-troll.png"
+    },
+    {
+      "id": "srd-tyrannosaurus-rex",
+      "name": "Tyrannosaurus Rex",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 136,
+      "hitDice": "13d12",
+      "armorClass": 13,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "tyrannosaurus-rex",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tyrannosaurus-rex"
+      },
+      "artDirection": "Original tactical fantasy depiction of Tyrannosaurus Rex, a Huge beast.",
+      "image": "../art/full/srd-tyrannosaurus-rex.png",
+      "thumbnail": "../art/thumbnails/srd-tyrannosaurus-rex.png"
+    },
+    {
+      "id": "srd-unicorn",
+      "name": "Unicorn",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 67,
+      "hitDice": "9d10",
+      "armorClass": 12,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "unicorn",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/unicorn"
+      },
+      "artDirection": "Original tactical fantasy depiction of Unicorn, a Large celestial.",
+      "image": "../art/full/srd-unicorn.png",
+      "thumbnail": "../art/thumbnails/srd-unicorn.png"
+    },
+    {
+      "id": "srd-vampire-bat",
+      "name": "Vampire, Bat Form",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": "shapechanger",
+      "size": "medium",
+      "defaultHp": 144,
+      "hitDice": "17d8",
+      "armorClass": 16,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 5,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vampire-bat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vampire-bat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vampire, Bat Form, a Medium undead (shapechanger).",
+      "image": "../art/full/srd-vampire-bat.png",
+      "thumbnail": "../art/thumbnails/srd-vampire-bat.png"
+    },
+    {
+      "id": "srd-vampire-mist",
+      "name": "Vampire, Mist Form",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": "shapechanger",
+      "size": "medium",
+      "defaultHp": 144,
+      "hitDice": "17d8",
+      "armorClass": 16,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 0,
+        "fly": 20,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vampire-mist",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vampire-mist"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vampire, Mist Form, a Medium undead (shapechanger).",
+      "image": "../art/full/srd-vampire-mist.png",
+      "thumbnail": "../art/thumbnails/srd-vampire-mist.png"
+    },
+    {
+      "id": "srd-vampire-spawn",
+      "name": "Vampire Spawn",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vampire-spawn",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vampire-spawn"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vampire Spawn, a Medium undead.",
+      "image": "../art/full/srd-vampire-spawn.png",
+      "thumbnail": "../art/thumbnails/srd-vampire-spawn.png"
+    },
+    {
+      "id": "srd-vampire-vampire",
+      "name": "Vampire, Vampire Form",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": "shapechanger",
+      "size": "medium",
+      "defaultHp": 144,
+      "hitDice": "17d8",
+      "armorClass": 16,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vampire-vampire",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vampire-vampire"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vampire, Vampire Form, a Medium undead (shapechanger).",
+      "image": "../art/full/srd-vampire-vampire.png",
+      "thumbnail": "../art/thumbnails/srd-vampire-vampire.png"
+    },
+    {
+      "id": "srd-veteran",
+      "name": "Veteran",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "veteran",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/veteran"
+      },
+      "artDirection": "Original tactical fantasy depiction of Veteran, a Medium humanoid (any race).",
+      "image": "../art/full/srd-veteran.png",
+      "thumbnail": "../art/thumbnails/srd-veteran.png"
+    },
+    {
+      "id": "srd-violet-fungus",
+      "name": "Violet Fungus",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 18,
+      "hitDice": "4d8",
+      "armorClass": 5,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "violet-fungus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/violet-fungus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Violet Fungus, a Medium plant.",
+      "image": "../art/full/srd-violet-fungus.png",
+      "thumbnail": "../art/thumbnails/srd-violet-fungus.png"
+    },
+    {
+      "id": "srd-vrock",
+      "name": "Vrock",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "large",
+      "defaultHp": 104,
+      "hitDice": "11d10",
+      "armorClass": 15,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "vrock",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/vrock"
+      },
+      "artDirection": "Original tactical fantasy depiction of Vrock, a Large fiend (demon).",
+      "image": "../art/full/srd-vrock.png",
+      "thumbnail": "../art/thumbnails/srd-vrock.png"
+    }
+  ]
+}

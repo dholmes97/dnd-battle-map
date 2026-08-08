@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-giant-ape",
+      "name": "Giant Ape",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 157,
+      "hitDice": "15d12",
+      "armorClass": 12,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-ape",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-ape"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Ape, a Huge beast.",
+      "image": "../art/full/srd-giant-ape.png",
+      "thumbnail": "../art/thumbnails/srd-giant-ape.png"
+    },
+    {
+      "id": "srd-giant-badger",
+      "name": "Giant Badger",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "2d8",
+      "armorClass": 10,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-badger",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-badger"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Badger, a Medium beast.",
+      "image": "../art/full/srd-giant-badger.png",
+      "thumbnail": "../art/thumbnails/srd-giant-badger.png"
+    },
+    {
+      "id": "srd-giant-bat",
+      "name": "Giant Bat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 22,
+      "hitDice": "4d10",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-bat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-bat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Bat, a Large beast.",
+      "image": "../art/full/srd-giant-bat.png",
+      "thumbnail": "../art/thumbnails/srd-giant-bat.png"
+    },
+    {
+      "id": "srd-giant-boar",
+      "name": "Giant Boar",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 42,
+      "hitDice": "5d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-boar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-boar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Boar, a Large beast.",
+      "image": "../art/full/srd-giant-boar.png",
+      "thumbnail": "../art/thumbnails/srd-giant-boar.png"
+    },
+    {
+      "id": "srd-giant-centipede",
+      "name": "Giant Centipede",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 4,
+      "hitDice": "1d6",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-centipede",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-centipede"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Centipede, a Small beast.",
+      "image": "../art/full/srd-giant-centipede.png",
+      "thumbnail": "../art/thumbnails/srd-giant-centipede.png"
+    },
+    {
+      "id": "srd-giant-constrictor-snake",
+      "name": "Giant Constrictor Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 60,
+      "hitDice": "8d12",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-constrictor-snake",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-constrictor-snake"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Constrictor Snake, a Huge beast.",
+      "image": "../art/full/srd-giant-constrictor-snake.png",
+      "thumbnail": "../art/thumbnails/srd-giant-constrictor-snake.png"
+    },
+    {
+      "id": "srd-giant-crab",
+      "name": "Giant Crab",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 15,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-crab",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-crab"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Crab, a Medium beast.",
+      "image": "../art/full/srd-giant-crab.png",
+      "thumbnail": "../art/thumbnails/srd-giant-crab.png"
+    },
+    {
+      "id": "srd-giant-crocodile",
+      "name": "Giant Crocodile",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 85,
+      "hitDice": "9d12",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 50,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-crocodile",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-crocodile"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Crocodile, a Huge beast.",
+      "image": "../art/full/srd-giant-crocodile.png",
+      "thumbnail": "../art/thumbnails/srd-giant-crocodile.png"
+    },
+    {
+      "id": "srd-giant-eagle",
+      "name": "Giant Eagle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 26,
+      "hitDice": "4d10",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-eagle",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-eagle"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Eagle, a Large beast.",
+      "image": "../art/full/srd-giant-eagle.png",
+      "thumbnail": "../art/thumbnails/srd-giant-eagle.png"
+    },
+    {
+      "id": "srd-giant-elk",
+      "name": "Giant Elk",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 42,
+      "hitDice": "5d12",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "giant-elk",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/giant-elk"
+      },
+      "artDirection": "Original tactical fantasy depiction of Giant Elk, a Huge beast.",
+      "image": "../art/full/srd-giant-elk.png",
+      "thumbnail": "../art/thumbnails/srd-giant-elk.png"
+    }
+  ]
+}

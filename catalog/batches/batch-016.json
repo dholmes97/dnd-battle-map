@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-griffon",
+      "name": "Griffon",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 59,
+      "hitDice": "7d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "griffon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/griffon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Griffon, a Large monstrosity.",
+      "image": "../art/full/srd-griffon.png",
+      "thumbnail": "../art/thumbnails/srd-griffon.png"
+    },
+    {
+      "id": "srd-grimlock",
+      "name": "Grimlock",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "grimlock",
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "grimlock",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/grimlock"
+      },
+      "artDirection": "Original tactical fantasy depiction of Grimlock, a Medium humanoid (grimlock).",
+      "image": "../art/full/srd-grimlock.png",
+      "thumbnail": "../art/thumbnails/srd-grimlock.png"
+    },
+    {
+      "id": "srd-guard",
+      "name": "Guard",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 16,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "guard",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/guard"
+      },
+      "artDirection": "Original tactical fantasy depiction of Guard, a Medium humanoid (any race).",
+      "image": "../art/full/srd-guard.png",
+      "thumbnail": "../art/thumbnails/srd-guard.png"
+    },
+    {
+      "id": "srd-guardian-naga",
+      "name": "Guardian Naga",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 127,
+      "hitDice": "15d10",
+      "armorClass": 18,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "guardian-naga",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/guardian-naga"
+      },
+      "artDirection": "Original tactical fantasy depiction of Guardian Naga, a Large monstrosity.",
+      "image": "../art/full/srd-guardian-naga.png",
+      "thumbnail": "../art/thumbnails/srd-guardian-naga.png"
+    },
+    {
+      "id": "srd-gynosphinx",
+      "name": "Gynosphinx",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 136,
+      "hitDice": "16d10",
+      "armorClass": 17,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gynosphinx",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gynosphinx"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gynosphinx, a Large monstrosity.",
+      "image": "../art/full/srd-gynosphinx.png",
+      "thumbnail": "../art/thumbnails/srd-gynosphinx.png"
+    },
+    {
+      "id": "srd-half-red-dragon-veteran",
+      "name": "Half-Red Dragon Veteran",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "human",
+      "size": "medium",
+      "defaultHp": 65,
+      "hitDice": "10d8",
+      "armorClass": 18,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "half-red-dragon-veteran",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/half-red-dragon-veteran"
+      },
+      "artDirection": "Original tactical fantasy depiction of Half-Red Dragon Veteran, a Medium humanoid (human).",
+      "image": "../art/full/srd-half-red-dragon-veteran.png",
+      "thumbnail": "../art/thumbnails/srd-half-red-dragon-veteran.png"
+    },
+    {
+      "id": "srd-harpy",
+      "name": "Harpy",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 38,
+      "hitDice": "7d8",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "harpy",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/harpy"
+      },
+      "artDirection": "Original tactical fantasy depiction of Harpy, a Medium monstrosity.",
+      "image": "../art/full/srd-harpy.png",
+      "thumbnail": "../art/thumbnails/srd-harpy.png"
+    },
+    {
+      "id": "srd-hawk",
+      "name": "Hawk",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hawk",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hawk"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hawk, a Tiny beast.",
+      "image": "../art/full/srd-hawk.png",
+      "thumbnail": "../art/thumbnails/srd-hawk.png"
+    },
+    {
+      "id": "srd-hell-hound",
+      "name": "Hell Hound",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hell-hound",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hell-hound"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hell Hound, a Medium fiend.",
+      "image": "../art/full/srd-hell-hound.png",
+      "thumbnail": "../art/thumbnails/srd-hell-hound.png"
+    },
+    {
+      "id": "srd-hezrou",
+      "name": "Hezrou",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "large",
+      "defaultHp": 136,
+      "hitDice": "13d10",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hezrou",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hezrou"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hezrou, a Large fiend (demon).",
+      "image": "../art/full/srd-hezrou.png",
+      "thumbnail": "../art/thumbnails/srd-hezrou.png"
+    }
+  ]
+}

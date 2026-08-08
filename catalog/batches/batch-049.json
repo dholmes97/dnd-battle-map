@@ -1,0 +1,79 @@
+{
+  "creatures": [
+    {
+      "id": "original-coffin-crab",
+      "name": "Coffin Crab",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 88,
+      "hitDice": "8d10+44",
+      "armorClass": 18,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A giant plated crab whose dark rectangular shell resembles an ancient stone coffin",
+      "image": "../art/full/original-coffin-crab.png",
+      "thumbnail": "../art/thumbnails/original-coffin-crab.png"
+    },
+    {
+      "id": "original-sky-ray",
+      "name": "Sky Ray",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 120,
+      "hitDice": "16d12+16",
+      "armorClass": 15,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 0,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A colossal manta-like aerial creature with cloud-patterned wings and a long ribbon tail",
+      "image": "../art/full/original-sky-ray.png",
+      "thumbnail": "../art/thumbnails/original-sky-ray.png"
+    },
+    {
+      "id": "original-inkcap-giant",
+      "name": "Inkcap Giant",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 102,
+      "hitDice": "12d10+36",
+      "armorClass": 15,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "A hulking fungal giant with a dripping black mushroom cap and rootlike fists",
+      "image": "../art/full/original-inkcap-giant.png",
+      "thumbnail": "../art/thumbnails/original-inkcap-giant.png"
+    }
+  ]
+}

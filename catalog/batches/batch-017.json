@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-hill-giant",
+      "name": "Hill Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 105,
+      "hitDice": "10d12",
+      "armorClass": 13,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hill-giant",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hill-giant"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hill Giant, a Huge giant.",
+      "image": "../art/full/srd-hill-giant.png",
+      "thumbnail": "../art/thumbnails/srd-hill-giant.png"
+    },
+    {
+      "id": "srd-hippogriff",
+      "name": "Hippogriff",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hippogriff",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hippogriff"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hippogriff, a Large monstrosity.",
+      "image": "../art/full/srd-hippogriff.png",
+      "thumbnail": "../art/thumbnails/srd-hippogriff.png"
+    },
+    {
+      "id": "srd-hobgoblin",
+      "name": "Hobgoblin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "goblinoid",
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8",
+      "armorClass": 18,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hobgoblin",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hobgoblin"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hobgoblin, a Medium humanoid (goblinoid).",
+      "image": "../art/full/srd-hobgoblin.png",
+      "thumbnail": "../art/thumbnails/srd-hobgoblin.png"
+    },
+    {
+      "id": "srd-homunculus",
+      "name": "Homunculus",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 5,
+      "hitDice": "2d4",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "homunculus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/homunculus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Homunculus, a Tiny construct.",
+      "image": "../art/full/srd-homunculus.png",
+      "thumbnail": "../art/thumbnails/srd-homunculus.png"
+    },
+    {
+      "id": "srd-horned-devil",
+      "name": "Horned Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "large",
+      "defaultHp": 178,
+      "hitDice": "17d10",
+      "armorClass": 18,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 20,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "horned-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/horned-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Horned Devil, a Large fiend (devil).",
+      "image": "../art/full/srd-horned-devil.png",
+      "thumbnail": "../art/thumbnails/srd-horned-devil.png"
+    },
+    {
+      "id": "srd-hunter-shark",
+      "name": "Hunter Shark",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 40,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hunter-shark",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hunter-shark"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hunter Shark, a Large beast.",
+      "image": "../art/full/srd-hunter-shark.png",
+      "thumbnail": "../art/thumbnails/srd-hunter-shark.png"
+    },
+    {
+      "id": "srd-hydra",
+      "name": "Hydra",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 172,
+      "hitDice": "15d12",
+      "armorClass": 15,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hydra",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hydra"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hydra, a Huge monstrosity.",
+      "image": "../art/full/srd-hydra.png",
+      "thumbnail": "../art/thumbnails/srd-hydra.png"
+    },
+    {
+      "id": "srd-hyena",
+      "name": "Hyena",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 5,
+      "hitDice": "1d8",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "hyena",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/hyena"
+      },
+      "artDirection": "Original tactical fantasy depiction of Hyena, a Medium beast.",
+      "image": "../art/full/srd-hyena.png",
+      "thumbnail": "../art/thumbnails/srd-hyena.png"
+    },
+    {
+      "id": "srd-ice-devil",
+      "name": "Ice Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "large",
+      "defaultHp": 180,
+      "hitDice": "19d10",
+      "armorClass": 18,
+      "challengeRating": "14",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "ice-devil",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ice-devil"
+      },
+      "artDirection": "Original tactical fantasy depiction of Ice Devil, a Large fiend (devil).",
+      "image": "../art/full/srd-ice-devil.png",
+      "thumbnail": "../art/thumbnails/srd-ice-devil.png"
+    },
+    {
+      "id": "srd-ice-mephit",
+      "name": "Ice Mephit",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "ice-mephit",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ice-mephit"
+      },
+      "artDirection": "Original tactical fantasy depiction of Ice Mephit, a Small elemental.",
+      "image": "../art/full/srd-ice-mephit.png",
+      "thumbnail": "../art/thumbnails/srd-ice-mephit.png"
+    }
+  ]
+}

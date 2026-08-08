@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-silver-dragon-wyrmling",
+      "name": "Silver Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "silver-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/silver-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Silver Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-silver-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-silver-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-skeleton",
+      "name": "Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "skeleton",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/skeleton"
+      },
+      "artDirection": "Original tactical fantasy depiction of Skeleton, a Medium undead.",
+      "image": "../art/full/srd-skeleton.png",
+      "thumbnail": "../art/thumbnails/srd-skeleton.png"
+    },
+    {
+      "id": "srd-solar",
+      "name": "Solar",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 243,
+      "hitDice": "18d10",
+      "armorClass": 21,
+      "challengeRating": "21",
+      "speeds": {
+        "walk": 50,
+        "fly": 150,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "solar",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/solar"
+      },
+      "artDirection": "Original tactical fantasy depiction of Solar, a Large celestial.",
+      "image": "../art/full/srd-solar.png",
+      "thumbnail": "../art/thumbnails/srd-solar.png"
+    },
+    {
+      "id": "srd-specter",
+      "name": "Specter",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "specter",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/specter"
+      },
+      "artDirection": "Original tactical fantasy depiction of Specter, a Medium undead.",
+      "image": "../art/full/srd-specter.png",
+      "thumbnail": "../art/thumbnails/srd-specter.png"
+    },
+    {
+      "id": "srd-spider",
+      "name": "Spider",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 1,
+      "hitDice": "1d4",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "spider",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/spider"
+      },
+      "artDirection": "Original tactical fantasy depiction of Spider, a Tiny beast.",
+      "image": "../art/full/srd-spider.png",
+      "thumbnail": "../art/thumbnails/srd-spider.png"
+    },
+    {
+      "id": "srd-spirit-naga",
+      "name": "Spirit Naga",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 75,
+      "hitDice": "10d10",
+      "armorClass": 15,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "spirit-naga",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/spirit-naga"
+      },
+      "artDirection": "Original tactical fantasy depiction of Spirit Naga, a Large monstrosity.",
+      "image": "../art/full/srd-spirit-naga.png",
+      "thumbnail": "../art/thumbnails/srd-spirit-naga.png"
+    },
+    {
+      "id": "srd-sprite",
+      "name": "Sprite",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "sprite",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/sprite"
+      },
+      "artDirection": "Original tactical fantasy depiction of Sprite, a Tiny fey.",
+      "image": "../art/full/srd-sprite.png",
+      "thumbnail": "../art/thumbnails/srd-sprite.png"
+    },
+    {
+      "id": "srd-spy",
+      "name": "Spy",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "6d8",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "spy",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/spy"
+      },
+      "artDirection": "Original tactical fantasy depiction of Spy, a Medium humanoid (any race).",
+      "image": "../art/full/srd-spy.png",
+      "thumbnail": "../art/thumbnails/srd-spy.png"
+    },
+    {
+      "id": "srd-steam-mephit",
+      "name": "Steam Mephit",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 10,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "steam-mephit",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/steam-mephit"
+      },
+      "artDirection": "Original tactical fantasy depiction of Steam Mephit, a Small elemental.",
+      "image": "../art/full/srd-steam-mephit.png",
+      "thumbnail": "../art/thumbnails/srd-steam-mephit.png"
+    },
+    {
+      "id": "srd-stirge",
+      "name": "Stirge",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 14,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "stirge",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/stirge"
+      },
+      "artDirection": "Original tactical fantasy depiction of Stirge, a Tiny beast.",
+      "image": "../art/full/srd-stirge.png",
+      "thumbnail": "../art/thumbnails/srd-stirge.png"
+    }
+  ]
+}

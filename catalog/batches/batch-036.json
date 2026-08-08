@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-ashen-titan",
+      "name": "Ashen Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Ashen Titan, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-titan.png",
+      "thumbnail": "../art/thumbnails/original-ashen-titan.png"
+    },
+    {
+      "id": "original-briar-burrower",
+      "name": "Briar Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Briar Burrower, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-burrower.png",
+      "thumbnail": "../art/thumbnails/original-briar-burrower.png"
+    },
+    {
+      "id": "original-briar-crawler",
+      "name": "Briar Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Briar Crawler, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-crawler.png",
+      "thumbnail": "../art/thumbnails/original-briar-crawler.png"
+    },
+    {
+      "id": "original-briar-drake",
+      "name": "Briar Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Briar Drake, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-drake.png",
+      "thumbnail": "../art/thumbnails/original-briar-drake.png"
+    },
+    {
+      "id": "original-briar-guardian",
+      "name": "Briar Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Briar Guardian, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-guardian.png",
+      "thumbnail": "../art/thumbnails/original-briar-guardian.png"
+    },
+    {
+      "id": "original-briar-hound",
+      "name": "Briar Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Briar Hound, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-hound.png",
+      "thumbnail": "../art/thumbnails/original-briar-hound.png"
+    },
+    {
+      "id": "original-briar-leviathan",
+      "name": "Briar Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Briar Leviathan, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-briar-leviathan.png"
+    },
+    {
+      "id": "original-briar-marauder",
+      "name": "Briar Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Briar Marauder, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-marauder.png",
+      "thumbnail": "../art/thumbnails/original-briar-marauder.png"
+    },
+    {
+      "id": "original-briar-moth",
+      "name": "Briar Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Briar Moth, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-moth.png",
+      "thumbnail": "../art/thumbnails/original-briar-moth.png"
+    },
+    {
+      "id": "original-briar-seer",
+      "name": "Briar Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Briar Seer, characterized by thorny vines, tangled roots, and weathered forest colors; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-briar-seer.png",
+      "thumbnail": "../art/thumbnails/original-briar-seer.png"
+    }
+  ]
+}

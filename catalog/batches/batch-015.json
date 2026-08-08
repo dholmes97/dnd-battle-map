@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-gladiator",
+      "name": "Gladiator",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 112,
+      "hitDice": "15d8",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gladiator",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gladiator"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gladiator, a Medium humanoid (any race).",
+      "image": "../art/full/srd-gladiator.png",
+      "thumbnail": "../art/thumbnails/srd-gladiator.png"
+    },
+    {
+      "id": "srd-gnoll",
+      "name": "Gnoll",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "gnoll",
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gnoll",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gnoll"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gnoll, a Medium humanoid (gnoll).",
+      "image": "../art/full/srd-gnoll.png",
+      "thumbnail": "../art/thumbnails/srd-gnoll.png"
+    },
+    {
+      "id": "srd-goat",
+      "name": "Goat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 4,
+      "hitDice": "1d8",
+      "armorClass": 10,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "goat",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/goat"
+      },
+      "artDirection": "Original tactical fantasy depiction of Goat, a Medium beast.",
+      "image": "../art/full/srd-goat.png",
+      "thumbnail": "../art/thumbnails/srd-goat.png"
+    },
+    {
+      "id": "srd-goblin",
+      "name": "Goblin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "goblinoid",
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "goblin",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/goblin"
+      },
+      "artDirection": "Original tactical fantasy depiction of Goblin, a Small humanoid (goblinoid).",
+      "image": "../art/full/srd-goblin.png",
+      "thumbnail": "../art/thumbnails/srd-goblin.png"
+    },
+    {
+      "id": "srd-gold-dragon-wyrmling",
+      "name": "Gold Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gold-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gold-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gold Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-gold-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-gold-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-gorgon",
+      "name": "Gorgon",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10",
+      "armorClass": 19,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gorgon",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gorgon"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gorgon, a Large monstrosity.",
+      "image": "../art/full/srd-gorgon.png",
+      "thumbnail": "../art/thumbnails/srd-gorgon.png"
+    },
+    {
+      "id": "srd-gray-ooze",
+      "name": "Gray Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "3d8",
+      "armorClass": 8,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": null,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "gray-ooze",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gray-ooze"
+      },
+      "artDirection": "Original tactical fantasy depiction of Gray Ooze, a Medium ooze.",
+      "image": "../art/full/srd-gray-ooze.png",
+      "thumbnail": "../art/thumbnails/srd-gray-ooze.png"
+    },
+    {
+      "id": "srd-green-dragon-wyrmling",
+      "name": "Green Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 38,
+      "hitDice": "7d8",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "green-dragon-wyrmling",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/green-dragon-wyrmling"
+      },
+      "artDirection": "Original tactical fantasy depiction of Green Dragon Wyrmling, a Medium dragon.",
+      "image": "../art/full/srd-green-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/srd-green-dragon-wyrmling.png"
+    },
+    {
+      "id": "srd-green-hag",
+      "name": "Green Hag",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "green-hag",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/green-hag"
+      },
+      "artDirection": "Original tactical fantasy depiction of Green Hag, a Medium fey.",
+      "image": "../art/full/srd-green-hag.png",
+      "thumbnail": "../art/thumbnails/srd-green-hag.png"
+    },
+    {
+      "id": "srd-grick",
+      "name": "Grick",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "6d8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "grick",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/grick"
+      },
+      "artDirection": "Original tactical fantasy depiction of Grick, a Medium monstrosity.",
+      "image": "../art/full/srd-grick.png",
+      "thumbnail": "../art/thumbnails/srd-grick.png"
+    }
+  ]
+}

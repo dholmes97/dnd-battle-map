@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-nalfeshnee",
+      "name": "Nalfeshnee",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "demon",
+      "size": "large",
+      "defaultHp": 184,
+      "hitDice": "16d10",
+      "armorClass": 18,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "nalfeshnee",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/nalfeshnee"
+      },
+      "artDirection": "Original tactical fantasy depiction of Nalfeshnee, a Large fiend (demon).",
+      "image": "../art/full/srd-nalfeshnee.png",
+      "thumbnail": "../art/thumbnails/srd-nalfeshnee.png"
+    },
+    {
+      "id": "srd-night-hag",
+      "name": "Night Hag",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 112,
+      "hitDice": "15d8",
+      "armorClass": 17,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "night-hag",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/night-hag"
+      },
+      "artDirection": "Original tactical fantasy depiction of Night Hag, a Medium fiend.",
+      "image": "../art/full/srd-night-hag.png",
+      "thumbnail": "../art/thumbnails/srd-night-hag.png"
+    },
+    {
+      "id": "srd-nightmare",
+      "name": "Nightmare",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 60,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "nightmare",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/nightmare"
+      },
+      "artDirection": "Original tactical fantasy depiction of Nightmare, a Large fiend.",
+      "image": "../art/full/srd-nightmare.png",
+      "thumbnail": "../art/thumbnails/srd-nightmare.png"
+    },
+    {
+      "id": "srd-noble",
+      "name": "Noble",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 9,
+      "hitDice": "2d8",
+      "armorClass": 15,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "noble",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/noble"
+      },
+      "artDirection": "Original tactical fantasy depiction of Noble, a Medium humanoid (any race).",
+      "image": "../art/full/srd-noble.png",
+      "thumbnail": "../art/thumbnails/srd-noble.png"
+    },
+    {
+      "id": "srd-ochre-jelly",
+      "name": "Ochre Jelly",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10",
+      "armorClass": 8,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": null,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "ochre-jelly",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ochre-jelly"
+      },
+      "artDirection": "Original tactical fantasy depiction of Ochre Jelly, a Large ooze.",
+      "image": "../art/full/srd-ochre-jelly.png",
+      "thumbnail": "../art/thumbnails/srd-ochre-jelly.png"
+    },
+    {
+      "id": "srd-octopus",
+      "name": "Octopus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 3,
+      "hitDice": "1d6",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "octopus",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/octopus"
+      },
+      "artDirection": "Original tactical fantasy depiction of Octopus, a Small beast.",
+      "image": "../art/full/srd-octopus.png",
+      "thumbnail": "../art/thumbnails/srd-octopus.png"
+    },
+    {
+      "id": "srd-ogre",
+      "name": "Ogre",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 59,
+      "hitDice": "7d10",
+      "armorClass": 11,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "ogre",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ogre"
+      },
+      "artDirection": "Original tactical fantasy depiction of Ogre, a Large giant.",
+      "image": "../art/full/srd-ogre.png",
+      "thumbnail": "../art/thumbnails/srd-ogre.png"
+    },
+    {
+      "id": "srd-ogre-zombie",
+      "name": "Ogre Zombie",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "9d10",
+      "armorClass": 8,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "ogre-zombie",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ogre-zombie"
+      },
+      "artDirection": "Original tactical fantasy depiction of Ogre Zombie, a Large undead.",
+      "image": "../art/full/srd-ogre-zombie.png",
+      "thumbnail": "../art/thumbnails/srd-ogre-zombie.png"
+    },
+    {
+      "id": "srd-oni",
+      "name": "Oni",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 110,
+      "hitDice": "13d10",
+      "armorClass": 16,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "oni",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/oni"
+      },
+      "artDirection": "Original tactical fantasy depiction of Oni, a Large giant.",
+      "image": "../art/full/srd-oni.png",
+      "thumbnail": "../art/thumbnails/srd-oni.png"
+    },
+    {
+      "id": "srd-orc",
+      "name": "Orc",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "orc",
+      "size": "medium",
+      "defaultHp": 15,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "orc",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/orc"
+      },
+      "artDirection": "Original tactical fantasy depiction of Orc, a Medium humanoid (orc).",
+      "image": "../art/full/srd-orc.png",
+      "thumbnail": "../art/thumbnails/srd-orc.png"
+    }
+  ]
+}

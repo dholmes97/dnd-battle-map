@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-storm-crawler",
+      "name": "Storm Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Storm Crawler, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-crawler.png",
+      "thumbnail": "../art/thumbnails/original-storm-crawler.png"
+    },
+    {
+      "id": "original-storm-drake",
+      "name": "Storm Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Storm Drake, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-drake.png",
+      "thumbnail": "../art/thumbnails/original-storm-drake.png"
+    },
+    {
+      "id": "original-storm-guardian",
+      "name": "Storm Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Storm Guardian, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-guardian.png",
+      "thumbnail": "../art/thumbnails/original-storm-guardian.png"
+    },
+    {
+      "id": "original-storm-hound",
+      "name": "Storm Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Storm Hound, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-hound.png",
+      "thumbnail": "../art/thumbnails/original-storm-hound.png"
+    },
+    {
+      "id": "original-storm-leviathan",
+      "name": "Storm Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Storm Leviathan, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-storm-leviathan.png"
+    },
+    {
+      "id": "original-storm-marauder",
+      "name": "Storm Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Storm Marauder, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-marauder.png",
+      "thumbnail": "../art/thumbnails/original-storm-marauder.png"
+    },
+    {
+      "id": "original-storm-moth",
+      "name": "Storm Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Storm Moth, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-moth.png",
+      "thumbnail": "../art/thumbnails/original-storm-moth.png"
+    },
+    {
+      "id": "original-storm-seer",
+      "name": "Storm Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Storm Seer, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-seer.png",
+      "thumbnail": "../art/thumbnails/original-storm-seer.png"
+    },
+    {
+      "id": "original-storm-serpent",
+      "name": "Storm Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Storm Serpent, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-serpent.png",
+      "thumbnail": "../art/thumbnails/original-storm-serpent.png"
+    },
+    {
+      "id": "original-storm-stalker",
+      "name": "Storm Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Storm Stalker, characterized by rain-dark surfaces, electric blue markings, and wind-tossed details; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-storm-stalker.png",
+      "thumbnail": "../art/thumbnails/original-storm-stalker.png"
+    }
+  ]
+}

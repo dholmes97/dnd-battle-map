@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-frost-guardian",
+      "name": "Frost Guardian",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 18,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original construct known as the Frost Guardian, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-guardian.png",
+      "thumbnail": "../art/thumbnails/original-frost-guardian.png"
+    },
+    {
+      "id": "original-frost-hound",
+      "name": "Frost Hound",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Frost Hound, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-hound.png",
+      "thumbnail": "../art/thumbnails/original-frost-hound.png"
+    },
+    {
+      "id": "original-frost-leviathan",
+      "name": "Frost Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Frost Leviathan, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-frost-leviathan.png"
+    },
+    {
+      "id": "original-frost-marauder",
+      "name": "Frost Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Frost Marauder, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-marauder.png",
+      "thumbnail": "../art/thumbnails/original-frost-marauder.png"
+    },
+    {
+      "id": "original-frost-moth",
+      "name": "Frost Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Frost Moth, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-moth.png",
+      "thumbnail": "../art/thumbnails/original-frost-moth.png"
+    },
+    {
+      "id": "original-frost-seer",
+      "name": "Frost Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Frost Seer, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-seer.png",
+      "thumbnail": "../art/thumbnails/original-frost-seer.png"
+    },
+    {
+      "id": "original-frost-serpent",
+      "name": "Frost Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Frost Serpent, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-serpent.png",
+      "thumbnail": "../art/thumbnails/original-frost-serpent.png"
+    },
+    {
+      "id": "original-frost-stalker",
+      "name": "Frost Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Frost Stalker, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-stalker.png",
+      "thumbnail": "../art/thumbnails/original-frost-stalker.png"
+    },
+    {
+      "id": "original-frost-titan",
+      "name": "Frost Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Frost Titan, characterized by rimed fur or armor, pale blue ice, and cold vapor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-frost-titan.png",
+      "thumbnail": "../art/thumbnails/original-frost-titan.png"
+    },
+    {
+      "id": "original-gloam-burrower",
+      "name": "Gloam Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Gloam Burrower, characterized by dusky violet shadow, moonlit edges, and subtle spectral haze; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-gloam-burrower.png",
+      "thumbnail": "../art/thumbnails/original-gloam-burrower.png"
+    }
+  ]
+}

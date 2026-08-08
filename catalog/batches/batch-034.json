@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "campaign-sniffer",
+      "name": "Sniffer",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8+5",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A low six-legged scent hunter with oversized nostrils, pale hide, and twitching sensory tendrils",
+      "image": "../art/full/campaign-sniffer.png",
+      "thumbnail": "../art/thumbnails/campaign-sniffer.png"
+    },
+    {
+      "id": "campaign-shadow-goblin",
+      "name": "Shadow Goblin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 11,
+      "hitDice": "3d6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A wiry goblin-like raider formed from smoke and ragged shadow",
+      "image": "../art/full/campaign-shadow-goblin.png",
+      "thumbnail": "../art/thumbnails/campaign-shadow-goblin.png"
+    },
+    {
+      "id": "campaign-herald",
+      "name": "The Herald",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 136,
+      "hitDice": "16d10+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "An elegant otherworldly emissary in broken ceremonial armor, surrounded by black ribbons of force",
+      "image": "../art/full/campaign-herald.png",
+      "thumbnail": "../art/thumbnails/campaign-herald.png"
+    },
+    {
+      "id": "campaign-mellannor",
+      "name": "Mellannor, Shadow Warg",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 94,
+      "hitDice": "11d10+33",
+      "armorClass": 16,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A regal dire warg with midnight fur, ember eyes, and a mane dissolving into supernatural shadow",
+      "image": "../art/full/campaign-mellannor.png",
+      "thumbnail": "../art/thumbnails/campaign-mellannor.png"
+    },
+    {
+      "id": "campaign-bronze-griffon",
+      "name": "Bronze Griffon",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "8d10+32",
+      "armorClass": 17,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A living bronze griffon with articulated feather plates and an aged green patina",
+      "image": "../art/full/campaign-bronze-griffon.png",
+      "thumbnail": "../art/thumbnails/campaign-bronze-griffon.png"
+    },
+    {
+      "id": "campaign-sapphire-spirit",
+      "name": "Sapphire Draconic Spirit",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 110,
+      "hitDice": "13d10+39",
+      "armorClass": 17,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": 80,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A translucent sapphire dragon spirit made of faceted blue light and drifting runes",
+      "image": "../art/full/campaign-sapphire-spirit.png",
+      "thumbnail": "../art/thumbnails/campaign-sapphire-spirit.png"
+    },
+    {
+      "id": "campaign-amber-abomination",
+      "name": "Amber-Tower Abomination",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 18,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A towering asymmetrical horror fused with amber crystal, ancient masonry, and many grasping limbs",
+      "image": "../art/full/campaign-amber-abomination.png",
+      "thumbnail": "../art/thumbnails/campaign-amber-abomination.png"
+    },
+    {
+      "id": "campaign-tentacle-panther",
+      "name": "Tentacled Six-Legged Panther",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "A sleek six-legged black panther with two long hunting tentacles arching from its shoulders",
+      "image": "../art/full/campaign-tentacle-panther.png",
+      "thumbnail": "../art/thumbnails/campaign-tentacle-panther.png"
+    },
+    {
+      "id": "campaign-tree-witch",
+      "name": "Tree-Witch Hag",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8+33",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "campaign-original"
+      },
+      "artDirection": "An ancient woodland witch whose crooked body blends bark, roots, moss, and tattered robes",
+      "image": "../art/full/campaign-tree-witch.png",
+      "thumbnail": "../art/thumbnails/campaign-tree-witch.png"
+    },
+    {
+      "id": "original-ashen-burrower",
+      "name": "Ashen Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Ashen Burrower, characterized by volcanic soot, coal-red cracks, and scorched armor; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-ashen-burrower.png",
+      "thumbnail": "../art/thumbnails/original-ashen-burrower.png"
+    }
+  ]
+}

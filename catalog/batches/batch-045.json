@@ -1,0 +1,254 @@
+{
+  "creatures": [
+    {
+      "id": "original-moon-leviathan",
+      "name": "Moon Leviathan",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 152,
+      "hitDice": "16d12+48",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Moon Leviathan, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-leviathan.png",
+      "thumbnail": "../art/thumbnails/original-moon-leviathan.png"
+    },
+    {
+      "id": "original-moon-marauder",
+      "name": "Moon Marauder",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original humanoid known as the Moon Marauder, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-marauder.png",
+      "thumbnail": "../art/thumbnails/original-moon-marauder.png"
+    },
+    {
+      "id": "original-moon-moth",
+      "name": "Moon Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original beast known as the Moon Moth, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-moth.png",
+      "thumbnail": "../art/thumbnails/original-moon-moth.png"
+    },
+    {
+      "id": "original-moon-seer",
+      "name": "Moon Seer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original aberration known as the Moon Seer, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-seer.png",
+      "thumbnail": "../art/thumbnails/original-moon-seer.png"
+    },
+    {
+      "id": "original-moon-serpent",
+      "name": "Moon Serpent",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Moon Serpent, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-serpent.png",
+      "thumbnail": "../art/thumbnails/original-moon-serpent.png"
+    },
+    {
+      "id": "original-moon-stalker",
+      "name": "Moon Stalker",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "9d8+9",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Moon Stalker, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-stalker.png",
+      "thumbnail": "../art/thumbnails/original-moon-stalker.png"
+    },
+    {
+      "id": "original-moon-titan",
+      "name": "Moon Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 17,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original giant known as the Moon Titan, characterized by silver markings, nocturnal coloring, and cool luminous eyes; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-moon-titan.png",
+      "thumbnail": "../art/thumbnails/original-moon-titan.png"
+    },
+    {
+      "id": "original-sand-burrower",
+      "name": "Sand Burrower",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Sand Burrower, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-burrower.png",
+      "thumbnail": "../art/thumbnails/original-sand-burrower.png"
+    },
+    {
+      "id": "original-sand-crawler",
+      "name": "Sand Crawler",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8+14",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original monstrosity known as the Sand Crawler, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-crawler.png",
+      "thumbnail": "../art/thumbnails/original-sand-crawler.png"
+    },
+    {
+      "id": "original-sand-drake",
+      "name": "Sand Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "original"
+      },
+      "artDirection": "An original dragon known as the Sand Drake, characterized by wind-worn hide, desert ochres, and drifting grit; distinct readable fantasy creature anatomy.",
+      "image": "../art/full/original-sand-drake.png",
+      "thumbnail": "../art/thumbnails/original-sand-drake.png"
+    }
+  ]
+}

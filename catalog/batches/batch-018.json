@@ -1,0 +1,274 @@
+{
+  "creatures": [
+    {
+      "id": "srd-imp",
+      "name": "Imp",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "3d4",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "imp",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/imp"
+      },
+      "artDirection": "Original tactical fantasy depiction of Imp, a Tiny fiend (devil).",
+      "image": "../art/full/srd-imp.png",
+      "thumbnail": "../art/thumbnails/srd-imp.png"
+    },
+    {
+      "id": "srd-invisible-stalker",
+      "name": "Invisible Stalker",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 104,
+      "hitDice": "16d8",
+      "armorClass": 14,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 50,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "invisible-stalker",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/invisible-stalker"
+      },
+      "artDirection": "Original tactical fantasy depiction of Invisible Stalker, a Medium elemental.",
+      "image": "../art/full/srd-invisible-stalker.png",
+      "thumbnail": "../art/thumbnails/srd-invisible-stalker.png"
+    },
+    {
+      "id": "srd-iron-golem",
+      "name": "Iron Golem",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 210,
+      "hitDice": "20d10",
+      "armorClass": 20,
+      "challengeRating": "16",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "iron-golem",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/iron-golem"
+      },
+      "artDirection": "Original tactical fantasy depiction of Iron Golem, a Large construct.",
+      "image": "../art/full/srd-iron-golem.png",
+      "thumbnail": "../art/thumbnails/srd-iron-golem.png"
+    },
+    {
+      "id": "srd-jackal",
+      "name": "Jackal",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 3,
+      "hitDice": "1d6",
+      "armorClass": 12,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "jackal",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/jackal"
+      },
+      "artDirection": "Original tactical fantasy depiction of Jackal, a Small beast.",
+      "image": "../art/full/srd-jackal.png",
+      "thumbnail": "../art/thumbnails/srd-jackal.png"
+    },
+    {
+      "id": "srd-killer-whale",
+      "name": "Killer Whale",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 90,
+      "hitDice": "12d12",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "killer-whale",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/killer-whale"
+      },
+      "artDirection": "Original tactical fantasy depiction of Killer Whale, a Huge beast.",
+      "image": "../art/full/srd-killer-whale.png",
+      "thumbnail": "../art/thumbnails/srd-killer-whale.png"
+    },
+    {
+      "id": "srd-knight",
+      "name": "Knight",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "any race",
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8",
+      "armorClass": 18,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "knight",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/knight"
+      },
+      "artDirection": "Original tactical fantasy depiction of Knight, a Medium humanoid (any race).",
+      "image": "../art/full/srd-knight.png",
+      "thumbnail": "../art/thumbnails/srd-knight.png"
+    },
+    {
+      "id": "srd-kobold",
+      "name": "Kobold",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": "kobold",
+      "size": "small",
+      "defaultHp": 5,
+      "hitDice": "2d6",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "kobold",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/kobold"
+      },
+      "artDirection": "Original tactical fantasy depiction of Kobold, a Small humanoid (kobold).",
+      "image": "../art/full/srd-kobold.png",
+      "thumbnail": "../art/thumbnails/srd-kobold.png"
+    },
+    {
+      "id": "srd-kraken",
+      "name": "Kraken",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": "titan",
+      "size": "gargantuan",
+      "defaultHp": 472,
+      "hitDice": "27d20",
+      "armorClass": 18,
+      "challengeRating": "23",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "kraken",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/kraken"
+      },
+      "artDirection": "Original tactical fantasy depiction of Kraken, a Gargantuan monstrosity (titan).",
+      "image": "../art/full/srd-kraken.png",
+      "thumbnail": "../art/thumbnails/srd-kraken.png"
+    },
+    {
+      "id": "srd-lamia",
+      "name": "Lamia",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 97,
+      "hitDice": "13d10",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lamia",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lamia"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lamia, a Large monstrosity.",
+      "image": "../art/full/srd-lamia.png",
+      "thumbnail": "../art/thumbnails/srd-lamia.png"
+    },
+    {
+      "id": "srd-lemure",
+      "name": "Lemure",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": "devil",
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 7,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "srd-5.1",
+        "index": "lemure",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lemure"
+      },
+      "artDirection": "Original tactical fantasy depiction of Lemure, a Medium fiend (devil).",
+      "image": "../art/full/srd-lemure.png",
+      "thumbnail": "../art/thumbnails/srd-lemure.png"
+    }
+  ]
+}
