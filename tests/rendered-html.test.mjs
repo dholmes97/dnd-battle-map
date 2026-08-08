@@ -245,9 +245,12 @@ test("makes map tools and encounter controls optimistic without a global wait", 
 
   assert.match(clientSource, /pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>/);
   assert.match(clientSource, /for \(const mutation of pendingOptimistic\.values\(\)\) merged = mutation\.apply\(merged\)/);
+  assert.match(clientSource, /import \{ flushSync \} from "react-dom"/);
+  assert.match(optimisticFlow, /flushSync\(\(\) => \{\s+setState\(\(current\) =>/);
   assert.match(optimisticFlow, /setState\(\(current\) =>/);
   assert.match(optimisticFlow, /const result = await command<T>\(name, extra\)/);
   assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("await command<T>(name, extra)"));
+  assert.ok(optimisticFlow.indexOf("flushSync(() =>") < optimisticFlow.indexOf("await command<T>(name, extra)"));
   assert.doesNotMatch(optimisticFlow, /setBusy\(/);
   assert.match(clientSource, /pending-annotation-/);
   assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
@@ -259,6 +262,22 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   assert.match(clientSource, /advanceTurnOptimistically/);
   assert.match(clientSource, /configureEncounterOptimistically/);
   assert.match(clientSource, /runHistoryOptimistically\("undo"\)/);
+});
+
+test("explains pause and confirms combat reset with responsive controls", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /data-tooltip="Temporarily freezes movement and turn advancement\. The current round and initiative are preserved\."/);
+  assert.match(clientSource, />\{encounterAction === "reset" \? "Resetting…" : "Reset"\}<\/button>/);
+  assert.match(clientSource, /role="dialog" aria-modal="true" aria-labelledby="reset-encounter-title"/);
+  assert.match(clientSource, /Reset combat\?/);
+  assert.match(clientSource, /clears the current round, active turn, and movement tracking/);
+  assert.match(clientSource, /event\.key === "Escape"/);
+  assert.match(styles, /\.secondary-button:active:not\(:disabled\)/);
+  assert.match(styles, /\.encounter-state-controls \[data-tooltip\]:hover::after/);
 });
 
 test("lets the DM select and drag any token directly from the map", async () => {

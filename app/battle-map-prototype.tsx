@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import NextImage from "next/image";
 import MapWorkshop, { renderMapPackageToCanvas } from "@/app/map-workshop";
 import {
@@ -539,6 +540,8 @@ export default function BattleMapPrototype() {
   const [effectEditorTokenId, setEffectEditorTokenId] = useState<string | null>(null);
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [encounterAction, setEncounterAction] = useState<"pause" | "resume" | "reset" | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
@@ -842,13 +845,15 @@ export default function BattleMapPrototype() {
       } : applied;
     };
     pendingOptimisticRef.current.set(mutationId, { apply: applyOptimistic });
-    setState((current) => {
-      if (!current) return current;
-      if (trackHistory && !localUndoHistoryRef.current.some((entry) => entry.mutationId === mutationId)) {
-        localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId, state: current }];
-        localRedoHistoryRef.current = [];
-      }
-      return applyOptimistic(current);
+    flushSync(() => {
+      setState((current) => {
+        if (!current) return current;
+        if (trackHistory && !localUndoHistoryRef.current.some((entry) => entry.mutationId === mutationId)) {
+          localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId, state: current }];
+          localRedoHistoryRef.current = [];
+        }
+        return applyOptimistic(current);
+      });
     });
     setError("");
     try {
@@ -1088,9 +1093,24 @@ export default function BattleMapPrototype() {
     );
   };
 
-  const configureEncounterOptimistically = (status: "setup" | "active" | "paused", notice: string) => {
-    void runOptimisticCommand("configure-encounter", { status }, (current) => ({ ...current, encounter: { ...current.encounter, status } }), notice);
+  const configureEncounterOptimistically = async (status: "setup" | "active" | "paused", notice: string) => {
+    const action = status === "setup" ? "reset" : status === "paused" ? "pause" : "resume";
+    setEncounterAction(action);
+    try {
+      return await runOptimisticCommand("configure-encounter", { status }, (current) => ({ ...current, encounter: { ...current.encounter, status } }), notice);
+    } finally {
+      setEncounterAction(null);
+    }
   };
+
+  useEffect(() => {
+    if (!resetConfirmOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setResetConfirmOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [resetConfirmOpen]);
 
   const loadMoreCreatures = async () => {
     if (!creatureCursor || creatureCatalogLoading) return;
@@ -1613,13 +1633,35 @@ export default function BattleMapPrototype() {
 
           {participant.role === "dm" ? <section className="dm-panel">
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
-            <div className="button-row"><button className="secondary-button" onClick={() => configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => configureEncounterOptimistically("setup", "Returned to setup.")}>Setup mode</button></div>
+            <div className="button-row encounter-state-controls">
+              <button
+                className={`secondary-button${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`}
+                aria-busy={encounterAction === "pause" || encounterAction === "resume"}
+                aria-describedby="pause-encounter-help"
+                data-tooltip="Temporarily freezes movement and turn advancement. The current round and initiative are preserved."
+                disabled={encounterAction !== null}
+                onClick={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
+              >{encounterAction === "pause" ? "Pausing…" : encounterAction === "resume" ? "Resuming…" : state.encounter.status === "paused" ? "Resume" : "Pause"}</button>
+              <span id="pause-encounter-help" className="visually-hidden">Temporarily freezes movement and turn advancement while preserving the current round and initiative.</span>
+              <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
+            </div>
           </section> : null}
 
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           {notice ? <div className="toast" role="status">{notice}</div> : null}
         </aside>
       </div>
+      {participant.role === "dm" && resetConfirmOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetConfirmOpen(false); }}>
+        <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-encounter-title" aria-describedby="reset-encounter-description">
+          <div className="eyebrow">Encounter control</div>
+          <h2 id="reset-encounter-title">Reset combat?</h2>
+          <p id="reset-encounter-description">This returns the encounter to setup, clears the current round, active turn, and movement tracking. The map, tokens, HP, effects, and entered initiative numbers stay intact.</p>
+          <div className="button-row">
+            <button className="secondary-button" autoFocus onClick={() => setResetConfirmOpen(false)}>Cancel</button>
+            <button className="danger-button" onClick={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}>Reset combat</button>
+          </div>
+        </section>
+      </div> : null}
     </main>
   );
 }
