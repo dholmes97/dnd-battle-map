@@ -21,6 +21,7 @@ import { type MapPackage } from "@/shared/map-package";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
 type Role = "player" | "dm";
+type JoinIdentity = { label: string; participantName: string; role: Role };
 type MapPoint = { x: number; y: number };
 type SharedEffect = {
   id: string;
@@ -126,6 +127,11 @@ type CreatureCatalogPage = {
 };
 
 const DEFAULT_CODE = "EMBER-KEEP";
+const JOIN_IDENTITIES: JoinIdentity[] = [
+  { label: "Join as Dan (Dar'eleth)", participantName: "Dan", role: "player" },
+  { label: "Join as Barry (Jelton)", participantName: "Barry", role: "player" },
+  { label: "Join as Kevin (DM)", participantName: "Kevin", role: "dm" },
+];
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const PING_PULSE_COUNT = 3;
@@ -500,9 +506,8 @@ function drawMap(
 }
 
 export default function BattleMapPrototype() {
-  const [displayName, setDisplayName] = useState("");
   const [encounterCode, setEncounterCode] = useState(DEFAULT_CODE);
-  const [joinRole, setJoinRole] = useState<Role>("player");
+  const [joiningIdentity, setJoiningIdentity] = useState<string | null>(null);
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -590,21 +595,20 @@ export default function BattleMapPrototype() {
     if (pingAudioContextRef.current.state === "suspended") void pingAudioContextRef.current.resume().catch(() => undefined);
   };
 
-  const join = async () => {
-    const name = displayName.trim();
-    if (!name) return setError("Enter a display name to join the encounter.");
+  const join = async (identity: JoinIdentity) => {
+    const name = identity.participantName;
     enablePingAudio();
-    setBusy(true); setError("");
+    setJoiningIdentity(identity.label); setBusy(true); setError("");
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(normalizedCode)}/join`,
-        { method: "POST", body: JSON.stringify({ participantName: name, role: joinRole }) },
+        { method: "POST", body: JSON.stringify({ participantName: name, role: identity.role }) },
       );
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : "Unable to join.");
-    } finally { setBusy(false); }
+    } finally { setJoiningIdentity(null); setBusy(false); }
   };
 
   useEffect(() => {
@@ -1177,13 +1181,15 @@ export default function BattleMapPrototype() {
       <main className="join-shell"><section className="join-card" aria-labelledby="join-title">
         <div className="eyebrow">Living encounter · Tactical companion</div>
         <h1 id="join-title">Enter the Ember Keep</h1>
-        <p>Join as a player to claim a character, or as the DM to build and run the encounter.</p>
-        <label>Display name<input name="encounter-alias" autoComplete="off" autoCorrect="off" spellCheck={false} value={displayName} onChange={(event) => setDisplayName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void join(); }} placeholder="e.g. Dar’eleth" autoFocus maxLength={32} /></label>
-        <label>Role<select value={joinRole} onChange={(event) => setJoinRole(event.target.value as Role)}><option value="player">Player</option><option value="dm">Dungeon Master</option></select></label>
-        <label>Encounter code<input value={encounterCode} onChange={(event) => setEncounterCode(event.target.value.toUpperCase())} maxLength={24} spellCheck={false} /></label>
+        <p>Choose your seat for this encounter.</p>
         {error ? <div className="form-error" role="alert">{error}</div> : null}
-        <button className="primary-button" onClick={() => void join()} disabled={busy}>{busy ? "Joining…" : "Join encounter"}</button>
-        <div className="join-note">Accountless trusted-group prototype · claims release after two minutes offline.</div>
+        <div className="join-options" role="group" aria-label="Choose participant">
+          {JOIN_IDENTITIES.map((identity, index) => (
+            <button key={identity.label} className="join-option-button" onClick={() => void join(identity)} disabled={busy} autoFocus={index === 0}>
+              {joiningIdentity === identity.label ? "Joining…" : identity.label}
+            </button>
+          ))}
+        </div>
       </section></main>
     );
   }

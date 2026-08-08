@@ -33,8 +33,10 @@ test("server-renders the finished encounter join surface", async () => {
   const html = await response.text();
   assert.match(html, /<title>Ember Keep Encounter \| D&amp;D Battle Map<\/title>/i);
   assert.match(html, /Enter the Ember Keep/);
-  assert.match(html, /Join encounter/);
-  assert.match(html, /EMBER-KEEP/);
+  assert.match(html, /Join as Dan \(Dar&#x27;eleth\)/);
+  assert.match(html, /Join as Barry \(Jelton\)/);
+  assert.match(html, /Join as Kevin \(DM\)/);
+  assert.doesNotMatch(html, /Display name|Encounter code|<select/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Building your site/i);
 });
 
@@ -292,8 +294,10 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
   ]);
 
   assert.match(styles, /-webkit-appearance: none/);
-  assert.match(styles, /\.join-card select \{ min-height: 3rem/);
-  assert.match(clientSource, /name="encounter-alias" autoComplete="off" autoCorrect="off" spellCheck=\{false\}/);
+  assert.match(clientSource, /Join as Dan \(Dar'eleth\)/);
+  assert.match(clientSource, /Join as Barry \(Jelton\)/);
+  assert.match(clientSource, /Join as Kevin \(DM\)/);
+  assert.doesNotMatch(clientSource, /name="encounter-alias"|Display name|Encounter code/);
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\)/);

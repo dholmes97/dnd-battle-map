@@ -63,10 +63,38 @@ button:disabled { cursor: not-allowed; }
 }
 
 .join-card > p {
-  margin: 0 0 1.8rem;
+  margin: 0 0 1.4rem;
   color: var(--muted);
   line-height: 1.6;
 }
+
+.join-options {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.join-option-button {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #514a40;
+  border-radius: 0.68rem;
+  background: linear-gradient(180deg, #2a2722, #201e1a);
+  color: var(--ink);
+  font-weight: 750;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.join-option-button:hover:not(:disabled),
+.join-option-button:focus-visible {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, #332e25, #27231d);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.join-option-button:disabled { opacity: 0.5; }
 
 label {
   display: grid;
@@ -107,8 +135,6 @@ select {
   color: var(--ink);
 }
 
-.join-card select { min-height: 3rem; padding: 0.85rem 2.4rem 0.85rem 0.95rem; }
-
 select:focus { border-color: var(--gold); }
 
 input:focus {
@@ -140,15 +166,6 @@ input:focus {
 }
 
 .secondary-button:hover:not(:disabled) { background: #2b2925; }
-
-.join-note {
-  margin-top: 1rem;
-  color: #7f786e;
-  font-size: 0.75rem;
-  text-align: center;
-}
-
-.join-note strong { color: #aa9e8c; }
 
 .form-error {
   margin: 0.85rem 0;
