@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -466,9 +467,7 @@ export default function BattleMapPrototype() {
   const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, panX: 0, panY: 0 });
   const [panning, setPanning] = useState(false);
-  const [mapFit, setMapFit] = useState<{ width: number; height: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mapStageRef = useRef<HTMLDivElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
@@ -479,8 +478,6 @@ export default function BattleMapPrototype() {
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedCode = state?.encounter.code;
-  const gridWidth = state?.grid.width;
-  const gridHeight = state?.grid.height;
   const controlledTokens = useMemo(
     () => state?.tokens.filter((token) => token.owner?.participantId === participant?.id) ?? [],
     [participant?.id, state?.tokens],
@@ -654,34 +651,6 @@ export default function BattleMapPrototype() {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
   }, [redraw]);
-
-  useEffect(() => {
-    const stage = mapStageRef.current;
-    if (!stage || !gridWidth || !gridHeight) return;
-    const desktopQuery = window.matchMedia("(min-width: 851px)");
-    const fit = () => {
-      if (!desktopQuery.matches) {
-        setMapFit(null);
-        return;
-      }
-      const bounds = stage.getBoundingClientRect();
-      const aspect = gridWidth / gridHeight;
-      const width = Math.min(bounds.width, bounds.height * aspect);
-      const height = width / aspect;
-      if (width <= 0 || height <= 0) return;
-      setMapFit((current) => current && Math.abs(current.width - width) < 0.5 && Math.abs(current.height - height) < 0.5
-        ? current
-        : { width, height });
-    };
-    const observer = new ResizeObserver(fit);
-    observer.observe(stage);
-    desktopQuery.addEventListener("change", fit);
-    fit();
-    return () => {
-      observer.disconnect();
-      desktopQuery.removeEventListener("change", fit);
-    };
-  }, [gridHeight, gridWidth]);
 
   useEffect(() => {
     const hasAnimatingPing = () => state?.annotations.some((annotation) => {
@@ -1064,8 +1033,8 @@ export default function BattleMapPrototype() {
               <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
             </div>
           </div>
-          <div className="map-stage" ref={mapStageRef}>
-          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}`, width: mapFit ? `${mapFit.width}px` : undefined, height: mapFit ? `${mapFit.height}px` : undefined }}>
+          <div className="map-stage">
+          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}`, "--map-aspect": state.grid.width / state.grid.height } as CSSProperties}>
             <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>

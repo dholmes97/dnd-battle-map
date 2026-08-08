@@ -214,11 +214,12 @@ test("normalizes Safari form controls and fits the desktop map to the viewport",
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
   assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
-  assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: center; overflow: hidden; \}/);
+  assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: center; overflow: hidden; container-type: size; \}/);
+  assert.match(styles, /\.map-frame \{ width: min\(100cqw, calc\(100cqh \* var\(--map-aspect\)\)\); max-width: 100%; \}/);
   assert.match(styles, /\.map-canvas \{[\s\S]+height: auto;[\s\S]+aspect-ratio: inherit;/);
-  assert.match(clientSource, /const width = Math\.min\(bounds\.width, bounds\.height \* aspect\)/);
-  assert.match(clientSource, /className="map-stage" ref=\{mapStageRef\}/);
-  assert.match(clientSource, /className="map-frame" style=\{\{ aspectRatio:[^\n]+width: mapFit[^\n]+height: mapFit/);
+  assert.match(clientSource, /className="map-stage"/);
+  assert.match(clientSource, /"--map-aspect": state\.grid\.width \/ state\.grid\.height/);
+  assert.doesNotMatch(clientSource, /mapFit|mapStageRef/);
   assert.doesNotMatch(clientSource, /className=\{`map-canvas[^\n]+style=\{\{ aspectRatio:/);
 });
 
