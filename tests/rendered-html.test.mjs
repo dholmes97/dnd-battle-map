@@ -148,6 +148,16 @@ test("moves immediately on pointer release without token reservations", async ()
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_expires_at`/);
 });
 
+test("lets the DM select and drag any token directly from the map", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const hitToken = \[\.\.\.state\.tokens\]\.reverse\(\)\.find/);
+  assert.match(clientSource, /participant\.role === "dm" \|\| token\.owner\?\.participantId === participant\.id/);
+  assert.match(clientSource, /setSelectedTokenId\(hitToken\.id\)/);
+  assert.match(clientSource, /pointerId: event\.pointerId, tokenId: hitToken\.id/);
+  assert.match(clientSource, /participant\.role === "dm" \? "Drag any token to move it/);
+});
+
 test("shows a straight movement ruler and never rejects movement overage", async () => {
   const [clientSource, workerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),

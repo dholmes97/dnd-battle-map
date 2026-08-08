@@ -485,9 +485,6 @@ export default function BattleMapPrototype() {
   const primaryToken = controlledTokens.find((token) => !token.summonerTokenId) ?? null;
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
-  const canControlSelected = Boolean(
-    selectedToken && (participant?.role === "dm" || selectedToken.owner?.participantId === participant?.id),
-  );
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const distance = state && dragOrigin && preview
     ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
@@ -884,21 +881,24 @@ export default function BattleMapPrototype() {
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
-    if (selectedToken && canControlSelected && !dragGestureRef.current) {
-      const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
-      const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
-      const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(selectedToken.size);
-      if (Math.hypot(deltaX, deltaY) <= radius) {
-        event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
-        const gesture: DragGesture = {
-          pointerId: event.pointerId, tokenId: selectedToken.id,
-          origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
-          grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
-        };
-        dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
-        setDragOrigin(gesture.origin);
-        return;
-      }
+    const hitToken = [...state.tokens].reverse().find((token) => {
+      const controllable = participant.role === "dm" || token.owner?.participantId === participant.id;
+      if (!controllable) return false;
+      const deltaX = ((point.x - token.x) / state.grid.width) * rect.width * viewport.zoom;
+      const deltaY = ((point.y - token.y) / state.grid.height) * rect.height * viewport.zoom;
+      const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(token.size);
+      return Math.hypot(deltaX, deltaY) <= radius;
+    });
+    if (hitToken && !dragGestureRef.current) {
+      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setSelectedTokenId(hitToken.id);
+      const gesture: DragGesture = {
+        pointerId: event.pointerId, tokenId: hitToken.id,
+        origin: { x: hitToken.x, y: hitToken.y }, latest: { x: hitToken.x, y: hitToken.y },
+        grabOffset: { x: point.x - hitToken.x, y: point.y - hitToken.y },
+      };
+      dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: hitToken.id, x: hitToken.x, y: hitToken.y });
+      setDragOrigin(gesture.origin);
+      return;
     }
     if (viewport.zoom > 1 && !panGestureRef.current) {
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
@@ -1035,7 +1035,7 @@ export default function BattleMapPrototype() {
           </div>
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}`, "--map-aspect": state.grid.width / state.grid.height } as CSSProperties}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
