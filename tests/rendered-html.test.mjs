@@ -248,7 +248,7 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
   assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
   assert.match(clientSource, /const sourceWidth = geometry\.visibleWidth \/ state\.grid\.width \* mapScene\.width/);
   assert.match(clientSource, /onWheel=\{onCanvasWheel\}/);
-  assert.match(clientSource, /panGestureRef\.current = \{ pointerId: event\.pointerId, clientX: event\.clientX, clientY: event\.clientY, viewport \}/);
+  assert.match(clientSource, /viewport: \{ zoom: geometry\.zoom, centerX: geometry\.centerX, centerY: geometry\.centerY, mapKey: geometry\.mapKey \}/);
   assert.match(clientSource, /centerX: pan\.viewport\.centerX - \(event\.clientX - pan\.clientX\) \/ geometry\.cellSize/);
   assert.match(styles, /\.map-canvas\.is-dragging, \.map-canvas\.is-panning \{ cursor: grabbing; \}/);
 });

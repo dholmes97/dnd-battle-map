@@ -936,7 +936,12 @@ export default function BattleMapPrototype() {
     }
     if (!panGestureRef.current) {
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
-      panGestureRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, viewport };
+      panGestureRef.current = {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        viewport: { zoom: geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey },
+      };
       setPanning(true);
     }
   };
@@ -1083,7 +1088,7 @@ export default function BattleMapPrototype() {
               <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => nudgeViewport(1, 0)}>→</button>
               <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => changeZoom(-0.5)}>−</button>
               <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => changeZoom(0.5)}>+</button>
-              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` })}>{Math.round(viewport.zoom * 100)}%</button>
+              <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey: `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` })}>{Math.round((viewport.mapKey === `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}` ? viewport.zoom : 1) * 100)}%</button>
             </div>
           </div>
           <div className="map-stage">
