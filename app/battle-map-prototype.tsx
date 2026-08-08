@@ -143,6 +143,7 @@ const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 // Below this cell size a name under every token turns the map into noise.
 const TOKEN_LABEL_MIN_CELL_PX = 30;
 const HEARTBEAT_INTERVAL_MS = 20_000;
+const JOIN_TIMEOUT_MS = 12_000;
 const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
 const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
@@ -816,18 +817,26 @@ export default function BattleMapPrototype() {
 
   const join = async (identity: JoinIdentity) => {
     const name = identity.participantName;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), JOIN_TIMEOUT_MS);
     enablePingAudio();
     setJoiningIdentity(identity.label); setBusy(true); setError("");
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(normalizedCode)}/join`,
-        { method: "POST", body: JSON.stringify({ participantName: name, role: identity.role }) },
+        { method: "POST", signal: controller.signal, body: JSON.stringify({ participantName: name, role: identity.role }) },
       );
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
-      setError(joinError instanceof Error ? joinError.message : "Unable to join.");
-    } finally { setJoiningIdentity(null); setBusy(false); }
+      setError(joinError instanceof DOMException && joinError.name === "AbortError"
+        ? "The encounter took too long to respond. Please try again."
+        : joinError instanceof Error ? joinError.message : "Unable to join.");
+    } finally {
+      window.clearTimeout(timeout);
+      setJoiningIdentity(null);
+      setBusy(false);
+    }
   };
 
   useEffect(() => {

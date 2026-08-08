@@ -26,7 +26,10 @@ async function render() {
 }
 
 test("server-renders the finished encounter join surface", async () => {
-  const response = await render();
+  const [response, clientSource] = await Promise.all([
+    render(),
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+  ]);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -39,6 +42,8 @@ test("server-renders the finished encounter join surface", async () => {
   assert.match(html, /Join as Kevin \(DM\)/);
   assert.doesNotMatch(html, /Display name|Encounter code|<select/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Building your site/i);
+  assert.match(clientSource, /const JOIN_TIMEOUT_MS = 12_000;/);
+  assert.match(clientSource, /The encounter took too long to respond\. Please try again\./);
 });
 
 test("stores creature originals and generated thumbnails in R2", async () => {
