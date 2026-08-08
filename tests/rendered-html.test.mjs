@@ -214,9 +214,26 @@ test("normalizes Safari form controls and fits the desktop map to the viewport",
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
   assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
-  assert.match(styles, /\.map-frame \{ width: auto; height: 100%; max-width: 100%; justify-self: center; \}/);
-  assert.match(clientSource, /className="map-frame" style=\{\{ aspectRatio:/);
+  assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: center; overflow: hidden; \}/);
+  assert.match(styles, /\.map-canvas \{[\s\S]+height: auto;[\s\S]+aspect-ratio: inherit;/);
+  assert.match(clientSource, /const width = Math\.min\(bounds\.width, bounds\.height \* aspect\)/);
+  assert.match(clientSource, /className="map-stage" ref=\{mapStageRef\}/);
+  assert.match(clientSource, /className="map-frame" style=\{\{ aspectRatio:[^\n]+width: mapFit[^\n]+height: mapFit/);
   assert.doesNotMatch(clientSource, /className=\{`map-canvas[^\n]+style=\{\{ aspectRatio:/);
+});
+
+test("zooms at the cursor and pans by dragging empty map space", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /function zoomViewportAt\(/);
+  assert.match(clientSource, /Math\.exp\(-event\.deltaY \* 0\.0015\)/);
+  assert.match(clientSource, /onWheel=\{onCanvasWheel\}/);
+  assert.match(clientSource, /panGestureRef\.current = \{ pointerId: event\.pointerId, clientX: event\.clientX, clientY: event\.clientY, viewport \}/);
+  assert.match(clientSource, /panX: pan\.viewport\.panX - \(event\.clientX - pan\.clientX\)/);
+  assert.match(styles, /\.map-canvas\.is-dragging, \.map-canvas\.is-panning \{ cursor: grabbing; \}/);
 });
 
 test("offers compact icon tools and precise line erasing", async () => {

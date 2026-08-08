@@ -4,8 +4,8 @@ import test from "node:test";
 import { parseMapPackage } from "../shared/map-package.ts";
 import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap } from "../shared/full-scene-maps.ts";
 
-test("full-scene maps and matching additions are package-safe production assets", async () => {
-  assert.equal(FULL_SCENE_MAPS.length, 3);
+test("full-scene maps are package-safe production assets", async () => {
+  assert.equal(FULL_SCENE_MAPS.length, 13);
   for (const definition of FULL_SCENE_MAPS) {
     const map = createFullSceneMap(definition);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
@@ -20,7 +20,8 @@ test("full-scene maps and matching additions are package-safe production assets"
     assert.deepEqual([...jpg.subarray(0, 3)], [255, 216, 255], `${definition.id} JPEG signature`);
     assert.ok(jpg.length > 1_000_000, `${definition.id} should retain production detail`);
     const kit = SCENE_KITS[definition.sceneKitId];
-    assert.equal(kit.length, 2);
+    assert.ok(kit, `${definition.id} should reference a known scene kit`);
+    assert.equal(kit.length, definition.sceneKitId === "none" ? 0 : 2);
     for (const item of kit) {
       const png = await readFile(new URL(`../public/assets/full-map-seeds/${item.assetUrl.replace("/map-assets/", "")}`, import.meta.url));
       assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${item.id} PNG signature`);

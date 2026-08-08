@@ -336,16 +336,19 @@ input:focus {
   box-shadow: 0 25px 55px rgba(0, 0, 0, 0.32);
 }
 
+.map-stage { min-width: 0; }
+
 .map-canvas {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: inherit;
   touch-action: none;
   cursor: grab;
 }
 
 .map-canvas.is-blocked { cursor: not-allowed; }
-.map-canvas.is-dragging { cursor: grabbing; }
+.map-canvas.is-dragging, .map-canvas.is-panning { cursor: grabbing; }
 .map-canvas.is-placing { cursor: copy; }
 .map-canvas.is-erasing { cursor: cell; }
 
@@ -787,7 +790,8 @@ input:focus {
   .topbar { flex: 0 0 4rem; }
   .workspace { flex: 1 1 auto; min-height: 0; }
   .map-panel { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-items: stretch; }
-  .map-frame { width: auto; height: 100%; max-width: 100%; justify-self: center; }
+  .map-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; }
+  .map-frame { max-width: 100%; }
 }
 
 @media (max-width: 560px) {

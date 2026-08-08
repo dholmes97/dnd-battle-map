@@ -3,6 +3,7 @@
 import {
   type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -101,6 +102,12 @@ type DragGesture = {
   latest: MapPoint;
   grabOffset: MapPoint;
 };
+type PanGesture = {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  viewport: Viewport;
+};
 type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight";
 type Viewport = { zoom: number; panX: number; panY: number };
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
@@ -170,6 +177,27 @@ function pointerToMap(
 function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell: number) {
   const squares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
   return Math.round(squares * feetPerCell * 10) / 10;
+}
+
+function clampViewport(viewport: Viewport, state: EncounterState): Viewport {
+  const visibleWidth = state.grid.width / viewport.zoom;
+  const visibleHeight = state.grid.height / viewport.zoom;
+  return {
+    ...viewport,
+    panX: Math.max(0, Math.min(state.grid.width - visibleWidth, viewport.panX)),
+    panY: Math.max(0, Math.min(state.grid.height - visibleHeight, viewport.panY)),
+  };
+}
+
+function zoomViewportAt(viewport: Viewport, state: EncounterState, zoom: number, focusX = 0.5, focusY = 0.5): Viewport {
+  const nextZoom = Math.max(1, Math.min(3, zoom));
+  const mapX = viewport.panX + focusX * state.grid.width / viewport.zoom;
+  const mapY = viewport.panY + focusY * state.grid.height / viewport.zoom;
+  return clampViewport({
+    zoom: nextZoom,
+    panX: mapX - focusX * state.grid.width / nextZoom,
+    panY: mapY - focusY * state.grid.height / nextZoom,
+  }, state);
 }
 
 function playPingSound(context: AudioContext) {
@@ -437,16 +465,22 @@ export default function BattleMapPrototype() {
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, panX: 0, panY: 0 });
+  const [panning, setPanning] = useState(false);
+  const [mapFit, setMapFit] = useState<{ width: number; height: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mapStageRef = useRef<HTMLDivElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousClaimedTokenRef = useRef<SharedToken | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
+  const panGestureRef = useRef<PanGesture | null>(null);
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const joinedCode = state?.encounter.code;
+  const gridWidth = state?.grid.width;
+  const gridHeight = state?.grid.height;
   const controlledTokens = useMemo(
     () => state?.tokens.filter((token) => token.owner?.participantId === participant?.id) ?? [],
     [participant?.id, state?.tokens],
@@ -620,6 +654,34 @@ export default function BattleMapPrototype() {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
   }, [redraw]);
+
+  useEffect(() => {
+    const stage = mapStageRef.current;
+    if (!stage || !gridWidth || !gridHeight) return;
+    const desktopQuery = window.matchMedia("(min-width: 851px)");
+    const fit = () => {
+      if (!desktopQuery.matches) {
+        setMapFit(null);
+        return;
+      }
+      const bounds = stage.getBoundingClientRect();
+      const aspect = gridWidth / gridHeight;
+      const width = Math.min(bounds.width, bounds.height * aspect);
+      const height = width / aspect;
+      if (width <= 0 || height <= 0) return;
+      setMapFit((current) => current && Math.abs(current.width - width) < 0.5 && Math.abs(current.height - height) < 0.5
+        ? current
+        : { width, height });
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(stage);
+    desktopQuery.addEventListener("change", fit);
+    fit();
+    return () => {
+      observer.disconnect();
+      desktopQuery.removeEventListener("change", fit);
+    };
+  }, [gridHeight, gridWidth]);
 
   useEffect(() => {
     const hasAnimatingPing = () => state?.annotations.some((annotation) => {
@@ -832,6 +894,7 @@ export default function BattleMapPrototype() {
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!state || !participant || !movementEnabled) return;
+    if (event.button !== 0) return;
     const armedCreature = participant.role === "dm" ? paletteCreature(armedCreatureId) : null;
     if (armedCreature) {
       event.preventDefault();
@@ -851,20 +914,28 @@ export default function BattleMapPrototype() {
       else void addAnnotation(annotationMode, point);
       return;
     }
-    if (!selectedToken || !canControlSelected || dragGestureRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
-    const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
-    const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(selectedToken.size);
-    if (Math.hypot(deltaX, deltaY) > radius) return;
-    event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
-    const gesture: DragGesture = {
-      pointerId: event.pointerId, tokenId: selectedToken.id,
-      origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
-      grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
-    };
-    dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
-    setDragOrigin(gesture.origin);
+    if (selectedToken && canControlSelected && !dragGestureRef.current) {
+      const deltaX = ((point.x - selectedToken.x) / state.grid.width) * rect.width * viewport.zoom;
+      const deltaY = ((point.y - selectedToken.y) / state.grid.height) * rect.height * viewport.zoom;
+      const radius = Math.min(rect.width / state.grid.width, rect.height / state.grid.height) * viewport.zoom * tokenRadiusCells(selectedToken.size);
+      if (Math.hypot(deltaX, deltaY) <= radius) {
+        event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+        const gesture: DragGesture = {
+          pointerId: event.pointerId, tokenId: selectedToken.id,
+          origin: { x: selectedToken.x, y: selectedToken.y }, latest: { x: selectedToken.x, y: selectedToken.y },
+          grabOffset: { x: point.x - selectedToken.x, y: point.y - selectedToken.y },
+        };
+        dragGestureRef.current = gesture; setDragging(true); setPreview({ tokenId: selectedToken.id, x: selectedToken.x, y: selectedToken.y });
+        setDragOrigin(gesture.origin);
+        return;
+      }
+    }
+    if (viewport.zoom > 1 && !panGestureRef.current) {
+      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+      panGestureRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, viewport };
+      setPanning(true);
+    }
   };
 
   const dragPoint = (canvas: HTMLCanvasElement, gesture: DragGesture, clientX: number, clientY: number) => {
@@ -876,6 +947,17 @@ export default function BattleMapPrototype() {
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const pan = panGestureRef.current;
+    if (pan?.pointerId === event.pointerId && state) {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      setViewport(clampViewport({
+        ...pan.viewport,
+        panX: pan.viewport.panX - (event.clientX - pan.clientX) / rect.width * state.grid.width / pan.viewport.zoom,
+        panY: pan.viewport.panY - (event.clientY - pan.clientY) / rect.height * state.grid.height / pan.viewport.zoom,
+      }, state));
+      return;
+    }
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault(); gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
@@ -883,6 +965,12 @@ export default function BattleMapPrototype() {
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const pan = panGestureRef.current;
+    if (pan?.pointerId === event.pointerId) {
+      event.preventDefault(); panGestureRef.current = null; setPanning(false);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     const drawing = annotationStartRef.current;
     if (drawing?.pointerId === event.pointerId && state) {
       const end = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
@@ -902,8 +990,22 @@ export default function BattleMapPrototype() {
 
   const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     annotationStartRef.current = null;
+    if (panGestureRef.current?.pointerId === event.pointerId) {
+      panGestureRef.current = null; setPanning(false);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     const gesture = dragGestureRef.current; if (!gesture || gesture.pointerId !== event.pointerId) return;
     dragGestureRef.current = null; setPreview(null); setDragOrigin(null); setDragging(false);
+  };
+
+  const onCanvasWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
+    if (!state) return;
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const focusX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const focusY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    setViewport((current) => zoomViewportAt(current, state, current.zoom * Math.exp(-event.deltaY * 0.0015), focusX, focusY));
   };
 
   if (!participant || !state) {
@@ -957,13 +1059,14 @@ export default function BattleMapPrototype() {
               <button className="icon-tool" aria-label="Pan up" data-tooltip="Pan up" onClick={() => setViewport((view) => ({ ...view, panY: Math.max(0, view.panY - 1 / view.zoom) }))}>↑</button>
               <button className="icon-tool" aria-label="Pan down" data-tooltip="Pan down" onClick={() => setViewport((view) => ({ ...view, panY: Math.min(state.grid.height - state.grid.height / view.zoom, view.panY + 1 / view.zoom) }))}>↓</button>
               <button className="icon-tool" aria-label="Pan right" data-tooltip="Pan right" onClick={() => setViewport((view) => ({ ...view, panX: Math.min(state.grid.width - state.grid.width / view.zoom, view.panX + 1 / view.zoom) }))}>→</button>
-              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => setViewport((view) => ({ zoom: Math.max(1, view.zoom - 0.5), panX: 0, panY: 0 }))}>−</button>
-              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => setViewport((view) => ({ ...view, zoom: Math.min(3, view.zoom + 0.5) }))}>+</button>
+              <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => setViewport((view) => zoomViewportAt(view, state, view.zoom - 0.5))}>−</button>
+              <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => setViewport((view) => zoomViewportAt(view, state, view.zoom + 0.5))}>+</button>
               <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, panX: 0, panY: 0 })}>{Math.round(viewport.zoom * 100)}%</button>
             </div>
           </div>
-          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it.` : ""}`} role="img" />
+          <div className="map-stage" ref={mapStageRef}>
+          <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}`, width: mapFit ? `${mapFit.width}px` : undefined, height: mapFit ? `${mapFit.height}px` : undefined }}>
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => setPlacementPreview(null)} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {participant.role === "dm" && paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
@@ -978,6 +1081,7 @@ export default function BattleMapPrototype() {
             </section> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>Movement is paused until shared state is current.</span></div> : null}
+          </div>
           </div>
           <div className="map-footer"><span>{state.grid.width} × {state.grid.height} squares</span><span>5 ft · equal-cost diagonals · free positioning</span><span>Server version {state.encounter.version}</span></div>
         </section>
