@@ -78,7 +78,7 @@ type EncounterState = {
   };
   grid: { width: number; height: number; feetPerCell: number };
   viewer: null | { id: string; role: Role };
-  undo: { available: number; lastAction: string | null };
+  undo: { available: number; redoAvailable: number; lastAction: string | null; nextRedoAction: string | null };
   tokens: SharedToken[];
   annotations: SharedAnnotation[];
   savedMapPresets: Array<{
@@ -814,6 +814,28 @@ export default function BattleMapPrototype() {
     finally { setBusy(false); }
   };
 
+  useEffect(() => {
+    if (!participant || !state) return;
+    const onHistoryShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest("input, textarea, select")) return;
+      const key = event.key.toLocaleLowerCase();
+      const modifier = event.metaKey || event.ctrlKey;
+      const wantsUndo = modifier && key === "z" && !event.shiftKey;
+      const wantsRedo = (modifier && key === "z" && event.shiftKey) || (event.ctrlKey && !event.metaKey && key === "y");
+      if (busy || (!wantsUndo && !wantsRedo)) return;
+      if (wantsUndo && state.undo.available > 0) {
+        event.preventDefault();
+        void runCommand("undo", {}, "Last action undone.");
+      } else if (wantsRedo && state.undo.redoAvailable > 0) {
+        event.preventDefault();
+        void runCommand("redo", {}, "Last action redone.");
+      }
+    };
+    window.addEventListener("keydown", onHistoryShortcut);
+    return () => window.removeEventListener("keydown", onHistoryShortcut);
+  }, [busy, participant, state]);
+
   const saveInitiative = async (token: SharedToken) => {
     const draft = initiativeDrafts[token.id];
     if (draft === undefined) return;
@@ -1252,6 +1274,10 @@ export default function BattleMapPrototype() {
             </div>
             {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
             {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><span aria-hidden="true">▦</span></button> : null}
+            <div className="map-tool-group" role="group" aria-label="Action history">
+              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo · Ctrl/⌘ Z" onClick={() => void runCommand("undo", {}, "Last action undone.")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
+              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo · Ctrl/⌘ Shift Z" onClick={() => void runCommand("redo", {}, "Last action redone.")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
+            </div>
             <span className="toolbar-spacer" />
             <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
               <button className="icon-tool" aria-label="Pan left" data-tooltip="Pan left" onClick={() => nudgeViewport(-1, 0)}>←</button>
@@ -1354,8 +1380,6 @@ export default function BattleMapPrototype() {
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
             <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
           </section> : null}
-
-          <button className="undo-button" onClick={() => void runCommand("undo", {}, "Last reversible action undone.")} disabled={busy || state.undo.available === 0}>Undo my last action{state.undo.available ? ` (${state.undo.available}/10)` : ""}</button>
 
           {error ? <div className="form-error" role="alert">{error}</div> : null}
           {notice ? <div className="toast" role="status">{notice}</div> : null}

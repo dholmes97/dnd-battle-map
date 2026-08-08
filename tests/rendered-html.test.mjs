@@ -397,6 +397,26 @@ test("offers compact icon tools and precise line erasing", async () => {
   assert.match(styles, /\[data-tooltip\]:focus-visible::after/);
 });
 
+test("offers durable undo and redo from the toolbar and standard shortcuts", async () => {
+  const [clientSource, workerSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /aria-label="Undo last action" data-tooltip="Undo · Ctrl\/⌘ Z"/);
+  assert.match(clientSource, /aria-label="Redo last action" data-tooltip="Redo · Ctrl\/⌘ Shift Z"/);
+  assert.match(clientSource, /const wantsUndo = modifier && key === "z" && !event\.shiftKey/);
+  assert.match(clientSource, /event\.ctrlKey && !event\.metaKey && key === "y"/);
+  assert.match(clientSource, /target\?\.closest\("input, textarea, select"\)/);
+  assert.doesNotMatch(clientSource, /className="undo-button"/);
+  assert.doesNotMatch(styles, /\.undo-button/);
+  assert.match(workerSource, /redoAvailable: availableHistory\.redo\.length/);
+  assert.match(workerSource, /if \(command === "redo"\)/);
+  assert.match(workerSource, /"action_redone"/);
+  assert.match(workerSource, /That action can no longer be redone because its shared state changed/);
+});
+
 test("includes a durable full-scene workshop with no retired editor path", async () => {
   const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),

@@ -18,6 +18,7 @@ import {
   identityControlsToken,
   resolveTokenControllerName,
 } from "../shared/token-control.mjs";
+import { deriveHistoryActionIds } from "../shared/action-history.mjs";
 
 interface Env {
   ASSETS: Fetcher;
@@ -1057,9 +1058,9 @@ async function encounterState(
   )
     .bind(encounter!.id)
     .all<AnnotationRow>();
-  const availableUndo = viewer
-    ? await undoStack(env, encounter!.id, viewer.id)
-    : [];
+  const availableHistory = viewer
+    ? await historyStacks(env, encounter!.id, viewer.id)
+    : { undo: [], redo: [] };
   const savedMapPresets = viewer?.role === "dm"
     ? await env.DB.prepare(
         `SELECT id, name, description, source_prompt, package_json, created_at, updated_at
@@ -1105,8 +1106,10 @@ async function encounterState(
     grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
     viewer: viewer ? { id: viewer.id, role: viewer.role } : null,
     undo: {
-      available: availableUndo.length,
-      lastAction: availableUndo[0]?.action_type ?? null,
+      available: availableHistory.undo.length,
+      redoAvailable: availableHistory.redo.length,
+      lastAction: availableHistory.undo[0]?.action_type ?? null,
+      nextRedoAction: availableHistory.redo[0]?.action_type ?? null,
     },
     tokens: visibleTokens.map((token) => {
       const controlledByViewer = viewerControls(token);
@@ -1215,11 +1218,11 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "token_updated",
 ]);
 
-async function undoStack(
+async function historyStacks(
   env: Env,
   encounterId: string,
   participantId: string,
-): Promise<ActionRow[]> {
+): Promise<{ undo: ActionRow[]; redo: ActionRow[] }> {
   const rows = await env.DB.prepare(
     `SELECT id, action_type, payload_json, created_at FROM actions
      WHERE encounter_id = ? AND participant_id = ?
@@ -1227,20 +1230,12 @@ async function undoStack(
   )
     .bind(encounterId, participantId)
     .all<ActionRow>();
-  const undoneIds = new Set<string>();
-  for (const row of rows.results) {
-    if (row.action_type !== "action_undone") continue;
-    try {
-      const payload = JSON.parse(row.payload_json) as { actionId?: string };
-      if (payload.actionId) undoneIds.add(payload.actionId);
-    } catch {
-      // Ignore a malformed historical payload; it remains in the audit log.
-    }
-  }
-  return rows.results
-    .filter((row) => REVERSIBLE_ACTION_TYPES.has(row.action_type))
-    .slice(0, 10)
-    .filter((row) => !undoneIds.has(row.id));
+  const actions = new Map(rows.results.filter((row) => REVERSIBLE_ACTION_TYPES.has(row.action_type)).map((row) => [row.id, row]));
+  const { undoIds, redoIds } = deriveHistoryActionIds([...rows.results].reverse(), REVERSIBLE_ACTION_TYPES);
+  return {
+    undo: undoIds.slice(0, 10).map((id) => actions.get(id)!).filter(Boolean),
+    redo: redoIds.slice(0, 10).map((id) => actions.get(id)!).filter(Boolean),
+  };
 }
 
 async function handleStatePoll(
@@ -1358,8 +1353,8 @@ async function handleCommand(
       : json({ error: "This action requires the DM role." }, { status: 403 });
 
   if (command === "undo") {
-    const stack = await undoStack(env, encounter.id, participant.id);
-    const action = stack[0];
+    const stacks = await historyStacks(env, encounter.id, participant.id);
+    const action = stacks.undo[0];
     if (!action) {
       return json({ error: "There is no reversible action in your ten-step history." }, { status: 409 });
     }
@@ -1471,6 +1466,122 @@ async function handleCommand(
       actionType: action.action_type,
     }, now);
     return json({ undone: true, actionType: action.action_type, state: await state() });
+  }
+
+  if (command === "redo") {
+    const stacks = await historyStacks(env, encounter.id, participant.id);
+    const action = stacks.redo[0];
+    if (!action) {
+      return json({ error: "There is no action available to redo." }, { status: 409 });
+    }
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(action.payload_json) as Record<string, unknown>;
+    } catch {
+      return json({ error: "That historical action cannot be read safely." }, { status: 409 });
+    }
+    const tokenId = cleanTokenId(payload.tokenId);
+    let changes = 0;
+    if (action.action_type === "token_moved") {
+      const from = payload.from as { x?: unknown; y?: unknown } | undefined;
+      const to = payload.to as { x?: unknown; y?: unknown } | undefined;
+      const result = await env.DB.prepare(
+        `UPDATE tokens SET x = ?, y = ?, movement_used = ?, updated_at = ?
+         WHERE id = ? AND encounter_id = ? AND x = ? AND y = ?`,
+      )
+        .bind(Number(to?.x), Number(to?.y), Number(payload.movementUsed) || 0, now, tokenId, encounter.id, Number(from?.x), Number(from?.y))
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "hp_changed") {
+      const result = await env.DB.prepare(
+        "UPDATE tokens SET hp = ?, updated_at = ? WHERE id = ? AND encounter_id = ? AND hp = ?",
+      )
+        .bind(Number(payload.to), now, tokenId, encounter.id, Number(payload.from))
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "initiative_set") {
+      const result = await env.DB.prepare(
+        `UPDATE tokens SET initiative = ?, initiative_order = NULL,
+         turn_complete = 0, movement_used = 0, updated_at = ?
+         WHERE id = ? AND encounter_id = ? AND initiative IS ?`,
+      )
+        .bind(payload.to, now, tokenId, encounter.id, payload.from ?? null)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "effect_added") {
+      const effect = (payload.effect ?? payload) as Record<string, unknown>;
+      const result = await env.DB.prepare(
+        `INSERT OR IGNORE INTO effects
+         (id, encounter_id, token_id, name, effect_type, duration_rounds,
+          expires_round, reminder_timing, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(cleanTokenId(effect.id ?? effect.effectId), encounter.id, cleanTokenId(effect.tokenId), cleanText(effect.name, 48), cleanText(effect.effectType, 24) || "effect", effect.durationRounds ?? null, effect.expiresRound ?? null, cleanText(effect.reminderTiming, 16) || "end", cleanParticipantId(effect.createdBy) || participant.id, Number(effect.createdAt) || now)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "effect_removed") {
+      const result = await env.DB.prepare(
+        "DELETE FROM effects WHERE id = ? AND encounter_id = ?",
+      )
+        .bind(cleanTokenId(payload.effectId), encounter.id)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "annotation_added") {
+      const annotation = (payload.annotation ?? payload) as Record<string, unknown>;
+      const result = await env.DB.prepare(
+        `INSERT OR IGNORE INTO annotations
+         (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
+          created_by, expires_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(cleanTokenId(annotation.id ?? annotation.annotationId), encounter.id, cleanText(annotation.annotationType, 24), Number(annotation.x), Number(annotation.y), annotation.x2 ?? null, annotation.y2 ?? null, cleanText(annotation.color, 16) || "#f5c65c", cleanText(annotation.label, 48) || null, cleanParticipantId(annotation.createdBy) || participant.id, annotation.expiresAt ?? null, Number(annotation.createdAt) || now)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "annotation_removed") {
+      const result = await env.DB.prepare(
+        "DELETE FROM annotations WHERE id = ? AND encounter_id = ?",
+      )
+        .bind(cleanTokenId(payload.annotationId), encounter.id)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "token_created") {
+      const token = (payload.token ?? payload) as Record<string, unknown>;
+      const result = await env.DB.prepare(
+        `INSERT OR IGNORE INTO tokens
+         (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp,
+          is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
+          movement_used, owner_participant_id, owner_name, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
+      )
+        .bind(tokenId, encounter.id, cleanText(token.name, 48), Number(token.x), Number(token.y), token.artAsset ?? null, cleanText(token.kind, 16) || "monster", isCreatureSize(token.size) ? token.size : "medium", Number(token.speed) || 30, token.hp ?? null, token.maxHp ?? null, token.hidden ? 1 : 0, cleanTokenId(token.summonerTokenId) || null, token.initiative ?? null, token.initiativeOrder ?? null, now)
+        .run();
+      changes = result.meta.changes ?? 0;
+    } else if (action.action_type === "token_updated") {
+      const next = payload.next as Record<string, unknown> | undefined;
+      if (next) {
+        const current = await env.DB.prepare(
+          "SELECT x, y, size FROM tokens WHERE id = ? AND encounter_id = ?",
+        )
+          .bind(tokenId, encounter.id)
+          .first<{ x: number; y: number; size: CreatureSize }>();
+        const result = await env.DB.prepare(
+          `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, hp = ?, max_hp = ?, is_hidden = ?,
+           art_asset = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
+        )
+          .bind(cleanText(next.name, 48), isCreatureSize(next.size) ? next.size : current?.size ?? "medium", Number.isFinite(Number(next.x)) ? Number(next.x) : current?.x ?? encounter.grid_width / 2, Number.isFinite(Number(next.y)) ? Number(next.y) : current?.y ?? encounter.grid_height / 2, Number(next.speed), next.hp ?? null, next.maxHp ?? null, next.hidden ? 1 : 0, next.artAsset ?? null, now, tokenId, encounter.id)
+          .run();
+        changes = result.meta.changes ?? 0;
+      }
+    }
+    if (changes !== 1) {
+      return json({ error: "That action can no longer be redone because its shared state changed." }, { status: 409 });
+    }
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "action_redone", {
+      actionId: action.id,
+      actionType: action.action_type,
+    }, now);
+    return json({ redone: true, actionType: action.action_type, state: await state() });
   }
 
   if (command === "set-initiative") {
@@ -1830,7 +1941,10 @@ async function handleCommand(
       )
       .run();
     await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "token_created", { tokenId, name, kind, size, x, y, summonerTokenId, artAsset }, now);
+    await recordAction(env, encounter.id, participant.id, "token_created", {
+      tokenId,
+      token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden: Boolean(body.hidden), summonerTokenId, artAsset, initiative: inherited?.initiative ?? null, initiativeOrder: inherited?.initiative_order ?? null },
+    }, now);
     return json({ created: true, tokenId, state: await state() });
   }
 
@@ -1950,7 +2064,11 @@ async function handleCommand(
       .bind(effectId, encounter.id, tokenId, name, effectType, durationRounds, expiresRound, reminderTiming, participant.id, now)
       .run();
     await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "effect_added", { effectId, tokenId, name, effectType, expiresRound }, now);
+    await recordAction(env, encounter.id, participant.id, "effect_added", {
+      effectId,
+      tokenId,
+      effect: { id: effectId, tokenId, name, effectType, durationRounds, expiresRound, reminderTiming, createdBy: participant.id, createdAt: now },
+    }, now);
     return json({ added: true, effectId, state: await state() });
   }
 
@@ -2059,16 +2177,21 @@ async function handleCommand(
         ? now + 15_000
         : null;
     const annotationId = crypto.randomUUID();
+    const color = cleanText(body.color, 16) || "#f5c65c";
+    const label = cleanText(body.label, 48) || null;
     await env.DB.prepare(
       `INSERT INTO annotations
        (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
         created_by, expires_at, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(annotationId, encounter.id, annotationType, x, y, x2, y2, cleanText(body.color, 16) || "#f5c65c", cleanText(body.label, 48) || null, participant.id, expiresAt, now)
+      .bind(annotationId, encounter.id, annotationType, x, y, x2, y2, color, label, participant.id, expiresAt, now)
       .run();
     await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "annotation_added", { annotationId, annotationType, x, y, x2, y2 }, now);
+    await recordAction(env, encounter.id, participant.id, "annotation_added", {
+      annotationId,
+      annotation: { id: annotationId, annotationType, x, y, x2, y2, color, label, createdBy: participant.id, expiresAt, createdAt: now },
+    }, now);
     return json({ added: true, annotationId, state: await state() });
   }
 

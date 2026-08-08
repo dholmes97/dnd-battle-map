@@ -601,13 +601,12 @@ input:focus {
 
 .movement-summary { margin: 0.7rem 0; color: #8f877b; font-size: 0.7rem; }
 .movement-summary strong { color: #ded5c7; }
-.end-turn-button, .danger-button, .text-button, .undo-button {
+.end-turn-button, .danger-button, .text-button {
   width: 100%; min-height: 2.45rem; margin-top: 0.55rem; border-radius: 0.55rem; font-weight: 720;
 }
 .end-turn-button { border: 1px solid #ffd67b; background: #6e5123; color: #ffe5a8; }
 .danger-button { border: 1px solid #70423d; background: rgba(133, 57, 50, 0.12); color: #dda098; }
 .text-button { border: 0; background: transparent; color: #998f81; }
-.undo-button { border: 1px dashed #534d44; background: transparent; color: #aaa093; }
 
 .inline-action {
   width: auto;
