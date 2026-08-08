@@ -213,7 +213,9 @@ test("normalizes Safari form controls and fits the desktop map to the viewport",
   assert.match(styles, /\.join-card select \{ min-height: 3rem/);
   assert.match(styles, /@media \(min-width: 851px\)/);
   assert.match(styles, /\.app-shell \{ height: 100vh; height: 100dvh/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\) auto/);
+  assert.match(styles, /justify-content: stretch/);
   assert.match(styles, /\.map-stage \{ min-height: 0; display: grid; place-items: center; overflow: hidden; container-type: size; \}/);
   assert.match(styles, /\.map-frame \{ width: min\(100cqw, calc\(100cqh \* var\(--map-aspect\)\)\); max-width: 100%; \}/);
   assert.match(styles, /\.map-canvas \{[\s\S]+height: auto;[\s\S]+aspect-ratio: inherit;/);

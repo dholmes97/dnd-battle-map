@@ -789,7 +789,7 @@ input:focus {
   .app-shell { height: 100vh; height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   .topbar { flex: 0 0 4rem; }
   .workspace { flex: 1 1 auto; min-height: 0; }
-  .map-panel { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-items: stretch; }
+  .map-panel { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; align-items: stretch; justify-content: stretch; }
   .map-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; container-type: size; }
   .map-frame { width: min(100cqw, calc(100cqh * var(--map-aspect))); max-width: 100%; }
 }
