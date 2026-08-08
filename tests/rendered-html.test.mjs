@@ -207,17 +207,19 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   }
 });
 
-test("ships persistent animated Moonbeam and Flaming Sphere spell entities", async () => {
-  const [clientSource, workerSource, spellSource, moonbeam, flamingSphere] = await Promise.all([
+test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell entities", async () => {
+  const [clientSource, workerSource, spellSource, moonbeam, flamingSphere, magicCircle] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/spell-effects.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/assets/spells/moonbeam-vfx-source.png", import.meta.url)),
     readFile(new URL("../public/assets/spells/flaming-sphere-vfx-source.png", import.meta.url)),
+    readFile(new URL("../public/assets/spells/magic-circle-vfx.png", import.meta.url)),
   ]);
 
   assert.match(spellSource, /id: "moonbeam"[\s\S]+size: "large"/);
   assert.match(spellSource, /id: "flaming-sphere"[\s\S]+size: "medium"/);
+  assert.match(spellSource, /id: "magic-circle"[\s\S]+areaLabel: "10-ft radius"[\s\S]+size: "gargantuan"/);
   assert.match(clientSource, /function drawSpellEffect\(/);
   assert.match(clientSource, /globalCompositeOperation = "screen"/);
   assert.match(clientSource, /requestAnimationFrame\(animate\)/);
@@ -225,6 +227,30 @@ test("ships persistent animated Moonbeam and Flaming Sphere spell entities", asy
   assert.match(clientSource, /aria-label="Spell effects"/);
   assert.match(clientSource, /Drag an effect onto the battlefield/);
   assert.match(clientSource, /void placeSpellEffect\(spell, point\)/);
+  assert.match(clientSource, /token\.controlledByViewer \|\| token\.kind === SPELL_EFFECT_KIND/);
+  assert.match(clientSource, /if \(spell\?\.id === "magic-circle"\)/);
+  assert.match(clientSource, /const outerRadius = radius \* 1\.25/);
+  assert.match(clientSource, /distance >= outerRadius \* 0\.72 && distance <= outerRadius \* 1\.08/);
+  assert.match(clientSource, /isMagicCircle \? visualRadius \* 1\.02 : radius \* 1\.22/);
+  assert.match(clientSource, /hitTokens\.find\(\(token\) => token\.kind !== SPELL_EFFECT_KIND\) \?\? hitTokens\[0\]/);
+  assert.match(clientSource, /if \(!hitToken\.controlledByViewer\) return;/);
+  assert.match(clientSource, /View only · \$\{selectedToken\.controller\.name\}/);
+  assert.match(clientSource, /function drawBlessEffect\(/);
+  assert.match(clientSource, /if \(!tokenHasEffect\(token, "Bless"\)\) return;/);
+  assert.match(clientSource, /const angle = time \* 0\.38 \+ seed \* Math\.PI \* 2/);
+  assert.match(clientSource, /const flareCycle = \(time \+ seed \* 5\.4\) % 5\.4/);
+  assert.match(clientSource, /flareCycle < 0\.48 \? Math\.sin\(Math\.PI \* flareCycle \/ 0\.48\) \*\* 2 : 0/);
+  assert.match(clientSource, /context\.globalAlpha = 0\.66 \+ Math\.sin/);
+  assert.doesNotMatch(clientSource, /for \(let index = 0; index < 3; index \+= 1\)/);
+  assert.match(clientSource, /function drawHasteEffect\(/);
+  assert.match(clientSource, /if \(!tokenHasEffect\(token, "Haste"\)\) return;/);
+  assert.match(clientSource, /const intervals = \[0, 1, 2, 3\]\.map\(\(index\) => 2 \+ spellParticleSeed/);
+  assert.match(clientSource, /const clockPosition = Math\.floor\(spellParticleSeed\(token\.id, 200 \+ pulseKey\) \* 12\)/);
+  assert.match(clientSource, /const pulseDuration = 0\.78/);
+  assert.doesNotMatch(clientSource, /for \(let segment = 0; segment < 7; segment \+= 1\)/);
+  assert.match(clientSource, /const hasAttachedVfx = state\?\.tokens\.some/);
+  assert.match(clientSource, /hasPersistentSpell \|\| hasAttachedVfx/);
+  assert.match(clientSource, /drawHasteEffect\(context, token, x, y, radius, animationNow\)/);
   assert.match(workerSource, /command === "create-spell-effect"/);
   assert.match(workerSource, /Player spell effects must belong to your character/);
   assert.match(workerSource, /token\.kind !== SPELL_EFFECT_KIND \|\| !\(await canControlToken/);
@@ -234,6 +260,10 @@ test("ships persistent animated Moonbeam and Flaming Sphere spell entities", asy
     assert.equal(asset.readUInt32BE(20), 768, `${name} height`);
     assert.ok(asset.byteLength > 500_000, `${name} should retain detailed source art`);
   }
+  assert.deepEqual([...magicCircle.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], "magic circle PNG signature");
+  assert.equal(magicCircle.readUInt32BE(16), 1254, "magic circle width");
+  assert.equal(magicCircle.readUInt32BE(20), 1254, "magic circle height");
+  assert.ok(magicCircle.byteLength > 500_000, "magic circle should retain detailed source art");
 });
 
 test("keeps pings compact, audible, and limited to three pulses", async () => {
@@ -363,12 +393,13 @@ test("explains pause and confirms combat reset with responsive controls", async 
   assert.match(styles, /\.panel-foot \[data-tooltip\]:hover::after/);
 });
 
-test("lets the DM select and drag any token directly from the map", async () => {
+test("selects inspectable map entities and only drags controlled tokens", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
-  assert.match(clientSource, /const hitToken = \[\.\.\.state\.tokens\]\.reverse\(\)\.find/);
-  assert.match(clientSource, /const controllable = token\.controlledByViewer/);
+  assert.match(clientSource, /const hitTokens = \[\.\.\.state\.tokens\]\.reverse\(\)\.filter/);
+  assert.match(clientSource, /const inspectable = token\.controlledByViewer \|\| token\.kind === SPELL_EFFECT_KIND/);
   assert.match(clientSource, /setSelectedTokenId\(hitToken\.id\)/);
+  assert.match(clientSource, /if \(!hitToken\.controlledByViewer\) return;/);
   assert.match(clientSource, /pointerId: event\.pointerId, tokenId: hitToken\.id/);
   assert.match(clientSource, /participant\.role === "dm" \? "Drag any token to move it/);
 });

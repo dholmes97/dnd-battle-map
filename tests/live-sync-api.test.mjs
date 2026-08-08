@@ -218,17 +218,28 @@ test("fixed identities independently move disposable summons without reservation
       x: 10.5,
       y: 5.5,
     });
+    const magicCircle = await command(dan, "create-spell-effect", {
+      spellId: "magic-circle",
+      summonerTokenId: FIXED_IDENTITIES.dan.tokenId,
+      x: 13.5,
+      y: 8.5,
+    });
     assert.equal(moonbeam.response.status, 200);
     assert.equal(flamingSphere.response.status, 200);
-    createdIds.push(moonbeam.body.tokenId, flamingSphere.body.tokenId);
+    assert.equal(magicCircle.response.status, 200);
+    createdIds.push(moonbeam.body.tokenId, flamingSphere.body.tokenId, magicCircle.body.tokenId);
     const moonbeamToken = moonbeam.body.state.tokens.find((token) => token.id === moonbeam.body.tokenId);
     const sphereToken = flamingSphere.body.state.tokens.find((token) => token.id === flamingSphere.body.tokenId);
+    const circleToken = magicCircle.body.state.tokens.find((token) => token.id === magicCircle.body.tokenId);
     assert.equal(moonbeamToken.kind, "spell-effect");
     assert.equal(moonbeamToken.size, "large");
     assert.equal(moonbeamToken.controller.name, "Dan");
     assert.equal(sphereToken.kind, "spell-effect");
     assert.equal(sphereToken.size, "medium");
     assert.equal(sphereToken.controller.name, "Barry");
+    assert.equal(circleToken.kind, "spell-effect");
+    assert.equal(circleToken.size, "gargantuan");
+    assert.equal(circleToken.controller.name, "Dan");
     const moveMoonbeam = await request("move", {
       method: "POST",
       body: participantBody(dan, moonbeam.body.tokenId, { x: 9.25, y: 6.25 }),

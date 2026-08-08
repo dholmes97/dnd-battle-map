@@ -469,6 +469,107 @@ function spellParticleSeed(value: string, index: number) {
   return (hash >>> 0) / 4294967295;
 }
 
+function tokenHasEffect(token: SharedToken, effectName: string) {
+  const normalizedName = effectName.trim().toLocaleLowerCase();
+  return token.effects.some((effect) => effect.name.trim().toLocaleLowerCase() === normalizedName);
+}
+
+function drawBlessEffect(
+  context: CanvasRenderingContext2D,
+  token: SharedToken,
+  x: number,
+  y: number,
+  radius: number,
+  animationNow: number,
+) {
+  if (!tokenHasEffect(token, "Bless")) return;
+  const time = animationNow / 1_000;
+  const seed = spellParticleSeed(token.id, 77);
+  const angle = time * 0.38 + seed * Math.PI * 2;
+  const orbit = radius * 1.38;
+  const moteX = x + Math.cos(angle) * orbit;
+  const moteY = y + Math.sin(angle) * orbit;
+  const flareCycle = (time + seed * 5.4) % 5.4;
+  const flare = flareCycle < 0.48 ? Math.sin(Math.PI * flareCycle / 0.48) ** 2 : 0;
+  const moteRadius = Math.max(1.35, radius * 0.06) * (1 + flare * 0.48);
+  context.save();
+  context.globalCompositeOperation = "screen";
+  context.shadowColor = "#ffe9a0";
+  context.shadowBlur = Math.max(4.5, radius * 0.16) + flare * radius * 0.28;
+  context.globalAlpha = 0.66 + Math.sin(time * 2.1 + seed * 4) * 0.08 + flare * 0.2;
+  context.fillStyle = "#ffe18a";
+  context.beginPath(); context.arc(moteX, moteY, moteRadius, 0, Math.PI * 2); context.fill();
+  context.globalAlpha *= 0.72;
+  context.lineWidth = Math.max(0.7, radius * 0.02);
+  context.strokeStyle = "#fff7d1";
+  context.beginPath();
+  context.moveTo(moteX - moteRadius * 1.55, moteY); context.lineTo(moteX + moteRadius * 1.55, moteY);
+  context.moveTo(moteX, moteY - moteRadius * 1.55); context.lineTo(moteX, moteY + moteRadius * 1.55);
+  context.stroke();
+  if (flare > 0.02) {
+    context.globalAlpha = flare * 0.38;
+    context.lineWidth = Math.max(0.6, radius * 0.016);
+    context.beginPath();
+    context.moveTo(moteX - moteRadius * 2.5, moteY - moteRadius * 2.5); context.lineTo(moteX + moteRadius * 2.5, moteY + moteRadius * 2.5);
+    context.moveTo(moteX + moteRadius * 2.5, moteY - moteRadius * 2.5); context.lineTo(moteX - moteRadius * 2.5, moteY + moteRadius * 2.5);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawHasteEffect(
+  context: CanvasRenderingContext2D,
+  token: SharedToken,
+  x: number,
+  y: number,
+  radius: number,
+  animationNow: number,
+) {
+  if (!tokenHasEffect(token, "Haste")) return;
+  const time = animationNow / 1_000;
+  const seed = spellParticleSeed(token.id, 91);
+  const intervals = [0, 1, 2, 3].map((index) => 2 + spellParticleSeed(token.id, 120 + index));
+  const sequenceDuration = intervals.reduce((total, interval) => total + interval, 0);
+  const shiftedTime = time + seed * sequenceDuration;
+  const sequenceIndex = Math.floor(shiftedTime / sequenceDuration);
+  let phase = shiftedTime % sequenceDuration;
+  let pulseSlot = 0;
+  while (pulseSlot < intervals.length - 1 && phase >= intervals[pulseSlot]) {
+    phase -= intervals[pulseSlot];
+    pulseSlot += 1;
+  }
+  const pulseDuration = 0.78;
+  if (phase > pulseDuration) return;
+  const pulseKey = sequenceIndex * intervals.length + pulseSlot;
+  const clockPosition = Math.floor(spellParticleSeed(token.id, 200 + pulseKey) * 12);
+  const angle = clockPosition * Math.PI * 2 / 12 - Math.PI / 2;
+  const orbit = radius * 1.43;
+  const pulseX = x + Math.cos(angle) * orbit;
+  const pulseY = y + Math.sin(angle) * orbit;
+  const progress = phase / pulseDuration;
+  const intensity = Math.sin(Math.PI * progress) ** 2;
+  const coreRadius = Math.max(1.6, radius * 0.07) * (0.8 + intensity * 0.45);
+  context.save();
+  context.globalCompositeOperation = "screen";
+  context.lineCap = "round";
+  context.shadowColor = "#7de6ff";
+  context.shadowBlur = Math.max(5, radius * 0.2) * intensity;
+  context.globalAlpha = intensity * 0.9;
+  context.fillStyle = "#e9fcff";
+  context.beginPath(); context.arc(pulseX, pulseY, coreRadius, 0, Math.PI * 2); context.fill();
+  context.strokeStyle = "#91e9ff";
+  context.lineWidth = Math.max(0.8, radius * 0.024);
+  context.globalAlpha = intensity * (1 - progress) * 0.78;
+  context.beginPath(); context.arc(pulseX, pulseY, coreRadius * (1.2 + progress * 3.4), 0, Math.PI * 2); context.stroke();
+  context.globalAlpha = intensity * 0.62;
+  const ray = coreRadius * (2.2 + intensity * 1.2);
+  context.beginPath();
+  context.moveTo(pulseX - ray, pulseY); context.lineTo(pulseX + ray, pulseY);
+  context.moveTo(pulseX, pulseY - ray); context.lineTo(pulseX, pulseY + ray);
+  context.stroke();
+  context.restore();
+}
+
 function drawSpellEffect(
   context: CanvasRenderingContext2D,
   token: SharedToken,
@@ -484,8 +585,14 @@ function drawSpellEffect(
   if (!spell) return;
   const time = animationNow / 1_000;
   const isMoonbeam = spell.id === "moonbeam";
-  const pulse = 1 + Math.sin(time * (isMoonbeam ? 2.1 : 5.2) + spellParticleSeed(token.id, 1) * 5) * (isMoonbeam ? 0.055 : 0.095);
-  const visualRadius = radius * (isMoonbeam ? 1.25 : 1.36);
+  const isMagicCircle = spell.id === "magic-circle";
+  const pulseSpeed = isMoonbeam ? 2.1 : isMagicCircle ? 1.35 : 5.2;
+  const pulseDepth = isMoonbeam ? 0.055 : isMagicCircle ? 0.025 : 0.095;
+  const pulse = 1 + Math.sin(time * pulseSpeed + spellParticleSeed(token.id, 1) * 5) * pulseDepth;
+  // Magic Circle's PNG keeps transparent breathing room around its outer
+  // ornament. Compensate for that padding so the visible ring—not the image
+  // box—lands at the full ten-foot radius.
+  const visualRadius = radius * (isMoonbeam ? 1.25 : isMagicCircle ? 1.25 : 1.36);
 
   context.save();
   if (token.hidden) context.globalAlpha = 0.48;
@@ -495,6 +602,11 @@ function drawSpellEffect(
     aura.addColorStop(0.38, "rgba(154,186,255,.28)");
     aura.addColorStop(0.75, "rgba(120,102,255,.12)");
     aura.addColorStop(1, "rgba(80,70,210,0)");
+  } else if (isMagicCircle) {
+    aura.addColorStop(0, "rgba(255,247,200,.08)");
+    aura.addColorStop(0.54, "rgba(255,220,112,.1)");
+    aura.addColorStop(0.82, "rgba(255,190,62,.18)");
+    aura.addColorStop(1, "rgba(255,176,38,0)");
   } else {
     aura.addColorStop(0, "rgba(255,244,178,.9)");
     aura.addColorStop(0.3, "rgba(255,125,24,.38)");
@@ -508,16 +620,16 @@ function drawSpellEffect(
   if (art) {
     context.save();
     context.translate(x, y);
-    context.rotate(time * (isMoonbeam ? 0.13 : 0.72));
+    context.rotate(time * (isMoonbeam ? 0.13 : isMagicCircle ? 0.055 : 0.72));
     const plateRadius = visualRadius * pulse;
-    context.globalAlpha *= isMoonbeam ? 0.86 : 0.94;
+    context.globalAlpha *= isMoonbeam ? 0.86 : isMagicCircle ? 0.92 : 0.94;
     context.drawImage(art, -plateRadius, -plateRadius, plateRadius * 2, plateRadius * 2);
     context.restore();
     context.save();
     context.translate(x, y);
-    context.rotate(-time * (isMoonbeam ? 0.22 : 0.46));
-    const echoRadius = visualRadius * (isMoonbeam ? 0.76 : 0.7) * (2 - pulse);
-    context.globalAlpha *= isMoonbeam ? 0.34 : 0.46;
+    context.rotate(-time * (isMoonbeam ? 0.22 : isMagicCircle ? 0.09 : 0.46));
+    const echoRadius = visualRadius * (isMoonbeam ? 0.76 : isMagicCircle ? 0.93 : 0.7) * (2 - pulse);
+    context.globalAlpha *= isMoonbeam ? 0.34 : isMagicCircle ? 0.24 : 0.46;
     context.drawImage(art, -echoRadius, -echoRadius, echoRadius * 2, echoRadius * 2);
     context.restore();
   }
@@ -543,6 +655,26 @@ function drawSpellEffect(
       context.fillStyle = index % 3 === 0 ? "#ffffff" : "#b8d0ff";
       context.shadowColor = "#d8e5ff"; context.shadowBlur = 8;
       context.beginPath(); context.arc(x + Math.cos(angle) * orbit, y + Math.sin(angle) * orbit, Math.max(1.2, radius * (0.022 + seed * 0.025)), 0, Math.PI * 2); context.fill();
+    }
+  } else if (isMagicCircle) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(-time * 0.13);
+    context.strokeStyle = "rgba(255,239,164,.76)";
+    context.shadowColor = "#ffd66b";
+    context.shadowBlur = Math.max(9, radius * 0.2);
+    context.lineWidth = Math.max(1.2, radius * 0.018);
+    context.setLineDash([radius * 0.12, radius * 0.08]);
+    context.beginPath(); context.arc(0, 0, visualRadius * 0.84, 0, Math.PI * 2); context.stroke();
+    context.setLineDash([]);
+    context.restore();
+    for (let index = 0; index < 8; index += 1) {
+      const angle = index * Math.PI / 4 + time * 0.06;
+      const flare = 0.42 + Math.sin(time * 2 + index * 0.9) * 0.2;
+      context.globalAlpha = flare;
+      context.fillStyle = index % 2 === 0 ? "#fff8ce" : "#bde8ff";
+      context.shadowColor = "#ffe38a"; context.shadowBlur = 8;
+      context.beginPath(); context.arc(x + Math.cos(angle) * visualRadius * 0.88, y + Math.sin(angle) * visualRadius * 0.88, Math.max(1.2, radius * 0.018), 0, Math.PI * 2); context.fill();
     }
   } else {
     for (let index = 0; index < 18; index += 1) {
@@ -570,7 +702,8 @@ function drawSpellEffect(
     context.lineWidth = selected ? 2.4 : 1.2;
     context.globalAlpha = selected ? 0.95 : 0.48;
     context.setLineDash(selected ? [5, 5] : [2, 5]);
-    context.beginPath(); context.arc(x, y, radius * 1.22, 0, Math.PI * 2); context.stroke();
+    const selectionRadius = isMagicCircle ? visualRadius * 1.02 : radius * 1.22;
+    context.beginPath(); context.arc(x, y, selectionRadius, 0, Math.PI * 2); context.stroke();
   }
   context.restore();
 }
@@ -800,6 +933,9 @@ function drawMap(
       }
       context.lineCap = "butt";
     }
+
+    drawBlessEffect(context, token, x, y, radius, animationNow);
+    drawHasteEffect(context, token, x, y, radius, animationNow);
 
     if (token.effects.length > 0) {
       context.fillStyle = token.effects.some((effect) => effect.due) ? "#d95f59" : "#8ec9a0";
@@ -1250,13 +1386,14 @@ export default function BattleMapPrototype() {
       return annotation.type === "ping" && startedAt !== undefined && Date.now() - startedAt < PING_DURATION_MS;
     });
     const hasPersistentSpell = state?.tokens.some((token) => token.kind === SPELL_EFFECT_KIND) || Boolean(spellPlacementPreview);
-    if (!hasAnimatingPing() && !hasPersistentSpell) return;
+    const hasAttachedVfx = state?.tokens.some((token) => tokenHasEffect(token, "Bless") || tokenHasEffect(token, "Haste"));
+    if (!hasAnimatingPing() && !hasPersistentSpell && !hasAttachedVfx) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { redraw(); return; }
     let frameId = 0;
     let lastPaint = 0;
     const animate = (now: number) => {
       if (now - lastPaint >= 1000 / 24) { redraw(Date.now()); lastPaint = now; }
-      if (hasAnimatingPing() || hasPersistentSpell) frameId = requestAnimationFrame(animate);
+      if (hasAnimatingPing() || hasPersistentSpell || hasAttachedVfx) frameId = requestAnimationFrame(animate);
     };
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
@@ -1981,8 +2118,33 @@ export default function BattleMapPrototype() {
   };
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || !movementEnabled) return;
+    if (!state || !participant) return;
     if (event.button !== 0) return;
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+    const rect = event.currentTarget.getBoundingClientRect();
+    const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
+    const hitTokens = [...state.tokens].reverse().filter((token) => {
+      if (pendingCreatesRef.current.has(token.id)) return false;
+      const inspectable = token.controlledByViewer || token.kind === SPELL_EFFECT_KIND;
+      if (!inspectable) return false;
+      const deltaX = (point.x - token.x) * geometry.cellSize;
+      const deltaY = (point.y - token.y) * geometry.cellSize;
+      const radius = geometry.cellSize * tokenRadiusCells(token.size);
+      const distance = Math.hypot(deltaX, deltaY);
+      const spell = token.kind === SPELL_EFFECT_KIND ? spellEffectByArt(token.artAsset) : null;
+      if (spell?.id === "magic-circle") {
+        const outerRadius = radius * 1.25;
+        return distance >= outerRadius * 0.72 && distance <= outerRadius * 1.08;
+      }
+      return distance <= radius;
+    });
+    // A circle is scenery around its occupants: clicking a token inside must
+    // select that token, while clicking the luminous perimeter selects the spell.
+    const hitToken = hitTokens.find((token) => token.kind !== SPELL_EFFECT_KIND) ?? hitTokens[0];
+    if (!movementEnabled) {
+      if (hitToken?.kind === SPELL_EFFECT_KIND) setSelectedTokenId(hitToken.id);
+      return;
+    }
     const armedCreature = participant.role === "dm" || playerCharacter ? paletteCreature(armedCreatureId) : null;
     if (armedCreature) {
       event.preventDefault();
@@ -1997,7 +2159,6 @@ export default function BattleMapPrototype() {
       void placeSpellEffect(armedSpell, placementPoint);
       return;
     }
-    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     if (annotationMode !== "move") {
       event.preventDefault();
       if (annotationMode === "erase") {
@@ -2009,19 +2170,11 @@ export default function BattleMapPrototype() {
       else void addAnnotation(annotationMode, point);
       return;
     }
-    const rect = event.currentTarget.getBoundingClientRect();
-    const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
-    const hitToken = [...state.tokens].reverse().find((token) => {
-      if (pendingCreatesRef.current.has(token.id)) return false;
-      const controllable = token.controlledByViewer;
-      if (!controllable) return false;
-      const deltaX = (point.x - token.x) * geometry.cellSize;
-      const deltaY = (point.y - token.y) * geometry.cellSize;
-      const radius = geometry.cellSize * tokenRadiusCells(token.size);
-      return Math.hypot(deltaX, deltaY) <= radius;
-    });
     if (hitToken && !dragGestureRef.current) {
-      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setSelectedTokenId(hitToken.id);
+      event.preventDefault();
+      setSelectedTokenId(hitToken.id);
+      if (!hitToken.controlledByViewer) return;
+      event.currentTarget.setPointerCapture(event.pointerId);
       const gesture: DragGesture = {
         pointerId: event.pointerId, tokenId: hitToken.id,
         origin: { x: hitToken.x, y: hitToken.y }, latest: { x: hitToken.x, y: hitToken.y },
@@ -2422,7 +2575,7 @@ export default function BattleMapPrototype() {
           {selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
             <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
             <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
-            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>Drag directly</strong></span></div>
+            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Control</small><strong>{selectedToken.controlledByViewer ? "Drag directly" : `View only · ${selectedToken.controller.name}`}</strong></span></div>
             {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
           </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
             <div className="token-heading">

@@ -3,7 +3,7 @@ import type { CreatureSize } from "./creature-library";
 export const SPELL_EFFECT_KIND = "spell-effect";
 
 export type SpellEffectDefinition = {
-  id: "moonbeam" | "flaming-sphere";
+  id: "moonbeam" | "flaming-sphere" | "magic-circle";
   name: string;
   description: string;
   areaLabel: string;
@@ -30,6 +30,15 @@ export const SPELL_EFFECTS: readonly SpellEffectDefinition[] = [
     size: "medium",
     artAsset: "/assets/spells/flaming-sphere-vfx-source.png",
     accent: "#ff8a24",
+  },
+  {
+    id: "magic-circle",
+    name: "Magic Circle",
+    description: "A stationary ring of protective celestial runes, slowly turning with sacred light.",
+    areaLabel: "10-ft radius",
+    size: "gargantuan",
+    artAsset: "/assets/spells/magic-circle-vfx.png",
+    accent: "#ffe58f",
   },
 ] as const;
 
