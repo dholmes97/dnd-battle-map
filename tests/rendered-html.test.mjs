@@ -144,7 +144,11 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
   assert.match(workerSource, /creature-catalog\/original/);
   assert.match(workerSource, /creature-catalog\/thumbnails/);
-  assert.match(workerSource, /SELECT id, name, family, size, default_speed, token_asset/);
+  assert.match(workerSource, /SELECT id, name, family, creature_type, size, default_hp, hit_dice/);
+  assert.match(workerSource, /CATALOG_IMPORT_TOKEN/);
+  assert.match(workerSource, /entries\.length === 0 \|\| entries\.length > 10/);
+  assert.match(clientSource, /maxHp: creature\.defaultHp/);
+  assert.match(clientSource, /AC \{creature\.armorClass\} · HP \{creature\.defaultHp\}/);
   assert.match(schemaSource, /sqliteTable\(\s*"creature_catalog"/);
   assert.match(catalogMigration, /CREATE TABLE `creature_catalog`/);
   assert.doesNotMatch(catalogMigration, /DROP TABLE `encounters`/);

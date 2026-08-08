@@ -64,6 +64,13 @@
       "when": 1786162152958,
       "tag": "0008_strong_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1786163778491,
+      "tag": "0009_typical_white_tiger",
+      "breakpoints": true
     }
   ]
 }

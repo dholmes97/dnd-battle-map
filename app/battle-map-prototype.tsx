@@ -894,13 +894,15 @@ export default function BattleMapPrototype() {
         kind: placementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
+        maxHp: creature.defaultHp,
+        hp: creature.defaultHp,
         artAsset: creature.artAsset,
         summonerTokenId: placementSummonerId || undefined,
         x: point.x,
         y: point.y,
       });
       setSelectedTokenId(result.tokenId);
-      setNotice(`${name} placed. Add HP or change its details whenever you’re ready.`);
+      setNotice(`${name} placed at ${creature.defaultHp} HP.`);
     } catch (placementError) {
       setError(placementError instanceof Error ? placementError.message : "Creature placement was rejected.");
       await refreshAfterError();
@@ -1242,7 +1244,7 @@ export default function BattleMapPrototype() {
                 {creatures.map((creature) => <button type="button" draggable className={`creature-tile${armedCreatureId === creature.id ? " is-armed" : ""}`} key={creature.id} onDragStart={(event) => onPaletteDragStart(event, creature)} onDragEnd={() => setPlacementPreview(null)} onClick={() => setArmedCreatureId((current) => current === creature.id ? null : creature.id)} aria-pressed={armedCreatureId === creature.id}>
                   {/* The catalog thumbnail is intentionally lazy; full token art loads only when map rendering needs it. */}
                   <NextImage src={creature.thumbnailAsset} alt="" width={72} height={72} loading="lazy" unoptimized />
-                  <span><strong>{creature.name}</strong><small>{creature.size} · {creature.defaultSpeed} ft</small></span>
+                  <span><strong>{creature.name}</strong><small>{creature.size} · AC {creature.armorClass} · HP {creature.defaultHp} · {creature.defaultSpeed} ft</small></span>
                 </button>)}
               </div>
               {creatureCatalogLoading && creatures.length === 0 ? <div className="palette-status" role="status">Loading creatures…</div> : null}

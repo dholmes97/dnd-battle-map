@@ -18,6 +18,7 @@ interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   MAP_ASSETS?: R2Bucket;
+  CATALOG_IMPORT_TOKEN?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -122,8 +123,18 @@ type CreatureCatalogRow = {
   id: string;
   name: string;
   family: string;
+  creature_type: string;
   size: CreatureSize;
+  default_hp: number;
+  hit_dice: string | null;
+  armor_class: number;
+  challenge_rating: string | null;
   default_speed: number;
+  walk_speed: number;
+  fly_speed: number | null;
+  swim_speed: number | null;
+  climb_speed: number | null;
+  burrow_speed: number | null;
   token_asset: string;
   thumbnail_asset: string;
   sort_order: number;
@@ -448,8 +459,18 @@ async function ensureSchema(env: Env): Promise<void> {
           id TEXT PRIMARY KEY NOT NULL,
           name TEXT NOT NULL,
           family TEXT NOT NULL,
+          creature_type TEXT NOT NULL,
           size TEXT NOT NULL,
+          default_hp INTEGER NOT NULL,
+          hit_dice TEXT,
+          armor_class INTEGER NOT NULL,
+          challenge_rating TEXT,
           default_speed INTEGER NOT NULL,
+          walk_speed INTEGER NOT NULL,
+          fly_speed INTEGER,
+          swim_speed INTEGER,
+          climb_speed INTEGER,
+          burrow_speed INTEGER,
           source_asset TEXT NOT NULL,
           token_asset TEXT NOT NULL UNIQUE,
           thumbnail_asset TEXT NOT NULL,
@@ -514,6 +535,27 @@ async function ensureSchema(env: Env): Promise<void> {
           "CREATE UNIQUE INDEX IF NOT EXISTS participants_session_secret_unique ON participants(session_secret)",
         )
         .run();
+
+      const catalogColumns = await db
+        .prepare("PRAGMA table_info(creature_catalog)")
+        .all<{ name: string }>();
+      const catalogAdditions = [
+        ["creature_type", "ALTER TABLE creature_catalog ADD COLUMN creature_type TEXT DEFAULT 'monstrosity' NOT NULL"],
+        ["default_hp", "ALTER TABLE creature_catalog ADD COLUMN default_hp INTEGER DEFAULT 1 NOT NULL"],
+        ["hit_dice", "ALTER TABLE creature_catalog ADD COLUMN hit_dice TEXT"],
+        ["armor_class", "ALTER TABLE creature_catalog ADD COLUMN armor_class INTEGER DEFAULT 10 NOT NULL"],
+        ["challenge_rating", "ALTER TABLE creature_catalog ADD COLUMN challenge_rating TEXT"],
+        ["walk_speed", "ALTER TABLE creature_catalog ADD COLUMN walk_speed INTEGER DEFAULT 30 NOT NULL"],
+        ["fly_speed", "ALTER TABLE creature_catalog ADD COLUMN fly_speed INTEGER"],
+        ["swim_speed", "ALTER TABLE creature_catalog ADD COLUMN swim_speed INTEGER"],
+        ["climb_speed", "ALTER TABLE creature_catalog ADD COLUMN climb_speed INTEGER"],
+        ["burrow_speed", "ALTER TABLE creature_catalog ADD COLUMN burrow_speed INTEGER"],
+      ] as const;
+      for (const [columnName, statement] of catalogAdditions) {
+        if (!catalogColumns.results.some((column) => column.name === columnName)) {
+          await db.prepare(statement).run();
+        }
+      }
 
       const tokenColumns = await db
         .prepare("PRAGMA table_info(tokens)")
@@ -583,11 +625,18 @@ async function ensureSchema(env: Env): Promise<void> {
       const now = Date.now();
       await db.batch(CREATURE_CATALOG_SEED.map((creature) => db.prepare(
         `INSERT INTO creature_catalog
-         (id, name, family, size, default_speed, source_asset, token_asset,
-          thumbnail_asset, sort_order, is_active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+         (id, name, family, creature_type, size, default_hp, hit_dice, armor_class,
+          challenge_rating, default_speed, walk_speed, fly_speed, swim_speed, climb_speed,
+          burrow_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active,
+          created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, family = excluded.family,
-          size = excluded.size, default_speed = excluded.default_speed,
+          creature_type = excluded.creature_type, size = excluded.size,
+          default_hp = excluded.default_hp, hit_dice = excluded.hit_dice,
+          armor_class = excluded.armor_class, challenge_rating = excluded.challenge_rating,
+          default_speed = excluded.default_speed, walk_speed = excluded.walk_speed,
+          fly_speed = excluded.fly_speed, swim_speed = excluded.swim_speed,
+          climb_speed = excluded.climb_speed, burrow_speed = excluded.burrow_speed,
           source_asset = excluded.source_asset, token_asset = excluded.token_asset,
           thumbnail_asset = excluded.thumbnail_asset, sort_order = excluded.sort_order,
           is_active = 1, updated_at = excluded.updated_at`,
@@ -595,8 +644,18 @@ async function ensureSchema(env: Env): Promise<void> {
         creature.id,
         creature.name,
         creature.family,
+        creature.creatureType,
         creature.size,
+        creature.defaultHp,
+        creature.hitDice,
+        creature.armorClass,
+        creature.challengeRating,
         creature.defaultSpeed,
+        creature.speeds.walk,
+        creature.speeds.fly,
+        creature.speeds.swim,
+        creature.speeds.climb,
+        creature.speeds.burrow,
         creature.sourceAsset,
         creature.artAsset,
         creature.thumbnailAsset,
@@ -724,8 +783,9 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
     bindings.push(`%${query.replace(/[%_]/g, "")}%`);
   }
   const rows = await env.DB.prepare(
-    `SELECT id, name, family, size, default_speed, token_asset,
-            thumbnail_asset, sort_order
+    `SELECT id, name, family, creature_type, size, default_hp, hit_dice,
+            armor_class, challenge_rating, default_speed, walk_speed, fly_speed,
+            swim_speed, climb_speed, burrow_speed, token_asset, thumbnail_asset, sort_order
      FROM creature_catalog
      WHERE ${filters.join(" AND ")}
      ORDER BY sort_order, id
@@ -742,14 +802,149 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
       id: creature.id,
       name: creature.name,
       family: creature.family,
+      creatureType: creature.creature_type,
       size: creature.size,
+      defaultHp: creature.default_hp,
+      hitDice: creature.hit_dice,
+      armorClass: creature.armor_class,
+      challengeRating: creature.challenge_rating,
       defaultSpeed: creature.default_speed,
+      speeds: {
+        walk: creature.walk_speed,
+        fly: creature.fly_speed,
+        swim: creature.swim_speed,
+        climb: creature.climb_speed,
+        burrow: creature.burrow_speed,
+      },
       artAsset: creature.token_asset,
       thumbnailAsset: creature.thumbnail_asset,
     })),
     families: families.results.map((entry) => entry.family),
     nextCursor: rows.results.length > limit ? String(offset + limit) : null,
   });
+}
+
+function authorizedCatalogImport(request: Request, env: Env): boolean {
+  const configured = env.CATALOG_IMPORT_TOKEN ?? "";
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (configured.length < 32 || supplied.length !== configured.length) return false;
+  let difference = 0;
+  for (let index = 0; index < configured.length; index += 1) {
+    difference |= configured.charCodeAt(index) ^ supplied.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function decodeCatalogImage(value: unknown): Uint8Array | null {
+  if (typeof value !== "string" || value.length === 0 || value.length > 2_800_000) return null;
+  try {
+    const raw = value.replace(/^data:image\/(?:png|webp|jpeg);base64,/i, "");
+    const decoded = atob(raw);
+    if (decoded.length === 0 || decoded.length > 2_000_000) return null;
+    const bytes = new Uint8Array(decoded.length);
+    for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
+    const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (bytes.length < pngSignature.length || pngSignature.some((byte, index) => bytes[index] !== byte)) return null;
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function cleanCatalogSpeed(value: unknown, required = false): number | null {
+  if (value === null || value === undefined || value === "") return required ? 0 : null;
+  const speed = Math.trunc(Number(value));
+  return Number.isFinite(speed) && speed >= 0 && speed <= 240 ? speed : null;
+}
+
+async function handleCreatureCatalogImport(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "POST" } });
+  }
+  if (!authorizedCatalogImport(request, env)) {
+    return json({ error: "Catalog import authorization failed." }, { status: 401 });
+  }
+  if (!env.MAP_ASSETS) {
+    return json({ error: "Creature asset storage is unavailable." }, { status: 503 });
+  }
+  await ensureSchema(env);
+  const body = await readJson(request);
+  const entries = Array.isArray(body.creatures) ? body.creatures : [];
+  if (entries.length === 0 || entries.length > 10) {
+    return json({ error: "Import one to ten creatures per batch." }, { status: 400 });
+  }
+  const prepared: Array<{
+    id: string; name: string; family: string; creatureType: string; size: CreatureSize;
+    defaultHp: number; hitDice: string | null; armorClass: number; challengeRating: string | null;
+    walk: number; fly: number | null; swim: number | null; climb: number | null; burrow: number | null;
+    assetKey: string; tokenAsset: string; thumbnailAsset: string; original: Uint8Array; thumbnail: Uint8Array;
+  }> = [];
+  for (const raw of entries) {
+    if (!raw || typeof raw !== "object") return json({ error: "Every catalog entry must be an object." }, { status: 400 });
+    const entry = raw as Record<string, unknown>;
+    const id = cleanText(entry.id, 64).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    const name = cleanText(entry.name, 80);
+    const family = cleanText(entry.family, 32).toLowerCase();
+    const creatureType = cleanText(entry.creatureType, 32).toLowerCase() || family;
+    const size = isCreatureSize(entry.size) ? entry.size : null;
+    const defaultHp = Math.trunc(Number(entry.defaultHp));
+    const armorClass = Math.trunc(Number(entry.armorClass));
+    const challengeRating = cleanText(entry.challengeRating, 12) || null;
+    const hitDice = cleanText(entry.hitDice, 24) || null;
+    const speeds = entry.speeds && typeof entry.speeds === "object" ? entry.speeds as Record<string, unknown> : {};
+    const walk = cleanCatalogSpeed(speeds.walk ?? entry.defaultSpeed, true);
+    const fly = cleanCatalogSpeed(speeds.fly);
+    const swim = cleanCatalogSpeed(speeds.swim);
+    const climb = cleanCatalogSpeed(speeds.climb);
+    const burrow = cleanCatalogSpeed(speeds.burrow);
+    const original = decodeCatalogImage(entry.imageBase64);
+    const thumbnail = decodeCatalogImage(entry.thumbnailBase64);
+    if (!id || !name || !family || !size || !Number.isFinite(defaultHp) || defaultHp < 1 || defaultHp > 10000 ||
+        !Number.isFinite(armorClass) || armorClass < 1 || armorClass > 40 || walk === null || !original || !thumbnail) {
+      return json({ error: `Invalid catalog metadata or images for ${name || id || "an entry"}.` }, { status: 400 });
+    }
+    const assetKey = `tokens/catalog/${id}.png`;
+    const tokenAsset = `/creature-assets/${assetKey}`;
+    prepared.push({ id, name, family, creatureType, size, defaultHp, hitDice, armorClass, challengeRating,
+      walk, fly, swim, climb, burrow, assetKey, tokenAsset,
+      thumbnailAsset: `${tokenAsset}?variant=thumbnail&v=3`, original, thumbnail });
+  }
+  const now = Date.now();
+  const currentMax = await env.DB.prepare("SELECT COALESCE(MAX(sort_order), 0) AS value FROM creature_catalog")
+    .first<{ value: number }>();
+  let sortOrder = currentMax?.value ?? 0;
+  for (const creature of prepared) {
+    await Promise.all([
+      env.MAP_ASSETS.put(`creature-catalog/original/${creature.assetKey}`, creature.original, {
+        httpMetadata: { contentType: "image/png", cacheControl: "public, max-age=31536000, immutable" },
+      }),
+      env.MAP_ASSETS.put(`creature-catalog/thumbnails/${creature.assetKey}`, creature.thumbnail, {
+        httpMetadata: { contentType: "image/png", cacheControl: "public, max-age=31536000, immutable" },
+      }),
+    ]);
+    sortOrder += 10;
+    await env.DB.prepare(
+      `INSERT INTO creature_catalog
+       (id, name, family, creature_type, size, default_hp, hit_dice, armor_class, challenge_rating,
+        default_speed, walk_speed, fly_speed, swim_speed, climb_speed, burrow_speed, source_asset,
+        token_asset, thumbnail_asset, sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name, family = excluded.family,
+        creature_type = excluded.creature_type, size = excluded.size, default_hp = excluded.default_hp,
+        hit_dice = excluded.hit_dice, armor_class = excluded.armor_class,
+        challenge_rating = excluded.challenge_rating, default_speed = excluded.default_speed,
+        walk_speed = excluded.walk_speed, fly_speed = excluded.fly_speed, swim_speed = excluded.swim_speed,
+        climb_speed = excluded.climb_speed, burrow_speed = excluded.burrow_speed,
+        source_asset = excluded.source_asset, token_asset = excluded.token_asset,
+        thumbnail_asset = excluded.thumbnail_asset, is_active = 1, updated_at = excluded.updated_at`,
+    ).bind(creature.id, creature.name, creature.family, creature.creatureType, creature.size,
+      creature.defaultHp, creature.hitDice, creature.armorClass, creature.challengeRating,
+      creature.walk, creature.walk, creature.fly, creature.swim, creature.climb, creature.burrow,
+      `r2://${creature.assetKey}`, creature.tokenAsset, creature.thumbnailAsset, sortOrder, now, now).run();
+  }
+  const total = await env.DB.prepare("SELECT COUNT(*) AS count FROM creature_catalog WHERE is_active = 1")
+    .first<{ count: number }>();
+  return json({ imported: prepared.map((creature) => creature.id), count: prepared.length, total: total?.count ?? 0 });
 }
 
 async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
@@ -2267,6 +2462,15 @@ const worker = {
       } catch (error) {
         console.error("Creature catalog API error", error);
         return json({ error: "The creature catalog is temporarily unavailable." }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/api/catalog/import") {
+      try {
+        return await handleCreatureCatalogImport(request, env);
+      } catch (error) {
+        console.error("Creature catalog import error", error);
+        return json({ error: "The creature catalog batch could not be imported." }, { status: 500 });
       }
     }
 

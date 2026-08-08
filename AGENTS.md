@@ -10,5 +10,7 @@
 - Keep the join display-name field identified as a game-specific encounter alias with browser autocomplete and autocorrection disabled; it must not invite personal-name or Contacts suggestions.
 - A summon or familiar inherits its controller dynamically from `summoner_token_id`; never present it as separately unclaimed, copy ownership as independent state, or authorize it through a stale copied owner.
 - Keep the creature library storage-backed and lazy: searchable metadata belongs in D1, original/thumbnail bytes belong in R2, palette results are paged, thumbnails load only when visible, and full token art loads only for placement previews or tokens on the active map.
+- Creature catalog records must carry placement-ready defaults: average HP, hit dice, AC, challenge rating, creature type, size, and separate walk/fly/swim/climb/burrow speeds. Placement initializes current and maximum HP from the catalog default.
+- Grow the production creature catalog through the secret-protected batch importer in groups of at most ten; never commit its bearer token or authorize imports through the selectable DM role.
 - Verify changes locally first. Publish the Sites project only when the user explicitly asks.
 - Preserve server-authoritative shared state, durable D1 history, temporary browser drafts, and the public accountless trusted-group model.
