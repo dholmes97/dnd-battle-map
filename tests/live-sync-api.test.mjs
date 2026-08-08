@@ -114,6 +114,32 @@ function destinationFor(token, grid, xDelta, yDelta) {
   };
 }
 
+test("the creature catalog pages metadata and serves artwork only on request", async () => {
+  const firstPageResponse = await fetch(`${baseUrl}/api/creatures?limit=8`);
+  assert.equal(firstPageResponse.status, 200);
+  const firstPage = await firstPageResponse.json();
+  assert.equal(firstPage.items.length, 8);
+  assert.equal(firstPage.nextCursor, "8");
+  const secondPageResponse = await fetch(`${baseUrl}/api/creatures?limit=8&cursor=${firstPage.nextCursor}`);
+  assert.equal(secondPageResponse.status, 200);
+  const secondPage = await secondPageResponse.json();
+  assert.equal(secondPage.items.length, 8);
+  assert.equal(new Set([...firstPage.items, ...secondPage.items].map((item) => item.id)).size, 16);
+
+  const catalogResponse = await fetch(`${baseUrl}/api/creatures?limit=8&q=imp`);
+  assert.equal(catalogResponse.status, 200);
+  const catalog = await catalogResponse.json();
+  assert.equal(catalog.items.length, 1);
+  assert.equal(catalog.items[0].name, "Ember Imp");
+  assert.equal(catalog.items[0].artAsset, "/creature-assets/tokens/creatures/imp-01.png");
+  assert.match(catalog.items[0].thumbnailAsset, /variant=thumbnail$/);
+  assert.ok(catalog.families.includes("fiend"));
+  const thumbnailResponse = await fetch(`${baseUrl}${catalog.items[0].thumbnailAsset}`);
+  assert.equal(thumbnailResponse.status, 200);
+  assert.match(thumbnailResponse.headers.get("content-type") ?? "", /^image\//);
+  assert.ok((await thumbnailResponse.arrayBuffer()).byteLength > 1_000);
+});
+
 test("three clients claim and independently move authoritative tokens without reservations", async () => {
   const [aliceJoin, bobJoin, caraJoin] = await Promise.all([
     join("Alice API"),
@@ -448,7 +474,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       speed: 40,
       hp: 20,
       maxHp: 40,
-      artAsset: "/assets/tokens/monsters/shadow-dire-warg-01.png",
+      artAsset: "/creature-assets/tokens/monsters/shadow-dire-warg-01.png",
       hidden: true,
       x: initial.body.grid.width - 0.1,
       y: initial.body.grid.height - 0.1,
@@ -480,7 +506,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       kind: "summon",
       size: "tiny",
       speed: 40,
-      artAsset: "/assets/tokens/creatures/imp-01.png",
+      artAsset: "/creature-assets/tokens/creatures/imp-01.png",
       summonerTokenId: untrackedCharacterId,
       x: 7.5,
       y: 8.5,
@@ -488,7 +514,9 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(preclaimSummon.response.status, 200);
     const preclaimSummonId = preclaimSummon.body.tokenId;
     createdIds.push(preclaimSummonId);
-    assert.equal(preclaimSummon.body.state.tokens.find((token) => token.id === preclaimSummonId).owner, null);
+    const preclaimSummonToken = preclaimSummon.body.state.tokens.find((token) => token.id === preclaimSummonId);
+    assert.equal(preclaimSummonToken.owner, null);
+    assert.equal(preclaimSummonToken.artAsset, "/creature-assets/tokens/creatures/imp-01.png");
 
     const untrackedClaim = await request("claim", {
       method: "POST",
@@ -513,7 +541,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       speed: 35,
       hp: 12,
       maxHp: 12,
-      artAsset: "/assets/tokens/monsters/hungry-01.png",
+      artAsset: "/creature-assets/tokens/monsters/hungry-01.png",
       summonerTokenId: characterId,
       x: 3.25,
       y: 2.5,

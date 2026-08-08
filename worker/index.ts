@@ -5,7 +5,8 @@ import {
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import {
-  TOKEN_ART_ASSETS,
+  CHARACTER_ART_ASSETS,
+  CREATURE_CATALOG_SEED,
   type CreatureSize,
   isCreatureSize,
   tokenRadiusCells,
@@ -17,7 +18,7 @@ interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   MAP_ASSETS?: R2Bucket;
-  IMAGES: {
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: {
@@ -117,6 +118,17 @@ type MapPresetRow = {
   updated_at: number;
 };
 
+type CreatureCatalogRow = {
+  id: string;
+  name: string;
+  family: string;
+  size: CreatureSize;
+  default_speed: number;
+  token_asset: string;
+  thumbnail_asset: string;
+  sort_order: number;
+};
+
 const PARTICIPANT_PRESENCE_TTL_MS = 120_000;
 const PING_TTL_MS = 2_000;
 const API_ROUTE =
@@ -175,6 +187,74 @@ async function handleMapAsset(request: Request, env: Env, key: string): Promise<
     headers.set("x-map-asset-source", "seeded-r2");
   } else headers.set("x-map-asset-source", "packaged-fallback");
   return new Response(bytes, { headers });
+}
+
+function cleanCreatureAssetKey(value: string): string {
+  try {
+    const key = decodeURIComponent(value);
+    return /^tokens\/[a-z0-9/_-]+\.(?:png|webp|jpe?g)$/i.test(key) ? key : "";
+  } catch {
+    return "";
+  }
+}
+
+function creatureContentType(key: string): string {
+  if (/\.webp$/i.test(key)) return "image/webp";
+  if (/\.jpe?g$/i.test(key)) return "image/jpeg";
+  return "image/png";
+}
+
+async function creatureAssetBytes(env: Env, request: Request, key: string): Promise<ArrayBuffer | null> {
+  const storageKey = `creature-catalog/original/${key}`;
+  if (env.MAP_ASSETS) {
+    const stored = await env.MAP_ASSETS.get(storageKey);
+    if (stored) return stored.arrayBuffer();
+  }
+  if (!env.ASSETS) return null;
+  const seeded = await env.ASSETS.fetch(new Request(new URL(`/assets/${key}`, request.url)));
+  if (!seeded.ok) return null;
+  const bytes = await seeded.arrayBuffer();
+  if (env.MAP_ASSETS) {
+    await env.MAP_ASSETS.put(storageKey, bytes, {
+      httpMetadata: {
+        contentType: creatureContentType(key),
+        cacheControl: "public, max-age=31536000, immutable",
+      },
+    });
+  }
+  return bytes;
+}
+
+async function handleCreatureAsset(request: Request, env: Env, rawKey: string): Promise<Response> {
+  const key = cleanCreatureAssetKey(rawKey);
+  if (!key) return new Response("Not found", { status: 404 });
+  const thumbnail = new URL(request.url).searchParams.get("variant") === "thumbnail";
+  const cacheHeaders = { "cache-control": "public, max-age=31536000, immutable" };
+  const thumbnailKey = `creature-catalog/thumbnails/${key.replace(/\.[^.]+$/, ".webp")}`;
+  if (thumbnail && env.MAP_ASSETS) {
+    const stored = await env.MAP_ASSETS.get(thumbnailKey);
+    if (stored) {
+      return new Response(stored.body, { headers: { ...cacheHeaders, "content-type": "image/webp", "x-creature-asset-source": "r2-thumbnail" } });
+    }
+  }
+  const bytes = await creatureAssetBytes(env, request, key);
+  if (!bytes) return Response.redirect(new URL(`/assets/${key}`, request.url), 307);
+  if (thumbnail && env.IMAGES) {
+    const input = new Response(bytes).body;
+    if (input) {
+      const transformed = await env.IMAGES.input(input)
+        .transform({ width: 144, height: 144, fit: "contain" })
+        .output({ format: "image/webp", quality: 80 });
+      const thumbnailBytes = await transformed.response().then((response) => response.arrayBuffer());
+      if (env.MAP_ASSETS) {
+        await env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
+          httpMetadata: { contentType: "image/webp", cacheControl: cacheHeaders["cache-control"] },
+        });
+      }
+      return new Response(thumbnailBytes, { headers: { ...cacheHeaders, "content-type": "image/webp", "x-creature-asset-source": "generated-thumbnail" } });
+    }
+  }
+  return new Response(bytes, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": thumbnail ? "original-thumbnail-fallback" : "r2-original" } });
 }
 
 function json(data: unknown, init: ResponseInit = {}): Response {
@@ -349,6 +429,20 @@ async function ensureSchema(env: Env): Promise<void> {
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS creature_catalog (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          family TEXT NOT NULL,
+          size TEXT NOT NULL,
+          default_speed INTEGER NOT NULL,
+          source_asset TEXT NOT NULL,
+          token_asset TEXT NOT NULL UNIQUE,
+          thumbnail_asset TEXT NOT NULL,
+          sort_order INTEGER NOT NULL,
+          is_active INTEGER DEFAULT 1 NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_participants_encounter_id ON participants(encounter_id)",
         ),
@@ -366,6 +460,12 @@ async function ensureSchema(env: Env): Promise<void> {
         ),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_map_presets_encounter_updated ON map_presets(encounter_id, updated_at)",
+        ),
+        db.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_creature_catalog_active_sort_id ON creature_catalog(is_active, sort_order, id)",
+        ),
+        db.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_creature_catalog_family_sort_id ON creature_catalog(family, sort_order, id)",
         ),
       ]);
 
@@ -466,6 +566,33 @@ async function ensureSchema(env: Env): Promise<void> {
         .run();
 
       const now = Date.now();
+      await db.batch(CREATURE_CATALOG_SEED.map((creature) => db.prepare(
+        `INSERT INTO creature_catalog
+         (id, name, family, size, default_speed, source_asset, token_asset,
+          thumbnail_asset, sort_order, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET name = excluded.name, family = excluded.family,
+          size = excluded.size, default_speed = excluded.default_speed,
+          source_asset = excluded.source_asset, token_asset = excluded.token_asset,
+          thumbnail_asset = excluded.thumbnail_asset, sort_order = excluded.sort_order,
+          is_active = 1, updated_at = excluded.updated_at`,
+      ).bind(
+        creature.id,
+        creature.name,
+        creature.family,
+        creature.size,
+        creature.defaultSpeed,
+        creature.sourceAsset,
+        creature.artAsset,
+        creature.thumbnailAsset,
+        creature.sortOrder,
+        now,
+        now,
+      )));
+      await db.batch(CREATURE_CATALOG_SEED.map((creature) => db.prepare(
+        "UPDATE tokens SET art_asset = ? WHERE art_asset = ?",
+      ).bind(creature.artAsset, creature.sourceAsset)));
+      await db.prepare("PRAGMA optimize").run();
       const seedResults = await db.batch([
         db.prepare(
           `INSERT OR IGNORE INTO encounters (id, code, name, version, updated_at)
@@ -524,15 +651,15 @@ async function ensureSchema(env: Env): Promise<void> {
         db.prepare(
           `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
            WHERE id = ? AND name = ?`,
-        ).bind("Dar'eleth", TOKEN_ART_ASSETS[0], now, "token-bronze-warden", "Bronze Warden"),
+        ).bind("Dar'eleth", CHARACTER_ART_ASSETS[0], now, "token-bronze-warden", "Bronze Warden"),
         db.prepare(
           `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
            WHERE id = ? AND name = ?`,
-        ).bind("Malichar", TOKEN_ART_ASSETS[1], now, "token-ember-scout", "Ember Scout"),
+        ).bind("Malichar", CHARACTER_ART_ASSETS[1], now, "token-ember-scout", "Ember Scout"),
         db.prepare(
           `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
            WHERE id = ? AND name = ?`,
-        ).bind("Jelton", TOKEN_ART_ASSETS[2], now, "token-ash-mystic", "Ash Mystic"),
+        ).bind("Jelton", CHARACTER_ART_ASSETS[2], now, "token-ash-mystic", "Ash Mystic"),
       ]);
       if (portraitResults.some((result) => (result.meta.changes ?? 0) > 0)) {
         await db.prepare(
@@ -559,6 +686,65 @@ async function ensureSchema(env: Env): Promise<void> {
     });
   }
   await schemaReady;
+}
+
+async function handleCreatureCatalog(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
+  }
+  await ensureSchema(env);
+  const url = new URL(request.url);
+  const limit = Math.min(48, Math.max(8, Math.trunc(Number(url.searchParams.get("limit"))) || 24));
+  const offset = Math.max(0, Math.trunc(Number(url.searchParams.get("cursor"))) || 0);
+  const family = cleanText(url.searchParams.get("family"), 32).toLowerCase();
+  const query = cleanText(url.searchParams.get("q"), 48).toLowerCase();
+  const filters = ["is_active = 1"];
+  const bindings: Array<string | number> = [];
+  if (family) {
+    filters.push("family = ?");
+    bindings.push(family);
+  }
+  if (query) {
+    filters.push("lower(name) LIKE ?");
+    bindings.push(`%${query.replace(/[%_]/g, "")}%`);
+  }
+  const rows = await env.DB.prepare(
+    `SELECT id, name, family, size, default_speed, token_asset,
+            thumbnail_asset, sort_order
+     FROM creature_catalog
+     WHERE ${filters.join(" AND ")}
+     ORDER BY sort_order, id
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(...bindings, limit + 1, offset)
+    .all<CreatureCatalogRow>();
+  const families = await env.DB.prepare(
+    "SELECT DISTINCT family FROM creature_catalog WHERE is_active = 1 ORDER BY family",
+  ).all<{ family: string }>();
+  const page = rows.results.slice(0, limit);
+  return json({
+    items: page.map((creature) => ({
+      id: creature.id,
+      name: creature.name,
+      family: creature.family,
+      size: creature.size,
+      defaultSpeed: creature.default_speed,
+      artAsset: creature.token_asset,
+      thumbnailAsset: creature.thumbnail_asset,
+    })),
+    families: families.results.map((entry) => entry.family),
+    nextCursor: rows.results.length > limit ? String(offset + limit) : null,
+  });
+}
+
+async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
+  const artAsset = typeof value === "string" ? value : "";
+  if (CHARACTER_ART_ASSETS.includes(artAsset)) return true;
+  if (!artAsset) return false;
+  const creature = await env.DB.prepare(
+    "SELECT 1 AS found FROM creature_catalog WHERE token_asset = ? AND is_active = 1 LIMIT 1",
+  ).bind(artAsset).first<{ found: number }>();
+  return Boolean(creature);
 }
 
 async function findEncounter(env: Env, code: string): Promise<EncounterRow | null> {
@@ -827,7 +1013,10 @@ async function encounterState(
         }] : [];
       } catch { return []; }
     }),
-    availableArt: TOKEN_ART_ASSETS,
+    availableArt: [...new Set([
+      ...CHARACTER_ART_ASSETS,
+      ...visibleTokens.flatMap((token) => token.art_asset ? [token.art_asset] : []),
+    ])],
   };
 }
 
@@ -1417,8 +1606,9 @@ async function handleCommand(
     const kind = ["character", "monster", "summon", "familiar"].includes(String(body.kind))
       ? String(body.kind)
       : "monster";
-    const artAsset = TOKEN_ART_ASSETS.includes(String(body.artAsset))
-      ? String(body.artAsset)
+    const requestedArtAsset = String(body.artAsset ?? "");
+    const artAsset = await isAllowedTokenArt(env, requestedArtAsset)
+      ? requestedArtAsset
       : null;
     const size: CreatureSize = isCreatureSize(body.size) ? body.size : "medium";
     const x = clampTokenCoordinate(body.x, encounter.grid_width, size);
@@ -1497,8 +1687,9 @@ async function handleCommand(
         : token.speed;
       const hidden = typeof body.hidden === "boolean" ? (body.hidden ? 1 : 0) : token.is_hidden;
       const size: CreatureSize = isCreatureSize(body.size) ? body.size : token.size;
-      const artAsset = TOKEN_ART_ASSETS.includes(String(body.artAsset))
-        ? String(body.artAsset)
+      const requestedArtAsset = String(body.artAsset ?? "");
+      const artAsset = await isAllowedTokenArt(env, requestedArtAsset)
+        ? requestedArtAsset
         : body.artAsset === ""
           ? null
           : token.art_asset;
@@ -2055,6 +2246,20 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/creatures") {
+      try {
+        return await handleCreatureCatalog(request, env);
+      } catch (error) {
+        console.error("Creature catalog API error", error);
+        return json({ error: "The creature catalog is temporarily unavailable." }, { status: 500 });
+      }
+    }
+
+    if (url.pathname.startsWith("/creature-assets/")) {
+      const key = url.pathname.slice("/creature-assets/".length);
+      return handleCreatureAsset(request, env, key);
+    }
+
     if (url.pathname.startsWith("/map-assets/")) {
       const key = url.pathname.slice("/map-assets/".length);
       return handleMapAsset(request, env, key);
@@ -2076,6 +2281,12 @@ const worker = {
     }
 
     if (url.pathname === "/_vinext/image") {
+      if (!env.IMAGES) {
+        const path = url.searchParams.get("url");
+        return path?.startsWith("/")
+          ? env.ASSETS.fetch(new Request(new URL(path, request.url)))
+          : new Response("Invalid image URL", { status: 400 });
+      }
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(
         request,

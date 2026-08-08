@@ -12,7 +12,6 @@ import {
 import NextImage from "next/image";
 import MapWorkshop, { renderMapPackageToCanvas } from "@/app/map-workshop";
 import {
-  CREATURE_LIBRARY,
   CREATURE_SIZES,
   type CreatureSize,
   type CreatureTemplate,
@@ -120,6 +119,11 @@ type ViewportGeometry = Viewport & {
   offsetY: number;
 };
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
+type CreatureCatalogPage = {
+  items: CreatureTemplate[];
+  families: string[];
+  nextCursor: string | null;
+};
 
 const DEFAULT_CODE = "EMBER-KEEP";
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
@@ -524,6 +528,13 @@ export default function BattleMapPrototype() {
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
+  const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
+  const [creatureQuery, setCreatureQuery] = useState("");
+  const [creatureFamily, setCreatureFamily] = useState("");
+  const [creatureCursor, setCreatureCursor] = useState<string | null>(null);
+  const [creatureCatalogLoading, setCreatureCatalogLoading] = useState(false);
+  const [creatureCatalogError, setCreatureCatalogError] = useState("");
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [placementSummonerId, setPlacementSummonerId] = useState("");
@@ -539,6 +550,7 @@ export default function BattleMapPrototype() {
   const pingAudioContextRef = useRef<AudioContext | null>(null);
   const pendingMovesRef = useRef<Map<string, PendingMove>>(new Map());
   const moveSequenceRef = useRef(0);
+  const creatureCatalogRequestRef = useRef(0);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -568,6 +580,7 @@ export default function BattleMapPrototype() {
     : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - selectedToken.movementUsed) : 0;
   const overMovement = distance > remainingMovement + 0.05;
+  const placementArtAsset = placementPreview?.creature.artAsset ?? null;
 
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
@@ -681,6 +694,35 @@ export default function BattleMapPrototype() {
   }, []);
 
   useEffect(() => {
+    if (!paletteOpen || participant?.role !== "dm") return;
+    const requestId = ++creatureCatalogRequestRef.current;
+    const timer = window.setTimeout(() => {
+      setCreatureCatalogLoading(true);
+      setCreatureCatalogError("");
+      const params = new URLSearchParams({ limit: "24" });
+      if (creatureQuery.trim()) params.set("q", creatureQuery.trim());
+      if (creatureFamily) params.set("family", creatureFamily);
+      void api<CreatureCatalogPage>(`/api/creatures?${params}`).then((catalog) => {
+        if (creatureCatalogRequestRef.current !== requestId) return;
+        setCreatures(catalog.items);
+        setCreatureFamilies(catalog.families);
+        setCreatureCursor(catalog.nextCursor);
+      }).catch((catalogError) => {
+        if (creatureCatalogRequestRef.current !== requestId) return;
+        setCreatures([]);
+        setCreatureCursor(null);
+        setCreatureCatalogError(catalogError instanceof Error ? catalogError.message : "Unable to load creatures.");
+      }).finally(() => {
+        if (creatureCatalogRequestRef.current === requestId) setCreatureCatalogLoading(false);
+      });
+    }, 180);
+    return () => {
+      window.clearTimeout(timer);
+      if (creatureCatalogRequestRef.current === requestId) creatureCatalogRequestRef.current += 1;
+    };
+  }, [creatureFamily, creatureQuery, paletteOpen, participant?.role]);
+
+  useEffect(() => {
     const mapPackage = state?.encounter.mapPackage;
     if (!mapPackage) return;
     const assets = [...new Set([
@@ -707,7 +749,7 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     const assets = [...new Set([
       ...(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? []),
-      ...CREATURE_LIBRARY.map((creature) => creature.artAsset),
+      ...(placementArtAsset ? [placementArtAsset] : []),
     ])];
     if (assets.length === 0) return;
     let disposed = false;
@@ -715,7 +757,7 @@ export default function BattleMapPrototype() {
       const image = new Image(); image.onload = () => resolve([path, image]); image.onerror = () => resolve([path, image]); image.src = path;
     }))).then((entries) => { if (!disposed) setTokenArt(new Map(entries)); });
     return () => { disposed = true; };
-  }, [state?.tokens]);
+  }, [placementArtAsset, state?.tokens]);
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
@@ -815,6 +857,32 @@ export default function BattleMapPrototype() {
     } finally { setBusy(false); }
   };
 
+  const loadMoreCreatures = async () => {
+    if (!creatureCursor || creatureCatalogLoading) return;
+    const requestId = ++creatureCatalogRequestRef.current;
+    setCreatureCatalogLoading(true);
+    setCreatureCatalogError("");
+    const params = new URLSearchParams({ limit: "24", cursor: creatureCursor });
+    if (creatureQuery.trim()) params.set("q", creatureQuery.trim());
+    if (creatureFamily) params.set("family", creatureFamily);
+    try {
+      const catalog = await api<CreatureCatalogPage>(`/api/creatures?${params}`);
+      if (creatureCatalogRequestRef.current !== requestId) return;
+      setCreatures((current) => {
+        const known = new Set(current.map((creature) => creature.id));
+        return [...current, ...catalog.items.filter((creature) => !known.has(creature.id))];
+      });
+      setCreatureFamilies(catalog.families);
+      setCreatureCursor(catalog.nextCursor);
+    } catch (catalogError) {
+      if (creatureCatalogRequestRef.current === requestId) {
+        setCreatureCatalogError(catalogError instanceof Error ? catalogError.message : "Unable to load more creatures.");
+      }
+    } finally {
+      if (creatureCatalogRequestRef.current === requestId) setCreatureCatalogLoading(false);
+    }
+  };
+
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
     if (!participant || !state || participant.role !== "dm" || !movementEnabled) return;
     const matchingCount = state.tokens.filter((token) => token.artAsset === creature.artAsset).length;
@@ -842,7 +910,7 @@ export default function BattleMapPrototype() {
     }
   };
 
-  const paletteCreature = (id: string | null) => CREATURE_LIBRARY.find((creature) => creature.id === id) ?? null;
+  const paletteCreature = (id: string | null) => creatures.find((creature) => creature.id === id) ?? null;
 
   const onPaletteDragStart = (event: ReactDragEvent<HTMLButtonElement>, creature: CreatureTemplate) => {
     event.dataTransfer.effectAllowed = "copy";
@@ -1166,12 +1234,21 @@ export default function BattleMapPrototype() {
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}>×</button></div>
               <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
               <p>Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
+              <div className="palette-search">
+                <label><span>Find</span><input type="search" value={creatureQuery} onChange={(event) => { setCreatureQuery(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }} placeholder="Search creatures" autoComplete="off" /></label>
+                <label><span>Family</span><select value={creatureFamily} onChange={(event) => { setCreatureFamily(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }}><option value="">All</option>{creatureFamilies.map((family) => <option value={family} key={family}>{family}</option>)}</select></label>
+              </div>
               <div className="creature-grid">
-                {CREATURE_LIBRARY.map((creature) => <button type="button" draggable className={`creature-tile${armedCreatureId === creature.id ? " is-armed" : ""}`} key={creature.id} onDragStart={(event) => onPaletteDragStart(event, creature)} onDragEnd={() => setPlacementPreview(null)} onClick={() => setArmedCreatureId((current) => current === creature.id ? null : creature.id)} aria-pressed={armedCreatureId === creature.id}>
-                  <NextImage src={creature.artAsset} alt="" width={72} height={72} unoptimized />
+                {creatures.map((creature) => <button type="button" draggable className={`creature-tile${armedCreatureId === creature.id ? " is-armed" : ""}`} key={creature.id} onDragStart={(event) => onPaletteDragStart(event, creature)} onDragEnd={() => setPlacementPreview(null)} onClick={() => setArmedCreatureId((current) => current === creature.id ? null : creature.id)} aria-pressed={armedCreatureId === creature.id}>
+                  {/* The catalog thumbnail is intentionally lazy; full token art loads only when map rendering needs it. */}
+                  <NextImage src={creature.thumbnailAsset} alt="" width={72} height={72} loading="lazy" unoptimized />
                   <span><strong>{creature.name}</strong><small>{creature.size} · {creature.defaultSpeed} ft</small></span>
                 </button>)}
               </div>
+              {creatureCatalogLoading && creatures.length === 0 ? <div className="palette-status" role="status">Loading creatures…</div> : null}
+              {!creatureCatalogLoading && !creatureCatalogError && creatures.length === 0 ? <div className="palette-status">No matching creatures.</div> : null}
+              {creatureCatalogError ? <div className="palette-status is-error" role="alert">{creatureCatalogError}</div> : null}
+              {creatureCursor ? <button className="palette-load-more" onClick={() => void loadMoreCreatures()} disabled={creatureCatalogLoading}>{creatureCatalogLoading ? "Loading…" : "Load more creatures"}</button> : null}
               {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
             </section> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
@@ -1223,7 +1300,7 @@ export default function BattleMapPrototype() {
                   {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                   {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
                   {!token.owner && !primaryToken && !token.summonerTokenId && participant.role === "player" ? <button className="secondary-button" onClick={() => void claimToken(token)}>Claim token</button> : null}
-                  {sameName && !primaryToken ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
+                  {sameName && !primaryToken && !token.summonerTokenId ? <button className="secondary-button" onClick={() => void claimToken(token)}>Reconnect this token</button> : null}
                   {yours && token.id === primaryToken?.id ? <button className="inline-action" onClick={() => void relinquishToken()}>Release token</button> : null}
                   {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void runCommand("delete-token", { tokenId: token.id }, "Token removed.")}>Delete</button></div> : null}
                   {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">

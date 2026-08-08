@@ -47,6 +47,28 @@ export const mapPresets = sqliteTable(
   ],
 );
 
+export const creatureCatalog = sqliteTable(
+  "creature_catalog",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    family: text("family").notNull(),
+    size: text("size").notNull(),
+    defaultSpeed: integer("default_speed").notNull(),
+    sourceAsset: text("source_asset").notNull(),
+    tokenAsset: text("token_asset").notNull().unique(),
+    thumbnailAsset: text("thumbnail_asset").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_creature_catalog_active_sort_id").on(table.isActive, table.sortOrder, table.id),
+    index("idx_creature_catalog_family_sort_id").on(table.family, table.sortOrder, table.id),
+  ],
+);
+
 export const participants = sqliteTable(
   "participants",
   {

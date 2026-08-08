@@ -38,6 +38,47 @@ test("server-renders the finished encounter join surface", async () => {
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Building your site/i);
 });
 
+test("stores creature originals and generated thumbnails in R2", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("asset-test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const stored = new Map();
+  let packagedReads = 0;
+  const r2Object = (bytes) => ({
+    body: new Response(bytes).body,
+    arrayBuffer: async () => bytes.slice(0),
+    httpEtag: '"test"',
+  });
+  const env = {
+    ASSETS: {
+      fetch: async () => {
+        packagedReads += 1;
+        return new Response(new Uint8Array(2_048).fill(17), { headers: { "content-type": "image/png" } });
+      },
+    },
+    MAP_ASSETS: {
+      get: async (key) => stored.has(key) ? r2Object(stored.get(key)) : null,
+      put: async (key, value) => stored.set(key, value.slice(0)),
+    },
+    IMAGES: {
+      input: () => ({
+        transform: () => ({
+          output: async () => ({ response: async () => new Response(new Uint8Array(512).fill(29)) }),
+        }),
+      }),
+    },
+  };
+  const url = "http://localhost/creature-assets/tokens/creatures/imp-01.png?variant=thumbnail";
+  const first = await worker.fetch(new Request(url), env, { waitUntil() {}, passThroughOnException() {} });
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get("x-creature-asset-source"), "generated-thumbnail");
+  assert.ok(stored.has("creature-catalog/original/tokens/creatures/imp-01.png"));
+  assert.ok(stored.has("creature-catalog/thumbnails/tokens/creatures/imp-01.webp"));
+  const second = await worker.fetch(new Request(url), env, { waitUntil() {}, passThroughOnException() {} });
+  assert.equal(second.headers.get("x-creature-asset-source"), "r2-thumbnail");
+  assert.equal(packagedReads, 1);
+});
+
 test("removes starter artifacts and packages the D1 migration", async () => {
   const [packageText, hostingText, migrationFiles] = await Promise.all([
     readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -79,12 +120,15 @@ test("packages the transparent tactical token library", async () => {
   }
 });
 
-test("ships the drag-and-drop creature palette with durable size controls", async () => {
-  const [clientSource, workerSource, catalogSource, sizeMigration] = await Promise.all([
+test("ships the lazy storage-backed creature palette with durable size controls", async () => {
+  const [clientSource, workerSource, catalogSource, schemaSource, sizeMigration, catalogMigration, catalogIndexMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/creature-library.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0004_unique_smasher.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0007_remarkable_kronos.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0008_strong_nightcrawler.sql", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /onDragStart=.*onPaletteDragStart/);
@@ -95,8 +139,19 @@ test("ships the drag-and-drop creature palette with durable size controls", asyn
   assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
   assert.match(workerSource, /CASE WHEN t\.summoner_token_id IS NOT NULL[\s\S]+THEN summoner\.owner_participant_id/);
   assert.match(workerSource, /if \(!token\.summoner_token_id\) return token\.owner_participant_id === participant\.id/);
+  assert.match(clientSource, /sameName && !primaryToken && !token\.summonerTokenId/);
+  assert.match(clientSource, /api<CreatureCatalogPage>\(`\/api\/creatures/);
+  assert.match(clientSource, /loading="lazy" unoptimized/);
+  assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
+  assert.match(workerSource, /creature-catalog\/original/);
+  assert.match(workerSource, /creature-catalog\/thumbnails/);
+  assert.match(workerSource, /SELECT id, name, family, size, default_speed, token_asset/);
+  assert.match(schemaSource, /sqliteTable\(\s*"creature_catalog"/);
+  assert.match(catalogMigration, /CREATE TABLE `creature_catalog`/);
+  assert.doesNotMatch(catalogMigration, /DROP TABLE `encounters`/);
+  assert.match(catalogIndexMigration, /idx_creature_catalog_active_sort_id/);
   assert.match(sizeMigration, /ALTER TABLE `tokens` ADD `size` text DEFAULT 'medium' NOT NULL/);
-  assert.equal((catalogSource.match(/id: "/g) ?? []).length, 17);
+  assert.equal((catalogSource.match(/creatureSeed\(\d+/g) ?? []).length, 17);
   for (const size of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
     assert.match(catalogSource, new RegExp(`${size}: \\d`));
   }

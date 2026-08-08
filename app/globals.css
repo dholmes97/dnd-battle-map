@@ -375,6 +375,9 @@ input:focus {
 .creature-palette > p { margin: 0.55rem 0 0.75rem; color: #91887b; font-size: 0.7rem; line-height: 1.45; }
 .palette-controller { margin: 0.7rem 0 0; color: #b8ad9d; font-size: 0.68rem; }
 .palette-controller select { padding: 0.55rem 0.65rem; font-size: 0.72rem; }
+.palette-search { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(7rem, 0.8fr); gap: 0.45rem; margin: 0 0 0.7rem; }
+.palette-search label { min-width: 0; color: #8f8578; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.palette-search input, .palette-search select { min-height: 2.25rem; margin-top: 0.24rem; padding: 0.42rem 0.52rem; font-size: 0.7rem; }
 
 .creature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
 .creature-tile {
@@ -396,6 +399,10 @@ input:focus {
 .creature-tile span { min-width: 0; display: grid; gap: 0.22rem; }
 .creature-tile strong { overflow: hidden; font-size: 0.72rem; line-height: 1.15; text-overflow: ellipsis; }
 .creature-tile small { color: #8c8376; font-size: 0.57rem; letter-spacing: 0.04em; text-transform: capitalize; }
+.palette-status { padding: 1rem 0.4rem; color: #9c9285; font-size: 0.7rem; text-align: center; }
+.palette-status.is-error { color: #e29a8e; }
+.palette-load-more { width: 100%; margin-top: 0.65rem; padding: 0.55rem; border: 1px solid #4b453d; border-radius: 0.48rem; background: #211e1a; color: #cfc3b3; font-size: 0.68rem; }
+.palette-load-more:hover:not(:disabled) { border-color: #766a58; color: #f1e5d4; }
 .palette-cancel { width: 100%; margin-top: 0.65rem; padding: 0.55rem; border: 1px solid #554d42; border-radius: 0.48rem; background: transparent; color: #c7bcad; font-size: 0.7rem; }
 
 .map-message {

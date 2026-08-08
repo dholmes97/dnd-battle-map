@@ -50,6 +50,20 @@
       "when": 1786070607263,
       "tag": "0006_panoramic_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786161851392,
+      "tag": "0007_remarkable_kronos",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786162152958,
+      "tag": "0008_strong_nightcrawler",
+      "breakpoints": true
     }
   ]
 }

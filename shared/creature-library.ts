@@ -1,6 +1,7 @@
 export const CREATURE_SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"] as const;
 
 export type CreatureSize = (typeof CREATURE_SIZES)[number];
+export type CreatureFamily = "beast" | "humanoid" | "undead" | "fiend" | "monstrosity" | "giant" | "dragon" | "plant";
 
 export const TOKEN_SIZE_CELLS: Record<CreatureSize, number> = {
   tiny: 0.5,
@@ -15,40 +16,53 @@ export type CreatureTemplate = {
   id: string;
   name: string;
   artAsset: string;
-  family: "beast" | "humanoid" | "undead" | "fiend" | "monstrosity" | "giant" | "dragon" | "plant";
+  thumbnailAsset: string;
+  family: CreatureFamily;
   size: CreatureSize;
   defaultSpeed: number;
 };
 
-export const CREATURE_LIBRARY: CreatureTemplate[] = [
-  { id: "cave-bat", name: "Cave Bat", artAsset: "/assets/tokens/creatures/cave-bat-01.png", family: "beast", size: "tiny", defaultSpeed: 30 },
-  { id: "ember-imp", name: "Ember Imp", artAsset: "/assets/tokens/creatures/imp-01.png", family: "fiend", size: "tiny", defaultSpeed: 40 },
-  { id: "giant-rat", name: "Giant Rat", artAsset: "/assets/tokens/creatures/giant-rat-01.png", family: "beast", size: "small", defaultSpeed: 30 },
-  { id: "goblin-raider", name: "Goblin Raider", artAsset: "/assets/tokens/creatures/goblin-raider-01.png", family: "humanoid", size: "small", defaultSpeed: 30 },
-  { id: "gray-wolf", name: "Gray Wolf", artAsset: "/assets/tokens/creatures/gray-wolf-01.png", family: "beast", size: "medium", defaultSpeed: 40 },
-  { id: "skeleton-guard", name: "Skeleton Guard", artAsset: "/assets/tokens/creatures/skeleton-guard-01.png", family: "undead", size: "medium", defaultSpeed: 30 },
-  { id: "shambling-zombie", name: "Shambling Zombie", artAsset: "/assets/tokens/creatures/shambling-zombie-01.png", family: "undead", size: "medium", defaultSpeed: 20 },
-  { id: "black-bear", name: "Black Bear", artAsset: "/assets/tokens/creatures/black-bear-01.png", family: "beast", size: "medium", defaultSpeed: 30 },
-  { id: "mimic-chest", name: "Mimic Chest", artAsset: "/assets/tokens/creatures/mimic-chest-01.png", family: "monstrosity", size: "medium", defaultSpeed: 20 },
-  { id: "dire-wolf", name: "Dire Wolf", artAsset: "/assets/tokens/creatures/dire-wolf-01.png", family: "beast", size: "large", defaultSpeed: 50 },
-  { id: "giant-cave-spider", name: "Giant Cave Spider", artAsset: "/assets/tokens/creatures/giant-cave-spider-01.png", family: "beast", size: "large", defaultSpeed: 30 },
-  { id: "ogre-brute", name: "Ogre Brute", artAsset: "/assets/tokens/creatures/ogre-brute-01.png", family: "giant", size: "large", defaultSpeed: 40 },
-  { id: "owlbear", name: "Owlbear", artAsset: "/assets/tokens/creatures/owlbear-01.png", family: "monstrosity", size: "large", defaultSpeed: 40 },
-  { id: "shadow-dire-warg", name: "Shadow Dire Warg", artAsset: "/assets/tokens/monsters/shadow-dire-warg-01.png", family: "monstrosity", size: "large", defaultSpeed: 50 },
-  { id: "hungry-horror", name: "Hungry Horror", artAsset: "/assets/tokens/monsters/hungry-01.png", family: "monstrosity", size: "large", defaultSpeed: 40 },
-  { id: "young-green-dragon", name: "Young Green Dragon", artAsset: "/assets/tokens/monsters/young-green-dragon-01.png", family: "dragon", size: "large", defaultSpeed: 40 },
-  { id: "ancient-treant", name: "Ancient Treant", artAsset: "/assets/tokens/creatures/ancient-treant-01.png", family: "plant", size: "huge", defaultSpeed: 30 },
+export type CreatureCatalogSeed = CreatureTemplate & { sourceAsset: string; sortOrder: number };
+
+function creatureSeed(
+  sortOrder: number,
+  id: string,
+  name: string,
+  sourceAsset: string,
+  family: CreatureFamily,
+  size: CreatureSize,
+  defaultSpeed: number,
+): CreatureCatalogSeed {
+  const assetKey = sourceAsset.replace(/^\/assets\//, "");
+  const artAsset = `/creature-assets/${assetKey}`;
+  return { id, name, sourceAsset, artAsset, thumbnailAsset: `${artAsset}?variant=thumbnail`, family, size, defaultSpeed, sortOrder };
+}
+
+// These records seed D1. The browser reads the catalog from the API, never this array.
+export const CREATURE_CATALOG_SEED: CreatureCatalogSeed[] = [
+  creatureSeed(10, "cave-bat", "Cave Bat", "/assets/tokens/creatures/cave-bat-01.png", "beast", "tiny", 30),
+  creatureSeed(20, "ember-imp", "Ember Imp", "/assets/tokens/creatures/imp-01.png", "fiend", "tiny", 40),
+  creatureSeed(30, "giant-rat", "Giant Rat", "/assets/tokens/creatures/giant-rat-01.png", "beast", "small", 30),
+  creatureSeed(40, "goblin-raider", "Goblin Raider", "/assets/tokens/creatures/goblin-raider-01.png", "humanoid", "small", 30),
+  creatureSeed(50, "gray-wolf", "Gray Wolf", "/assets/tokens/creatures/gray-wolf-01.png", "beast", "medium", 40),
+  creatureSeed(60, "skeleton-guard", "Skeleton Guard", "/assets/tokens/creatures/skeleton-guard-01.png", "undead", "medium", 30),
+  creatureSeed(70, "shambling-zombie", "Shambling Zombie", "/assets/tokens/creatures/shambling-zombie-01.png", "undead", "medium", 20),
+  creatureSeed(80, "black-bear", "Black Bear", "/assets/tokens/creatures/black-bear-01.png", "beast", "medium", 30),
+  creatureSeed(90, "mimic-chest", "Mimic Chest", "/assets/tokens/creatures/mimic-chest-01.png", "monstrosity", "medium", 20),
+  creatureSeed(100, "dire-wolf", "Dire Wolf", "/assets/tokens/creatures/dire-wolf-01.png", "beast", "large", 50),
+  creatureSeed(110, "giant-cave-spider", "Giant Cave Spider", "/assets/tokens/creatures/giant-cave-spider-01.png", "beast", "large", 30),
+  creatureSeed(120, "ogre-brute", "Ogre Brute", "/assets/tokens/creatures/ogre-brute-01.png", "giant", "large", 40),
+  creatureSeed(130, "owlbear", "Owlbear", "/assets/tokens/creatures/owlbear-01.png", "monstrosity", "large", 40),
+  creatureSeed(140, "shadow-dire-warg", "Shadow Dire Warg", "/assets/tokens/monsters/shadow-dire-warg-01.png", "monstrosity", "large", 50),
+  creatureSeed(150, "hungry-horror", "Hungry Horror", "/assets/tokens/monsters/hungry-01.png", "monstrosity", "large", 40),
+  creatureSeed(160, "young-green-dragon", "Young Green Dragon", "/assets/tokens/monsters/young-green-dragon-01.png", "dragon", "large", 40),
+  creatureSeed(170, "ancient-treant", "Ancient Treant", "/assets/tokens/creatures/ancient-treant-01.png", "plant", "huge", 30),
 ];
 
 export const CHARACTER_ART_ASSETS = [
   "/assets/tokens/characters/dareleth-paladin-01.png",
   "/assets/tokens/characters/malichar-rogue-01.png",
   "/assets/tokens/characters/jelton-druid-01.png",
-];
-
-export const TOKEN_ART_ASSETS = [
-  ...CHARACTER_ART_ASSETS,
-  ...CREATURE_LIBRARY.map((creature) => creature.artAsset),
 ];
 
 export function isCreatureSize(value: unknown): value is CreatureSize {

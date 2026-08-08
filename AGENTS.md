@@ -9,5 +9,6 @@
 - A submitted move must never globally block the map while awaiting confirmation; preserve optimistic per-token positions and ignore stale authoritative responses so another token can be grabbed immediately.
 - Keep the join display-name field identified as a game-specific encounter alias with browser autocomplete and autocorrection disabled; it must not invite personal-name or Contacts suggestions.
 - A summon or familiar inherits its controller dynamically from `summoner_token_id`; never present it as separately unclaimed, copy ownership as independent state, or authorize it through a stale copied owner.
+- Keep the creature library storage-backed and lazy: searchable metadata belongs in D1, original/thumbnail bytes belong in R2, palette results are paged, thumbnails load only when visible, and full token art loads only for placement previews or tokens on the active map.
 - Verify changes locally first. Publish the Sites project only when the user explicitly asks.
 - Preserve server-authoritative shared state, durable D1 history, temporary browser drafts, and the public accountless trusted-group model.
