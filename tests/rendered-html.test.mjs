@@ -257,7 +257,7 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   assert.match(clientSource, /pending-annotation-/);
   assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
   assert.match(clientSource, /annotations: current\.annotations\.filter/);
-  assert.match(clientSource, /tokens: current\.tokens\.map\(\(item\) => item\.id === token\.id \? \{ \.\.\.item, initiative/);
+  assert.match(clientSource, /packIds\.has\(item\.id\)\s+\? \{ \.\.\.item, initiative, initiativeGroupId: optimisticGroupId/);
   assert.match(clientSource, /void applyHpToToken\(token, -hpStep\)/);
   assert.match(clientSource, /void applyHpToToken\(token, hpStep\)/);
   assert.match(clientSource, /removeEffectFromToken\(token\.id, effect\.id\)/);
@@ -519,6 +519,9 @@ test("spends the viewport on the map with one command bar and no static footer",
   assert.match(clientSource, /className="encounter-identity"/);
   assert.doesNotMatch(clientSource, /className="topbar"|className="map-footer"/);
   assert.doesNotMatch(styles, /^\.topbar \{|^\.map-footer \{/m);
+  assert.match(clientSource, /className="round-counter"/);
+  assert.match(clientSource, /`Current round \$\{state\.encounter\.currentRound\}`/);
+  assert.match(styles, /\.round-counter \{/);
   // Static trivia that never changed during play is gone for good.
   assert.doesNotMatch(clientSource, /squares<\/span>|Server version|equal-cost diagonals/i);
   // Panning by button was redundant with dragging empty map space.
@@ -542,9 +545,10 @@ test("collapses the sidebar and presents the map full bleed", async () => {
 });
 
 test("shows one roster that folds identical mobs and orders combat by initiative", async () => {
-  const [clientSource, workerSource] = await Promise.all([
+  const [clientSource, workerSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /function buildRosterRows\(/);
@@ -561,8 +565,12 @@ test("shows one roster that folds identical mobs and orders combat by initiative
   assert.match(clientSource, />Confirm delete<\/button>/);
   assert.match(clientSource, /"set-initiative-group"/);
   assert.match(clientSource, /Initiative for all \$\{row\.label\} creatures/);
+  assert.match(clientSource, /Changes apply to all \$\{packMembers\.length\} matching creatures/);
+  assert.match(clientSource, />Split from group<\/button>/);
   assert.match(clientSource, /"Group turn ended\."/);
   assert.match(workerSource, /initiative_group_id/);
+  assert.match(workerSource, /async function rebuildInitiativeOrders\(/);
+  assert.match(styles, /\.roster-initiative \{ grid-column: 6; width: 100%;/);
   assert.match(workerSource, /WHERE encounter_id = \? AND initiative_order = \?/);
   // Render must not read the pending-create ref.
   assert.match(clientSource, /function isPendingCreate\(token: SharedToken\)/);

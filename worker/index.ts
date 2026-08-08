@@ -1309,6 +1309,61 @@ function directDistance(
   return Math.round(gridSquares * 5 * 10) / 10;
 }
 
+type InitiativeLeader = {
+  id: string;
+  name: string;
+  initiative: number | null;
+  initiative_group_id: string | null;
+  summoner_token_id: string | null;
+};
+
+function groupInitiativeLeaders(leaders: InitiativeLeader[]) {
+  const groups = new Map<string, InitiativeLeader[]>();
+  for (const leader of leaders
+    .filter((token) => !token.summoner_token_id && token.initiative !== null)
+    .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name))) {
+    const key = leader.initiative_group_id || leader.id;
+    const members = groups.get(key);
+    if (members) members.push(leader); else groups.set(key, [leader]);
+  }
+  return [...groups.values()].sort((a, b) =>
+    (b[0].initiative ?? 0) - (a[0].initiative ?? 0) || a[0].name.localeCompare(b[0].name));
+}
+
+async function activeInitiativeLeaderIds(env: Env, encounter: EncounterRow) {
+  if (encounter.status !== "active" || encounter.active_initiative_order === null) return [] as string[];
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT CASE WHEN summoner_token_id IS NULL THEN id ELSE summoner_token_id END AS id
+     FROM tokens WHERE encounter_id = ? AND initiative_order = ?`,
+  ).bind(encounter.id, encounter.active_initiative_order).all<{ id: string }>();
+  return rows.results.map((row) => row.id);
+}
+
+async function rebuildInitiativeOrders(
+  env: Env,
+  encounter: EncounterRow,
+  now: number,
+  activeLeaderIds: string[],
+) {
+  if (encounter.status !== "active") return;
+  const tokens = await env.DB.prepare(
+    `SELECT id, name, initiative, initiative_group_id, summoner_token_id
+     FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
+  ).bind(encounter.id).all<InitiativeLeader>();
+  const groups = groupInitiativeLeaders(tokens.results);
+  const activeOrder = Math.max(0, groups.findIndex((members) =>
+    members.some((member) => activeLeaderIds.includes(member.id))));
+  const statements = [env.DB.prepare(
+    `UPDATE tokens SET initiative_order = NULL, updated_at = ? WHERE encounter_id = ?`,
+  ).bind(now, encounter.id), ...groups.flatMap((members, order) => members.map((leader) => env.DB.prepare(
+    `UPDATE tokens SET initiative_order = ?, updated_at = ?
+     WHERE encounter_id = ? AND (id = ? OR summoner_token_id = ?)`,
+  ).bind(order, now, encounter.id, leader.id, leader.id))), env.DB.prepare(
+    `UPDATE encounters SET active_initiative_order = ?, updated_at = ? WHERE id = ?`,
+  ).bind(groups.length ? activeOrder : null, now, encounter.id)];
+  await env.DB.batch(statements);
+}
+
 async function advanceInitiative(
   env: Env,
   encounter: EncounterRow,
@@ -1383,6 +1438,9 @@ async function handleCommand(
       return json({ error: "That historical action cannot be read safely." }, { status: 409 });
     }
     const tokenId = cleanTokenId(payload.tokenId);
+    const activeLeaderIdsBeforeHistory = action.action_type === "initiative_set" || action.action_type === "initiative_group_set"
+      ? await activeInitiativeLeaderIds(env, encounter)
+      : [];
     let changes = 0;
     if (action.action_type === "token_moved") {
       const from = payload.from as { x?: unknown; y?: unknown } | undefined;
@@ -1495,6 +1553,9 @@ async function handleCommand(
     if (changes !== expectedChanges || expectedChanges === 0) {
       return json({ error: "That action can no longer be undone because its shared state changed." }, { status: 409 });
     }
+    if (action.action_type === "initiative_set" || action.action_type === "initiative_group_set") {
+      await rebuildInitiativeOrders(env, encounter, now, activeLeaderIdsBeforeHistory);
+    }
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "action_undone", {
       actionId: action.id,
@@ -1516,6 +1577,9 @@ async function handleCommand(
       return json({ error: "That historical action cannot be read safely." }, { status: 409 });
     }
     const tokenId = cleanTokenId(payload.tokenId);
+    const activeLeaderIdsBeforeHistory = action.action_type === "initiative_set" || action.action_type === "initiative_group_set"
+      ? await activeInitiativeLeaderIds(env, encounter)
+      : [];
     let changes = 0;
     if (action.action_type === "token_moved") {
       const from = payload.from as { x?: unknown; y?: unknown } | undefined;
@@ -1628,6 +1692,9 @@ async function handleCommand(
     if (changes !== expectedChanges || expectedChanges === 0) {
       return json({ error: "That action can no longer be redone because its shared state changed." }, { status: 409 });
     }
+    if (action.action_type === "initiative_set" || action.action_type === "initiative_group_set") {
+      await rebuildInitiativeOrders(env, encounter, now, activeLeaderIdsBeforeHistory);
+    }
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "action_redone", {
       actionId: action.id,
@@ -1657,6 +1724,7 @@ async function handleCommand(
     if (!Number.isInteger(initiative) || initiative < 0 || initiative > 99) {
       return json({ error: "Initiative must be a whole number from 0 to 99." }, { status: 400 });
     }
+    const activeLeaderIds = await activeInitiativeLeaderIds(env, encounter);
     await env.DB.prepare(
       `UPDATE tokens SET initiative = ?, initiative_group_id = NULL, initiative_order = NULL,
        turn_complete = 0, movement_used = 0, updated_at = ?
@@ -1664,6 +1732,7 @@ async function handleCommand(
     )
       .bind(initiative, now, tokenId, encounter.id)
       .run();
+    await rebuildInitiativeOrders(env, encounter, now, activeLeaderIds);
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "initiative_set", {
       tokenId,
@@ -1677,9 +1746,6 @@ async function handleCommand(
   if (command === "set-initiative-group") {
     const denied = requireDm();
     if (denied) return denied;
-    if (encounter.status === "active") {
-      return json({ error: "Reset combat before changing initiative groups." }, { status: 409 });
-    }
     const initiative = Math.trunc(Number(body.initiative));
     if (!Number.isInteger(initiative) || initiative < 0 || initiative > 99) {
       return json({ error: "Initiative must be a whole number from 0 to 99." }, { status: 400 });
@@ -1701,11 +1767,13 @@ async function handleCommand(
     if (tokens.results.length !== tokenIds.length || tokens.results.some((token) => token.summoner_token_id)) {
       return json({ error: "Every initiative-group member must be a top-level creature in this encounter." }, { status: 400 });
     }
+    const activeLeaderIds = await activeInitiativeLeaderIds(env, encounter);
     const groupId = crypto.randomUUID();
     await env.DB.batch(tokens.results.map((token) => env.DB.prepare(
       `UPDATE tokens SET initiative = ?, initiative_group_id = ?, initiative_order = NULL,
        turn_complete = 0, movement_used = 0, updated_at = ? WHERE id = ? AND encounter_id = ?`,
     ).bind(initiative, groupId, now, token.id, encounter.id)));
+    await rebuildInitiativeOrders(env, encounter, now, activeLeaderIds);
     await bumpEncounter(env, encounter.id, now);
     await recordAction(env, encounter.id, participant.id, "initiative_group_set", {
       groupId,

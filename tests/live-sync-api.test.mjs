@@ -572,6 +572,26 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(activeHero.initiativeOrder, start.body.state.encounter.activeInitiativeOrder);
     assert.equal(groupedMonster.initiativeOrder, groupedMonsterPeer.initiativeOrder);
 
+    const splitMonster = await command(dm, "set-initiative", { tokenId: secondMonsterId, initiative: 13 });
+    assert.equal(splitMonster.response.status, 200);
+    const splitMonsterA = splitMonster.body.state.tokens.find((token) => token.id === monsterId);
+    const splitMonsterB = splitMonster.body.state.tokens.find((token) => token.id === secondMonsterId);
+    assert.notEqual(splitMonsterA.initiativeOrder, splitMonsterB.initiativeOrder);
+    assert.equal(
+      splitMonster.body.state.tokens.find((token) => token.id === characterId).initiativeOrder,
+      splitMonster.body.state.encounter.activeInitiativeOrder,
+    );
+    const regroupDuringCombat = await command(dm, "set-initiative-group", { tokenIds: [monsterId, secondMonsterId], initiative: 12 });
+    assert.equal(regroupDuringCombat.response.status, 200);
+    assert.equal(
+      regroupDuringCombat.body.state.tokens.find((token) => token.id === monsterId).initiativeOrder,
+      regroupDuringCombat.body.state.tokens.find((token) => token.id === secondMonsterId).initiativeOrder,
+    );
+    assert.equal(
+      regroupDuringCombat.body.state.tokens.find((token) => token.id === characterId).initiativeOrder,
+      regroupDuringCombat.body.state.encounter.activeInitiativeOrder,
+    );
+
     const untrackedMove = await request("move", {
       method: "POST",
       body: participantBody(latePlayer, untrackedCharacterId, {

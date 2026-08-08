@@ -237,6 +237,13 @@ function rosterGroupKey(token: SharedToken) {
   return `${rosterBaseName(token.name)}|${token.artAsset ?? ""}`;
 }
 
+function initiativePackMembers(token: SharedToken, tokens: SharedToken[]) {
+  if (token.kind !== "monster" || token.summonerTokenId) return [token];
+  const key = rosterGroupKey(token);
+  return tokens.filter((candidate) =>
+    candidate.kind === "monster" && !candidate.summonerTokenId && rosterGroupKey(candidate) === key);
+}
+
 function compareTokenNames(a: SharedToken, b: SharedToken) {
   return a.name.localeCompare(b.name, undefined, { numeric: true });
 }
@@ -1137,23 +1144,52 @@ export default function BattleMapPrototype() {
       setError("Initiative must be a whole number from 0 to 99.");
       return;
     }
-    if (initiative === token.initiative) {
+    const packMembers = participant?.role === "dm" && state ? initiativePackMembers(token, state.tokens) : [token];
+    const alreadyOnePack = packMembers.length > 1
+      && packMembers.every((member) => member.initiative === initiative
+        && member.initiativeGroupId && member.initiativeGroupId === packMembers[0].initiativeGroupId);
+    if (initiative === token.initiative && (packMembers.length === 1 || alreadyOnePack)) {
       setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
       return;
     }
     setInitiativeStatuses((current) => ({ ...current, [token.id]: "saving" }));
-    const result = await runOptimisticCommand(
-      "set-initiative",
-      { tokenId: token.id, initiative },
-      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, initiative, initiativeOrder: null, turnComplete: false, movementUsed: 0 } : item) }),
-    );
+    const packIds = new Set(packMembers.map((member) => member.id));
+    const optimisticGroupId = `pending-group-${++tokenMutationSequenceRef.current}`;
+    const result = packMembers.length > 1
+      ? await runOptimisticCommand(
+          "set-initiative-group",
+          { tokenIds: [...packIds], initiative },
+          (current) => ({ ...current, tokens: current.tokens.map((item) => packIds.has(item.id)
+            ? { ...item, initiative, initiativeGroupId: optimisticGroupId, turnComplete: false, movementUsed: 0 }
+            : item) }),
+          `${rosterBaseName(token.name)} initiative set for all ${packMembers.length}.`,
+        )
+      : await runOptimisticCommand(
+          "set-initiative",
+          { tokenId: token.id, initiative },
+          (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id
+            ? { ...item, initiative, initiativeGroupId: null, initiativeOrder: null, turnComplete: false, movementUsed: 0 }
+            : item) }),
+        );
     if (result) {
       setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
     } else {
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" }));
     }
+  };
+
+  const splitInitiativePack = (token: SharedToken) => {
+    if (token.initiative === null) return;
+    void runOptimisticCommand(
+      "set-initiative",
+      { tokenId: token.id, initiative: token.initiative },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id
+        ? { ...item, initiativeGroupId: null, turnComplete: false, movementUsed: 0 }
+        : item) }),
+      `${token.name} split from its initiative pack.`,
+    );
   };
 
   const saveInitiativeGroup = async (key: string, tokens: SharedToken[]) => {
@@ -1779,7 +1815,6 @@ export default function BattleMapPrototype() {
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups);
   const selectedHealth = selectedToken ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
   const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
-  const roundLabel = state.encounter.currentRound > 0 ? `Round ${state.encounter.currentRound}` : state.encounter.status;
   const activeOwnTurnToken = state.tokens.find((token) =>
     token.controlledByViewer && !token.turnComplete
     && token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder) ?? null;
@@ -1853,7 +1888,11 @@ export default function BattleMapPrototype() {
 
         <div className="encounter-identity">
           <strong>{state.encounter.name}</strong>
-          <span>{roundLabel}</span>
+          <span>{state.encounter.status}</span>
+        </div>
+        <div className="round-counter" aria-label={state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"}>
+          <span>Round</span>
+          <strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong>
         </div>
 
         <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
@@ -1972,8 +2011,13 @@ export default function BattleMapPrototype() {
               const token = selectedToken;
               const controlled = token.controlledByViewer;
               const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
+              const packMembers = initiativePackMembers(token, state.tokens);
               return <>
                 <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
+                {participant.role === "dm" && packMembers.length > 1 ? <div className="initiative-pack-note">
+                  <span>{token.initiativeGroupId ? `Shared with ${packMembers.length - 1} matching ${packMembers.length === 2 ? "creature" : "creatures"}.` : `Changes apply to all ${packMembers.length} matching creatures.`}</span>
+                  {token.initiativeGroupId ? <button className="inline-action" onClick={() => splitInitiativePack(token)}>Split from group</button> : null}
+                </div> : null}
                 {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-panel">
                   <div className="hp-readout"><strong>HP {token.hp}/{token.maxHp}</strong><span className={`hp-track is-${selectedHealth?.band ?? "unharmed"}`}><span className="hp-track-fill" style={{ width: `${Math.round((selectedHealth?.ratio ?? 0) * 100)}%`, background: selectedHealth?.color }} /></span></div>
                   <div className="hp-row">
