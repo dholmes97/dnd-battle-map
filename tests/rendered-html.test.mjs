@@ -231,7 +231,7 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /if \(spell\?\.id === "magic-circle"\)/);
   assert.match(clientSource, /const outerRadius = radius \* 1\.25/);
   assert.match(clientSource, /distance >= outerRadius \* 0\.72 && distance <= outerRadius \* 1\.08/);
-  assert.match(clientSource, /isMagicCircle \? visualRadius \* 1\.02 : radius \* 1\.22/);
+  assert.match(clientSource, /if \(\(selected \|\| owned\) && !isMagicCircle\)/);
   assert.match(clientSource, /hitTokens\.find\(\(token\) => token\.kind !== SPELL_EFFECT_KIND\) \?\? hitTokens\[0\]/);
   assert.match(clientSource, /if \(!hitToken\.controlledByViewer\) return;/);
   assert.match(clientSource, /View only · \$\{selectedToken\.controller\.name\}/);

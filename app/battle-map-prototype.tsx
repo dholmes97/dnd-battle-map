@@ -697,13 +697,12 @@ function drawSpellEffect(
   context.globalCompositeOperation = "source-over";
   context.globalAlpha = 1;
   context.shadowBlur = 0;
-  if (selected || owned) {
+  if ((selected || owned) && !isMagicCircle) {
     context.strokeStyle = selected ? "#f5c65c" : spell.accent;
     context.lineWidth = selected ? 2.4 : 1.2;
     context.globalAlpha = selected ? 0.95 : 0.48;
     context.setLineDash(selected ? [5, 5] : [2, 5]);
-    const selectionRadius = isMagicCircle ? visualRadius * 1.02 : radius * 1.22;
-    context.beginPath(); context.arc(x, y, selectionRadius, 0, Math.PI * 2); context.stroke();
+    context.beginPath(); context.arc(x, y, radius * 1.22, 0, Math.PI * 2); context.stroke();
   }
   context.restore();
 }
