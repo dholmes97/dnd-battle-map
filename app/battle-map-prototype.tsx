@@ -96,6 +96,7 @@ type Participant = { id: string; name: string; role: Role; sessionSecret: string
 type TokenPreview = MapPoint & { tokenId: string };
 type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 type PendingMove = MapPoint & { sequence: number };
+type OptimisticMutation = { apply: (state: EncounterState) => EncounterState };
 type DragGesture = {
   pointerId: number;
   tokenId: string;
@@ -139,6 +140,10 @@ const HEARTBEAT_INTERVAL_MS = 20_000;
 const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
 const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
+const OPTIMISTIC_HISTORY_COMMANDS = new Set([
+  "set-initiative", "apply-hp", "add-effect", "remove-effect",
+  "add-annotation", "remove-annotation", "create-token", "update-token", "move",
+]);
 
 function roundCoordinate(value: number) {
   return Math.round(value * 1_000) / 1_000;
@@ -557,8 +562,12 @@ export default function BattleMapPrototype() {
   const pendingMovesRef = useRef<Map<string, PendingMove>>(new Map());
   const pendingCreatesRef = useRef<Map<string, SharedToken>>(new Map());
   const pendingDeletesRef = useRef<Set<string>>(new Set());
+  const pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>(new Map());
+  const localUndoHistoryRef = useRef<Array<{ mutationId: number; state: EncounterState }>>([]);
+  const localRedoHistoryRef = useRef<Array<{ mutationId: number; state: EncounterState }>>([]);
   const moveSequenceRef = useRef(0);
   const tokenMutationSequenceRef = useRef(0);
+  const optimisticSequenceRef = useRef(0);
   const creatureCatalogRequestRef = useRef(0);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
@@ -567,17 +576,20 @@ export default function BattleMapPrototype() {
       const pendingMoves = pendingMovesRef.current;
       const pendingCreates = pendingCreatesRef.current;
       const pendingDeletes = pendingDeletesRef.current;
-      if (pendingMoves.size === 0 && pendingCreates.size === 0 && pendingDeletes.size === 0) return next;
+      const pendingOptimistic = pendingOptimisticRef.current;
+      if (pendingMoves.size === 0 && pendingCreates.size === 0 && pendingDeletes.size === 0 && pendingOptimistic.size === 0) return next;
       const tokens = next.tokens
         .filter((token) => !pendingDeletes.has(token.id))
         .map((token) => {
           const pending = pendingMoves.get(token.id);
           return pending ? { ...token, x: pending.x, y: pending.y } : token;
         });
-      return {
+      let merged = {
         ...next,
         tokens: [...tokens, ...[...pendingCreates.values()].filter((token) => !tokens.some((currentToken) => currentToken.id === token.id))],
       };
+      for (const mutation of pendingOptimistic.values()) merged = mutation.apply(merged);
+      return merged;
     });
   }, []);
 
@@ -808,10 +820,83 @@ export default function BattleMapPrototype() {
   };
 
   const runCommand = async (name: string, extra: Record<string, unknown> = {}, success?: string) => {
-    setBusy(true); setError("");
+    setError("");
     try { await command(name, extra); if (success) setNotice(success); }
     catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); }
-    finally { setBusy(false); }
+  };
+
+  const runOptimisticCommand = async <T extends { state: EncounterState }>(
+    name: string,
+    extra: Record<string, unknown>,
+    apply: (current: EncounterState) => EncounterState,
+    success?: string,
+    beforeAccept?: (result: T) => void,
+    trackHistory = OPTIMISTIC_HISTORY_COMMANDS.has(name),
+  ): Promise<T | null> => {
+    const mutationId = ++optimisticSequenceRef.current;
+    const applyOptimistic = (current: EncounterState) => {
+      const applied = apply(current);
+      return trackHistory ? {
+        ...applied,
+        undo: { ...applied.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 },
+      } : applied;
+    };
+    pendingOptimisticRef.current.set(mutationId, { apply: applyOptimistic });
+    setState((current) => {
+      if (!current) return current;
+      if (trackHistory && !localUndoHistoryRef.current.some((entry) => entry.mutationId === mutationId)) {
+        localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId, state: current }];
+        localRedoHistoryRef.current = [];
+      }
+      return applyOptimistic(current);
+    });
+    setError("");
+    try {
+      const result = await command<T>(name, extra);
+      beforeAccept?.(result);
+      pendingOptimisticRef.current.delete(mutationId);
+      acceptAuthoritativeState(result.state);
+      if (success) setNotice(success);
+      return result;
+    } catch (commandError) {
+      pendingOptimisticRef.current.delete(mutationId);
+      if (trackHistory) localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== mutationId);
+      setError(commandError instanceof Error ? commandError.message : "Action rejected.");
+      await refreshAfterError();
+      return null;
+    }
+  };
+
+  const runHistoryOptimistically = async (direction: "undo" | "redo") => {
+    const source = direction === "undo" ? localUndoHistoryRef : localRedoHistoryRef;
+    const destination = direction === "undo" ? localRedoHistoryRef : localUndoHistoryRef;
+    const entry = source.current.at(-1);
+    if (!entry || !state) {
+      await runCommand(direction, {}, direction === "undo" ? "Last action undone." : "Last action redone.");
+      return;
+    }
+    source.current = source.current.slice(0, -1);
+    const inverseEntry = { mutationId: ++optimisticSequenceRef.current, state };
+    destination.current = [...destination.current.slice(-9), inverseEntry];
+    const result = await runOptimisticCommand(
+      direction,
+      {},
+      () => ({
+        ...entry.state,
+        undo: {
+          ...entry.state.undo,
+          available: direction === "undo" ? Math.max(0, state.undo.available - 1) : Math.min(10, state.undo.available + 1),
+          redoAvailable: direction === "undo" ? Math.min(10, state.undo.redoAvailable + 1) : Math.max(0, state.undo.redoAvailable - 1),
+        },
+      }),
+      direction === "undo" ? "Last action undone." : "Last action redone.",
+      undefined,
+      false,
+    );
+    if (!result) {
+      destination.current = destination.current.filter((item) => item.mutationId !== inverseEntry.mutationId);
+      source.current = [...source.current, entry];
+    }
   };
 
   useEffect(() => {
@@ -826,10 +911,10 @@ export default function BattleMapPrototype() {
       if (busy || (!wantsUndo && !wantsRedo)) return;
       if (wantsUndo && state.undo.available > 0) {
         event.preventDefault();
-        void runCommand("undo", {}, "Last action undone.");
+        void runHistoryOptimistically("undo");
       } else if (wantsRedo && state.undo.redoAvailable > 0) {
         event.preventDefault();
-        void runCommand("redo", {}, "Last action redone.");
+        void runHistoryOptimistically("redo");
       }
     };
     window.addEventListener("keydown", onHistoryShortcut);
@@ -854,36 +939,157 @@ export default function BattleMapPrototype() {
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
       return;
     }
-    setBusy(true); setError("");
     setInitiativeStatuses((current) => ({ ...current, [token.id]: "saving" }));
-    try {
-      await command("set-initiative", { tokenId: token.id, initiative });
+    const result = await runOptimisticCommand(
+      "set-initiative",
+      { tokenId: token.id, initiative },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, initiative, initiativeOrder: null, turnComplete: false, movementUsed: 0 } : item) }),
+    );
+    if (result) {
       setInitiativeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "saved" }));
-    } catch (initiativeError) {
+    } else {
       setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" }));
-      setError(initiativeError instanceof Error ? initiativeError.message : "Initiative rejected.");
-      await refreshAfterError();
-    } finally { setBusy(false); }
+    }
   };
 
   const addEffectToToken = async (tokenId: string) => {
     const name = effectName.trim();
     if (!name) return;
-    setBusy(true); setError("");
-    try {
-      await command("add-effect", {
-        tokenId,
-        name,
-        effectType,
-        reminderTiming: effectReminder,
-        durationRounds: Number(effectDuration),
-      });
-      setNotice(`${name} added.`); setEffectName(""); setEffectEditorTokenId(null);
-    } catch (effectError) {
-      setError(effectError instanceof Error ? effectError.message : "Effect rejected.");
-      await refreshAfterError();
-    } finally { setBusy(false); }
+    const temporaryId = `pending-effect-${Date.now()}-${++tokenMutationSequenceRef.current}`;
+    const durationRounds = Number(effectDuration);
+    const optimisticEffect: SharedEffect = {
+      id: temporaryId,
+      name,
+      type: effectType,
+      durationRounds,
+      expiresRound: Math.max(1, state?.encounter.currentRound || 1) + durationRounds,
+      reminderTiming: effectReminder,
+      due: false,
+    };
+    setEffectName(""); setEffectEditorTokenId(null);
+    const result = await runOptimisticCommand(
+      "add-effect",
+      { tokenId, name, effectType, reminderTiming: effectReminder, durationRounds },
+      (current) => ({ ...current, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, effects: [...token.effects, optimisticEffect] } : token) }),
+      `${name} added.`,
+    );
+    if (!result) { setEffectEditorTokenId(tokenId); setEffectName(name); }
+  };
+
+  const applyHpToToken = async (token: SharedToken) => {
+    const delta = Number(hpDelta);
+    if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
+    const hp = Math.min(token.maxHp, Math.max(0, (token.hp ?? token.maxHp) + Math.trunc(delta)));
+    const result = await runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }>(
+      "apply-hp",
+      { tokenId: token.id, delta },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp, healthState: hp <= token.maxHp! * 0.25 ? "near-death" : hp <= token.maxHp! * 0.5 ? "bloodied" : "steady" } : item) }),
+    );
+    if (result) setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.");
+  };
+
+  const removeEffectFromToken = (tokenId: string, effectId: string) => {
+    void runOptimisticCommand(
+      "remove-effect",
+      { effectId },
+      (current) => ({ ...current, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, effects: token.effects.filter((effect) => effect.id !== effectId) } : token) }),
+    );
+  };
+
+  const saveTokenDetails = async (token: SharedToken) => {
+    const draft = tokenDrafts[token.id] ?? {};
+    const name = draft.name ?? token.name;
+    const size = draft.size ?? token.size;
+    const requestedSpeed = Number(draft.speed ?? token.speed);
+    const speed = Number.isFinite(requestedSpeed) ? requestedSpeed : token.speed;
+    const requestedMaxHp = draft.maxHp === undefined || draft.maxHp === "" ? token.maxHp : Number(draft.maxHp);
+    const maxHp = requestedMaxHp !== null && Number.isFinite(requestedMaxHp) ? Math.max(1, Math.trunc(requestedMaxHp)) : token.maxHp;
+    const artAsset = draft.artAsset ?? token.artAsset ?? "";
+    setTokenEditorTokenId(null);
+    const result = await runOptimisticCommand(
+      "update-token",
+      { tokenId: token.id, name, size, speed, maxHp: maxHp ?? undefined, artAsset },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, name, size, speed, maxHp, hp: maxHp === null ? null : Math.min(maxHp, item.hp ?? maxHp), artAsset: artAsset || null } : item) }),
+      "Token details saved.",
+    );
+    if (result) {
+      setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+    } else {
+      setTokenEditorTokenId(token.id);
+    }
+  };
+
+  const startCombatOptimistically = () => {
+    void runOptimisticCommand(
+      "start-combat",
+      {},
+      (current) => {
+        const leaders = current.tokens
+          .filter((token) => !token.summonerTokenId && token.initiative !== null)
+          .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name));
+        const orders = new Map(leaders.map((leader, order) => [leader.id, order]));
+        return {
+          ...current,
+          encounter: { ...current.encounter, status: "active", currentRound: 1, activeInitiativeOrder: 0 },
+          tokens: current.tokens.map((token) => {
+            const leaderId = token.summonerTokenId ?? token.id;
+            return orders.has(leaderId) ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0 } : token;
+          }),
+        };
+      },
+      "Combat started.",
+    );
+  };
+
+  const advanceTurnState = (current: EncounterState, completeCurrentGroup: boolean) => {
+    const orders = [...new Set(current.tokens.map((token) => token.initiativeOrder).filter((order): order is number => order !== null))].sort((a, b) => a - b);
+    if (orders.length === 0) return current;
+    const active = current.encounter.activeInitiativeOrder ?? orders[0];
+    const index = Math.max(0, orders.indexOf(active));
+    const wrapped = index >= orders.length - 1;
+    const nextOrder = wrapped ? orders[0] : orders[index + 1];
+    return {
+      ...current,
+      encounter: { ...current.encounter, activeInitiativeOrder: nextOrder, currentRound: Math.max(1, current.encounter.currentRound) + (wrapped ? 1 : 0) },
+      tokens: current.tokens.map((token) => token.initiativeOrder === nextOrder
+        ? { ...token, turnComplete: false, movementUsed: 0 }
+        : completeCurrentGroup && token.initiativeOrder === active ? { ...token, turnComplete: true } : token),
+    };
+  };
+
+  const endTurnOptimistically = (token: SharedToken) => {
+    void runOptimisticCommand(
+      "end-turn",
+      { tokenId: token.id },
+      (current) => {
+        const marked = { ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, turnComplete: true } : item) };
+        const remaining = marked.tokens.some((item) => item.initiativeOrder === current.encounter.activeInitiativeOrder && !item.turnComplete);
+        return remaining ? marked : advanceTurnState(marked, false);
+      },
+      "Turn ended.",
+    );
+  };
+
+  const advanceTurnOptimistically = () => {
+    void runOptimisticCommand("advance-turn", {}, (current) => advanceTurnState(current, true), "Turn advanced.");
+  };
+
+  const correctTurnOptimistically = (round: number, activeOrder: number) => {
+    void runOptimisticCommand(
+      "correct-turn",
+      { round, activeOrder },
+      (current) => ({
+        ...current,
+        encounter: { ...current.encounter, status: "active", currentRound: round, activeInitiativeOrder: activeOrder },
+        tokens: current.tokens.map((token) => token.initiativeOrder === activeOrder ? { ...token, turnComplete: false, movementUsed: 0 } : token),
+      }),
+      "Turn corrected.",
+    );
+  };
+
+  const configureEncounterOptimistically = (status: "setup" | "active" | "paused", notice: string) => {
+    void runOptimisticCommand("configure-encounter", { status }, (current) => ({ ...current, encounter: { ...current.encounter, status } }), notice);
   };
 
   const loadMoreCreatures = async () => {
@@ -918,6 +1124,7 @@ export default function BattleMapPrototype() {
     const name = matchingCount === 0 ? creature.name : `${creature.name} ${matchingCount + 1}`;
     const summoner = placementSummonerId ? state.tokens.find((token) => token.id === placementSummonerId) : null;
     const temporaryId = `pending-create-${Date.now()}-${++tokenMutationSequenceRef.current}`;
+    const historyMutationId = ++optimisticSequenceRef.current;
     const optimisticToken: SharedToken = {
       id: temporaryId,
       name,
@@ -941,7 +1148,12 @@ export default function BattleMapPrototype() {
       y: point.y,
     };
     pendingCreatesRef.current.set(temporaryId, optimisticToken);
-    setState((current) => current ? { ...current, tokens: [...current.tokens, optimisticToken] } : current);
+    setState((current) => {
+      if (!current) return current;
+      localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
+      localRedoHistoryRef.current = [];
+      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: [...current.tokens, optimisticToken] };
+    });
     setPlacementPreview(null);
     setError("");
     try {
@@ -964,6 +1176,7 @@ export default function BattleMapPrototype() {
       setNotice(`${name} placed at ${creature.defaultHp} HP.`);
     } catch (placementError) {
       pendingCreatesRef.current.delete(temporaryId);
+      localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== historyMutationId);
       setState((current) => current ? { ...current, tokens: current.tokens.filter((token) => token.id !== temporaryId) } : current);
       setError(placementError instanceof Error ? placementError.message : "Creature placement was rejected.");
       await refreshAfterError();
@@ -1022,11 +1235,14 @@ export default function BattleMapPrototype() {
   const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
     if (!participant || !encounter) return;
     const sequence = ++moveSequenceRef.current;
+    const historyMutationId = ++optimisticSequenceRef.current;
     pendingMovesRef.current.set(tokenId, { ...destination, sequence });
-    setState((current) => current ? {
-      ...current,
-      tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination } : token),
-    } : current);
+    setState((current) => {
+      if (!current) return current;
+      localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
+      localRedoHistoryRef.current = [];
+      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination } : token) };
+    });
     setPreview(null); setDragOrigin(null); setError("");
     try {
       const result = await api<{ distance: number; overBudget: boolean; state: EncounterState }>(
@@ -1040,6 +1256,7 @@ export default function BattleMapPrototype() {
         : `Move confirmed · ${result.distance} ft.`);
     } catch (moveError) {
       if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
+      localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== historyMutationId);
       setError(moveError instanceof Error ? moveError.message : "Move rejected.");
       await refreshAfterError();
     }
@@ -1047,13 +1264,26 @@ export default function BattleMapPrototype() {
 
   const addAnnotation = async (type: AnnotationMode, start: MapPoint, end?: MapPoint) => {
     if (type === "move" || type === "erase") return;
-    await runCommand("add-annotation", {
+    const temporaryId = `pending-annotation-${Date.now()}-${++tokenMutationSequenceRef.current}`;
+    const annotation: SharedAnnotation = {
+      id: temporaryId,
+      type,
+      x: start.x,
+      y: start.y,
+      x2: end?.x ?? null,
+      y2: end?.y ?? null,
+      color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
+      label: null,
+      createdBy: participant?.id ?? "pending",
+      expiresAt: type === "ping" ? Date.now() + PING_DURATION_MS : type === "spotlight" ? Date.now() + 15_000 : null,
+    };
+    setAnnotationMode("move");
+    await runOptimisticCommand("add-annotation", {
       annotationType: type,
       x: start.x, y: start.y,
       x2: end?.x, y2: end?.y,
-      color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
-    }, type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : undefined);
-    setAnnotationMode("move");
+      color: annotation.color,
+    }, (current) => ({ ...current, annotations: [...current.annotations, annotation] }), type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : undefined);
   };
 
   const eraseAnnotationAtPoint = (canvas: HTMLCanvasElement, point: MapPoint) => {
@@ -1065,7 +1295,12 @@ export default function BattleMapPrototype() {
       setNotice("Click closer to a drawn line.");
       return;
     }
-    void runCommand("remove-annotation", { annotationId: annotation.id }, "Line erased.");
+    void runOptimisticCommand(
+      "remove-annotation",
+      { annotationId: annotation.id },
+      (current) => ({ ...current, annotations: current.annotations.filter((item) => item.id !== annotation.id) }),
+      "Line erased.",
+    );
   };
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -1270,13 +1505,13 @@ export default function BattleMapPrototype() {
               <button className={`icon-tool${annotationMode === "drawing" ? " tool-active" : ""}`} aria-label="Draw line" aria-pressed={annotationMode === "drawing"} data-tooltip="Draw line" onClick={() => setAnnotationMode("drawing")}><span aria-hidden="true">╱</span></button>
               <button className={`icon-tool${annotationMode === "erase" ? " tool-active" : ""}`} aria-label="Erase line" aria-pressed={annotationMode === "erase"} data-tooltip="Erase line" onClick={() => setAnnotationMode("erase")}><span aria-hidden="true">⌫</span></button>
               {participant.role === "dm" ? <button className={`icon-tool${annotationMode === "spotlight" ? " tool-active" : ""}`} aria-label="Place spotlight" aria-pressed={annotationMode === "spotlight"} data-tooltip="Spotlight" onClick={() => setAnnotationMode("spotlight")}><span aria-hidden="true">◎</span></button> : null}
-              {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all" onClick={() => void runCommand("clear-annotations", {}, "Annotations cleared.")}><span aria-hidden="true">⊘</span></button> : null}
+              {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><span aria-hidden="true">⊘</span></button> : null}
             </div>
             {participant.role === "dm" ? <button className={paletteOpen ? "tool-active creature-tool" : "creature-tool"} onClick={() => { setPaletteOpen((open) => !open); setAnnotationMode("move"); }}><span aria-hidden="true">♞</span> Creatures</button> : null}
             {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><span aria-hidden="true">▦</span></button> : null}
             <div className="map-tool-group" role="group" aria-label="Action history">
-              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo · Ctrl/⌘ Z" onClick={() => void runCommand("undo", {}, "Last action undone.")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
-              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo · Ctrl/⌘ Shift Z" onClick={() => void runCommand("redo", {}, "Last action redone.")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
+              <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo · Ctrl/⌘ Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><span aria-hidden="true">↶</span></button>
+              <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo · Ctrl/⌘ Shift Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><span aria-hidden="true">↷</span></button>
             </div>
             <span className="toolbar-spacer" />
             <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
@@ -1330,8 +1565,8 @@ export default function BattleMapPrototype() {
             <div className="initiative-list">
               {initiativeTokens.length ? initiativeTokens.map((token) => <div key={token.id} className={`initiative-entry${token.initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}`}><span>{token.initiative ?? "—"}</span><strong>{token.name}</strong><small>{token.turnComplete ? "Done" : token.initiativeOrder === state.encounter.activeInitiativeOrder ? "Active" : `#${(token.initiativeOrder ?? 0) + 1}`}</small></div>) : <p className="empty-copy">Enter initiative on token cards.</p>}
             </div>
-            {participant.role === "dm" ? <div className="button-row"><button className="primary-button" onClick={() => void runCommand("start-combat", {}, "Combat started.")} disabled={busy}>Start combat</button><button className="secondary-button" onClick={() => void runCommand("advance-turn", {}, "Turn advanced.")} disabled={busy || state.encounter.status !== "active"}>Advance</button></div> : null}
-            {participant.role === "dm" && initiativeTokens.length ? <div className="turn-correction"><label>Correct round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => void runCommand("correct-turn", { round: Number(event.target.value), activeOrder: state.encounter.activeInitiativeOrder ?? 0 }, "Round corrected.")} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => void runCommand("correct-turn", { round: Math.max(1, state.encounter.currentRound), activeOrder: Number(event.target.value) }, "Active turn corrected.")}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div> : null}
+            {participant.role === "dm" ? <div className="button-row"><button className="primary-button" onClick={startCombatOptimistically}>Start combat</button><button className="secondary-button" onClick={advanceTurnOptimistically} disabled={state.encounter.status !== "active"}>Advance</button></div> : null}
+            {participant.role === "dm" && initiativeTokens.length ? <div className="turn-correction"><label>Correct round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => correctTurnOptimistically(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => correctTurnOptimistically(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div> : null}
           </section>
 
           <div className="panel-rule" />
@@ -1352,15 +1587,15 @@ export default function BattleMapPrototype() {
                   <span><small>HP</small><strong>{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : "—"}</strong></span>
                 </div>
                 {selected ? <>
-                  <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled || busy} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
-                  {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-row"><strong>HP {token.hp}/{token.maxHp}</strong><input aria-label="HP change" type="number" value={hpDelta} onChange={(event) => setHpDelta(event.target.value)} /><button onClick={() => void command<{ state: EncounterState; concentrationCheckRequired: boolean }>("apply-hp", { tokenId: token.id, delta: Number(hpDelta) }).then((result) => setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.")).catch((hpError) => setError(hpError instanceof Error ? hpError.message : "HP rejected."))}>Apply</button></div> : null}
-                  <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => void runCommand("remove-effect", { effectId: effect.id })}>×</button> : null}</span>)}</div>
+                  <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
+                  {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-row"><strong>HP {token.hp}/{token.maxHp}</strong><input aria-label="HP change" type="number" value={hpDelta} onChange={(event) => setHpDelta(event.target.value)} /><button onClick={() => void applyHpToToken(token)}>Apply</button></div> : null}
+                  <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)}>×</button> : null}</span>)}</div>
                   {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
-                  {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim() || busy}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
+                  {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
                   {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                   {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
-                  {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => void runCommand("end-turn", { tokenId: token.id }, "Turn ended.")}>End Turn</button> : null}
-                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void deleteToken(token)}>Delete</button></div> : null}
+                  {active && controlled && !token.turnComplete ? <button className="end-turn-button" onClick={() => endTurnOptimistically(token)}>End Turn</button> : null}
+                  {participant.role === "dm" ? <div className="token-actions"><button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button><button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button><button className="inline-action is-danger" onClick={() => void deleteToken(token)}>Delete</button></div> : null}
                   {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
                     <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
                     <div className="form-grid">
@@ -1369,7 +1604,7 @@ export default function BattleMapPrototype() {
                       <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
                     </div>
                     <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
-                    <button className="secondary-button" onClick={() => { const draft = tokenDrafts[token.id] ?? {}; void runCommand("update-token", { tokenId: token.id, name: draft.name ?? token.name, size: draft.size ?? token.size, speed: Number(draft.speed ?? token.speed), maxHp: draft.maxHp === "" ? undefined : Number(draft.maxHp ?? token.maxHp), artAsset: draft.artAsset ?? token.artAsset ?? "" }, "Token details saved.").then(() => { setTokenDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; }); setTokenEditorTokenId(null); }); }}>Save details</button>
+                    <button className="secondary-button" onClick={() => void saveTokenDetails(token)}>Save details</button>
                   </div> : null}
                 </> : null}
               </section>;
@@ -1378,7 +1613,7 @@ export default function BattleMapPrototype() {
 
           {participant.role === "dm" ? <section className="dm-panel">
             <div className="section-heading"><div><small>Dungeon Master</small><h2>Encounter setup</h2></div></div>
-            <div className="button-row"><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: state.encounter.status === "paused" ? "active" : "paused" }, state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => void runCommand("configure-encounter", { status: "setup" }, "Returned to setup.")}>Setup mode</button></div>
+            <div className="button-row"><button className="secondary-button" onClick={() => configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}>{state.encounter.status === "paused" ? "Resume" : "Pause"}</button><button className="secondary-button" onClick={() => configureEncounterOptimistically("setup", "Returned to setup.")}>Setup mode</button></div>
           </section> : null}
 
           {error ? <div className="form-error" role="alert">{error}</div> : null}

@@ -239,6 +239,28 @@ test("places and deletes tokens optimistically without freezing the map", async 
   assert.doesNotMatch(clientSource, /runCommand\("delete-token"/);
 });
 
+test("makes map tools and encounter controls optimistic without a global wait", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+  const optimisticFlow = clientSource.match(/const runOptimisticCommand = async[\s\S]+?const runHistoryOptimistically/)?.[0] ?? "";
+
+  assert.match(clientSource, /pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>/);
+  assert.match(clientSource, /for \(const mutation of pendingOptimistic\.values\(\)\) merged = mutation\.apply\(merged\)/);
+  assert.match(optimisticFlow, /setState\(\(current\) =>/);
+  assert.match(optimisticFlow, /const result = await command<T>\(name, extra\)/);
+  assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("await command<T>(name, extra)"));
+  assert.doesNotMatch(optimisticFlow, /setBusy\(/);
+  assert.match(clientSource, /pending-annotation-/);
+  assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
+  assert.match(clientSource, /annotations: current\.annotations\.filter/);
+  assert.match(clientSource, /tokens: current\.tokens\.map\(\(item\) => item\.id === token\.id \? \{ \.\.\.item, initiative/);
+  assert.match(clientSource, /void applyHpToToken\(token\)/);
+  assert.match(clientSource, /removeEffectFromToken\(token\.id, effect\.id\)/);
+  assert.match(clientSource, /startCombatOptimistically/);
+  assert.match(clientSource, /advanceTurnOptimistically/);
+  assert.match(clientSource, /configureEncounterOptimistically/);
+  assert.match(clientSource, /runHistoryOptimistically\("undo"\)/);
+});
+
 test("lets the DM select and drag any token directly from the map", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
