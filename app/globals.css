@@ -378,6 +378,30 @@ input:focus {
   color: #f2d99b;
 }
 
+.ui-settings-menu { position: relative; }
+.ui-settings-menu > summary { list-style: none; border: 1px solid transparent; border-radius: 0.42rem; cursor: pointer; }
+.ui-settings-menu > summary::-webkit-details-marker { display: none; }
+.ui-settings-menu[open] > summary { border-color: #49443c; background: #292720; color: #f2d99b; }
+.ui-settings-panel { position: absolute; z-index: 20; top: calc(100% + 0.55rem); right: 0; width: 15rem; padding: 0.65rem; border: 1px solid #464138; border-radius: 0.55rem; background: rgba(24, 23, 20, 0.98); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5); color: #d8d0c3; }
+.ui-settings-heading { display: grid; gap: 0.08rem; padding-bottom: 0.5rem; border-bottom: 1px solid #34302a; }
+.ui-settings-heading strong { font-size: 0.74rem; }
+.ui-settings-heading small { color: #827b70; font-size: 0.58rem; }
+.grid-opacity-control { display: grid; gap: 0.28rem; padding: 0.58rem 0 0.5rem; color: #a69e92; font-size: 0.64rem; letter-spacing: 0.025em; }
+.grid-opacity-control > span { display: flex; justify-content: space-between; gap: 0.5rem; }
+.grid-opacity-control output { color: #d5c498; font-family: var(--font-geist-mono), monospace; font-variant-numeric: tabular-nums; }
+.grid-opacity-control input { appearance: none; -webkit-appearance: none; width: 100%; height: 0.9rem; margin: 0; background: transparent; cursor: ew-resize; }
+.grid-opacity-control input::-webkit-slider-runnable-track { height: 0.24rem; border-radius: 999px; background: linear-gradient(to right, #c69447 0 var(--grid-level), #3b3832 var(--grid-level) 100%); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5); }
+.grid-opacity-control input::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 0.86rem; height: 0.86rem; margin-top: -0.31rem; border: 2px solid #e2c477; border-radius: 50%; background: #25231f; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.65); }
+.grid-opacity-control input::-moz-range-track { height: 0.24rem; border: 0; border-radius: 999px; background: #3b3832; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5); }
+.grid-opacity-control input::-moz-range-progress { height: 0.24rem; border-radius: 999px; background: #c69447; }
+.grid-opacity-control input::-moz-range-thumb { width: 0.7rem; height: 0.7rem; border: 2px solid #e2c477; border-radius: 50%; background: #25231f; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.65); }
+.grid-opacity-control input:focus-visible { outline: 2px solid #e5b55c; outline-offset: 2px; border-radius: 999px; }
+.ui-setting-toggle { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-top: 0.55rem; border-top: 1px solid #34302a; cursor: pointer; }
+.ui-setting-toggle > span { display: grid; gap: 0.1rem; }
+.ui-setting-toggle strong { font-size: 0.66rem; }
+.ui-setting-toggle small { color: #827b70; font-size: 0.57rem; line-height: 1.25; }
+.ui-setting-toggle input { width: 1rem; height: 1rem; margin: 0; accent-color: #c69447; }
+
 .command-bar .creature-tool {
   display: inline-flex;
   align-items: center;
@@ -661,6 +685,14 @@ input:focus {
 .panel-foot .button-row { margin-top: 0; gap: 0.35rem; }
 .panel-foot .primary-button, .panel-foot .secondary-button { min-height: 2.1rem; font-size: 0.72rem; }
 .panel-foot .end-turn-button { margin-top: 0; min-height: 2.2rem; }
+.strict-movement-toggle { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.45rem 0.55rem; border: 1px solid #302d27; border-radius: 0.5rem; color: #d7d1c5; cursor: pointer; }
+.strict-movement-toggle:hover { border-color: #4a4438; background: rgba(255, 255, 255, 0.025); }
+.strict-movement-toggle span { display: grid; gap: 0.05rem; min-width: 0; }
+.strict-movement-toggle strong { font-size: 0.72rem; font-weight: 650; letter-spacing: 0.015em; }
+.strict-movement-toggle small { color: #858078; font-size: 0.61rem; }
+.strict-movement-toggle input { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 2rem; height: 1.08rem; margin: 0; border: 1px solid #5a554d; border-radius: 999px; background: radial-gradient(circle at 0.48rem 50%, #aaa398 0 0.34rem, transparent 0.36rem), #292722; box-shadow: inset 0 1px 2px #0005; transition: background-color 120ms ease, border-color 120ms ease; }
+.strict-movement-toggle input:checked { border-color: #ba8b3f; background: radial-gradient(circle at 1.48rem 50%, #f4d99b 0 0.34rem, transparent 0.36rem), #745526; }
+.strict-movement-toggle input:focus-visible { outline: 2px solid #e5b55c; outline-offset: 2px; }
 .turn-correction-details summary { color: #7d776b; cursor: pointer; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .turn-correction-details label { margin: 0.35rem 0 0; }
 

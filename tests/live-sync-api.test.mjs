@@ -172,11 +172,18 @@ test("fixed identities independently move disposable summons without reservation
   const dan = danJoin.participant;
   const barry = barryJoin.participant;
   const initial = scottJoin.state;
+  const initialStrictMovement = initial.encounter.strictMovement;
   const createdIds = [];
   assert.equal(initial.encounter.code, code);
   assert.deepEqual(danJoin.state.grid, barryJoin.state.grid);
 
   try {
+    const strictOn = await command(dm, "set-strict-movement", { enabled: true });
+    assert.equal(strictOn.response.status, 200);
+    assert.equal(strictOn.body.state.encounter.strictMovement, true);
+    const playerCannotChangePolicy = await command(dan, "set-strict-movement", { enabled: false });
+    assert.equal(playerCannotChangePolicy.response.status, 403);
+
     const danSummon = await command(dan, "create-token", {
       name: `Dan sync summon ${Date.now()}`,
       kind: "monster",
@@ -319,6 +326,22 @@ test("fixed identities independently move disposable summons without reservation
     });
     assert.equal(unauthorizedMove.response.status, 403);
 
+    const strictOff = await command(dm, "set-strict-movement", { enabled: false });
+    assert.equal(strictOff.response.status, 200);
+    assert.equal(strictOff.body.state.encounter.strictMovement, false);
+    const openDestination = destinationFor(aliceToken, initial.grid, 0.431, 1.183);
+    const openMove = await request("move", {
+      method: "POST",
+      body: participantBody(barry, aliceToken.id, openDestination),
+    });
+    assert.equal(openMove.response.status, 200);
+    assert.deepEqual(
+      (({ x, y }) => ({ x, y }))(openMove.body.state.tokens.find((token) => token.id === aliceToken.id)),
+      openDestination,
+    );
+    const strictRestored = await command(dm, "set-strict-movement", { enabled: true });
+    assert.equal(strictRestored.response.status, 200);
+
     const beforeMoves = await request("state", { method: "GET" });
     const observedMoves = waitForPolledState(
       beforeMoves.body.encounter.version,
@@ -371,6 +394,7 @@ test("fixed identities independently move disposable summons without reservation
     for (const tokenId of createdIds.reverse()) {
       await command(dm, "delete-token", { tokenId }).catch(() => null);
     }
+    await command(dm, "set-strict-movement", { enabled: initialStrictMovement }).catch(() => null);
   }
 });
 
@@ -496,10 +520,14 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
   const latePlayer = (await joinIdentity(FIXED_IDENTITIES.scott)).participant;
   const createdIds = [];
   let originalStatus;
+  let originalStrictMovement;
   try {
     const initial = await viewerState(dm);
     assert.equal(initial.response.status, 200);
     originalStatus = initial.body.encounter.status;
+    originalStrictMovement = initial.body.encounter.strictMovement;
+    const strictOn = await command(dm, "set-strict-movement", { enabled: true });
+    assert.equal(strictOn.response.status, 200);
 
     const configure = await command(dm, "configure-encounter", {
       status: "paused",
@@ -862,6 +890,9 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     }
     if (originalStatus) {
       await command(dm, "configure-encounter", { status: originalStatus }).catch(() => null);
+    }
+    if (typeof originalStrictMovement === "boolean") {
+      await command(dm, "set-strict-movement", { enabled: originalStrictMovement }).catch(() => null);
     }
   }
 });

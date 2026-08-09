@@ -227,14 +227,14 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /aria-label="Spell effects"/);
   assert.match(clientSource, /Drag an effect onto the battlefield/);
   assert.match(clientSource, /void placeSpellEffect\(spell, point\)/);
-  assert.match(clientSource, /token\.controlledByViewer \|\| token\.kind === SPELL_EFFECT_KIND/);
+  assert.doesNotMatch(clientSource, /const inspectable = .*controlledByViewer/);
   assert.match(clientSource, /if \(spell\?\.id === "magic-circle"\)/);
   assert.match(clientSource, /const outerRadius = radius \* 1\.25/);
   assert.match(clientSource, /distance >= outerRadius \* 0\.72 && distance <= outerRadius \* 1\.08/);
   assert.match(clientSource, /if \(\(selected \|\| owned\) && !isMagicCircle\)/);
   assert.match(clientSource, /hitTokens\.find\(\(token\) => token\.kind !== SPELL_EFFECT_KIND\) \?\? hitTokens\[0\]/);
-  assert.match(clientSource, /if \(!hitToken\.controlledByViewer\) return;/);
-  assert.match(clientSource, /View only · \$\{selectedToken\.controller\.name\}/);
+  assert.match(clientSource, /if \(!canMoveToken\(hitToken\)\) return;/);
+  assert.match(clientSource, /Owner only · \$\{selectedToken\.controller\.name\}/);
   assert.match(clientSource, /function drawBlessEffect\(/);
   assert.match(clientSource, /if \(!tokenHasEffect\(token, "Bless"\)\) return;/);
   assert.match(clientSource, /const angle = time \* 0\.38 \+ seed \* Math\.PI \* 2/);
@@ -393,15 +393,63 @@ test("explains pause and confirms combat reset with responsive controls", async 
   assert.match(styles, /\.panel-foot \[data-tooltip\]:hover::after/);
 });
 
-test("selects inspectable map entities and only drags controlled tokens", async () => {
-  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+test("selects inspectable map entities and honors the scenario movement policy", async () => {
+  const [clientSource, workerSource, schemaSource, movementMigration, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0012_hard_norrin_radd.sql", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
 
   assert.match(clientSource, /const hitTokens = \[\.\.\.state\.tokens\]\.reverse\(\)\.filter/);
-  assert.match(clientSource, /const inspectable = token\.controlledByViewer \|\| token\.kind === SPELL_EFFECT_KIND/);
+  assert.match(clientSource, /participant\.role === "dm" \|\| token\.controlledByViewer \|\| !state\.encounter\.strictMovement/);
+  assert.doesNotMatch(clientSource, /const inspectable = .*controlledByViewer/);
   assert.match(clientSource, /setSelectedTokenId\(hitToken\.id\)/);
-  assert.match(clientSource, /if \(!hitToken\.controlledByViewer\) return;/);
+  assert.match(clientSource, /if \(!canMoveToken\(hitToken\)\) return;/);
+  assert.ok(
+    clientSource.indexOf("setSelectedTokenId(hitToken.id)") < clientSource.indexOf("if (!canMoveToken(hitToken)) return;"),
+    "Map selection must happen before movement permission is checked",
+  );
   assert.match(clientSource, /pointerId: event\.pointerId, tokenId: hitToken\.id/);
-  assert.match(clientSource, /participant\.role === "dm" \? "Drag any token to move it/);
+  assert.match(clientSource, /participant\.role === "dm" \|\| !state\.encounter\.strictMovement \? "Drag any visible token to move it/);
+  assert.match(clientSource, /data-tooltip="With strict movement on, players can move only their own character and related summons\./);
+  assert.match(clientSource, /checked=\{state\.encounter\.strictMovement\}/);
+  assert.match(clientSource, /setStrictMovementOptimistically\(event\.target\.checked\)/);
+  assert.match(workerSource, /command === "set-strict-movement"/);
+  assert.match(workerSource, /Boolean\(encounter\.strict_movement\) && !\(await canControlToken/);
+  assert.match(schemaSource, /strictMovement: integer\("strict_movement", \{ mode: "boolean" \}\)\.notNull\(\)\.default\(true\)/);
+  assert.match(movementMigration, /ALTER TABLE `encounters` ADD `strict_movement` integer DEFAULT true NOT NULL/);
+  assert.match(styles, /\.strict-movement-toggle input:checked/);
+});
+
+test("groups personal grid and token presentation controls in UI Settings", async () => {
+  const [clientSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(0\.17\)/);
+  assert.match(clientSource, /const \[transparentTokenBackgrounds, setTransparentTokenBackgrounds\] = useState\(false\)/);
+  assert.match(clientSource, /aria-label="UI Settings"/);
+  assert.match(clientSource, /aria-label="Personal UI Settings"/);
+  assert.match(clientSource, /aria-label="Grid visibility"/);
+  assert.match(clientSource, /setGridOpacity\(Number\(event\.target\.value\) \/ 100\)/);
+  assert.match(clientSource, /Only changes your view/);
+  assert.match(clientSource, /aria-label="Transparent token centers"/);
+  assert.match(clientSource, /setTransparentTokenBackgrounds\(event\.target\.checked\)/);
+  assert.match(clientSource, /transparentTokenBackgrounds\s+\? "rgba\(16, 15, 13, 0\.12\)"/);
+  assert.match(clientSource, /if \(!transparentTokenBackgrounds\) \{\s+context\.strokeStyle = owned/);
+  assert.match(clientSource, /rgba\(232, 220, 190, \$\{Math\.min\(1, Math\.max\(0, gridOpacity\)\)\}\)/);
+  assert.match(clientSource, /"--grid-level": `\$\{Math\.round\(gridOpacity \* 100\)\}%`/);
+  assert.doesNotMatch(clientSource, /command\("set-grid-opacity"|runOptimisticCommand\("set-grid-opacity"/);
+  assert.doesNotMatch(clientSource, /command\("set-transparent-token|runOptimisticCommand\("set-transparent-token/);
+  assert.match(styles, /\.grid-opacity-control input/);
+  assert.match(styles, /::-webkit-slider-runnable-track/);
+  assert.match(styles, /::-webkit-slider-thumb/);
+  assert.match(styles, /::-moz-range-progress/);
+  assert.match(styles, /\.ui-settings-panel/);
+  assert.match(styles, /\.ui-setting-toggle/);
 });
 
 test("shows a straight movement ruler and never rejects movement overage", async () => {

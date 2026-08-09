@@ -1,0 +1,1 @@
+ALTER TABLE `encounters` ADD `strict_movement` integer DEFAULT true NOT NULL;

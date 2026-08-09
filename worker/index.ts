@@ -61,6 +61,7 @@ type EncounterRow = {
   grid_height: number;
   current_round: number;
   active_initiative_order: number | null;
+  strict_movement: number;
   updated_at: number;
 };
 
@@ -414,6 +415,7 @@ async function ensureSchema(env: Env): Promise<void> {
           grid_height INTEGER DEFAULT 11 NOT NULL,
           current_round INTEGER DEFAULT 0 NOT NULL,
           active_initiative_order INTEGER,
+          strict_movement INTEGER DEFAULT 1 NOT NULL,
           updated_at INTEGER NOT NULL
         )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS participants (
@@ -649,6 +651,7 @@ async function ensureSchema(env: Env): Promise<void> {
         ["grid_height", "ALTER TABLE encounters ADD COLUMN grid_height INTEGER DEFAULT 11 NOT NULL"],
         ["current_round", "ALTER TABLE encounters ADD COLUMN current_round INTEGER DEFAULT 0 NOT NULL"],
         ["active_initiative_order", "ALTER TABLE encounters ADD COLUMN active_initiative_order INTEGER"],
+        ["strict_movement", "ALTER TABLE encounters ADD COLUMN strict_movement INTEGER DEFAULT 1 NOT NULL"],
       ] as const;
       for (const [columnName, statement] of encounterAdditions) {
         if (!encounterColumns.results.some((column) => column.name === columnName)) {
@@ -1021,7 +1024,7 @@ async function findEncounter(env: Env, code: string): Promise<EncounterRow | nul
   return env.DB.prepare(
     `SELECT id, code, name, version, status, map_asset, map_package_json,
             active_map_preset_id, grid_width, grid_height, current_round,
-            active_initiative_order, updated_at
+            active_initiative_order, strict_movement, updated_at
      FROM encounters WHERE code = ?`,
   )
     .bind(code)
@@ -1170,6 +1173,7 @@ async function encounterState(
       activeMapPresetId: encounter!.active_map_preset_id,
       currentRound: encounter!.current_round,
       activeInitiativeOrder: encounter!.active_initiative_order,
+      strictMovement: Boolean(encounter!.strict_movement),
       updatedAt: encounter!.updated_at,
     },
     grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
@@ -1799,8 +1803,8 @@ async function handleCommand(
       env.DB.prepare(
         `INSERT INTO encounters
          (id, code, name, version, status, map_asset, map_package_json, active_map_preset_id,
-          grid_width, grid_height, current_round, active_initiative_order, updated_at)
-         VALUES (?, ?, ?, 1, 'setup', ?, ?, ?, ?, ?, 0, NULL, ?)`,
+          grid_width, grid_height, current_round, active_initiative_order, strict_movement, updated_at)
+         VALUES (?, ?, ?, 1, 'setup', ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
       ).bind(
         scenarioId,
         code,
@@ -1810,6 +1814,7 @@ async function handleCommand(
         null,
         encounter.grid_width,
         encounter.grid_height,
+        duplicateMap ? encounter.strict_movement : 1,
         now,
       ),
       ...selectedTokens.map((token) => env.DB.prepare(
@@ -2194,6 +2199,25 @@ async function handleCommand(
       next: { status },
     }, now);
     return json({ configured: true, state: await state() });
+  }
+
+  if (command === "set-strict-movement") {
+    const denied = requireDm();
+    if (denied) return denied;
+    if (typeof body.enabled !== "boolean") {
+      return json({ error: "Strict movement must be on or off." }, { status: 400 });
+    }
+    await env.DB.prepare(
+      "UPDATE encounters SET strict_movement = ?, updated_at = ? WHERE id = ?",
+    )
+      .bind(body.enabled ? 1 : 0, now, encounter.id)
+      .run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "strict_movement_changed", {
+      from: Boolean(encounter.strict_movement),
+      to: body.enabled,
+    }, now);
+    return json({ updated: true, state: await state() });
   }
 
   if (command === "create-spell-effect") {
@@ -2756,7 +2780,7 @@ async function handleApi(
   }
 
   if (action === "move") {
-    if (!(await canControlToken(env, encounter.id, token, participant))) {
+    if (Boolean(encounter.strict_movement) && !(await canControlToken(env, encounter.id, token, participant))) {
       return json(
         { error: "You do not control this token.", state: await encounterState(env, code, participant) },
         { status: 403 },

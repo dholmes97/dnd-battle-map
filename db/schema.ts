@@ -21,6 +21,7 @@ export const encounters = sqliteTable("encounters", {
   gridHeight: integer("grid_height").notNull().default(11),
   currentRound: integer("current_round").notNull().default(0),
   activeInitiativeOrder: integer("active_initiative_order"),
+  strictMovement: integer("strict_movement", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at").notNull(),
 });
 

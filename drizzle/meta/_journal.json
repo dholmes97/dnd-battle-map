@@ -85,6 +85,13 @@
       "when": 1786224750785,
       "tag": "0011_abnormal_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1786233603928,
+      "tag": "0012_hard_norrin_radd",
+      "breakpoints": true
     }
   ]
 }

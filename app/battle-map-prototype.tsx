@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -86,6 +87,7 @@ type EncounterState = {
     activeMapPresetId: string | null;
     currentRound: number;
     activeInitiativeOrder: number | null;
+    strictMovement: boolean;
     updatedAt: number;
   };
   grid: { width: number; height: number; feetPerCell: number };
@@ -189,6 +191,7 @@ const ICON_PATHS = {
   zoomIn: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5M6.8 9h4.4M9 6.8v4.4",
   sidebar: "M3 4.5h14v11H3zM12.5 4.5v11",
   present: "M3 7.5v-3h3M17 7.5v-3h-3M3 12.5v3h3M17 12.5v3h-3",
+  settings: "M4 5.5h12M7 3.5v4M4 10h12M13 8v4M4 14.5h12M8.5 12.5v4",
   close: "M5 5l10 10M15 5L5 15",
   search: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5",
 } as const;
@@ -721,6 +724,8 @@ function drawMap(
   pingStartedAt: ReadonlyMap<string, number>,
   animationNow: number,
   selectedTokenId: string | null,
+  gridOpacity: number,
+  transparentTokenBackgrounds: boolean,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -768,7 +773,7 @@ function drawMap(
     );
   }
 
-  context.strokeStyle = "rgba(232, 220, 190, 0.17)";
+  context.strokeStyle = `rgba(232, 220, 190, ${Math.min(1, Math.max(0, gridOpacity))})`;
   context.lineWidth = 1;
   for (let x = 0; x <= state.grid.width; x += 1) {
     context.beginPath(); context.moveTo(screenX(x), geometry.offsetY); context.lineTo(screenX(x), geometry.offsetY + geometry.visibleHeight * geometry.cellSize); context.stroke();
@@ -873,8 +878,10 @@ function drawMap(
     if (token.hidden) context.globalAlpha *= 0.48;
     if (down) context.globalAlpha *= 0.55;
     context.shadowColor = "rgba(0,0,0,.45)";
-    context.shadowBlur = 10;
-    context.fillStyle = active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length];
+    context.shadowBlur = transparentTokenBackgrounds ? 5 : 10;
+    context.fillStyle = transparentTokenBackgrounds
+      ? "rgba(16, 15, 13, 0.12)"
+      : active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length];
     context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
     context.shadowBlur = 0;
     const art = token.artAsset ? tokenArt.get(token.artAsset) : null;
@@ -898,14 +905,20 @@ function drawMap(
       }
       context.restore();
     } else {
-      context.fillStyle = "#261d18";
+      context.fillStyle = transparentTokenBackgrounds ? "#f3eadb" : "#261d18";
+      if (transparentTokenBackgrounds) {
+        context.shadowColor = "rgba(0, 0, 0, 0.9)";
+        context.shadowBlur = 4;
+      }
       context.font = `800 ${Math.max(12, radius * 0.88)}px ui-sans-serif, system-ui`;
       context.textAlign = "center"; context.textBaseline = "middle";
       context.fillText(tokenInitial(token), x, y + 1);
     }
-    context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
-    context.lineWidth = owned || active ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
-    context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
+    if (!transparentTokenBackgrounds) {
+      context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
+      context.lineWidth = owned || active ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
+    }
 
     if (health) {
       const healthRadius = radius * 1.12;
@@ -1073,6 +1086,8 @@ export default function BattleMapPrototype() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [presenting, setPresenting] = useState(false);
   const [rosterFilter, setRosterFilter] = useState("");
+  const [gridOpacity, setGridOpacity] = useState(0.17);
+  const [transparentTokenBackgrounds, setTransparentTokenBackgrounds] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1132,6 +1147,9 @@ export default function BattleMapPrototype() {
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
+  const canMoveToken = (token: SharedToken) => Boolean(
+    participant && state && (participant.role === "dm" || token.controlledByViewer || !state.encounter.strictMovement),
+  );
   const distance = state && dragOrigin && preview
     ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
     : 0;
@@ -1372,8 +1390,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId);
-  }, [dragOrigin, effectiveSelectedTokenId, participant, placementPreview, preview, renderedMapScene, spellPlacementPreview, state, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, gridOpacity, transparentTokenBackgrounds);
+  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -1789,6 +1807,15 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const setStrictMovementOptimistically = (enabled: boolean) => {
+    void runOptimisticCommand(
+      "set-strict-movement",
+      { enabled },
+      (current) => ({ ...current, encounter: { ...current.encounter, strictMovement: enabled } }),
+      enabled ? "Strict movement enabled." : "Open movement enabled.",
+    );
+  };
+
   useEffect(() => {
     if (!resetConfirmOpen && !restartConfirmOpen && !scenarioCreatorOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -2124,8 +2151,6 @@ export default function BattleMapPrototype() {
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     const hitTokens = [...state.tokens].reverse().filter((token) => {
       if (pendingCreatesRef.current.has(token.id)) return false;
-      const inspectable = token.controlledByViewer || token.kind === SPELL_EFFECT_KIND;
-      if (!inspectable) return false;
       const deltaX = (point.x - token.x) * geometry.cellSize;
       const deltaY = (point.y - token.y) * geometry.cellSize;
       const radius = geometry.cellSize * tokenRadiusCells(token.size);
@@ -2172,7 +2197,7 @@ export default function BattleMapPrototype() {
     if (hitToken && !dragGestureRef.current) {
       event.preventDefault();
       setSelectedTokenId(hitToken.id);
-      if (!hitToken.controlledByViewer) return;
+      if (!canMoveToken(hitToken)) return;
       event.currentTarget.setPointerCapture(event.pointerId);
       const gesture: DragGesture = {
         pointerId: event.pointerId, tokenId: hitToken.id,
@@ -2462,6 +2487,34 @@ export default function BattleMapPrototype() {
         </div>
         <div className={`connection-pill connection-${connection}`} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
         <div className="map-tool-group" role="group" aria-label="Layout">
+          <details className="ui-settings-menu">
+            <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
+            <section className="ui-settings-panel" aria-label="Personal UI Settings">
+              <div className="ui-settings-heading"><strong>UI Settings</strong><small>Only changes your view</small></div>
+              <label className="grid-opacity-control">
+                <span>Grid visibility <output>{Math.round(gridOpacity * 100)}%</output></span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(gridOpacity * 100)}
+                  style={{ "--grid-level": `${Math.round(gridOpacity * 100)}%` } as CSSProperties}
+                  aria-label="Grid visibility"
+                  onChange={(event) => setGridOpacity(Number(event.target.value) / 100)}
+                />
+              </label>
+              <label className="ui-setting-toggle">
+                <span><strong>Transparent token centers</strong><small>Show terrain instead of colored disks</small></span>
+                <input
+                  type="checkbox"
+                  checked={transparentTokenBackgrounds}
+                  aria-label="Transparent token centers"
+                  onChange={(event) => setTransparentTokenBackgrounds(event.target.checked)}
+                />
+              </label>
+            </section>
+          </details>
           <button className={`icon-tool${sidebarOpen ? "" : " tool-active"}`} aria-label={sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="sidebar" /></button>
           <button className={`icon-tool${presenting ? " tool-active" : ""}`} aria-label="Presentation mode" data-tooltip="Presentation mode — F" aria-pressed={presenting} onClick={togglePresenting}><Icon name="present" /></button>
         </div>
@@ -2471,7 +2524,7 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" ? "Drag any token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}><Icon name="close" /></button></div>
               {participant.role === "dm"
@@ -2574,7 +2627,7 @@ export default function BattleMapPrototype() {
           {selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
             <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
             <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
-            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Control</small><strong>{selectedToken.controlledByViewer ? "Drag directly" : `View only · ${selectedToken.controller.name}`}</strong></span></div>
+            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
             {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
           </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
             <div className="token-heading">
@@ -2637,6 +2690,20 @@ export default function BattleMapPrototype() {
               ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button>
               : null}
             {participant.role === "dm" ? <>
+              <label
+                className="strict-movement-toggle"
+                data-tooltip="With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token."
+              >
+                <span><strong>Strict movement</strong><small>Players move only their tokens</small></span>
+                <input
+                  type="checkbox"
+                  checked={state.encounter.strictMovement}
+                  aria-label="Strict movement"
+                  aria-describedby="strict-movement-help"
+                  onChange={(event) => setStrictMovementOptimistically(event.target.checked)}
+                />
+              </label>
+              <span id="strict-movement-help" className="visually-hidden">With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token.</span>
               <div className="button-row">
                 <button className="primary-button" aria-describedby="restart-combat-help" data-tooltip={inCombat ? "Start again at round 1 using the current initiative. Keeps the map, tokens, HP, effects, and initiative values." : "Begin combat at round 1 using the entered initiative values."} onClick={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}>{inCombat ? "Restart combat" : "Start combat"}</button>
                 <span id="restart-combat-help" className="visually-hidden">Restart begins combat again at round 1 using the current initiative values while preserving the map, tokens, HP, and effects.</span>
