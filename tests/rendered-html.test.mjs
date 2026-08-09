@@ -228,6 +228,27 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   }
 });
 
+test("uses one aligned icon-action system for close, discard, remove, and delete", async () => {
+  const [clientSource, workshopSource, iconSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/icon-action-button.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /variant="close" label="Close creature palette"/);
+  assert.match(clientSource, /variant="close" label="Close spell effects"/);
+  assert.match(clientSource, /variant="close" label="Close DM note"/);
+  assert.match(clientSource, /variant="discard" label="Discard token detail changes"/);
+  assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
+  assert.match(workshopSource, /variant="delete" label="Delete scene addition"/);
+  assert.match(workshopSource, /variant="delete" label=\{`Delete \$\{preset\.name\}`\}/);
+  assert.doesNotMatch(clientSource + workshopSource, />×<\/button>/);
+  assert.match(iconSource, /variant === "delete" \? <TrashIcon \/> : <XIcon \/>/);
+  assert.match(styles, /\.icon-action-button \{[^}]*display: grid;[^}]*place-items: center;[^}]*padding: 0;/s);
+  assert.match(styles, /\.icon-action-close \{[^}]*width: 1\.65rem;[^}]*height: 1\.65rem;/s);
+});
+
 test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell entities", async () => {
   const [clientSource, workerSource, spellSource, moonbeam, flamingSphere, magicCircle] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
@@ -248,6 +269,9 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /aria-label="Spell effects"/);
   assert.match(clientSource, /Drag an effect onto the battlefield/);
   assert.match(clientSource, /void placeSpellEffect\(spell, point\)/);
+  assert.match(clientSource, /function suppressNativeDragGhost\(dataTransfer: DataTransfer\)/);
+  assert.match(clientSource, /dataTransfer\.setDragImage\(ghost, 0, 0\)/);
+  assert.match(clientSource, /suppressNativeDragGhost\(event\.dataTransfer\);/);
   assert.doesNotMatch(clientSource, /const inspectable = .*controlledByViewer/);
   assert.match(clientSource, /if \(spell\?\.id === "magic-circle"\)/);
   assert.match(clientSource, /const outerRadius = radius \* 1\.25/);
@@ -304,6 +328,22 @@ test("keeps pings compact, audible, and limited to three pulses", async () => {
   assert.match(clientSource, /0\.12 \+ pulseProgress \* 0\.2/);
   assert.match(workerSource, /const PING_TTL_MS = 2_000;/);
   assert.doesNotMatch(workerSource, /now \+ 10_000/);
+});
+
+test("offers two animated, auto-expiring DM spotlight styles", async () => {
+  const [clientSource, workerSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /const SPOTLIGHT_DURATION_MS = 6_500;/);
+  assert.match(clientSource, /drawArcaneSpotlight/);
+  assert.match(clientSource, /drawNeonSpotlight/);
+  assert.match(clientSource, /"LOOK HERE!"/);
+  assert.match(clientSource, /toolButton\("spotlight", "spotlight", "Arcane spotlight", "S"\)/);
+  assert.match(clientSource, /toolButton\("neon-spotlight", "neon", "Neon arrow", "N"\)/);
+  assert.match(workerSource, /const SPOTLIGHT_TTL_MS = 6_500;/);
+  assert.match(workerSource, /\["spotlight", "neon-spotlight"\]\.includes\(annotationType\)/);
 });
 
 test("keeps authoritative movement-rule rejections visible on the map", async () => {
@@ -578,12 +618,12 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(clientSource, /tokenEditorTokenId === selectedToken\.id \? <div className="token-config">/);
   assert.match(clientSource, /Edit details/);
-  assert.match(clientSource, /className="token-config-cancel" aria-label="Discard token detail changes"/);
+  assert.match(clientSource, /variant="discard" label="Discard token detail changes"/);
   assert.match(clientSource, /className="token-config-save" aria-label="Save token details"/);
   assert.match(clientSource, /const discardTokenDetails = \(tokenId: string\)/);
   assert.doesNotMatch(clientSource, />Save details<\/button>/);
-  assert.match(styles, /\.token-config-save, \.token-config-cancel \{ display: grid; width: 1\.75rem; height: 1\.75rem/);
-  assert.match(styles, /\.token-config-cancel \{ border: 1px solid rgba\(204, 100, 88, 0\.5\)/);
+  assert.match(styles, /\.token-config-save, \.icon-action-discard \{ display: grid; width: 1\.75rem; height: 1\.75rem/);
+  assert.match(styles, /\.icon-action-discard \{ border: 1px solid rgba\(204, 100, 88, 0\.5\)/);
   assert.match(styles, /\.initiative-editor input \{ width: 3\.1rem/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 19\.5rem/);
 });
@@ -664,13 +704,14 @@ test("offers compact icon tools and precise line erasing", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /type AnnotationMode = "move" \| "ping" \| "drawing" \| "erase" \| "spotlight"/);
+  assert.match(clientSource, /type AnnotationMode = "move" \| "ping" \| "drawing" \| "erase" \| "spotlight" \| "neon-spotlight"/);
   assert.match(clientSource, /drawingAtPoint\(state\.annotations, point/);
   assert.match(clientSource, /aria-label=\{label\}\s+data-tooltip=\{`\$\{label\} — \$\{shortcut\}`\}/);
   assert.match(clientSource, /toolButton\("move", "move", "Move tokens", "V"\)/);
   assert.match(clientSource, /toolButton\("erase", "erase", "Erase line", "E"\)/);
   assert.match(clientSource, /toolButton\("ping", "ping", "Ping map", "P"\)/);
   assert.match(clientSource, /toolButton\("drawing", "line", "Draw line", "L"\)/);
+  assert.doesNotMatch(clientSource, /setAnnotationMode\("move"\);\s*await runOptimisticCommand\("add-annotation"/);
   // Stroked SVG paths replaced the glyph characters that rendered unevenly.
   assert.match(clientSource, /const ICON_PATHS = \{/);
   assert.doesNotMatch(clientSource, /aria-hidden="true">✥|aria-hidden="true">◉|aria-hidden="true">⌫/);
@@ -680,6 +721,7 @@ test("offers compact icon tools and precise line erasing", async () => {
   assert.match(workerSource, /"annotation_removed"/);
   assert.match(styles, /\.command-bar \.icon-tool/);
   assert.match(styles, /\.command-bar \[data-tooltip\]::after/);
+  assert.match(styles, /\.command-bar \.map-tool-group:first-child > \[data-tooltip\]:first-child::after/);
   assert.match(styles, /\[data-tooltip\]:focus-visible::after/);
 });
 

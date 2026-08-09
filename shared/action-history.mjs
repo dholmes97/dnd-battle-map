@@ -5,7 +5,7 @@ export function isReversibleHistoryRow(row, reversibleActionTypes) {
   try {
     const payload = JSON.parse(row.payload_json);
     const annotation = payload?.annotation ?? payload;
-    // Pings and spotlights expire on their own. Only durable drawings belong in
+    // Pings and both spotlight styles expire on their own. Only durable drawings belong in
     // undo history, including when reading action rows created by older builds.
     return annotation?.annotationType === "drawing";
   } catch {

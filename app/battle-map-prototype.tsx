@@ -13,6 +13,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import NextImage from "next/image";
+import IconActionButton from "@/app/icon-action-button";
 import MapWorkshop, { renderMapPackageToCanvas } from "@/app/map-workshop";
 import {
   CREATURE_SIZES,
@@ -67,7 +68,7 @@ type SharedToken = MapPoint & {
 };
 type SharedAnnotation = {
   id: string;
-  type: "ping" | "drawing" | "spotlight";
+  type: "ping" | "drawing" | "spotlight" | "neon-spotlight";
   x: number;
   y: number;
   x2: number | null;
@@ -125,7 +126,7 @@ type PanGesture = {
   clientY: number;
   viewport: Viewport;
 };
-type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight";
+type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight" | "neon-spotlight";
 type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
 type ViewportGeometry = Viewport & {
   cellSize: number;
@@ -165,6 +166,7 @@ const JOIN_TIMEOUT_MS = 12_000;
 const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
 const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
+const SPOTLIGHT_DURATION_MS = 6_500;
 const DEFAULT_GRID_OPACITY = 0.17;
 const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1";
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
@@ -189,6 +191,7 @@ const ICON_PATHS = {
   line: "M5 15 15 5M5 15h.01M15 5h.01",
   erase: "m4 13 6.5-6.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 16H7zM4 16h12",
   spotlight: "M10 3v2M10 15v2M3 10h2M15 10h2M5.2 5.2l1.4 1.4M13.4 13.4l1.4 1.4M14.8 5.2l-1.4 1.4M6.6 13.4l-1.4 1.4M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
+  neon: "M3 5h9v-2l5 5-5 5v-2H7v5H3z",
   clear: "M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14M5 5l10 10",
   creatures: "M7 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M13 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M4 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M16 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M10 9.5c2 0 3.6 1.7 3.9 3.3.3 1.6-.8 3.2-2.5 3.2h-2.8c-1.7 0-2.8-1.6-2.5-3.2C6.4 11.2 8 9.5 10 9.5",
   spells: "M10 2.8 11.6 7l4.4-1.4-2.5 3.8 3.7 2.7-4.6.2.2 4.7-2.8-3.7L7.2 17l.2-4.7-4.6-.2 3.7-2.7L4 5.6 8.4 7zM15.5 3.5h.01M3.8 15.8h.01",
@@ -202,7 +205,6 @@ const ICON_PATHS = {
   sidebar: "M3 4.5h14v11H3zM12.5 4.5v11",
   present: "M3 7.5v-3h3M17 7.5v-3h-3M3 12.5v3h3M17 12.5v3h-3",
   settings: "M4 5.5h12M7 3.5v4M4 10h12M13 8v4M4 14.5h12M8.5 12.5v4",
-  close: "M5 5l10 10M15 5L5 15",
   search: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5",
   check: "M4.5 10.2 8.2 14l7.3-8",
 } as const;
@@ -492,6 +494,26 @@ function sessionPayload(participant: Participant, extra: Record<string, unknown>
   });
 }
 
+function suppressNativeDragGhost(dataTransfer: DataTransfer) {
+  // The palette tile is a poor drag image: source spell art intentionally has
+  // black pixels for screen blending, and the full tile duplicates the live
+  // canvas preview. Keep a renderable one-pixel node just long enough for the
+  // browser to snapshot a transparent drag image.
+  const ghost = document.createElement("span");
+  Object.assign(ghost.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "1px",
+    height: "1px",
+    opacity: "0.01",
+    pointerEvents: "none",
+  });
+  document.body.appendChild(ghost);
+  dataTransfer.setDragImage(ghost, 0, 0);
+  requestAnimationFrame(() => ghost.remove());
+}
+
 function viewerHeaders(participant: Participant) {
   return {
     "x-participant-id": participant.id,
@@ -759,6 +781,145 @@ function drawSpellEffect(
   context.restore();
 }
 
+function transientSpotlightOpacity(annotation: SharedAnnotation, animationNow: number) {
+  if (annotation.expiresAt === null) return 0;
+  const remaining = annotation.expiresAt - animationNow;
+  const elapsed = SPOTLIGHT_DURATION_MS - remaining;
+  if (remaining <= 0 || elapsed < 0) return 0;
+  return Math.min(1, elapsed / 260, remaining / 1_350);
+}
+
+function drawArcaneSpotlight(
+  context: CanvasRenderingContext2D,
+  annotation: SharedAnnotation,
+  x: number,
+  y: number,
+  cellSize: number,
+  animationNow: number,
+) {
+  const opacity = transientSpotlightOpacity(annotation, animationNow);
+  if (opacity <= 0 || annotation.expiresAt === null) return;
+  const elapsed = SPOTLIGHT_DURATION_MS - (annotation.expiresAt - animationNow);
+  const time = elapsed / 1_000;
+  const radius = cellSize * 1.42;
+  context.save();
+  context.globalCompositeOperation = "screen";
+
+  const glow = context.createRadialGradient(x, y, radius * 0.08, x, y, radius);
+  glow.addColorStop(0, `rgba(255, 247, 190, ${0.48 * opacity})`);
+  glow.addColorStop(0.38, `rgba(115, 216, 255, ${0.22 * opacity})`);
+  glow.addColorStop(0.72, `rgba(170, 112, 255, ${0.12 * opacity})`);
+  glow.addColorStop(1, "rgba(80, 40, 180, 0)");
+  context.fillStyle = glow;
+  context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
+
+  for (let beam = 0; beam < 3; beam += 1) {
+    const sway = Math.sin(time * (0.7 + beam * 0.12) + beam * 2.1) * radius * 0.18;
+    const beamWidth = radius * (0.22 + beam * 0.025);
+    const beamTop = y - radius * (2.3 + beam * 0.18);
+    const beamGradient = context.createLinearGradient(0, beamTop, 0, y + radius * 0.55);
+    beamGradient.addColorStop(0, "rgba(190, 225, 255, 0)");
+    beamGradient.addColorStop(0.36, `rgba(190, 225, 255, ${0.12 * opacity})`);
+    beamGradient.addColorStop(1, "rgba(255, 236, 170, 0)");
+    context.fillStyle = beamGradient;
+    context.beginPath();
+    context.moveTo(x + sway - beamWidth * 0.25, beamTop);
+    context.lineTo(x + sway + beamWidth * 0.25, beamTop);
+    context.lineTo(x + beamWidth, y + radius * 0.55);
+    context.lineTo(x - beamWidth, y + radius * 0.55);
+    context.closePath(); context.fill();
+  }
+
+  for (let particle = 0; particle < 26; particle += 1) {
+    const seed = spellParticleSeed(annotation.id, 200 + particle);
+    const angle = seed * Math.PI * 2 + Math.sin(time * 0.7 + seed * 8) * 0.35;
+    const orbit = radius * (0.18 + spellParticleSeed(annotation.id, 300 + particle) * 0.8);
+    const fall = (time * (0.32 + seed * 0.2) + seed) % 1;
+    const px = x + Math.cos(angle) * orbit;
+    const py = y - radius * 1.35 + fall * radius * 2.15;
+    const size = Math.max(1, cellSize * (0.018 + seed * 0.025));
+    context.globalAlpha = opacity * Math.sin(Math.PI * fall) * (0.45 + seed * 0.45);
+    context.fillStyle = particle % 3 === 0 ? "#f7d77d" : particle % 3 === 1 ? "#9ce8ff" : "#d5a7ff";
+    context.shadowColor = context.fillStyle;
+    context.shadowBlur = size * 4;
+    context.beginPath(); context.arc(px, py, size, 0, Math.PI * 2); context.fill();
+  }
+
+  const ringPulse = (time * 0.58) % 1;
+  context.globalAlpha = opacity * (1 - ringPulse) * 0.72;
+  context.strokeStyle = "#ffeaa3";
+  context.lineWidth = Math.max(1.5, cellSize * 0.045);
+  context.setLineDash([cellSize * 0.12, cellSize * 0.11]);
+  context.beginPath(); context.arc(x, y, radius * (0.28 + ringPulse * 0.72), 0, Math.PI * 2); context.stroke();
+  context.restore();
+}
+
+function drawNeonSpotlight(
+  context: CanvasRenderingContext2D,
+  annotation: SharedAnnotation,
+  x: number,
+  y: number,
+  cellSize: number,
+  animationNow: number,
+) {
+  const opacity = transientSpotlightOpacity(annotation, animationNow);
+  if (opacity <= 0 || annotation.expiresAt === null) return;
+  const elapsed = SPOTLIGHT_DURATION_MS - (annotation.expiresAt - animationNow);
+  const time = elapsed / 1_000;
+  const flicker = Math.sin(time * 23) > -0.84 ? 1 : 0.38;
+  const pulse = 0.88 + Math.sin(time * 6.4) * 0.12;
+  const scale = cellSize * pulse;
+  const startX = x - scale * 2.5;
+  const startY = y - scale * 1.85;
+  const bendX = x - scale * 0.72;
+  const bendY = y - scale * 0.72;
+
+  context.save();
+  context.globalCompositeOperation = "screen";
+  context.globalAlpha = opacity * flicker;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  const traceArrow = () => {
+    context.beginPath();
+    context.moveTo(startX, startY);
+    context.lineTo(bendX, bendY);
+    context.lineTo(x - scale * 0.62, y - scale * 1.25);
+    context.moveTo(bendX, bendY);
+    context.lineTo(x - scale * 1.26, y - scale * 0.62);
+  };
+  context.strokeStyle = "#ff3fbf";
+  context.shadowColor = "#ff2cae";
+  context.shadowBlur = scale * 0.34;
+  context.lineWidth = Math.max(8, scale * 0.2);
+  traceArrow(); context.stroke();
+  context.strokeStyle = "#fff7ff";
+  context.shadowBlur = scale * 0.12;
+  context.lineWidth = Math.max(2.4, scale * 0.055);
+  traceArrow(); context.stroke();
+
+  const labelX = startX + scale * 0.7;
+  const labelY = startY - scale * 0.18;
+  context.font = `900 ${Math.max(13, scale * 0.34)}px sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "bottom";
+  context.strokeStyle = "#112035";
+  context.lineWidth = Math.max(4, scale * 0.1);
+  context.shadowColor = "#24dfff";
+  context.shadowBlur = scale * 0.3;
+  context.strokeText("LOOK HERE!", labelX, labelY);
+  context.fillStyle = "#7cf5ff";
+  context.shadowBlur = scale * 0.18;
+  context.fillText("LOOK HERE!", labelX, labelY);
+
+  context.globalAlpha = opacity * (0.65 + Math.sin(time * 8) * 0.2);
+  context.strokeStyle = "#ffe76e";
+  context.shadowColor = "#ffe14b";
+  context.shadowBlur = scale * 0.22;
+  context.lineWidth = Math.max(2, scale * 0.045);
+  context.beginPath(); context.arc(x, y, scale * (0.2 + ((time * 0.8) % 1) * 0.42), 0, Math.PI * 2); context.stroke();
+  context.restore();
+}
+
 function drawMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
@@ -852,7 +1013,7 @@ function drawMap(
     context.save();
     context.strokeStyle = annotation.color;
     context.fillStyle = `${annotation.color}33`;
-    context.lineWidth = annotation.type === "spotlight" ? 5 : 3;
+    context.lineWidth = 3;
     if (annotation.type === "ping") {
       const startedAt = pingStartedAt.get(annotation.id);
       const elapsed = startedAt === undefined ? PING_DURATION_MS : animationNow - startedAt;
@@ -870,10 +1031,8 @@ function drawMap(
     } else if (annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null) {
       context.setLineDash([9, 5]);
       context.beginPath(); context.moveTo(x, y); context.lineTo(screenX(annotation.x2), screenY(annotation.y2)); context.stroke();
-    } else {
-      const radius = Math.min(cellWidth, cellHeight) * 1.15;
-      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke();
-    }
+    } else if (annotation.type === "spotlight") drawArcaneSpotlight(context, annotation, x, y, Math.min(cellWidth, cellHeight), animationNow);
+    else if (annotation.type === "neon-spotlight") drawNeonSpotlight(context, annotation, x, y, Math.min(cellWidth, cellHeight), animationNow);
     context.restore();
   }
 
@@ -1537,15 +1696,18 @@ export default function BattleMapPrototype() {
       const startedAt = pingStartedAtRef.current.get(annotation.id);
       return annotation.type === "ping" && startedAt !== undefined && Date.now() - startedAt < PING_DURATION_MS;
     });
+    const hasAnimatingSpotlight = () => state?.annotations.some((annotation) =>
+      (annotation.type === "spotlight" || annotation.type === "neon-spotlight") &&
+      annotation.expiresAt !== null && annotation.expiresAt > Date.now());
     const hasPersistentSpell = state?.tokens.some((token) => token.kind === SPELL_EFFECT_KIND) || Boolean(spellPlacementPreview);
     const hasAttachedVfx = state?.tokens.some((token) => tokenHasEffect(token, "Bless") || tokenHasEffect(token, "Haste"));
-    if (!hasAnimatingPing() && !hasPersistentSpell && !hasAttachedVfx) return;
+    if (!hasAnimatingPing() && !hasAnimatingSpotlight() && !hasPersistentSpell && !hasAttachedVfx) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { redraw(); return; }
     let frameId = 0;
     let lastPaint = 0;
     const animate = (now: number) => {
       if (now - lastPaint >= 1000 / 24) { redraw(Date.now()); lastPaint = now; }
-      if (hasAnimatingPing() || hasPersistentSpell || hasAttachedVfx) frameId = requestAnimationFrame(animate);
+      if (hasAnimatingPing() || hasAnimatingSpotlight() || hasPersistentSpell || hasAttachedVfx) frameId = requestAnimationFrame(animate);
     };
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
@@ -2170,6 +2332,7 @@ export default function BattleMapPrototype() {
   const onSpellDragStart = (event: ReactDragEvent<HTMLButtonElement>, spell: SpellEffectDefinition) => {
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData("application/x-spell-effect-id", spell.id);
+    suppressNativeDragGhost(event.dataTransfer);
     setArmedSpellId(spell.id);
   };
 
@@ -2257,18 +2420,17 @@ export default function BattleMapPrototype() {
       y: start.y,
       x2: end?.x ?? null,
       y2: end?.y ?? null,
-      color: type === "spotlight" ? "#f5c65c" : "#75c8d8",
+      color: type === "spotlight" ? "#f5c65c" : type === "neon-spotlight" ? "#ff3fbf" : "#75c8d8",
       label: null,
       createdBy: participant?.id ?? "pending",
-      expiresAt: type === "ping" ? Date.now() + PING_DURATION_MS : type === "spotlight" ? Date.now() + 15_000 : null,
+      expiresAt: type === "ping" ? Date.now() + PING_DURATION_MS : type === "spotlight" || type === "neon-spotlight" ? Date.now() + SPOTLIGHT_DURATION_MS : null,
     };
-    setAnnotationMode("move");
     await runOptimisticCommand("add-annotation", {
       annotationType: type,
       x: start.x, y: start.y,
       x2: end?.x, y2: end?.y,
       color: annotation.color,
-    }, (current) => ({ ...current, annotations: [...current.annotations, annotation] }), type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "DM spotlight shared." : undefined);
+    }, (current) => ({ ...current, annotations: [...current.annotations, annotation] }), type === "drawing" ? "Tactical line shared." : type === "spotlight" ? "Arcane spotlight shared." : type === "neon-spotlight" ? "Neon spotlight shared." : undefined);
   };
 
   const eraseAnnotationAtPoint = (canvas: HTMLCanvasElement, point: MapPoint) => {
@@ -2497,8 +2659,8 @@ export default function BattleMapPrototype() {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const key = event.key.toLocaleLowerCase();
       if (key === "escape" && presenting) { event.preventDefault(); togglePresenting(); return; }
-      const tool: Record<string, AnnotationMode> = { v: "move", p: "ping", l: "drawing", e: "erase", s: "spotlight" };
-      if (tool[key] && (tool[key] !== "spotlight" || participant?.role === "dm")) {
+      const tool: Record<string, AnnotationMode> = { v: "move", p: "ping", l: "drawing", e: "erase", s: "spotlight", n: "neon-spotlight" };
+      if (tool[key] && (!["spotlight", "neon-spotlight"].includes(tool[key]) || participant?.role === "dm")) {
         event.preventDefault();
         if (tool[key] === "ping") enablePingAudio();
         setAnnotationMode(tool[key]);
@@ -2622,7 +2784,8 @@ export default function BattleMapPrototype() {
           {toolButton("ping", "ping", "Ping map", "P")}
           {toolButton("drawing", "line", "Draw line", "L")}
           {toolButton("erase", "erase", "Erase line", "E")}
-          {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Place spotlight", "S") : null}
+          {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Arcane spotlight", "S") : null}
+          {participant.role === "dm" ? toolButton("neon-spotlight", "neon", "Neon arrow", "N") : null}
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
         </div>
         <div className="map-tool-group" role="group" aria-label="Map content">
@@ -2710,7 +2873,7 @@ export default function BattleMapPrototype() {
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
-              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><button aria-label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}><Icon name="close" /></button></div>
+              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><IconActionButton variant="close" label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }} /></div>
               {participant.role === "dm"
                 ? <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
                 : <p className="palette-controller">Anything you place is summoned by {playerCharacter?.name ?? "your character"} and controlled by you.</p>}
@@ -2733,7 +2896,7 @@ export default function BattleMapPrototype() {
               <p className="palette-hint">Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
             </section> : null}
             {spellPaletteOpen ? <section className="spell-palette" aria-label="Spell effects palette">
-              <div className="palette-heading"><div><small>Persistent magic</small><h2>Spell effects</h2></div><button aria-label="Close spell effects" onClick={() => { setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); }}><Icon name="close" /></button></div>
+              <div className="palette-heading"><div><small>Persistent magic</small><h2>Spell effects</h2></div><IconActionButton variant="close" label="Close spell effects" onClick={() => { setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); }} /></div>
               <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
               <div className="spell-grid">
                 {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedSpellId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onSpellDragStart(event, spell)} onDragEnd={() => setSpellPlacementPreview(null)} onClick={() => setArmedSpellId((current) => current === spell.id ? null : spell.id)} aria-pressed={armedSpellId === spell.id}>
@@ -2809,7 +2972,7 @@ export default function BattleMapPrototype() {
           </div>
 
           {selectedMapNote ? <section className="map-note-detail" aria-label={`DM note ${state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}`}>
-            <div className="map-note-heading"><div><small>Private map note</small><h2>Note {state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}</h2></div><button aria-label="Close DM note" onClick={() => setSelectedMapNoteId(null)}><Icon name="close" /></button></div>
+            <div className="map-note-heading"><div><small>Private map note</small><h2>Note {state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}</h2></div><IconActionButton variant="close" label="Close DM note" onClick={() => setSelectedMapNoteId(null)} /></div>
             <p>{selectedMapNote.text}</p>
           </section> : selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
             <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
@@ -2818,7 +2981,7 @@ export default function BattleMapPrototype() {
             {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
           </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
             {participant.role === "dm" && tokenEditorTokenId === selectedToken.id ? <div className="token-config">
-              <div className="token-config-toolbar"><small>Edit token details</small><span className="token-config-actions"><button className="token-config-cancel" aria-label="Discard token detail changes" title="Discard changes" onClick={() => discardTokenDetails(selectedToken.id)}><Icon name="close" /></button><button className="token-config-save" aria-label="Save token details" title="Save details" onClick={() => void saveTokenDetails(selectedToken)}><Icon name="check" /></button></span></div>
+              <div className="token-config-toolbar"><small>Edit token details</small><span className="token-config-actions"><IconActionButton variant="discard" label="Discard token detail changes" title="Discard changes" onClick={() => discardTokenDetails(selectedToken.id)} /><button className="token-config-save" aria-label="Save token details" title="Save details" onClick={() => void saveTokenDetails(selectedToken)}><Icon name="check" /></button></span></div>
               <input aria-label="Token name" value={tokenDrafts[selectedToken.id]?.name ?? selectedToken.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], name: event.target.value } }))} />
               <div className="form-grid">
                 <label>Size<select aria-label="Token size" value={tokenDrafts[selectedToken.id]?.size ?? selectedToken.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
@@ -2857,7 +3020,7 @@ export default function BattleMapPrototype() {
                     <button className="hp-apply is-heal" onClick={() => void applyHpToToken(token, hpStep)}>Heal</button>
                   </div>
                 </div> : null}
-                <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <button aria-label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)}>×</button> : null}</span>)}</div>
+                <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <IconActionButton variant="remove" label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)} /> : null}</span>)}</div>
                 {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
                 {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
                 {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}

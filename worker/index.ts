@@ -157,6 +157,7 @@ type CreatureCatalogRow = {
 };
 
 const PING_TTL_MS = 2_000;
+const SPOTLIGHT_TTL_MS = 6_500;
 const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|move|command)$/;
 
@@ -2573,10 +2574,10 @@ async function handleCommand(
   }
 
   if (command === "add-annotation") {
-    const annotationType = ["ping", "drawing", "spotlight"].includes(String(body.annotationType))
+    const annotationType = ["ping", "drawing", "spotlight", "neon-spotlight"].includes(String(body.annotationType))
       ? String(body.annotationType)
       : "ping";
-    if (annotationType === "spotlight" && participant.role !== "dm") {
+    if (["spotlight", "neon-spotlight"].includes(annotationType) && participant.role !== "dm") {
       return json({ error: "Only the DM can place a spotlight." }, { status: 403 });
     }
     const x = Number(body.x);
@@ -2588,8 +2589,8 @@ async function handleCommand(
     }
     const expiresAt = annotationType === "ping"
       ? now + PING_TTL_MS
-      : annotationType === "spotlight"
-        ? now + 15_000
+      : annotationType === "spotlight" || annotationType === "neon-spotlight"
+        ? now + SPOTLIGHT_TTL_MS
         : null;
     const annotationId = crypto.randomUUID();
     const color = cleanText(body.color, 16) || "#f5c65c";

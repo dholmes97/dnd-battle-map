@@ -46,5 +46,6 @@ test("only durable drawings are reversible annotations", () => {
   assert.equal(isReversibleHistoryRow(row("drawing"), annotationTypes), true);
   assert.equal(isReversibleHistoryRow(row("ping"), annotationTypes), false);
   assert.equal(isReversibleHistoryRow(row("spotlight"), annotationTypes), false);
+  assert.equal(isReversibleHistoryRow(row("neon-spotlight"), annotationTypes), false);
   assert.equal(isReversibleHistoryRow({ ...row("broken"), payload_json: "{" }, annotationTypes), false);
 });

@@ -116,6 +116,14 @@ test("temporary pings and spotlights stay out of undo history", async () => {
   });
   assert.equal(spotlight.response.status, 200);
   assert.equal(spotlight.body.state.undo.available, before.body.undo.available);
+
+  const neonSpotlight = await command(dm, "add-annotation", {
+    annotationType: "neon-spotlight",
+    x: 7.5,
+    y: 6.5,
+  });
+  assert.equal(neonSpotlight.response.status, 200);
+  assert.equal(neonSpotlight.body.state.undo.available, before.body.undo.available);
 });
 
 async function waitForPolledState(since, predicate, timeoutMs = 15_000, headers = {}) {

@@ -11,6 +11,7 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/map-generation.test.mjs tests/creature-catalog.test.mjs tests/token-control.test.mjs tests/action-history.test.mjs tests/health-bands.test.mjs",
     "test:live": "node --test tests/live-sync-api.test.mjs",
+    "catalog:expand": "node scripts/build-creature-expansion.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
