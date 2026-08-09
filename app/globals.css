@@ -1019,6 +1019,16 @@ input:focus {
 .map-object-list > div button:hover { color: #d7857a; }
 
 .selected-scene-panel { background: #171712; }
+.selected-scene-panel .danger-button { width: 100%; margin-top: 0.35rem; }
+.selected-note-copy { white-space: pre-wrap; }
+
+.map-note-detail { padding: 0.75rem; border: 1px solid #51415e; border-radius: 0.5rem; background: linear-gradient(145deg, #201923, #181619); }
+.map-note-heading { display: flex; align-items: start; justify-content: space-between; gap: 0.75rem; }
+.map-note-heading small { color: #a98dc0; font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.map-note-heading h2 { margin: 0.16rem 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; font-weight: 500; }
+.map-note-heading button { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border: 1px solid #4a3e50; border-radius: 0.35rem; background: transparent; color: #9b8fa1; }
+.map-note-heading button svg { width: 0.8rem; height: 0.8rem; }
+.map-note-detail > p { margin: 0.7rem 0 0; color: #c0b5c7; font-size: 0.7rem; line-height: 1.55; white-space: pre-wrap; }
 
 .map-library-panel .button-row { grid-template-columns: 1.25fr 0.85fr 0.85fr; }
 .map-library-panel textarea { width: 100%; min-height: 2.8rem; resize: vertical; padding: 0.38rem 0.45rem; border: 1px solid #373932; border-radius: 0.35rem; background: #141512; color: #aaa398; font: 0.58rem/1.4 var(--font-geist-sans), sans-serif; }

@@ -70,6 +70,27 @@ test("gives the DM a durable scenario creation workflow", async () => {
   assert.match(styles, /\.scenario-dialog label/);
 });
 
+test("keeps DM notes private while making map labels and notes directly manageable", async () => {
+  const [clientSource, workshopSource, workerSource, styles] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(workerSource, /function mapPackageForViewer/);
+  assert.match(workerSource, /labels: mapPackage\.labels\.filter\(\(label\) => label\.visibility === "everyone"\)/);
+  assert.match(workerSource, /notes: \[\]/);
+  assert.match(clientSource, /participant\?\.role === "dm"\);/);
+  assert.match(clientSource, /const \[selectedMapNoteId, setSelectedMapNoteId\]/);
+  assert.match(clientSource, /Private map note/);
+  assert.match(workshopSource, /function noteAt/);
+  assert.match(workshopSource, /function labelAt/);
+  assert.match(workshopSource, /Selected DM note/);
+  assert.match(workshopSource, /deleteSelectedAnnotation/);
+  assert.match(styles, /\.map-note-detail/);
+});
+
 test("stores creature originals and generated thumbnails in R2", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("asset-test", `${process.pid}-${Date.now()}`);

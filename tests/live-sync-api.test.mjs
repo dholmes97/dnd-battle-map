@@ -467,7 +467,12 @@ test("map presets persist privately and applied packages resize the shared autho
     visual: { kind: "generated-scene", assetUrl: "/map-assets/storm-coast-ruins-02.jpg", pixelWidth: 3072, pixelHeight: 2048, sceneKitId: "storm-coast" },
     sceneObjects: [{ id: `boat-${suffix}`, definitionId: "coast-boat", assetUrl: "/map-assets/scene-kits/coast-boat.png", x: 7, y: 5, width: 6, height: 6, rotation: 0 }],
     walls: [{ id: `wall-${suffix}`, x1: 2, y1: 2, x2: 8, y2: 2, style: "ruined" }],
-    portals: [], labels: [], notes: [],
+    portals: [],
+    labels: [
+      { id: `public-label-${suffix}`, x: 4, y: 4, text: "Collapsed arch", visibility: "everyone" },
+      { id: `dm-label-${suffix}`, x: 6, y: 6, text: "Secret door", visibility: "dm" },
+    ],
+    notes: [{ id: `dm-note-${suffix}`, x: 5, y: 5, text: "The floor gives way here." }],
     source: { kind: "generated-scene" },
     createdAt: Date.now(),
   };
@@ -491,6 +496,10 @@ test("map presets persist privately and applied packages resize the shared autho
     const shared = await viewerState(player);
     assert.equal(shared.body.encounter.mapPackage.name, mapPackage.name);
     assert.deepEqual(shared.body.grid, { width, height, feetPerCell: 5 });
+    assert.deepEqual(shared.body.encounter.mapPackage.notes, [], "players must not receive private DM-note text or markers");
+    assert.deepEqual(shared.body.encounter.mapPackage.labels.map((label) => label.text), ["Collapsed arch"], "players receive only public labels");
+    assert.equal(applied.body.state.encounter.mapPackage.notes[0].text, "The floor gives way here.", "the DM keeps the complete package");
+    assert.equal(applied.body.state.encounter.mapPackage.labels.length, 2);
 
     const editedDraft = { ...mapPackage, name: `${mapPackage.name} · Edited`, description: "The currently edited workshop draft must win over its older saved preset." };
     const editedApplication = await command(dm, "apply-map-package", { presetId, mapPackage: editedDraft });

@@ -36,6 +36,7 @@ type Tool = "select" | "wall" | "door" | "window" | "label" | "note";
 type Point = { x: number; y: number };
 type DragState = { pointerId: number; objectId: string; offset: Point; before: MapPackage };
 type WallDrag = { pointerId: number; start: Point };
+type SelectedAnnotation = { kind: "label" | "note"; id: string };
 
 const DEFAULT_SCENE = FULL_SCENE_MAPS[0];
 const HISTORY_LIMIT = 50;
@@ -75,6 +76,27 @@ function objectAt(map: MapPackage, point: Point) {
     const bounds = sceneObjectBounds(object);
     return point.x >= object.x && point.x <= object.x + bounds.width && point.y >= object.y && point.y <= object.y + bounds.height;
   }) ?? null;
+}
+
+function noteAt(map: MapPackage, point: Point) {
+  return [...map.notes].reverse().find((note) => Math.hypot(note.x - point.x, note.y - point.y) <= 0.38) ?? null;
+}
+
+function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
+  const context = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const cellWidth = rect.width / map.width;
+  const cellHeight = rect.height / map.height;
+  if (!context || cellWidth <= 0 || cellHeight <= 0) return null;
+  context.save();
+  context.font = `700 ${Math.max(11, cellWidth * 0.24)}px ui-sans-serif, system-ui`;
+  const match = [...map.labels].reverse().find((label) => {
+    const halfWidth = (context.measureText(label.text).width + 18) / cellWidth / 2;
+    const halfHeight = 14 / cellHeight;
+    return Math.abs(point.x - label.x) <= halfWidth && Math.abs(point.y - label.y) <= halfHeight;
+  }) ?? null;
+  context.restore();
+  return match;
 }
 
 function drawStructures(context: CanvasRenderingContext2D, map: MapPackage, cellWidth: number, cellHeight: number, includePrivate: boolean) {
@@ -142,6 +164,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const [dirty, setDirty] = useState(false);
   const [tool, setTool] = useState<Tool>("select");
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<SelectedAnnotation | null>(null);
   const [portalOrientation, setPortalOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [labelText, setLabelText] = useState("");
   const [labelVisibility, setLabelVisibility] = useState<"dm" | "everyone">("everyone");
@@ -162,6 +185,8 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const [historyCounts, setHistoryCounts] = useState({ undo: 0, redo: 0 });
 
   const selectedObject = map.sceneObjects.find((object) => object.id === selectedObjectId) ?? null;
+  const selectedLabel = selectedAnnotation?.kind === "label" ? map.labels.find((label) => label.id === selectedAnnotation.id) ?? null : null;
+  const selectedNote = selectedAnnotation?.kind === "note" ? map.notes.find((note) => note.id === selectedAnnotation.id) ?? null : null;
   const kit = SCENE_KITS[map.visual.sceneKitId] ?? [];
   const assetPaths = useMemo(() => [...new Set([map.visual.assetUrl, ...map.sceneObjects.map((object) => object.assetUrl)])], [map.sceneObjects, map.visual.assetUrl]);
 
@@ -189,11 +214,25 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
       context.strokeRect(selectedObject.x * cellWidth, selectedObject.y * cellHeight, bounds.width * cellWidth, bounds.height * cellHeight); context.setLineDash([]);
     }
+    if (selectedLabel) {
+      context.save();
+      context.font = `700 ${Math.max(11, cellWidth * 0.24)}px ui-sans-serif, system-ui`;
+      const width = context.measureText(selectedLabel.text).width + 22 * dpr;
+      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
+      context.strokeRect(selectedLabel.x * cellWidth - width / 2, selectedLabel.y * cellHeight - 15 * dpr, width, 30 * dpr);
+      context.restore();
+    }
+    if (selectedNote) {
+      context.save();
+      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
+      context.beginPath(); context.arc(selectedNote.x * cellWidth, selectedNote.y * cellHeight, Math.max(12 * dpr, cellWidth * 0.3), 0, Math.PI * 2); context.stroke();
+      context.restore();
+    }
     if (wallPreview) {
       context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(3, dpr * 2); context.setLineDash([7 * dpr, 5 * dpr]);
       context.beginPath(); context.moveTo(wallPreview.start.x * cellWidth, wallPreview.start.y * cellHeight); context.lineTo(wallPreview.end.x * cellWidth, wallPreview.end.y * cellHeight); context.stroke(); context.setLineDash([]);
     }
-  }, [images, map, selectedObject, wallPreview]);
+  }, [images, map, selectedLabel, selectedNote, selectedObject, wallPreview]);
 
   useEffect(() => { draw(); }, [draw]);
   useEffect(() => { const resize = () => draw(); window.addEventListener("resize", resize); return () => window.removeEventListener("resize", resize); }, [draw]);
@@ -203,15 +242,15 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   };
   const commit = (update: (current: MapPackage) => MapPackage) => setMap((current) => { const next = update(current); remember(current); setDirty(true); return next; });
   const replaceDraft = (next: MapPackage, changed: boolean) => {
-    setMap(cloneMapPackage(next)); setDirty(changed); setPresetName(next.name); setSelectedObjectId(null); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
+    setMap(cloneMapPackage(next)); setDirty(changed); setPresetName(next.name); setSelectedObjectId(null); setSelectedAnnotation(null); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
   };
   const undo = () => {
     const previous = undoRef.current.pop(); if (!previous) return;
-    redoRef.current.push(cloneMapPackage(map)); setMap(previous); setDirty(true); setSelectedObjectId(null); setHistoryCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
+    redoRef.current.push(cloneMapPackage(map)); setMap(previous); setDirty(true); setSelectedObjectId(null); setSelectedAnnotation(null); setHistoryCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
   };
   const redo = () => {
     const next = redoRef.current.pop(); if (!next) return;
-    undoRef.current.push(cloneMapPackage(map)); setMap(next); setDirty(true); setSelectedObjectId(null); setHistoryCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
+    undoRef.current.push(cloneMapPackage(map)); setMap(next); setDirty(true); setSelectedObjectId(null); setSelectedAnnotation(null); setHistoryCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
   };
 
   const runCommand = async (name: string, extra: Record<string, unknown>, success: string) => {
@@ -229,7 +268,14 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     const point = canvasPoint(event.currentTarget, map, event.clientX, event.clientY);
     if (tool === "select") {
-      const object = objectAt(map, point); setSelectedObjectId(object?.id ?? null);
+      const note = noteAt(map, point);
+      const label = note ? null : labelAt(event.currentTarget, map, point);
+      if (note || label) {
+        setSelectedAnnotation({ kind: note ? "note" : "label", id: (note ?? label)!.id });
+        setSelectedObjectId(null);
+        return;
+      }
+      const object = objectAt(map, point); setSelectedObjectId(object?.id ?? null); setSelectedAnnotation(null);
       if (object) { objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, offset: { x: point.x - object.x, y: point.y - object.y }, before: cloneMapPackage(map) }; event.currentTarget.setPointerCapture(event.pointerId); }
       return;
     }
@@ -265,12 +311,19 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     const point = snap(canvasPoint(event.currentTarget, map, event.clientX, event.clientY));
     commit((current) => {
       const object = { id: crypto.randomUUID(), definitionId: definition.id, assetUrl: definition.assetUrl, x: Math.max(0, Math.min(current.width - definition.width, point.x - Math.floor(definition.width / 2))), y: Math.max(0, Math.min(current.height - definition.height, point.y - Math.floor(definition.height / 2))), width: definition.width, height: definition.height, rotation: 0 as MapRotation };
-      setSelectedObjectId(object.id); return { ...current, sceneObjects: [...current.sceneObjects, object] };
+      setSelectedObjectId(object.id); setSelectedAnnotation(null); return { ...current, sceneObjects: [...current.sceneObjects, object] };
     });
   };
 
-  const deleteObject = (collection: "walls" | "portals" | "labels" | "notes", id: string) => commit((current) => ({ ...current, [collection]: current[collection].filter((item) => item.id !== id) }));
+  const deleteObject = (collection: "walls" | "portals" | "labels" | "notes", id: string) => {
+    commit((current) => ({ ...current, [collection]: current[collection].filter((item) => item.id !== id) }));
+    if (selectedAnnotation?.id === id) setSelectedAnnotation(null);
+  };
   const deleteSelected = () => { if (!selectedObjectId) return; commit((current) => ({ ...current, sceneObjects: current.sceneObjects.filter((object) => object.id !== selectedObjectId) })); setSelectedObjectId(null); };
+  const deleteSelectedAnnotation = () => {
+    if (!selectedAnnotation) return;
+    deleteObject(selectedAnnotation.kind === "label" ? "labels" : "notes", selectedAnnotation.id);
+  };
   const rotateSelected = () => { if (!selectedObjectId) return; commit((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === selectedObjectId ? { ...object, rotation: nextRotation(object.rotation) } : object) })); };
 
   const savePreset = async () => {
@@ -293,7 +346,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       <aside className="workshop-controls" aria-label="Scene workshop controls">
         <section><div className="workshop-section-heading"><small>Complete scenes</small><strong>Choose a cohesive base</strong></div><p className="workshop-help">Each starter is one high-resolution image with its own matching additions.</p><div className="full-scene-list">{FULL_SCENE_MAPS.map((scene) => <button key={scene.id} className={map.visual.assetUrl === scene.assetUrl ? "is-active" : ""} onClick={() => chooseScene(scene)}><NextImage src={scene.assetUrl} alt="" width={96} height={64} unoptimized /><span><strong>{scene.name}</strong><small>{scene.biome} · {scene.width ?? 24} × {scene.height ?? 16}</small></span></button>)}</div></section>
         <section><div className="workshop-section-heading"><small>Edit</small><strong>Scene annotations</strong></div><div className="draft-history-row"><button disabled={!historyCounts.undo} onClick={undo}>Undo{historyCounts.undo ? ` (${historyCounts.undo})` : ""}</button><button disabled={!historyCounts.redo} onClick={redo}>Redo{historyCounts.redo ? ` (${historyCounts.redo})` : ""}</button></div><div className="workshop-tool-row is-expanded">{(["select", "wall", "door", "window", "label", "note"] as Tool[]).map((value) => <button key={value} className={tool === value ? "is-active" : ""} onClick={() => setTool(value)}>{value === "note" ? "DM note" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div>
-          {tool === "select" ? <p className="workshop-help">Drag matching additions to move them. Select one to rotate or remove it.</p> : null}
+          {tool === "select" ? <p className="workshop-help">Select additions, labels, or notes on the map. Drag additions to move them; use Delete below to remove the selection.</p> : null}
           {tool === "wall" ? <p className="workshop-help">Drag between grid intersections to add a wall.</p> : null}
           {tool === "door" || tool === "window" ? <div className="structure-options"><span>Orientation</span><div className="terrain-edge-toggle"><button className={portalOrientation === "horizontal" ? "is-active" : ""} onClick={() => setPortalOrientation("horizontal")}>Horizontal</button><button className={portalOrientation === "vertical" ? "is-active" : ""} onClick={() => setPortalOrientation("vertical")}>Vertical</button></div><p className="workshop-help">Click the desired position.</p></div> : null}
           {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene.</p></div> : null}
@@ -308,6 +361,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
           {map.notes.map((note, index) => <div key={note.id}><span>DM note {index + 1}<small>{note.text}</small></span><button aria-label={`Delete note ${index + 1}`} onClick={() => deleteObject("notes", note.id)}>×</button></div>)}
         </details>
         {selectedObject ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected addition</small><strong>{kit.find((item) => item.id === selectedObject.definitionId)?.name ?? selectedObject.definitionId}</strong></div><p className="workshop-help">Drag to reposition; rotation remains grid-aligned.</p><div className="button-row"><button className="secondary-button" onClick={rotateSelected}>Rotate 90°</button><button className="danger-button" onClick={deleteSelected}>Delete</button></div></section> : null}
+        {selectedLabel || selectedNote ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>{selectedLabel ? "Selected label" : "Selected DM note"}</small><strong>{selectedLabel?.text ?? `Note ${map.notes.findIndex((note) => note.id === selectedNote?.id) + 1}`}</strong></div>{selectedNote ? <p className="workshop-help selected-note-copy">{selectedNote.text}</p> : <p className="workshop-help">{selectedLabel?.visibility === "dm" ? "Visible only to the DM." : "Visible to everyone after the scene is applied."}</p>}<button className="danger-button" onClick={deleteSelectedAnnotation}>Delete</button></section> : null}
         <section className="map-library-panel"><div className="workshop-section-heading"><small>Scene library</small><strong>Save and exchange</strong></div><label>Title<input value={map.name} maxLength={100} onChange={(event) => commit((current) => ({ ...current, name: event.target.value }))} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><label>Preset name<input value={presetName} onChange={(event) => setPresetName(event.target.value)} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button><button className="secondary-button" onClick={exportPackage}>Export</button><button className="secondary-button" onClick={() => importRef.current?.click()}>Import</button></div><input ref={importRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => void importPackage(event)} /><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{preset.mapPackage.biome} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><button className="saved-map-delete" aria-label={`Delete ${preset.name}`} onClick={() => void runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`)}>×</button></article>)}</div></section>
       </aside>
       <section className="workshop-canvas-panel" aria-label="Editable full-scene map"><div className="workshop-canvas-heading"><div><small>Cohesive full-scene draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>3072 × 2048 base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame"><canvas ref={canvasRef} style={{ aspectRatio: `${map.width} / ${map.height}` }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDrop={onMapDrop} aria-label={`${map.name} draft with ${map.sceneObjects.length} matching additions`} /></div><div className="workshop-legend"><span><i className="legend-cell" />Gold outline marks the selected addition</span><span><i className="legend-grid" />Additions and annotations align to the grid</span><span>The base remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>

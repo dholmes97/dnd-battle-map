@@ -1095,6 +1095,15 @@ function coarseHealth(hp: number | null, maxHp: number | null): string | null {
   return healthBand(hp, maxHp);
 }
 
+function mapPackageForViewer(mapPackage: MapPackage | null, viewer: ParticipantRow | null): MapPackage | null {
+  if (!mapPackage || viewer?.role === "dm") return mapPackage;
+  return {
+    ...mapPackage,
+    labels: mapPackage.labels.filter((label) => label.visibility === "everyone"),
+    notes: [],
+  };
+}
+
 async function encounterState(
   env: Env,
   code: string,
@@ -1169,7 +1178,7 @@ async function encounterState(
       name: encounter!.name,
       version: encounter!.version,
       status: encounter!.status,
-      mapPackage: activeMapPackage,
+      mapPackage: mapPackageForViewer(activeMapPackage, viewer),
       activeMapPresetId: encounter!.active_map_preset_id,
       currentRound: encounter!.current_round,
       activeInitiativeOrder: encounter!.active_initiative_order,

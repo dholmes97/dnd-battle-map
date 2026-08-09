@@ -765,6 +765,7 @@ function drawMap(
   pingStartedAt: ReadonlyMap<string, number>,
   animationNow: number,
   selectedTokenId: string | null,
+  selectedMapNoteId: string | null,
   gridOpacity: number,
   transparentTokenBackgrounds: boolean,
 ) {
@@ -821,6 +822,20 @@ function drawMap(
   }
   for (let y = 0; y <= state.grid.height; y += 1) {
     context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + geometry.visibleWidth * geometry.cellSize, screenY(y)); context.stroke();
+  }
+
+  const selectedMapNote = participant.role === "dm" && selectedMapNoteId
+    ? mapPackage?.notes.find((note) => note.id === selectedMapNoteId) ?? null
+    : null;
+  if (selectedMapNote) {
+    context.save();
+    context.strokeStyle = "#f5c65c";
+    context.lineWidth = 2.5;
+    context.setLineDash([6, 5]);
+    context.beginPath();
+    context.arc(screenX(selectedMapNote.x), screenY(selectedMapNote.y), Math.max(12, cellWidth * 0.3), 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
   }
 
   for (const annotation of state.annotations) {
@@ -1085,6 +1100,7 @@ export default function BattleMapPrototype() {
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [selectedMapNoteId, setSelectedMapNoteId] = useState<string | null>(null);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [dragOrigin, setDragOrigin] = useState<MapPoint | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -1221,6 +1237,9 @@ export default function BattleMapPrototype() {
     : placementSummonerId;
   const effectiveSelectedTokenId = selectedTokenId ?? controlledTokens[0]?.id ?? null;
   const selectedToken = state?.tokens.find((token) => token.id === effectiveSelectedTokenId) ?? null;
+  const selectedMapNote = participant?.role === "dm" && selectedMapNoteId
+    ? state?.encounter.mapPackage?.notes.find((note) => note.id === selectedMapNoteId) ?? null
+    : null;
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const canMoveToken = (token: SharedToken) => Boolean(
@@ -1448,11 +1467,11 @@ export default function BattleMapPrototype() {
       const scene = document.createElement("canvas");
       scene.width = mapPackage.visual.pixelWidth;
       scene.height = mapPackage.visual.pixelHeight;
-      renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), true);
+      renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), participant?.role === "dm");
       setRenderedMapScene({ mapId: mapPackage.id, canvas: scene });
     });
     return () => { disposed = true; };
-  }, [state?.encounter.mapPackage]);
+  }, [participant?.role, state?.encounter.mapPackage]);
 
   useEffect(() => {
     const assets = [...new Set([
@@ -1469,8 +1488,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, gridOpacity, transparentTokenBackgrounds);
-  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, transparentTokenBackgrounds);
+  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -2238,6 +2257,13 @@ export default function BattleMapPrototype() {
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
+    const hitMapNote = participant.role === "dm"
+      ? [...(state.encounter.mapPackage?.notes ?? [])].reverse().find((note) => {
+          const deltaX = (point.x - note.x) * geometry.cellSize;
+          const deltaY = (point.y - note.y) * geometry.cellSize;
+          return Math.hypot(deltaX, deltaY) <= Math.max(12, geometry.cellSize * 0.32);
+        }) ?? null
+      : null;
     const hitTokens = [...state.tokens].reverse().filter((token) => {
       if (pendingCreatesRef.current.has(token.id)) return false;
       const deltaX = (point.x - token.x) * geometry.cellSize;
@@ -2254,6 +2280,12 @@ export default function BattleMapPrototype() {
     // A circle is scenery around its occupants: clicking a token inside must
     // select that token, while clicking the luminous perimeter selects the spell.
     const hitToken = hitTokens.find((token) => token.kind !== SPELL_EFFECT_KIND) ?? hitTokens[0];
+    if (annotationMode === "move" && hitMapNote) {
+      event.preventDefault();
+      setSelectedMapNoteId(hitMapNote.id);
+      setSelectedTokenId(null);
+      return;
+    }
     if (!movementEnabled) {
       if (hitToken?.kind === SPELL_EFFECT_KIND) setSelectedTokenId(hitToken.id);
       return;
@@ -2286,6 +2318,7 @@ export default function BattleMapPrototype() {
     if (hitToken && !dragGestureRef.current) {
       event.preventDefault();
       setSelectedTokenId(hitToken.id);
+      setSelectedMapNoteId(null);
       if (!canMoveToken(hitToken)) return;
       event.currentTarget.setPointerCapture(event.pointerId);
       const gesture: DragGesture = {
@@ -2528,7 +2561,7 @@ export default function BattleMapPrototype() {
         className={`roster-row${selected ? " is-selected" : ""}${active ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}${grouped ? " is-grouped" : ""}${token.controlledByViewer ? " is-mine" : ""}`}
         aria-pressed={selected}
         disabled={pendingCreate}
-        onClick={() => setSelectedTokenId(token.id)}
+        onClick={() => { setSelectedTokenId(token.id); setSelectedMapNoteId(null); }}
       >
         {token.artAsset
           ? <NextImage className="roster-portrait" src={token.artAsset} alt="" width={44} height={44} unoptimized />
@@ -2738,7 +2771,10 @@ export default function BattleMapPrototype() {
             ) : rosterRow(row.token, row.grouped))}
           </div>
 
-          {selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
+          {selectedMapNote ? <section className="map-note-detail" aria-label={`DM note ${state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}`}>
+            <div className="map-note-heading"><div><small>Private map note</small><h2>Note {state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}</h2></div><button aria-label="Close DM note" onClick={() => setSelectedMapNoteId(null)}><Icon name="close" /></button></div>
+            <p>{selectedMapNote.text}</p>
+          </section> : selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
             <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
             <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
             <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
