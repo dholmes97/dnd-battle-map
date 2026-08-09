@@ -1,5 +1,6 @@
 # Project direction
 
+- Prefer a lightweight hexagonal boundary: keep battle-map rules and deterministic decisions in framework-free shared modules with direct unit tests, while React, Worker/D1, and browser APIs remain adapters around that core.
 - Treat cohesive, high-resolution full-scene maps as the only map-authoring workflow. Do not restore the retired generic terrain or fragment-based editor.
 - Scene additions must be generated for and visually matched to their specific base map.
 - Keep the battle map visually dominant: desktop layouts must fit the map within the browser viewport, with controls and sidebars scrolling independently when needed.

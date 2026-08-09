@@ -71,20 +71,23 @@ test("gives the DM a durable scenario creation workflow", async () => {
 });
 
 test("keeps DM notes private while making map labels and notes directly manageable", async () => {
-  const [clientSource, workshopSource, workerSource, styles] = await Promise.all([
+  const [clientSource, workshopSource, workerSource, encounterDomain, workshopDomain, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/encounter-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/map-workshop-domain.mjs", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(workerSource, /function mapPackageForViewer/);
-  assert.match(workerSource, /labels: mapPackage\.labels\.filter\(\(label\) => label\.visibility === "everyone"\)/);
-  assert.match(workerSource, /notes: \[\]/);
+  assert.match(workerSource, /mapPackageForViewer,/);
+  assert.match(encounterDomain, /labels: mapPackage\.labels\.filter\(\(label\) => label\.visibility === "everyone"\)/);
+  assert.match(encounterDomain, /notes: \[\]/);
   assert.match(clientSource, /participant\?\.role === "dm"\);/);
   assert.match(clientSource, /const \[selectedMapNoteId, setSelectedMapNoteId\]/);
   assert.match(clientSource, /Private map note/);
-  assert.match(workshopSource, /function noteAt/);
+  assert.match(workshopSource, /mapNoteAt\(map, point\)/);
+  assert.match(workshopDomain, /export function mapNoteAt/);
   assert.match(workshopSource, /function labelAt/);
   assert.match(workshopSource, /Selected DM note/);
   assert.match(workshopSource, /deleteSelectedAnnotation/);
@@ -362,8 +365,8 @@ test("keeps authoritative movement-rule rejections visible on the map", async ()
   ]);
 
   assert.match(clientSource, /className="map-message is-error" role="alert"/);
-  assert.match(workerSource, /You do not control this token/);
-  assert.match(workerSource, /encounter\.status === "paused"/);
+  assert.match(workerSource, /error: policyDenial\.error/);
+  assert.match(workerSource, /status: policyDenial\.status/);
 });
 
 test("moves immediately on pointer release without token reservations", async () => {
@@ -390,7 +393,7 @@ test("moves immediately on pointer release without token reservations", async ()
   assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
   assert.match(workerSource, /SET x = \?, y = \?, movement_used = \?, movement_origin_x = \?, movement_origin_y = \?, updated_at = \?/);
   assert.match(workerSource, /const movementOrigin = isSpellEffect \? null : encounter\.status === "active" \? previousMovementOrigin \?\? previous : previousMovementOrigin/);
-  assert.match(workerSource, /const distance = isSpellEffect \? 0 : directDistance\(movementOrigin \?\? previous, \{ x, y \}\)/);
+  assert.match(workerSource, /const distance = isSpellEffect \? 0 : calculateDirectDistance\(movementOrigin \?\? previous, \{ x, y \}, 5\)/);
   assert.doesNotMatch(workerSource, /token\.movement_used \+ distance/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
@@ -478,7 +481,8 @@ test("selects inspectable map entities and honors the scenario movement policy",
   ]);
 
   assert.match(clientSource, /const hitTokens = \[\.\.\.state\.tokens\]\.reverse\(\)\.filter/);
-  assert.match(clientSource, /participant\.role === "dm" \|\| token\.controlledByViewer \|\| !state\.encounter\.strictMovement/);
+  assert.match(clientSource, /!movementPolicyDenial\(\{/);
+  assert.match(clientSource, /controlledByViewer: token\.controlledByViewer/);
   assert.doesNotMatch(clientSource, /const inspectable = .*controlledByViewer/);
   assert.match(clientSource, /setSelectedTokenId\(hitToken\.id\)/);
   assert.match(clientSource, /if \(!canMoveToken\(hitToken\)\) return;/);
@@ -492,7 +496,8 @@ test("selects inspectable map entities and honors the scenario movement policy",
   assert.match(clientSource, /checked=\{state\.encounter\.strictMovement\}/);
   assert.match(clientSource, /setStrictMovementOptimistically\(event\.target\.checked\)/);
   assert.match(workerSource, /command === "set-strict-movement"/);
-  assert.match(workerSource, /Boolean\(encounter\.strict_movement\) && !\(await canControlToken/);
+  assert.match(workerSource, /const policyDenial = movementPolicyDenial\(\{/);
+  assert.match(workerSource, /controlledByViewer = participant\.role === "dm" \|\| !strictMovement \|\| await canControlToken/);
   const moveHandler = workerSource.slice(workerSource.indexOf('if (action === "move")'), workerSource.indexOf('return json({ error: "Method not allowed."'));
   assert.doesNotMatch(moveHandler, /not in the active turn group/);
   assert.match(schemaSource, /strictMovement: integer\("strict_movement", \{ mode: "boolean" \}\)\.notNull\(\)\.default\(true\)/);
@@ -573,8 +578,8 @@ test("keeps HP ring thickness independent of creature size", async () => {
 test("rebuilds the map scene only when its content changes", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
-  assert.match(clientSource, /const mapSceneContentKey = state\?\.encounter\.mapPackage \? JSON\.stringify\(state\.encounter\.mapPackage\) : ""/);
-  assert.match(clientSource, /\}, \[mapSceneContentKey, participant\?\.role\]\);/);
+  assert.match(clientSource, /const mapSceneKey = mapSceneContentKey\(state\?\.encounter\.mapPackage \?\? null\)/);
+  assert.match(clientSource, /\}, \[mapSceneKey, participant\?\.role\]\);/);
   assert.doesNotMatch(clientSource, /\}, \[participant\?\.role, state\?\.encounter\.mapPackage\]\);/);
 });
 
@@ -715,20 +720,21 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
 });
 
 test("zooms at the cursor and pans by dragging empty map space", async () => {
-  const [clientSource, styles] = await Promise.all([
+  const [clientSource, geometrySource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../shared/battle-map-geometry.mjs", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /function zoomViewportAt\(/);
+  assert.match(clientSource, /zoomViewportAt,/);
   assert.match(clientSource, /Math\.exp\(-event\.deltaY \* 0\.0015\)/);
-  assert.match(clientSource, /Math\.max\(width \/ state\.grid\.width, height \/ state\.grid\.height\)/);
-  assert.match(clientSource, /const fitZoom = Math\.min\(width \/ state\.grid\.width, height \/ state\.grid\.height\) \/ baseCellSize/);
-  assert.match(clientSource, /const zoom = fit \? fitZoom : Math\.max\(1, Math\.min\(3, requestedZoom\)\)/);
+  assert.match(geometrySource, /Math\.max\(width \/ state\.grid\.width, height \/ state\.grid\.height\)/);
+  assert.match(geometrySource, /const fitZoom = Math\.min\(width \/ state\.grid\.width, height \/ state\.grid\.height\) \/ baseCellSize/);
+  assert.match(geometrySource, /const zoom = fit \? fitZoom : Math\.max\(1, Math\.min\(3, requestedZoom\)\)/);
   assert.match(clientSource, /aria-label="Fit whole map"/);
   assert.match(clientSource, /onClick=\{fitViewport\}><Icon name="fit" \/><\/button>/);
   assert.match(clientSource, /viewport\.fit \? "Fit"/);
-  assert.match(clientSource, /offsetX: Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
+  assert.match(geometrySource, /offsetX: Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
   assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
   assert.match(clientSource, /const sourceWidth = geometry\.visibleWidth \/ state\.grid\.width \* mapScene\.width/);
   assert.match(clientSource, /geometry\.visibleWidth \* geometry\.cellSize/);
@@ -863,18 +869,19 @@ test("collapses the sidebar and presents the map full bleed", async () => {
 });
 
 test("shows one roster that folds identical mobs and orders combat by initiative", async () => {
-  const [clientSource, workerSource, styles] = await Promise.all([
+  const [clientSource, workerSource, initiativeSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/initiative-domain.mjs", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /function buildRosterRows\(/);
-  assert.match(clientSource, /const ROSTER_GROUP_THRESHOLD = 3;/);
+  assert.match(clientSource, /buildRosterRows,/);
+  assert.match(initiativeSource, /export const ROSTER_GROUP_THRESHOLD = 3;/);
   // In combat the roster is the turn order, nothing else.
-  assert.match(clientSource, /\(a\.initiativeOrder \?\? 999\) - \(b\.initiativeOrder \?\? 999\) \|\| compareTokenNames\(a, b\)/);
+  assert.match(initiativeSource, /\(a\.initiativeOrder \?\? 999\) - \(b\.initiativeOrder \?\? 999\) \|\| compareTokenNames\(a, b\)/);
   // Grouping keys off creature kind, not ownership: the DM controls everything.
-  assert.match(clientSource, /token\.kind === "character" \? \(token\.controlledByViewer \? 0 : 1\)/);
+  assert.match(initiativeSource, /token\.kind === "character" \? \(token\.controlledByViewer \? 0 : 1\)/);
   // The separate initiative list is gone; one list serves both jobs.
   assert.doesNotMatch(clientSource, /className="initiative-list"|className="initiative-entry/);
   // Encounter controls are always reachable instead of below the whole roster.
@@ -921,13 +928,14 @@ test("hides exact hit points from players and snaps their rings to bands", async
 });
 
 test("bounds client map media and transient ping memory", async () => {
-  const [clientSource, workshopSource] = await Promise.all([
+  const [clientSource, workshopSource, workshopDomain] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../shared/map-workshop-domain.mjs", import.meta.url), "utf8"),
   ]);
 
   // The workshop must not decode every 3072x2048 scene just to show its picker.
-  assert.match(workshopSource, /\/assets\/full-map-thumbnails\//);
+  assert.match(workshopDomain, /\/assets\/full-map-thumbnails\//);
   assert.match(workshopSource, /loading="lazy"/);
   // WebKit can retain detached canvas backing stores until a later GC cycle.
   assert.match(clientSource, /function releaseRenderedMapScene\(/);
@@ -937,16 +945,16 @@ test("bounds client map media and transient ping memory", async () => {
 });
 
 test("keeps temporary annotations out of undo and explains history conflicts", async () => {
-  const [workerSource, historySource] = await Promise.all([
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  const [historySource, encounterDomain] = await Promise.all([
     readFile(new URL("../shared/action-history.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/encounter-domain.mjs", import.meta.url), "utf8"),
   ]);
 
   assert.match(historySource, /return annotation\?\.annotationType === "drawing";/);
   assert.match(historySource, /including when reading action rows created by older builds/);
-  assert.match(workerSource, /This move cannot be \$\{direction\} because the token moved again\./);
-  assert.match(workerSource, /This HP change cannot be \$\{direction\} because the token's HP changed again\./);
-  assert.match(workerSource, /This initiative-group change cannot be \$\{direction\} because its members or initiative changed again\./);
-  assert.match(workerSource, /This drawing cannot be \$\{direction\} because it was changed, erased, or cleared\./);
-  assert.doesNotMatch(workerSource, /That action can no longer be undone because its shared state changed/);
+  assert.match(encounterDomain, /This move cannot be \$\{direction\} because the token moved again\./);
+  assert.match(encounterDomain, /This HP change cannot be \$\{direction\} because the token's HP changed again\./);
+  assert.match(encounterDomain, /This initiative-group change cannot be \$\{direction\} because its members or initiative changed again\./);
+  assert.match(encounterDomain, /This drawing cannot be \$\{direction\} because it was changed, erased, or cleared\./);
+  assert.doesNotMatch(encounterDomain, /That action can no longer be undone because its shared state changed/);
 });

@@ -20,6 +20,14 @@ import {
 } from "../shared/token-control.mjs";
 import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
 import { healthBand } from "../shared/health.mjs";
+import { movementPolicyDenial } from "../shared/battle-map-policies.mjs";
+import { calculateDirectDistance } from "../shared/battle-map-geometry.mjs";
+import {
+  historyConflictMessage,
+  mapPackageForViewer,
+  scenarioCodeFromName,
+} from "../shared/encounter-domain.mjs";
+import { nextInitiativeTurn, orderedInitiativeGroups } from "../shared/initiative-domain.mjs";
 import {
   isSpellAreaSize,
   SPELL_EFFECT_KIND,
@@ -325,16 +333,6 @@ function cleanCode(value: string): string {
   } catch {
     return "";
   }
-}
-
-function scenarioCodeFromName(name: string): string {
-  return name
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 20) || "NEW-SCENARIO";
 }
 
 async function uniqueScenarioCode(env: Env, name: string): Promise<string> {
@@ -1098,15 +1096,6 @@ function coarseHealth(hp: number | null, maxHp: number | null): string | null {
   return healthBand(hp, maxHp);
 }
 
-function mapPackageForViewer(mapPackage: MapPackage | null, viewer: ParticipantRow | null): MapPackage | null {
-  if (!mapPackage || viewer?.role === "dm") return mapPackage;
-  return {
-    ...mapPackage,
-    labels: mapPackage.labels.filter((label) => label.visibility === "everyone"),
-    notes: [],
-  };
-}
-
 async function encounterState(
   env: Env,
   code: string,
@@ -1308,22 +1297,6 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "token_updated",
 ]);
 
-function historyConflictMessage(direction: "undone" | "redone", actionType: string): string {
-  const messages: Record<string, string> = {
-    token_moved: `This move cannot be ${direction} because the token moved again.`,
-    hp_changed: `This HP change cannot be ${direction} because the token's HP changed again.`,
-    initiative_set: `This initiative change cannot be ${direction} because the token's initiative or group changed again.`,
-    initiative_group_set: `This initiative-group change cannot be ${direction} because its members or initiative changed again.`,
-    effect_added: `This effect change cannot be ${direction} because the effect changed again.`,
-    effect_removed: `This effect change cannot be ${direction} because the effect changed again.`,
-    annotation_added: `This drawing cannot be ${direction} because it was changed, erased, or cleared.`,
-    annotation_removed: `This erased drawing cannot be ${direction} because the drawing changed again.`,
-    token_created: `This placement cannot be ${direction} because the token was deleted, reassigned, or otherwise changed.`,
-    token_updated: `This token edit cannot be ${direction} because the token no longer exists or its details changed again.`,
-  };
-  return messages[actionType] ?? `This action cannot be ${direction} because its shared state changed.`;
-}
-
 async function historyStacks(
   env: Env,
   encounterId: string,
@@ -1390,14 +1363,6 @@ async function canControlToken(
   return identityControlsToken(participant, baseTokenControllerName(current));
 }
 
-function directDistance(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-): number {
-  const gridSquares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
-  return Math.round(gridSquares * 5 * 10) / 10;
-}
-
 type InitiativeLeader = {
   id: string;
   name: string;
@@ -1405,19 +1370,6 @@ type InitiativeLeader = {
   initiative_group_id: string | null;
   summoner_token_id: string | null;
 };
-
-function groupInitiativeLeaders(leaders: InitiativeLeader[]) {
-  const groups = new Map<string, InitiativeLeader[]>();
-  for (const leader of leaders
-    .filter((token) => !token.summoner_token_id && token.initiative !== null)
-    .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name))) {
-    const key = leader.initiative_group_id || leader.id;
-    const members = groups.get(key);
-    if (members) members.push(leader); else groups.set(key, [leader]);
-  }
-  return [...groups.values()].sort((a, b) =>
-    (b[0].initiative ?? 0) - (a[0].initiative ?? 0) || a[0].name.localeCompare(b[0].name));
-}
 
 async function activeInitiativeLeaderIds(env: Env, encounter: EncounterRow) {
   if (encounter.status !== "active" || encounter.active_initiative_order === null) return [] as string[];
@@ -1439,7 +1391,11 @@ async function rebuildInitiativeOrders(
     `SELECT id, name, initiative, initiative_group_id, summoner_token_id
      FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
   ).bind(encounter.id).all<InitiativeLeader>();
-  const groups = groupInitiativeLeaders(tokens.results);
+  const groups = orderedInitiativeGroups(tokens.results.map((token) => ({
+    ...token,
+    initiativeGroupId: token.initiative_group_id,
+    summonerTokenId: token.summoner_token_id,
+  }))) as InitiativeLeader[][];
   const activeOrder = Math.max(0, groups.findIndex((members) =>
     members.some((member) => activeLeaderIds.includes(member.id))));
   const statements = [env.DB.prepare(
@@ -1475,16 +1431,13 @@ async function advanceInitiative(
       .run();
     return { round: 0, activeOrder: null };
   }
-  const currentIndex = orders.results.findIndex(
-    (row) => row.initiative_order === encounter.active_initiative_order,
+  const transition = nextInitiativeTurn(
+    orders.results.map((row) => row.initiative_order),
+    encounter.active_initiative_order,
+    encounter.current_round,
   );
-  const wraps = currentIndex < 0 || currentIndex === orders.results.length - 1;
-  const nextOrder = wraps
-    ? orders.results[0].initiative_order
-    : orders.results[currentIndex + 1].initiative_order;
-  const nextRound = wraps
-    ? Math.max(1, encounter.current_round + 1)
-    : encounter.current_round;
+  const nextOrder = transition.activeOrder!;
+  const nextRound = transition.round;
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE tokens SET turn_complete = 0, movement_used = 0,
@@ -2841,17 +2794,19 @@ async function handleApi(
   }
 
   if (action === "move") {
-    if (Boolean(encounter.strict_movement) && !(await canControlToken(env, encounter.id, token, participant))) {
+    const strictMovement = Boolean(encounter.strict_movement);
+    const controlledByViewer = participant.role === "dm" || !strictMovement || await canControlToken(env, encounter.id, token, participant);
+    const policyDenial = movementPolicyDenial({
+      strictMovement,
+      participantRole: participant.role,
+      controlledByViewer,
+      encounterStatus: encounter.status,
+    });
+    if (policyDenial) {
       return json(
-        { error: "You do not control this token.", state: await encounterState(env, code, participant) },
-        { status: 403 },
+        { error: policyDenial.error, state: await encounterState(env, code, participant) },
+        { status: policyDenial.status },
       );
-    }
-    if (
-      encounter.status === "paused" &&
-      participant.role !== "dm"
-    ) {
-      return json({ error: "The encounter is paused." }, { status: 409 });
     }
     const requestedX = Number(body.x);
     const requestedY = Number(body.y);
@@ -2873,7 +2828,7 @@ async function handleApi(
       ? null
       : { x: token.movement_origin_x, y: token.movement_origin_y };
     const movementOrigin = isSpellEffect ? null : encounter.status === "active" ? previousMovementOrigin ?? previous : previousMovementOrigin;
-    const distance = isSpellEffect ? 0 : directDistance(movementOrigin ?? previous, { x, y });
+    const distance = isSpellEffect ? 0 : calculateDirectDistance(movementOrigin ?? previous, { x, y }, 5);
     const overBudget = !isSpellEffect && encounter.status === "active" && distance > token.speed + 0.05;
     const movementUsed = isSpellEffect ? 0 : encounter.status === "active"
       ? distance

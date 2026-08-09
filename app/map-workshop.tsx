@@ -14,6 +14,14 @@ import {
 } from "react";
 import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap, type SceneKitDefinition } from "@/shared/full-scene-maps";
 import { cloneMapPackage, parseMapPackage, type MapPackage, type MapRotation } from "@/shared/map-package";
+import {
+  mapNoteAt,
+  mapThumbnailUrl,
+  nextMapRotation,
+  sceneObjectAt,
+  sceneObjectBounds,
+  snapMapPoint,
+} from "@/shared/map-workshop-domain.mjs";
 
 type SavedMapPreset = {
   id: string;
@@ -51,40 +59,12 @@ function loadImage(path: string): Promise<[string, HTMLImageElement] | null> {
   });
 }
 
-function mapThumbnailUrl(assetUrl: string): string {
-  return `/assets/full-map-thumbnails/${assetUrl.split("/").pop()}`;
-}
-
 function canvasPoint(canvas: HTMLCanvasElement, map: MapPackage, clientX: number, clientY: number): Point {
   const rect = canvas.getBoundingClientRect();
   return {
     x: Math.max(0, Math.min(map.width, ((clientX - rect.left) / rect.width) * map.width)),
     y: Math.max(0, Math.min(map.height, ((clientY - rect.top) / rect.height) * map.height)),
   };
-}
-
-function snap(point: Point): Point {
-  return { x: Math.round(point.x), y: Math.round(point.y) };
-}
-
-function nextRotation(rotation: MapRotation): MapRotation {
-  return ((rotation + 90) % 360) as MapRotation;
-}
-
-function sceneObjectBounds(object: MapPackage["sceneObjects"][number]) {
-  const rotated = object.rotation === 90 || object.rotation === 270;
-  return { width: rotated ? object.height : object.width, height: rotated ? object.width : object.height };
-}
-
-function objectAt(map: MapPackage, point: Point) {
-  return [...map.sceneObjects].reverse().find((object) => {
-    const bounds = sceneObjectBounds(object);
-    return point.x >= object.x && point.x <= object.x + bounds.width && point.y >= object.y && point.y <= object.y + bounds.height;
-  }) ?? null;
-}
-
-function noteAt(map: MapPackage, point: Point) {
-  return [...map.notes].reverse().find((note) => Math.hypot(note.x - point.x, note.y - point.y) <= 0.38) ?? null;
 }
 
 function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
@@ -274,19 +254,19 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     const point = canvasPoint(event.currentTarget, map, event.clientX, event.clientY);
     if (tool === "select") {
-      const note = noteAt(map, point);
+      const note = mapNoteAt(map, point);
       const label = note ? null : labelAt(event.currentTarget, map, point);
       if (note || label) {
         setSelectedAnnotation({ kind: note ? "note" : "label", id: (note ?? label)!.id });
         setSelectedObjectId(null);
         return;
       }
-      const object = objectAt(map, point); setSelectedObjectId(object?.id ?? null); setSelectedAnnotation(null);
+      const object = sceneObjectAt(map, point); setSelectedObjectId(object?.id ?? null); setSelectedAnnotation(null);
       if (object) { objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, offset: { x: point.x - object.x, y: point.y - object.y }, before: cloneMapPackage(map) }; event.currentTarget.setPointerCapture(event.pointerId); }
       return;
     }
-    if (tool === "wall") { const start = snap(point); wallDragRef.current = { pointerId: event.pointerId, start }; setWallPreview({ start, end: start }); event.currentTarget.setPointerCapture(event.pointerId); return; }
-    const location = snap(point); const id = crypto.randomUUID();
+    if (tool === "wall") { const start = snapMapPoint(point); wallDragRef.current = { pointerId: event.pointerId, start }; setWallPreview({ start, end: start }); event.currentTarget.setPointerCapture(event.pointerId); return; }
+    const location = snapMapPoint(point); const id = crypto.randomUUID();
     if (tool === "door" || tool === "window") commit((current) => ({ ...current, portals: [...current.portals, { id, x: location.x, y: location.y, orientation: portalOrientation, kind: tool, open: false }] }));
     if (tool === "label" && labelText.trim()) commit((current) => ({ ...current, labels: [...current.labels, { id, x: location.x, y: location.y, text: labelText.trim().slice(0, 120), visibility: labelVisibility }] }));
     if (tool === "note" && noteText.trim()) commit((current) => ({ ...current, notes: [...current.notes, { id, x: location.x, y: location.y, text: noteText.trim().slice(0, 500) }] }));
@@ -297,7 +277,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     const objectDrag = objectDragRef.current;
     if (objectDrag?.pointerId === event.pointerId) setMap((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === objectDrag.objectId ? { ...object, x: Math.max(0, Math.min(current.width - sceneObjectBounds(object).width, Math.round(point.x - objectDrag.offset.x))), y: Math.max(0, Math.min(current.height - sceneObjectBounds(object).height, Math.round(point.y - objectDrag.offset.y))) } : object) }));
     const wallDrag = wallDragRef.current;
-    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: snap(point) });
+    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: snapMapPoint(point) });
   };
 
   const finishPointer = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -305,7 +285,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     if (objectDrag?.pointerId === event.pointerId) { remember(objectDrag.before); setDirty(true); objectDragRef.current = null; }
     const wallDrag = wallDragRef.current;
     if (wallDrag?.pointerId === event.pointerId) {
-      const end = snap(canvasPoint(event.currentTarget, map, event.clientX, event.clientY)); wallDragRef.current = null; setWallPreview(null);
+      const end = snapMapPoint(canvasPoint(event.currentTarget, map, event.clientX, event.clientY)); wallDragRef.current = null; setWallPreview(null);
       if (end.x !== wallDrag.start.x || end.y !== wallDrag.start.y) commit((current) => ({ ...current, walls: [...current.walls, { id: crypto.randomUUID(), x1: wallDrag.start.x, y1: wallDrag.start.y, x2: end.x, y2: end.y, style: current.biome === "cave" ? "cave" : current.biome === "ruins" ? "ruined" : "stone" }] }));
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -314,7 +294,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const onKitDragStart = (event: DragEvent<HTMLButtonElement>, definition: SceneKitDefinition) => { kitDragRef.current = definition; event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("text/plain", definition.id); };
   const onMapDrop = (event: DragEvent<HTMLCanvasElement>) => {
     event.preventDefault(); const definition = kitDragRef.current; kitDragRef.current = null; if (!definition) return;
-    const point = snap(canvasPoint(event.currentTarget, map, event.clientX, event.clientY));
+    const point = snapMapPoint(canvasPoint(event.currentTarget, map, event.clientX, event.clientY));
     commit((current) => {
       const object = { id: crypto.randomUUID(), definitionId: definition.id, assetUrl: definition.assetUrl, x: Math.max(0, Math.min(current.width - definition.width, point.x - Math.floor(definition.width / 2))), y: Math.max(0, Math.min(current.height - definition.height, point.y - Math.floor(definition.height / 2))), width: definition.width, height: definition.height, rotation: 0 as MapRotation };
       setSelectedObjectId(object.id); setSelectedAnnotation(null); return { ...current, sceneObjects: [...current.sceneObjects, object] };
@@ -330,7 +310,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     if (!selectedAnnotation) return;
     deleteObject(selectedAnnotation.kind === "label" ? "labels" : "notes", selectedAnnotation.id);
   };
-  const rotateSelected = () => { if (!selectedObjectId) return; commit((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === selectedObjectId ? { ...object, rotation: nextRotation(object.rotation) } : object) })); };
+  const rotateSelected = () => { if (!selectedObjectId) return; commit((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === selectedObjectId ? { ...object, rotation: nextMapRotation(object.rotation) as MapRotation } : object) })); };
 
   const savePreset = async () => {
     const name = presetName.trim() || map.name; const result = await runCommand("save-map-preset", { presetId: loadedPresetId || undefined, name, description: map.description, mapPackage: { ...map, name } }, loadedPresetId ? `Updated “${name}”.` : `Saved “${name}”.`);

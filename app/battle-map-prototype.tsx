@@ -23,6 +23,21 @@ import {
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
 import { displayHealth, healthBand } from "@/shared/health.mjs";
+import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.mjs";
+import {
+  calculateDirectDistance,
+  clampMapPoint,
+  clampViewport,
+  drawingAtPoint,
+  viewportGeometry,
+  zoomViewportAt,
+} from "@/shared/battle-map-geometry.mjs";
+import {
+  advanceEncounterTurn,
+  buildRosterRows,
+  initiativePackMembers,
+  rosterBaseName,
+} from "@/shared/initiative-domain.mjs";
 import {
   isSpellShapeArt,
   SPELL_AREA_SIZES,
@@ -132,15 +147,6 @@ type PanGesture = {
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight" | "neon-spotlight";
 type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
-type ViewportGeometry = Viewport & {
-  cellSize: number;
-  visibleWidth: number;
-  visibleHeight: number;
-  panX: number;
-  panY: number;
-  offsetX: number;
-  offsetY: number;
-};
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
 type CreatureCatalogPage = {
   items: CreatureTemplate[];
@@ -262,29 +268,8 @@ function spellFootprintLabel(spell: SpellEffectDefinition, size: CreatureSize) {
   return `${diameter}-ft diameter`;
 }
 
-function roundCoordinate(value: number) {
-  return Math.round(value * 1_000) / 1_000;
-}
-
 function formatPosition(point: MapPoint) {
   return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
-}
-
-function distanceToSegment(point: MapPoint, start: MapPoint, end: MapPoint) {
-  const deltaX = end.x - start.x;
-  const deltaY = end.y - start.y;
-  const lengthSquared = deltaX * deltaX + deltaY * deltaY;
-  if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.y - start.y);
-  const projection = Math.max(0, Math.min(1, ((point.x - start.x) * deltaX + (point.y - start.y) * deltaY) / lengthSquared));
-  return Math.hypot(point.x - (start.x + projection * deltaX), point.y - (start.y + projection * deltaY));
-}
-
-function drawingAtPoint(annotations: SharedAnnotation[], point: MapPoint, tolerance: number) {
-  return annotations
-    .filter((annotation) => annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null)
-    .map((annotation) => ({ annotation, distance: distanceToSegment(point, annotation, { x: annotation.x2!, y: annotation.y2! }) }))
-    .filter(({ distance }) => distance <= tolerance)
-    .sort((a, b) => a.distance - b.distance)[0]?.annotation ?? null;
 }
 
 function tokenInitial(token: SharedToken) {
@@ -299,103 +284,10 @@ type RosterRow =
   | { type: "token"; token: SharedToken; grouped: boolean }
   | { type: "group"; key: string; label: string; tokens: SharedToken[]; expanded: boolean };
 
-// A pack of identical mobs collapses into one row once it reaches this size.
-const ROSTER_GROUP_THRESHOLD = 3;
-
 // Optimistic tokens carry this id prefix until the server confirms them, which
 // lets render read pending state without touching a ref.
 function isPendingCreate(token: SharedToken) {
   return token.id.startsWith("pending-create-");
-}
-
-function rosterBaseName(name: string) {
-  return name.replace(/\s+\d+$/, "").trim() || name;
-}
-
-function rosterGroupKey(token: SharedToken) {
-  return `${rosterBaseName(token.name)}|${token.artAsset ?? ""}`;
-}
-
-function initiativePackMembers(token: SharedToken, tokens: SharedToken[]) {
-  if (token.kind !== "monster" || token.summonerTokenId) return [token];
-  const key = rosterGroupKey(token);
-  return tokens.filter((candidate) =>
-    candidate.kind === "monster" && !candidate.summonerTokenId && rosterGroupKey(candidate) === key);
-}
-
-function compareTokenNames(a: SharedToken, b: SharedToken) {
-  return a.name.localeCompare(b.name, undefined, { numeric: true });
-}
-
-// During combat the roster is strictly the turn order. Outside it, the tokens
-// the viewer actually controls come first and identical mobs fold together.
-function buildRosterRows(
-  tokens: SharedToken[],
-  inCombat: boolean,
-  filter: string,
-  expandedGroups: ReadonlySet<string>,
-): RosterRow[] {
-  const needle = filter.trim().toLocaleLowerCase();
-  const rosterTokens = tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND);
-  const visible = needle ? rosterTokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : rosterTokens;
-  if (inCombat) {
-    const rows: RosterRow[] = [];
-    const groups = new Map<string, SharedToken[]>();
-    for (const token of [...visible].sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || compareTokenNames(a, b))) {
-      const key = token.initiativeOrder === null ? `untracked:${token.id}` : `initiative:${token.initiativeOrder}`;
-      const members = groups.get(key);
-      if (members) members.push(token); else groups.set(key, [token]);
-    }
-    for (const [key, members] of groups) {
-      if (members.length === 1 || members[0].initiativeOrder === null) {
-        rows.push({ type: "token", token: members[0], grouped: false });
-        continue;
-      }
-      const leader = members.find((token) => !token.summonerTokenId) ?? members[0];
-      const sameKind = members.every((token) => rosterBaseName(token.name) === rosterBaseName(leader.name));
-      const expanded = expandedGroups.has(key);
-      rows.push({ type: "group", key, label: sameKind ? rosterBaseName(leader.name) : `${leader.name}’s group`, tokens: members, expanded });
-      if (expanded) for (const token of members) rows.push({ type: "token", token, grouped: true });
-    }
-    return rows;
-  }
-  if (needle) {
-    return [...visible].sort(compareTokenNames).map((token) => ({ type: "token", token, grouped: false }));
-  }
-  // Ownership cannot drive this: the DM controls everything, and a roster that
-  // never groups is exactly the screen the DM is drowning in.
-  const priority = (token: SharedToken) =>
-    token.kind === "character" ? (token.controlledByViewer ? 0 : 1)
-      : token.summonerTokenId ? 2
-      : 3;
-  const rows: RosterRow[] = visible
-    .filter((token) => priority(token) < 3)
-    .sort((a, b) => priority(a) - priority(b) || compareTokenNames(a, b))
-    .map((token) => ({ type: "token", token, grouped: false }));
-  const groups = new Map<string, SharedToken[]>();
-  for (const token of visible.filter((token) => priority(token) === 3).sort(compareTokenNames)) {
-    const key = rosterGroupKey(token);
-    const bucket = groups.get(key);
-    if (bucket) bucket.push(token);
-    else groups.set(key, [token]);
-  }
-  for (const [key, members] of groups) {
-    if (members.length < ROSTER_GROUP_THRESHOLD) {
-      for (const token of members) rows.push({ type: "token", token, grouped: false });
-      continue;
-    }
-    const expanded = expandedGroups.has(key);
-    rows.push({ type: "group", key, label: rosterBaseName(members[0].name), tokens: members, expanded });
-    if (expanded) for (const token of members) rows.push({ type: "token", token, grouped: true });
-  }
-  return rows;
-}
-
-function clampMapPoint(state: EncounterState, point: MapPoint, radius = tokenRadiusCells("medium")): MapPoint {
-  return {
-    x: roundCoordinate(Math.min(state.grid.width - radius, Math.max(radius, point.x))),
-    y: roundCoordinate(Math.min(state.grid.height - radius, Math.max(radius, point.y))),
-  };
 }
 
 function pointerToMap(
@@ -408,71 +300,10 @@ function pointerToMap(
 ) {
   const rect = canvas.getBoundingClientRect();
   const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
-  return clampMapPoint(state, {
+  return clampMapPoint(state.grid, {
     x: geometry.panX + (clientX - rect.left - geometry.offsetX) / geometry.cellSize,
     y: geometry.panY + (clientY - rect.top - geometry.offsetY) / geometry.cellSize,
   }, radius);
-}
-
-function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell: number) {
-  const squares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
-  return Math.round(squares * feetPerCell * 10) / 10;
-}
-
-function viewportGeometry(viewport: Viewport, state: EncounterState, width: number, height: number): ViewportGeometry {
-  const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
-  const matchesMap = viewport.mapKey === mapKey;
-  const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
-  const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
-  const fit = matchesMap && viewport.fit;
-  const requestedZoom = matchesMap ? viewport.zoom : 1;
-  const zoom = fit ? fitZoom : Math.max(1, Math.min(3, requestedZoom));
-  const cellSize = Math.max(1, baseCellSize * zoom);
-  const visibleWidth = Math.min(state.grid.width, width / cellSize);
-  const visibleHeight = Math.min(state.grid.height, height / cellSize);
-  const requestedCenterX = matchesMap ? viewport.centerX : state.grid.width / 2;
-  const requestedCenterY = matchesMap ? viewport.centerY : state.grid.height / 2;
-  const centerX = Math.max(visibleWidth / 2, Math.min(state.grid.width - visibleWidth / 2, requestedCenterX));
-  const centerY = Math.max(visibleHeight / 2, Math.min(state.grid.height - visibleHeight / 2, requestedCenterY));
-  return {
-    zoom,
-    centerX,
-    centerY,
-    mapKey,
-    fit,
-    cellSize,
-    visibleWidth,
-    visibleHeight,
-    panX: centerX - visibleWidth / 2,
-    panY: centerY - visibleHeight / 2,
-    offsetX: Math.max(0, (width - state.grid.width * cellSize) / 2),
-    offsetY: Math.max(0, (height - state.grid.height * cellSize) / 2),
-  };
-}
-
-function clampViewport(viewport: Viewport, state: EncounterState, width: number, height: number): Viewport {
-  const geometry = viewportGeometry(viewport, state, width, height);
-  return { zoom: geometry.fit ? 1 : geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey, fit: geometry.fit };
-}
-
-function zoomViewportAt(viewport: Viewport, state: EncounterState, width: number, height: number, zoom: number, focusX = 0.5, focusY = 0.5): Viewport {
-  const current = viewportGeometry(viewport, state, width, height);
-  const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
-  const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
-  const nextFit = zoom < 1;
-  const nextZoom = nextFit ? 1 : Math.min(3, zoom);
-  const effectiveNextZoom = nextFit ? fitZoom : nextZoom;
-  const mapX = current.panX + Math.min(current.visibleWidth, Math.max(0, focusX * width - current.offsetX) / current.cellSize);
-  const mapY = current.panY + Math.min(current.visibleHeight, Math.max(0, focusY * height - current.offsetY) / current.cellSize);
-  const visibleWidth = Math.min(state.grid.width, width / (baseCellSize * effectiveNextZoom));
-  const visibleHeight = Math.min(state.grid.height, height / (baseCellSize * effectiveNextZoom));
-  return clampViewport({
-    zoom: nextZoom,
-    centerX: mapX + (0.5 - focusX) * visibleWidth,
-    centerY: mapY + (0.5 - focusY) * visibleHeight,
-    mapKey: current.mapKey,
-    fit: nextFit,
-  }, state, width, height);
 }
 
 function playPingSound(context: AudioContext) {
@@ -1387,7 +1218,7 @@ export default function BattleMapPrototype() {
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
   const personalUiSettingsKey = participant ? uiSettingsStorageKey(participant.name, participant.role) : null;
-  const mapSceneContentKey = state?.encounter.mapPackage ? JSON.stringify(state.encounter.mapPackage) : "";
+  const mapSceneKey = mapSceneContentKey(state?.encounter.mapPackage ?? null);
 
   useEffect(() => {
     const closeUiSettingsOutside = (event: PointerEvent) => {
@@ -1459,7 +1290,12 @@ export default function BattleMapPrototype() {
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const canMoveToken = (token: SharedToken) => Boolean(
-    participant && state && (participant.role === "dm" || token.controlledByViewer || !state.encounter.strictMovement),
+    participant && state && !movementPolicyDenial({
+      strictMovement: state.encounter.strictMovement,
+      participantRole: participant.role,
+      controlledByViewer: token.controlledByViewer,
+      encounterStatus: state.encounter.status,
+    }),
   );
   const distance = state && dragOrigin && preview
     ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
@@ -1715,7 +1551,10 @@ export default function BattleMapPrototype() {
         builtScene.height = 1;
       }
     };
-  }, [mapSceneContentKey, participant?.role]);
+  // mapSceneKey is a content fingerprint; depending on the cloned package
+  // object itself would rebuild the large canvas on every state poll.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapSceneKey, participant?.role]);
 
   useEffect(() => {
     const assets = [...new Set([
@@ -1920,7 +1759,7 @@ export default function BattleMapPrototype() {
       setError("Initiative must be a whole number from 0 to 99.");
       return;
     }
-    const packMembers = participant?.role === "dm" && state ? initiativePackMembers(token, state.tokens) : [token];
+    const packMembers = (participant?.role === "dm" && state ? initiativePackMembers(token, state.tokens) : [token]) as SharedToken[];
     const alreadyOnePack = packMembers.length > 1
       && packMembers.every((member) => member.initiative === initiative
         && member.initiativeGroupId && member.initiativeGroupId === packMembers[0].initiativeGroupId);
@@ -2086,7 +1925,7 @@ export default function BattleMapPrototype() {
         ...current,
         tokens: current.tokens.map((item) => {
           if (item.id !== token.id) return item;
-          const point = clampMapPoint(current, item, tokenRadiusCells(size));
+          const point = clampMapPoint(current.grid, item, tokenRadiusCells(size));
           return { ...item, ...point, size };
         }),
       }),
@@ -2120,27 +1959,11 @@ export default function BattleMapPrototype() {
     );
   };
 
-  const advanceTurnState = (current: EncounterState, completeCurrentGroup: boolean) => {
-    const orders = [...new Set(current.tokens.map((token) => token.initiativeOrder).filter((order): order is number => order !== null))].sort((a, b) => a - b);
-    if (orders.length === 0) return current;
-    const active = current.encounter.activeInitiativeOrder ?? orders[0];
-    const index = Math.max(0, orders.indexOf(active));
-    const wrapped = index >= orders.length - 1;
-    const nextOrder = wrapped ? orders[0] : orders[index + 1];
-    return {
-      ...current,
-      encounter: { ...current.encounter, activeInitiativeOrder: nextOrder, currentRound: Math.max(1, current.encounter.currentRound) + (wrapped ? 1 : 0) },
-      tokens: current.tokens.map((token) => token.initiativeOrder === nextOrder
-        ? { ...token, turnComplete: false, movementUsed: 0, movementOrigin: null }
-        : completeCurrentGroup && token.initiativeOrder === active ? { ...token, turnComplete: true } : token),
-    };
-  };
-
   const endTurnOptimistically = (token: SharedToken) => {
     void runOptimisticCommand(
       "end-turn",
       { tokenId: token.id },
-      (current) => advanceTurnState(current, true),
+      (current) => advanceEncounterTurn(current, true),
       "Group turn ended.",
       undefined,
       undefined,
@@ -2152,7 +1975,7 @@ export default function BattleMapPrototype() {
     void runOptimisticCommand(
       "advance-turn",
       {},
-      (current) => advanceTurnState(current, true),
+      (current) => advanceEncounterTurn(current, true),
       "Turn advanced.",
       undefined,
       undefined,
@@ -2620,7 +2443,7 @@ export default function BattleMapPrototype() {
     const token = state.tokens.find((item) => item.id === gesture.tokenId);
     const radius = tokenRadiusCells(token?.size ?? "medium");
     const pointer = pointerToMap(canvas, state, viewport, clientX, clientY, radius);
-    return clampMapPoint(state, { x: pointer.x - gesture.grabOffset.x, y: pointer.y - gesture.grabOffset.y }, radius);
+    return clampMapPoint(state.grid, { x: pointer.x - gesture.grabOffset.x, y: pointer.y - gesture.grabOffset.y }, radius);
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -2688,7 +2511,7 @@ export default function BattleMapPrototype() {
 
   const changeZoom = (amount: number) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !state) return;
     const rect = canvas.getBoundingClientRect();
     setViewport((current) => {
       const geometry = viewportGeometry(current, state, rect.width, rect.height);
@@ -2697,6 +2520,7 @@ export default function BattleMapPrototype() {
   };
 
   const fitViewport = () => {
+    if (!state) return;
     setViewport({
       zoom: 1,
       centerX: state.grid.width / 2,
@@ -2794,7 +2618,7 @@ export default function BattleMapPrototype() {
 
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const inCombat = state.encounter.status === "active";
-  const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups);
+  const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups) as RosterRow[];
   const selectedHealth = selectedToken && !selectedSpell ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
   const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
   const activeTurnMembers = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND &&
