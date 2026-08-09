@@ -922,7 +922,11 @@ function drawMap(
 
     if (health) {
       const healthRadius = radius * 1.12;
-      const healthWidth = Math.max(2.5, radius * 0.17);
+      // Keep the HP ring as slim as it is on a Tiny token. Its radius still
+      // follows the creature footprint, but larger creatures do not get a
+      // progressively heavier ring.
+      const smallestTokenRadius = Math.min(cellWidth, cellHeight) * tokenRadiusCells("tiny");
+      const healthWidth = Math.max(2.5, smallestTokenRadius * 0.17);
       context.lineCap = "butt";
       context.lineWidth = healthWidth;
       context.strokeStyle = "rgba(12, 11, 10, 0.72)";

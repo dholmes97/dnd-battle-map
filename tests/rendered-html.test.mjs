@@ -464,6 +464,14 @@ test("explains the compact live connection indicator on hover", async () => {
   assert.match(clientSource, /aria-label=\{connectionTooltip\}/);
 });
 
+test("keeps HP ring thickness independent of creature size", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const smallestTokenRadius = Math\.min\(cellWidth, cellHeight\) \* tokenRadiusCells\("tiny"\)/);
+  assert.match(clientSource, /const healthWidth = Math\.max\(2\.5, smallestTokenRadius \* 0\.17\)/);
+  assert.doesNotMatch(clientSource, /const healthWidth = Math\.max\(2\.5, radius \* 0\.17\)/);
+});
+
 test("shows a straight movement ruler and never rejects movement overage", async () => {
   const [clientSource, workerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
