@@ -2380,6 +2380,13 @@ export default function BattleMapPrototype() {
   }
 
   const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
+  const connectionTooltip = connection === "live"
+    ? "Live connection — shared encounter updates are current."
+    : connection === "lost"
+      ? "Connection lost — shared updates are unavailable."
+      : connection === "reconnecting"
+        ? "Reconnecting — restoring shared encounter updates."
+        : "Connecting — loading shared encounter updates.";
   const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
 
   if (participant.role === "dm" && workshopOpen) return <MapWorkshop
@@ -2485,7 +2492,7 @@ export default function BattleMapPrototype() {
           <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey, fit: false })}>{viewport.fit ? "Fit" : `${Math.round((viewport.mapKey === mapKey ? viewport.zoom : 1) * 100)}%`}</button>
           <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => changeZoom(0.5)}><Icon name="zoomIn" /></button>
         </div>
-        <div className={`connection-pill connection-${connection}`} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
+        <div className={`connection-pill connection-${connection}`} aria-label={connectionTooltip} data-tooltip={connectionTooltip} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
         <div className="map-tool-group" role="group" aria-label="Layout">
           <details className="ui-settings-menu">
             <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
@@ -2517,7 +2524,7 @@ export default function BattleMapPrototype() {
               {participant.role === "dm" ? <div className="ui-settings-global">
                 <div className="ui-settings-section-label"><strong>Encounter settings</strong><small>Affects everyone</small></div>
                 <label
-                  className="strict-movement-toggle"
+                  className="ui-setting-toggle"
                   data-tooltip="With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token."
                 >
                   <span><strong>Strict movement</strong><small>Players move only their tokens</small></span>

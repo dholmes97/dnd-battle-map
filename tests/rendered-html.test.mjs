@@ -394,12 +394,11 @@ test("explains pause and confirms combat reset with responsive controls", async 
 });
 
 test("selects inspectable map entities and honors the scenario movement policy", async () => {
-  const [clientSource, workerSource, schemaSource, movementMigration, styles] = await Promise.all([
+  const [clientSource, workerSource, schemaSource, movementMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0012_hard_norrin_radd.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /const hitTokens = \[\.\.\.state\.tokens\]\.reverse\(\)\.filter/);
@@ -420,7 +419,7 @@ test("selects inspectable map entities and honors the scenario movement policy",
   assert.match(workerSource, /Boolean\(encounter\.strict_movement\) && !\(await canControlToken/);
   assert.match(schemaSource, /strictMovement: integer\("strict_movement", \{ mode: "boolean" \}\)\.notNull\(\)\.default\(true\)/);
   assert.match(movementMigration, /ALTER TABLE `encounters` ADD `strict_movement` integer DEFAULT true NOT NULL/);
-  assert.match(styles, /\.strict-movement-toggle input:checked/);
+  assert.doesNotMatch(clientSource, /strict-movement-toggle/);
 });
 
 test("groups personal grid and token presentation controls in UI Settings", async () => {
@@ -453,6 +452,16 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(styles, /\.ui-settings-panel/);
   assert.match(styles, /\.ui-settings-global/);
   assert.match(styles, /\.ui-setting-toggle/);
+  assert.equal((clientSource.match(/className="ui-setting-toggle"/g) ?? []).length, 2);
+  assert.doesNotMatch(styles, /\.strict-movement-toggle/);
+});
+
+test("explains the compact live connection indicator on hover", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /Live connection — shared encounter updates are current\./);
+  assert.match(clientSource, /data-tooltip=\{connectionTooltip\}/);
+  assert.match(clientSource, /aria-label=\{connectionTooltip\}/);
 });
 
 test("shows a straight movement ruler and never rejects movement overage", async () => {
