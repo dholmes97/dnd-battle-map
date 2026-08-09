@@ -886,6 +886,18 @@ input:focus {
 .form-grid { display: grid; grid-template-columns: 1.4fr 0.8fr 0.8fr; gap: 0.45rem; }
 .form-grid label { min-width: 0; margin: 0; }
 .token-config { display: grid; gap: 0.4rem; margin-top: 0.45rem; padding: 0.55rem; border: 1px solid #38352f; border-radius: 0.4rem; background: #161513; }
+.token-config-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 1.75rem; }
+.token-config-toolbar small { color: #777066; font-size: 0.58rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; }
+.token-config-actions { display: flex; align-items: center; gap: 0.32rem; }
+.token-config-save, .token-config-cancel { display: grid; width: 1.75rem; height: 1.75rem; padding: 0; place-items: center; border-radius: 0.42rem; transition: transform 90ms ease, border-color 120ms ease, background 120ms ease; }
+.token-config-save { border: 1px solid rgba(116, 190, 129, 0.52); background: rgba(71, 130, 82, 0.16); color: #8ed19a; }
+.token-config-save:hover { border-color: #8ed19a; background: rgba(71, 130, 82, 0.28); color: #b4e9bd; }
+.token-config-cancel { border: 1px solid rgba(204, 100, 88, 0.5); background: rgba(142, 62, 53, 0.14); color: #d78378; }
+.token-config-cancel:hover { border-color: #d78378; background: rgba(142, 62, 53, 0.26); color: #efada5; }
+.token-config-save:active, .token-config-cancel:active { transform: translateY(1px) scale(0.93); }
+.token-config-save:focus-visible { outline: 2px solid #8ed19a; outline-offset: 2px; }
+.token-config-cancel:focus-visible { outline: 2px solid #d78378; outline-offset: 2px; }
+.token-config-save .ui-icon, .token-config-cancel .ui-icon { width: 0.95rem; height: 0.95rem; stroke-width: 2.1; }
 .token-config input, .token-config select { min-width: 0; padding: 0.48rem 0.52rem; border-radius: 0.38rem; font-size: 0.68rem; }
 .token-config label { gap: 0.25rem; color: #8d867b; font-size: 0.6rem; }
 .token-config .form-grid { grid-template-columns: 1fr 1fr 1fr; }

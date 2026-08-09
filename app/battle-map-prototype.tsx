@@ -194,6 +194,7 @@ const ICON_PATHS = {
   settings: "M4 5.5h12M7 3.5v4M4 10h12M13 8v4M4 14.5h12M8.5 12.5v4",
   close: "M5 5l10 10M15 5L5 15",
   search: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5",
+  check: "M4.5 10.2 8.2 14l7.3-8",
 } as const;
 
 type IconName = keyof typeof ICON_PATHS;
@@ -531,7 +532,7 @@ function drawHasteEffect(
   if (!tokenHasEffect(token, "Haste")) return;
   const time = animationNow / 1_000;
   const seed = spellParticleSeed(token.id, 91);
-  const intervals = [0, 1, 2, 3].map((index) => 2 + spellParticleSeed(token.id, 120 + index));
+  const intervals = [0, 1, 2, 3].map((index) => 3 + spellParticleSeed(token.id, 120 + index) * 2);
   const sequenceDuration = intervals.reduce((total, interval) => total + interval, 0);
   const shiftedTime = time + seed * sequenceDuration;
   const sequenceIndex = Math.floor(shiftedTime / sequenceDuration);
@@ -541,34 +542,47 @@ function drawHasteEffect(
     phase -= intervals[pulseSlot];
     pulseSlot += 1;
   }
-  const pulseDuration = 0.78;
+  const pulseDuration = 1.05;
   if (phase > pulseDuration) return;
   const pulseKey = sequenceIndex * intervals.length + pulseSlot;
   const clockPosition = Math.floor(spellParticleSeed(token.id, 200 + pulseKey) * 12);
   const angle = clockPosition * Math.PI * 2 / 12 - Math.PI / 2;
-  const orbit = radius * 1.43;
+  const orbit = radius * 1.4;
   const pulseX = x + Math.cos(angle) * orbit;
   const pulseY = y + Math.sin(angle) * orbit;
   const progress = phase / pulseDuration;
-  const intensity = Math.sin(Math.PI * progress) ** 2;
-  const coreRadius = Math.max(1.6, radius * 0.07) * (0.8 + intensity * 0.45);
+  const intensity = progress < 0.1 ? progress / 0.1 : Math.max(0, 1 - (progress - 0.1) / 0.9) ** 0.62;
+  const boltRotation = spellParticleSeed(token.id, 410 + pulseKey) * Math.PI * 2;
+  const drift = radius * 0.13 * progress;
+  const boltX = pulseX + Math.cos(boltRotation + Math.PI / 2) * drift;
+  const boltY = pulseY + Math.sin(boltRotation + Math.PI / 2) * drift;
+  const boltLength = Math.max(9, radius * 0.55);
+  const bendA = (spellParticleSeed(token.id, 500 + pulseKey * 3) - 0.5) * boltLength * 0.24;
+  const bendB = (spellParticleSeed(token.id, 501 + pulseKey * 3) - 0.5) * boltLength * 0.3;
+  const bendC = (spellParticleSeed(token.id, 502 + pulseKey * 3) - 0.5) * boltLength * 0.22;
   context.save();
   context.globalCompositeOperation = "screen";
   context.lineCap = "round";
+  context.lineJoin = "round";
   context.shadowColor = "#7de6ff";
-  context.shadowBlur = Math.max(5, radius * 0.2) * intensity;
-  context.globalAlpha = intensity * 0.9;
-  context.fillStyle = "#e9fcff";
-  context.beginPath(); context.arc(pulseX, pulseY, coreRadius, 0, Math.PI * 2); context.fill();
-  context.strokeStyle = "#91e9ff";
-  context.lineWidth = Math.max(0.8, radius * 0.024);
-  context.globalAlpha = intensity * (1 - progress) * 0.78;
-  context.beginPath(); context.arc(pulseX, pulseY, coreRadius * (1.2 + progress * 3.4), 0, Math.PI * 2); context.stroke();
-  context.globalAlpha = intensity * 0.62;
-  const ray = coreRadius * (2.2 + intensity * 1.2);
+  context.shadowBlur = Math.max(5, radius * 0.16) * intensity;
+  context.globalAlpha = intensity;
+  context.translate(boltX, boltY);
+  context.rotate(boltRotation);
   context.beginPath();
-  context.moveTo(pulseX - ray, pulseY); context.lineTo(pulseX + ray, pulseY);
-  context.moveTo(pulseX, pulseY - ray); context.lineTo(pulseX, pulseY + ray);
+  context.moveTo(-boltLength * 0.52, 0);
+  context.lineTo(-boltLength * 0.25, bendA);
+  context.lineTo(-boltLength * 0.04, bendB);
+  context.lineTo(boltLength * 0.2, bendC);
+  context.lineTo(boltLength * 0.52, -bendA * 0.35);
+  context.moveTo(-boltLength * 0.04, bendB);
+  context.lineTo(boltLength * 0.1, bendB - boltLength * 0.22);
+  context.lineTo(boltLength * 0.3, bendB - boltLength * 0.34);
+  context.strokeStyle = "rgba(79, 202, 255, 0.5)";
+  context.lineWidth = Math.max(2.4, radius * 0.085);
+  context.stroke();
+  context.strokeStyle = "#e8fcff";
+  context.lineWidth = Math.max(0.9, radius * 0.026);
   context.stroke();
   context.restore();
 }
@@ -874,6 +888,7 @@ function drawMap(
     const x = screenX(position.x);
     const y = screenY(position.y);
     const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
+    const smallestTokenRadius = Math.min(cellWidth, cellHeight) * tokenRadiusCells("tiny");
     context.save();
     if (token.hidden) context.globalAlpha *= 0.48;
     if (down) context.globalAlpha *= 0.55;
@@ -925,7 +940,6 @@ function drawMap(
       // Keep the HP ring as slim as it is on a Tiny token. Its radius still
       // follows the creature footprint, but larger creatures do not get a
       // progressively heavier ring.
-      const smallestTokenRadius = Math.min(cellWidth, cellHeight) * tokenRadiusCells("tiny");
       const healthWidth = Math.max(2.5, smallestTokenRadius * 0.17);
       context.lineCap = "butt";
       context.lineWidth = healthWidth;
@@ -963,7 +977,8 @@ function drawMap(
       context.strokeStyle = "#f5c65c";
       context.lineWidth = 2;
       context.setLineDash([4, 4]);
-      context.beginPath(); context.arc(x, y, radius * 1.32, 0, Math.PI * 2); context.stroke();
+      const selectionRadius = radius + smallestTokenRadius * 0.32;
+      context.beginPath(); context.arc(x, y, selectionRadius, 0, Math.PI * 2); context.stroke();
       context.setLineDash([]);
     }
 
@@ -1095,6 +1110,7 @@ export default function BattleMapPrototype() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
@@ -1112,6 +1128,25 @@ export default function BattleMapPrototype() {
   const optimisticSequenceRef = useRef(0);
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
+
+  useEffect(() => {
+    const closeUiSettingsOutside = (event: PointerEvent) => {
+      const menu = uiSettingsRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    const closeUiSettingsOnEscape = (event: KeyboardEvent) => {
+      const menu = uiSettingsRef.current;
+      if (event.key !== "Escape" || !menu?.open) return;
+      menu.open = false;
+      menu.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", closeUiSettingsOutside);
+    document.addEventListener("keydown", closeUiSettingsOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeUiSettingsOutside);
+      document.removeEventListener("keydown", closeUiSettingsOnEscape);
+    };
+  }, []);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -1697,6 +1732,16 @@ export default function BattleMapPrototype() {
       { effectId },
       (current) => ({ ...current, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, effects: token.effects.filter((effect) => effect.id !== effectId) } : token) }),
     );
+  };
+
+  const discardTokenDetails = (tokenId: string) => {
+    setTokenDrafts((current) => {
+      if (!current[tokenId]) return current;
+      const next = { ...current };
+      delete next[tokenId];
+      return next;
+    });
+    setTokenEditorTokenId(null);
   };
 
   const saveTokenDetails = async (token: SharedToken) => {
@@ -2498,7 +2543,7 @@ export default function BattleMapPrototype() {
         </div>
         <div className={`connection-pill connection-${connection}`} aria-label={connectionTooltip} data-tooltip={connectionTooltip} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
         <div className="map-tool-group" role="group" aria-label="Layout">
-          <details className="ui-settings-menu">
+          <details ref={uiSettingsRef} className="ui-settings-menu">
             <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
             <section className="ui-settings-panel" aria-label="UI Settings">
               <div className="ui-settings-heading"><strong>UI Settings</strong><small>Personal and encounter display controls</small></div>
@@ -2659,15 +2704,26 @@ export default function BattleMapPrototype() {
             <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
             {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
           </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
-            <div className="token-heading">
-              {selectedToken.artAsset ? <NextImage className="token-portrait" src={selectedToken.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(selectedToken)}</span>}
-              <div><small>{`${selectedToken.hidden ? "Hidden · " : ""}${selectedToken.kind} · controlled by ${selectedToken.controller.name}`}</small><h2>{selectedToken.name}</h2></div>
-            </div>
-            <div className="token-meta">
-              <span><small>Size</small><strong>{selectedToken.size.charAt(0).toUpperCase() + selectedToken.size.slice(1)}</strong></span>
-              <span><small>Speed</small><strong>{selectedToken.speed} ft</strong></span>
-              <span><small>HP</small><strong>{selectedHealth?.label ?? "—"}</strong></span>
-            </div>
+            {participant.role === "dm" && tokenEditorTokenId === selectedToken.id ? <div className="token-config">
+              <div className="token-config-toolbar"><small>Edit token details</small><span className="token-config-actions"><button className="token-config-cancel" aria-label="Discard token detail changes" title="Discard changes" onClick={() => discardTokenDetails(selectedToken.id)}><Icon name="close" /></button><button className="token-config-save" aria-label="Save token details" title="Save details" onClick={() => void saveTokenDetails(selectedToken)}><Icon name="check" /></button></span></div>
+              <input aria-label="Token name" value={tokenDrafts[selectedToken.id]?.name ?? selectedToken.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], name: event.target.value } }))} />
+              <div className="form-grid">
+                <label>Size<select aria-label="Token size" value={tokenDrafts[selectedToken.id]?.size ?? selectedToken.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
+                <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[selectedToken.id]?.speed ?? selectedToken.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], speed: event.target.value } }))} /></label>
+                <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[selectedToken.id]?.maxHp ?? selectedToken.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], maxHp: event.target.value } }))} /></label>
+              </div>
+              <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[selectedToken.id]?.artAsset ?? selectedToken.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
+            </div> : <>
+              <div className="token-heading">
+                {selectedToken.artAsset ? <NextImage className="token-portrait" src={selectedToken.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(selectedToken)}</span>}
+                <div><small>{`${selectedToken.hidden ? "Hidden · " : ""}${selectedToken.kind} · controlled by ${selectedToken.controller.name}`}</small><h2>{selectedToken.name}</h2></div>
+              </div>
+              <div className="token-meta">
+                <span><small>Size</small><strong>{selectedToken.size.charAt(0).toUpperCase() + selectedToken.size.slice(1)}</strong></span>
+                <span><small>Speed</small><strong>{selectedToken.speed} ft</strong></span>
+                <span><small>HP</small><strong>{selectedHealth?.label ?? "—"}</strong></span>
+              </div>
+            </>}
             {(() => {
               const token = selectedToken;
               const controlled = token.controlledByViewer;
@@ -2694,21 +2750,11 @@ export default function BattleMapPrototype() {
                 {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
                 {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
                 {participant.role === "dm" ? <div className="token-actions">
-                  <button className="inline-action" onClick={() => setTokenEditorTokenId((current) => current === token.id ? null : token.id)}>{tokenEditorTokenId === token.id ? "Close details" : "Edit details"}</button>
+                  {tokenEditorTokenId !== token.id ? <button className="inline-action" onClick={() => setTokenEditorTokenId(token.id)}>Edit details</button> : null}
                   <button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button>
                   {pendingDeleteTokenId === token.id
                     ? <><button className="inline-action is-danger is-confirming" onClick={() => { setPendingDeleteTokenId(null); void deleteToken(token); }}>Confirm delete</button><button className="inline-action" onClick={() => setPendingDeleteTokenId(null)}>Keep</button></>
                     : <button className="inline-action is-danger" onClick={() => setPendingDeleteTokenId(token.id)}>Delete</button>}
-                </div> : null}
-                {participant.role === "dm" && tokenEditorTokenId === token.id ? <div className="token-config">
-                  <input aria-label="Token name" value={tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} />
-                  <div className="form-grid">
-                    <label>Size<select aria-label="Token size" value={tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
-                    <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /></label>
-                    <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label>
-                  </div>
-                  <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
-                  <button className="secondary-button" onClick={() => void saveTokenDetails(token)}>Save details</button>
                 </div> : null}
               </>;
             })()}

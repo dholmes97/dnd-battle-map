@@ -244,9 +244,14 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.doesNotMatch(clientSource, /for \(let index = 0; index < 3; index \+= 1\)/);
   assert.match(clientSource, /function drawHasteEffect\(/);
   assert.match(clientSource, /if \(!tokenHasEffect\(token, "Haste"\)\) return;/);
-  assert.match(clientSource, /const intervals = \[0, 1, 2, 3\]\.map\(\(index\) => 2 \+ spellParticleSeed/);
+  assert.match(clientSource, /const intervals = \[0, 1, 2, 3\]\.map\(\(index\) => 3 \+ spellParticleSeed\(token\.id, 120 \+ index\) \* 2\)/);
   assert.match(clientSource, /const clockPosition = Math\.floor\(spellParticleSeed\(token\.id, 200 \+ pulseKey\) \* 12\)/);
-  assert.match(clientSource, /const pulseDuration = 0\.78/);
+  assert.match(clientSource, /const pulseDuration = 1\.05/);
+  assert.match(clientSource, /const drift = radius \* 0\.13 \* progress/);
+  assert.match(clientSource, /const boltLength = Math\.max\(9, radius \* 0\.55\)/);
+  assert.match(clientSource, /context\.lineTo\(boltLength \* 0\.3, bendB - boltLength \* 0\.34\)/);
+  assert.doesNotMatch(clientSource, /const rayLengths =/);
+  assert.doesNotMatch(clientSource, /coreRadius \* \(1\.2 \+ progress \* 3\.4\)/);
   assert.doesNotMatch(clientSource, /for \(let segment = 0; segment < 7; segment \+= 1\)/);
   assert.match(clientSource, /const hasAttachedVfx = state\?\.tokens\.some/);
   assert.match(clientSource, /hasPersistentSpell \|\| hasAttachedVfx/);
@@ -456,6 +461,16 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.doesNotMatch(styles, /\.strict-movement-toggle/);
 });
 
+test("closes UI Settings when the user clicks elsewhere", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const uiSettingsRef = useRef<HTMLDetailsElement>\(null\)/);
+  assert.match(clientSource, /!menu\.contains\(event\.target\)\) menu\.open = false/);
+  assert.match(clientSource, /document\.addEventListener\("pointerdown", closeUiSettingsOutside\)/);
+  assert.match(clientSource, /event\.key !== "Escape"/);
+  assert.match(clientSource, /<details ref=\{uiSettingsRef\} className="ui-settings-menu">/);
+});
+
 test("explains the compact live connection indicator on hover", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
@@ -470,6 +485,14 @@ test("keeps HP ring thickness independent of creature size", async () => {
   assert.match(clientSource, /const smallestTokenRadius = Math\.min\(cellWidth, cellHeight\) \* tokenRadiusCells\("tiny"\)/);
   assert.match(clientSource, /const healthWidth = Math\.max\(2\.5, smallestTokenRadius \* 0\.17\)/);
   assert.doesNotMatch(clientSource, /const healthWidth = Math\.max\(2\.5, radius \* 0\.17\)/);
+});
+
+test("keeps selected-token ring spacing independent of creature size", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const selectionRadius = radius \+ smallestTokenRadius \* 0\.32/);
+  assert.match(clientSource, /context\.arc\(x, y, selectionRadius, 0, Math\.PI \* 2\)/);
+  assert.doesNotMatch(clientSource, /context\.arc\(x, y, radius \* 1\.32/);
 });
 
 test("shows a straight movement ruler and never rejects movement overage", async () => {
@@ -527,8 +550,14 @@ test("keeps the tactical sidebar compact and reveals secondary editors on demand
   assert.doesNotMatch(clientSource, /<small>Position<\/small>/);
   assert.doesNotMatch(clientSource, /Claim token|Reconnect this token|Release token|unclaimed/);
   assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(clientSource, /tokenEditorTokenId === token\.id \? <div className="token-config">/);
+  assert.match(clientSource, /tokenEditorTokenId === selectedToken\.id \? <div className="token-config">/);
   assert.match(clientSource, /Edit details/);
+  assert.match(clientSource, /className="token-config-cancel" aria-label="Discard token detail changes"/);
+  assert.match(clientSource, /className="token-config-save" aria-label="Save token details"/);
+  assert.match(clientSource, /const discardTokenDetails = \(tokenId: string\)/);
+  assert.doesNotMatch(clientSource, />Save details<\/button>/);
+  assert.match(styles, /\.token-config-save, \.token-config-cancel \{ display: grid; width: 1\.75rem; height: 1\.75rem/);
+  assert.match(styles, /\.token-config-cancel \{ border: 1px solid rgba\(204, 100, 88, 0\.5\)/);
   assert.match(styles, /\.initiative-editor input \{ width: 3\.1rem/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 19\.5rem/);
 });
