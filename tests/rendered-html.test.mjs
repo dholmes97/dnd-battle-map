@@ -362,7 +362,8 @@ test("keeps authoritative movement-rule rejections visible on the map", async ()
   ]);
 
   assert.match(clientSource, /className="map-message is-error" role="alert"/);
-  assert.match(workerSource, /token\.initiative_order !== null &&/);
+  assert.match(workerSource, /You do not control this token/);
+  assert.match(workerSource, /encounter\.status === "paused"/);
 });
 
 test("moves immediately on pointer release without token reservations", async () => {
@@ -492,6 +493,8 @@ test("selects inspectable map entities and honors the scenario movement policy",
   assert.match(clientSource, /setStrictMovementOptimistically\(event\.target\.checked\)/);
   assert.match(workerSource, /command === "set-strict-movement"/);
   assert.match(workerSource, /Boolean\(encounter\.strict_movement\) && !\(await canControlToken/);
+  const moveHandler = workerSource.slice(workerSource.indexOf('if (action === "move")'), workerSource.indexOf('return json({ error: "Method not allowed."'));
+  assert.doesNotMatch(moveHandler, /not in the active turn group/);
   assert.match(schemaSource, /strictMovement: integer\("strict_movement", \{ mode: "boolean" \}\)\.notNull\(\)\.default\(true\)/);
   assert.match(movementMigration, /ALTER TABLE `encounters` ADD `strict_movement` integer DEFAULT true NOT NULL/);
   assert.doesNotMatch(clientSource, /strict-movement-toggle/);
@@ -565,6 +568,14 @@ test("keeps HP ring thickness independent of creature size", async () => {
   assert.match(clientSource, /const smallestTokenRadius = Math\.min\(cellWidth, cellHeight\) \* tokenRadiusCells\("tiny"\)/);
   assert.match(clientSource, /const healthWidth = Math\.max\(2\.5, smallestTokenRadius \* 0\.17\)/);
   assert.doesNotMatch(clientSource, /const healthWidth = Math\.max\(2\.5, radius \* 0\.17\)/);
+});
+
+test("rebuilds the map scene only when its content changes", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const mapSceneContentKey = state\?\.encounter\.mapPackage \? JSON\.stringify\(state\.encounter\.mapPackage\) : ""/);
+  assert.match(clientSource, /\}, \[mapSceneContentKey, participant\?\.role\]\);/);
+  assert.doesNotMatch(clientSource, /\}, \[participant\?\.role, state\?\.encounter\.mapPackage\]\);/);
 });
 
 test("keeps creature outlines restrained at large token sizes", async () => {

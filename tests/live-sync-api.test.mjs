@@ -792,6 +792,20 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     });
     assert.equal(unauthorizedMonsterMove.response.status, 403);
 
+    const strictOffDuringCombat = await command(dm, "set-strict-movement", { enabled: false });
+    assert.equal(strictOffDuringCombat.response.status, 200);
+    assert.notEqual(
+      strictOffDuringCombat.body.state.tokens.find((token) => token.id === monsterId).initiativeOrder,
+      strictOffDuringCombat.body.state.encounter.activeInitiativeOrder,
+    );
+    const openNonActiveMove = await request("move", {
+      method: "POST",
+      body: participantBody(player, monsterId, { x: 9.5, y: 7.5 }),
+    });
+    assert.equal(openNonActiveMove.response.status, 200, JSON.stringify(openNonActiveMove.body));
+    const strictBackOnDuringCombat = await command(dm, "set-strict-movement", { enabled: true });
+    assert.equal(strictBackOnDuringCombat.response.status, 200);
+
     const move = await request("move", {
       method: "POST",
       body: participantBody(player, characterId, {

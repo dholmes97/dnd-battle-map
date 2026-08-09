@@ -1387,6 +1387,7 @@ export default function BattleMapPrototype() {
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
   const personalUiSettingsKey = participant ? uiSettingsStorageKey(participant.name, participant.role) : null;
+  const mapSceneContentKey = state?.encounter.mapPackage ? JSON.stringify(state.encounter.mapPackage) : "";
 
   useEffect(() => {
     const closeUiSettingsOutside = (event: PointerEvent) => {
@@ -1714,7 +1715,7 @@ export default function BattleMapPrototype() {
         builtScene.height = 1;
       }
     };
-  }, [participant?.role, state?.encounter.mapPackage]);
+  }, [mapSceneContentKey, participant?.role]);
 
   useEffect(() => {
     const assets = [...new Set([

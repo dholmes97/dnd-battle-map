@@ -2853,14 +2853,6 @@ async function handleApi(
     ) {
       return json({ error: "The encounter is paused." }, { status: 409 });
     }
-    if (
-      encounter.status === "active" &&
-      participant.role !== "dm" &&
-      token.initiative_order !== null &&
-      (token.initiative_order !== encounter.active_initiative_order || token.turn_complete)
-    ) {
-      return json({ error: "This token is not in the active turn group." }, { status: 409 });
-    }
     const requestedX = Number(body.x);
     const requestedY = Number(body.y);
     if (
