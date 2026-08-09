@@ -262,6 +262,9 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(spellSource, /id: "moonbeam"[\s\S]+size: "large"/);
   assert.match(spellSource, /id: "flaming-sphere"[\s\S]+size: "medium"/);
   assert.match(spellSource, /id: "magic-circle"[\s\S]+areaLabel: "10-ft radius"[\s\S]+size: "gargantuan"/);
+  assert.match(spellSource, /id: "generic-circle"[\s\S]+size: "large"[\s\S]+shape: "circle"/);
+  assert.match(spellSource, /id: "generic-square"[\s\S]+size: "large"[\s\S]+shape: "square"/);
+  assert.match(spellSource, /export const SPELL_AREA_SIZES = \["medium", "large", "huge", "gargantuan"\]/);
   assert.match(clientSource, /function drawSpellEffect\(/);
   assert.match(clientSource, /globalCompositeOperation = "screen"/);
   assert.match(clientSource, /requestAnimationFrame\(animate\)/);
@@ -272,6 +275,10 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /function suppressNativeDragGhost\(dataTransfer: DataTransfer\)/);
   assert.match(clientSource, /dataTransfer\.setDragImage\(ghost, 0, 0\)/);
   assert.match(clientSource, /suppressNativeDragGhost\(event\.dataTransfer\);/);
+  assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
+  assert.match(clientSource, /aria-label="Spell footprint size"/);
+  assert.match(clientSource, /"resize-spell-effect"/);
+  assert.match(clientSource, /if \(spell\.shape === "square"\) context\.rect/);
   assert.doesNotMatch(clientSource, /const inspectable = .*controlledByViewer/);
   assert.match(clientSource, /if \(spell\?\.id === "magic-circle"\)/);
   assert.match(clientSource, /const outerRadius = radius \* 1\.25/);
@@ -302,6 +309,8 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /hasPersistentSpell \|\| hasAttachedVfx/);
   assert.match(clientSource, /drawHasteEffect\(context, token, x, y, radius, animationNow\)/);
   assert.match(workerSource, /command === "create-spell-effect"/);
+  assert.match(workerSource, /command === "resize-spell-effect"/);
+  assert.match(workerSource, /You cannot resize this spell effect/);
   assert.match(workerSource, /Player spell effects must belong to your character/);
   assert.match(workerSource, /token\.kind !== SPELL_EFFECT_KIND \|\| !\(await canControlToken/);
   for (const [name, asset] of [["moonbeam", moonbeam], ["flaming sphere", flamingSphere]]) {
@@ -551,6 +560,22 @@ test("keeps HP ring thickness independent of creature size", async () => {
   assert.match(clientSource, /const smallestTokenRadius = Math\.min\(cellWidth, cellHeight\) \* tokenRadiusCells\("tiny"\)/);
   assert.match(clientSource, /const healthWidth = Math\.max\(2\.5, smallestTokenRadius \* 0\.17\)/);
   assert.doesNotMatch(clientSource, /const healthWidth = Math\.max\(2\.5, radius \* 0\.17\)/);
+});
+
+test("keeps creature outlines restrained at large token sizes", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /const hasLargeFootprint = token\.size === "large" \|\| token\.size === "huge" \|\| token\.size === "gargantuan"/);
+  assert.match(clientSource, /hasLargeFootprint \? Math\.max\(0\.75, radius \* 0\.04\) : Math\.max\(1\.5, radius \* 0\.08\)/);
+  assert.match(clientSource, /hasLargeFootprint \? Math\.max\(0\.5, radius \* 0\.025\) : Math\.max\(1, radius \* 0\.05\)/);
+  assert.doesNotMatch(clientSource, /owned \|\| active \? Math\.max\(3, radius \* 0\.16\) : Math\.max\(2, radius \* 0\.1\)/);
+});
+
+test("lets creature art fill the complete token footprint", async () => {
+  const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
+
+  assert.match(clientSource, /context\.beginPath\(\); context\.arc\(x, y, radius, 0, Math\.PI \* 2\); context\.clip\(\)/);
+  assert.doesNotMatch(clientSource, /context\.arc\(x, y, radius \* 0\.9, 0, Math\.PI \* 2\); context\.clip\(\)/);
 });
 
 test("keeps selected-token ring spacing independent of creature size", async () => {

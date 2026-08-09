@@ -21,6 +21,7 @@ import {
 import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
 import { healthBand } from "../shared/health.mjs";
 import {
+  isSpellAreaSize,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
   spellEffectById,
@@ -2362,6 +2363,38 @@ async function handleCommand(
       token: { tokenId, name, kind, size, x, y, speed, hp, maxHp, hidden, summonerTokenId, artAsset, initiative: summoner?.initiative ?? null, initiativeGroupId: null, initiativeOrder: summoner?.initiative_order ?? null },
     }, now);
     return json({ created: true, tokenId, state: await state() });
+  }
+
+  if (command === "resize-spell-effect") {
+    const tokenId = cleanTokenId(body.tokenId);
+    const token = await env.DB.prepare(
+      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+              summoner_token_id, initiative, initiative_order, turn_complete,
+              movement_used, owner_participant_id, owner_name
+       FROM tokens WHERE id = ? AND encounter_id = ?`,
+    ).bind(tokenId, encounter.id).first<TokenRow>();
+    if (!token || token.kind !== SPELL_EFFECT_KIND) {
+      return json({ error: "Spell effect not found." }, { status: 404 });
+    }
+    if (!(await canControlToken(env, encounter.id, token, participant))) {
+      return json({ error: "You cannot resize this spell effect." }, { status: 403 });
+    }
+    if (!isSpellAreaSize(body.size)) {
+      return json({ error: "Choose a spell footprint from 5 to 20 feet." }, { status: 400 });
+    }
+    const size = body.size;
+    const x = clampTokenCoordinate(token.x, encounter.grid_width, size);
+    const y = clampTokenCoordinate(token.y, encounter.grid_height, size);
+    await env.DB.prepare(
+      "UPDATE tokens SET size = ?, x = ?, y = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
+    ).bind(size, x, y, now, tokenId, encounter.id).run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "token_updated", {
+      tokenId,
+      previous: { name: token.name, size: token.size, x: token.x, y: token.y, speed: token.speed, hp: token.hp, maxHp: token.max_hp, hidden: Boolean(token.is_hidden), artAsset: token.art_asset },
+      next: { name: token.name, size, x, y, speed: token.speed, hp: token.hp, maxHp: token.max_hp, hidden: Boolean(token.is_hidden), artAsset: token.art_asset },
+    }, now);
+    return json({ updated: true, state: await state() });
   }
 
   if (command === "update-token" || command === "apply-hp") {

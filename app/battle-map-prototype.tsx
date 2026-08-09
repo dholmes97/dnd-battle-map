@@ -24,10 +24,14 @@ import {
 import { type MapPackage } from "@/shared/map-package";
 import { displayHealth, healthBand } from "@/shared/health.mjs";
 import {
+  isSpellShapeArt,
+  SPELL_AREA_SIZES,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
+  spellAreaDiameter,
   spellEffectByArt,
   spellEffectById,
+  type SpellAreaSize,
   type SpellEffectDefinition,
 } from "@/shared/spell-effects";
 
@@ -172,7 +176,7 @@ const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1";
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
   "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token", "move",
-  "create-spell-effect",
+  "create-spell-effect", "resize-spell-effect",
 ]);
 
 function releaseRenderedMapScene(scene: RenderedMapScene | null): void {
@@ -242,6 +246,17 @@ function Icon({ name }: { name: IconName }) {
       <path d={ICON_PATHS[name]} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
+}
+
+function SpellShapeMark({ shape, className = "" }: { shape: "circle" | "square"; className?: string }) {
+  return <span className={`${className}${className ? " " : ""}spell-shape-mark is-${shape}`} aria-hidden="true"><i /></span>;
+}
+
+function spellFootprintLabel(spell: SpellEffectDefinition, size: CreatureSize) {
+  const diameter = spellAreaDiameter(size);
+  if (spell.shape === "square") return `${diameter}-ft square`;
+  if (spell.id === "magic-circle") return `${diameter}-ft diameter · ${diameter / 2}-ft radius`;
+  return `${diameter}-ft diameter`;
 }
 
 function roundCoordinate(value: number) {
@@ -660,9 +675,35 @@ function drawSpellEffect(
   const time = animationNow / 1_000;
   const isMoonbeam = spell.id === "moonbeam";
   const isMagicCircle = spell.id === "magic-circle";
+  const isGenericShape = spell.shape !== null;
   const pulseSpeed = isMoonbeam ? 2.1 : isMagicCircle ? 1.35 : 5.2;
   const pulseDepth = isMoonbeam ? 0.055 : isMagicCircle ? 0.025 : 0.095;
   const pulse = 1 + Math.sin(time * pulseSpeed + spellParticleSeed(token.id, 1) * 5) * pulseDepth;
+  if (isGenericShape) {
+    const halfSize = radius * 1.16;
+    context.save();
+    if (token.hidden) context.globalAlpha = 0.48;
+    context.globalCompositeOperation = "screen";
+    context.fillStyle = `${spell.accent}20`;
+    context.strokeStyle = selected ? "#fff2ad" : spell.accent;
+    context.shadowColor = spell.accent;
+    context.shadowBlur = selected ? 12 : owned ? 7 : 4;
+    context.lineWidth = selected ? 3 : 2;
+    context.setLineDash([Math.max(5, radius * 0.12), Math.max(4, radius * 0.08)]);
+    context.beginPath();
+    if (spell.shape === "square") context.rect(x - halfSize, y - halfSize, halfSize * 2, halfSize * 2);
+    else context.arc(x, y, halfSize, 0, Math.PI * 2);
+    context.fill(); context.stroke();
+    context.setLineDash([]);
+    context.globalAlpha *= 0.72;
+    context.lineWidth = 1;
+    context.beginPath();
+    if (spell.shape === "square") context.rect(x - halfSize * 0.88, y - halfSize * 0.88, halfSize * 1.76, halfSize * 1.76);
+    else context.arc(x, y, halfSize * 0.88, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+    return;
+  }
   // Magic Circle's PNG keeps transparent breathing room around its outer
   // ornament. Compensate for that padding so the visible ring—not the image
   // box—lands at the full ten-foot radius.
@@ -1098,6 +1139,7 @@ function drawMap(
     const y = screenY(position.y);
     const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
     const smallestTokenRadius = Math.min(cellWidth, cellHeight) * tokenRadiusCells("tiny");
+    const hasLargeFootprint = token.size === "large" || token.size === "huge" || token.size === "gargantuan";
     context.save();
     if (token.hidden) context.globalAlpha *= 0.48;
     if (down) context.globalAlpha *= 0.55;
@@ -1111,7 +1153,7 @@ function drawMap(
     const art = token.artAsset ? tokenArt.get(token.artAsset) : null;
     if (art) {
       context.save();
-      context.beginPath(); context.arc(x, y, radius * 0.9, 0, Math.PI * 2); context.clip();
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.clip();
       if (token.artAsset?.includes("/characters/")) {
         context.drawImage(
           art,
@@ -1140,7 +1182,9 @@ function drawMap(
     }
     if (!transparentTokenBackgrounds) {
       context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
-      context.lineWidth = owned || active ? Math.max(3, radius * 0.16) : Math.max(2, radius * 0.1);
+      context.lineWidth = owned || active
+        ? hasLargeFootprint ? Math.max(0.75, radius * 0.04) : Math.max(1.5, radius * 0.08)
+        : hasLargeFootprint ? Math.max(0.5, radius * 0.025) : Math.max(1, radius * 0.05);
       context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
     }
 
@@ -1417,7 +1461,8 @@ export default function BattleMapPrototype() {
     : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
   const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
-  const placementArtAsset = placementPreview?.creature.artAsset ?? spellPlacementPreview?.spell.artAsset ?? null;
+  const placementArtCandidate = placementPreview?.creature.artAsset ?? spellPlacementPreview?.spell.artAsset ?? null;
+  const placementArtAsset = isSpellShapeArt(placementArtCandidate) ? null : placementArtCandidate;
 
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
@@ -1668,7 +1713,7 @@ export default function BattleMapPrototype() {
 
   useEffect(() => {
     const assets = [...new Set([
-      ...(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? []),
+      ...(state?.tokens.flatMap((token) => token.artAsset && !isSpellShapeArt(token.artAsset) ? [token.artAsset] : []) ?? []),
       ...(placementArtAsset ? [placementArtAsset] : []),
     ])];
     if (assets.length === 0) {
@@ -2023,6 +2068,24 @@ export default function BattleMapPrototype() {
     } else {
       setTokenEditorTokenId(token.id);
     }
+  };
+
+  const resizeSpellEffect = (token: SharedToken, spell: SpellEffectDefinition, size: SpellAreaSize) => {
+    if (token.size === size) return;
+    const feet = spellAreaDiameter(size);
+    void runOptimisticCommand(
+      "resize-spell-effect",
+      { tokenId: token.id, size },
+      (current) => ({
+        ...current,
+        tokens: current.tokens.map((item) => {
+          if (item.id !== token.id) return item;
+          const point = clampMapPoint(current, item, tokenRadiusCells(size));
+          return { ...item, ...point, size };
+        }),
+      }),
+      spell.shape === "square" ? `Spell area resized to a ${feet}-ft square.` : `Spell area resized to ${feet} ft across.`,
+    );
   };
 
   const startCombatOptimistically = () => {
@@ -2474,6 +2537,11 @@ export default function BattleMapPrototype() {
         const outerRadius = radius * 1.25;
         return distance >= outerRadius * 0.72 && distance <= outerRadius * 1.08;
       }
+      if (spell?.shape === "square") {
+        const halfSize = radius * 1.16;
+        return Math.abs(point.x - token.x) * geometry.cellSize <= halfSize && Math.abs(point.y - token.y) * geometry.cellSize <= halfSize;
+      }
+      if (spell?.shape === "circle") return distance <= radius * 1.16;
       return distance <= radius;
     });
     // A circle is scenery around its occupants: clicking a token inside must
@@ -2762,8 +2830,10 @@ export default function BattleMapPrototype() {
         disabled={pendingCreate}
         onClick={() => { setSelectedTokenId(token.id); setSelectedMapNoteId(null); }}
       >
-        {token.artAsset
+        {token.artAsset && !isSpellShapeArt(token.artAsset)
           ? <NextImage className="roster-portrait" src={token.artAsset} alt="" width={44} height={44} unoptimized />
+          : token.kind === SPELL_EFFECT_KIND && spellEffectByArt(token.artAsset)?.shape
+            ? <SpellShapeMark className="roster-portrait roster-spell-shape" shape={spellEffectByArt(token.artAsset)!.shape!} />
           : <span className="roster-portrait roster-initial">{tokenInitial(token)}</span>}
         <span className="roster-name">{token.name}{token.hidden ? <em> · hidden</em> : null}</span>
         {healthBar(token)}
@@ -2900,7 +2970,7 @@ export default function BattleMapPrototype() {
               <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
               <div className="spell-grid">
                 {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedSpellId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onSpellDragStart(event, spell)} onDragEnd={() => setSpellPlacementPreview(null)} onClick={() => setArmedSpellId((current) => current === spell.id ? null : spell.id)} aria-pressed={armedSpellId === spell.id}>
-                  <span className="spell-art"><NextImage src={spell.artAsset} alt="" width={240} height={240} unoptimized /></span>
+                  <span className={`spell-art${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={240} height={240} unoptimized />}</span>
                   <span className="spell-copy"><small>{spell.areaLabel}</small><strong>{spell.name}</strong><em>{spell.description}</em></span>
                 </button>)}
               </div>
@@ -2939,8 +3009,10 @@ export default function BattleMapPrototype() {
                     return next;
                   })}
                 >
-                  {row.tokens[0].artAsset
+                  {row.tokens[0].artAsset && !isSpellShapeArt(row.tokens[0].artAsset)
                     ? <NextImage className="roster-portrait" src={row.tokens[0].artAsset} alt="" width={44} height={44} unoptimized />
+                    : row.tokens[0].kind === SPELL_EFFECT_KIND && spellEffectByArt(row.tokens[0].artAsset)?.shape
+                      ? <SpellShapeMark className="roster-portrait roster-spell-shape" shape={spellEffectByArt(row.tokens[0].artAsset)!.shape!} />
                     : <span className="roster-portrait roster-initial">{tokenInitial(row.tokens[0])}</span>}
                   <span className="roster-name">{row.label}<em> ×{row.tokens.length}</em></span>
                   <span className="roster-group-toggle">{row.expanded ? "Hide" : "Show"}</span>
@@ -2975,9 +3047,10 @@ export default function BattleMapPrototype() {
             <div className="map-note-heading"><div><small>Private map note</small><h2>Note {state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}</h2></div><IconActionButton variant="close" label="Close DM note" onClick={() => setSelectedMapNoteId(null)} /></div>
             <p>{selectedMapNote.text}</p>
           </section> : selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
-            <div className="spell-detail-visual"><NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized /></div>
+            <div className={`spell-detail-visual${selectedSpell.shape ? " is-generic-shape" : ""}`}>{selectedSpell.shape ? <SpellShapeMark shape={selectedSpell.shape} /> : <NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized />}</div>
             <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
-            <div className="spell-detail-meta"><span><small>Area</small><strong>{selectedSpell.areaLabel}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
+            <div className="spell-detail-meta"><span><small>Area</small><strong>{spellFootprintLabel(selectedSpell, selectedToken.size)}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
+            {selectedToken.controlledByViewer ? <label className="spell-size-control">Footprint<select aria-label="Spell footprint size" value={SPELL_AREA_SIZES.includes(selectedToken.size as SpellAreaSize) ? selectedToken.size : "medium"} onChange={(event) => resizeSpellEffect(selectedToken, selectedSpell, event.target.value as SpellAreaSize)}>{SPELL_AREA_SIZES.map((size) => <option value={size} key={size}>{selectedSpell.shape === "square" ? `${spellAreaDiameter(size)}-ft square` : `${spellAreaDiameter(size)}-ft diameter`}</option>)}</select></label> : null}
             {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
           </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
             {participant.role === "dm" && tokenEditorTokenId === selectedToken.id ? <div className="token-config">

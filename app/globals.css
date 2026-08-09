@@ -557,10 +557,21 @@ input:focus {
 .spell-tile:hover, .spell-tile.is-armed { transform: translateY(-1px); }
 .spell-tile.is-moonbeam:hover, .spell-tile.is-moonbeam.is-armed { border-color: #aabfff; box-shadow: 0 0 0 1px rgba(172, 194, 255, 0.18), 0 10px 30px rgba(93, 104, 205, 0.2); }
 .spell-tile.is-flaming-sphere:hover, .spell-tile.is-flaming-sphere.is-armed { border-color: #ff842d; box-shadow: 0 0 0 1px rgba(255, 132, 45, 0.18), 0 10px 30px rgba(188, 53, 9, 0.2); }
+.spell-tile.is-generic-circle:hover, .spell-tile.is-generic-circle.is-armed { border-color: #76d7ff; box-shadow: 0 0 0 1px rgba(118, 215, 255, 0.18), 0 10px 30px rgba(54, 153, 196, 0.18); }
+.spell-tile.is-generic-square:hover, .spell-tile.is-generic-square.is-armed { border-color: #c29aff; box-shadow: 0 0 0 1px rgba(194, 154, 255, 0.18), 0 10px 30px rgba(120, 76, 188, 0.18); }
 .spell-art { position: relative; display: grid; place-items: center; overflow: hidden; background: #000; }
 .spell-art::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,.72) 100%); pointer-events: none; }
 .spell-art img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.12) contrast(1.05); transition: transform 500ms cubic-bezier(.2,.8,.2,1); }
 .spell-tile:hover .spell-art img, .spell-tile.is-armed .spell-art img { transform: scale(1.12) rotate(4deg); }
+.spell-art.is-generic-shape { background: radial-gradient(circle, #202032, #09090c 72%); }
+.spell-shape-mark { position: relative; width: 4.8rem; height: 4.8rem; display: grid; place-items: center; color: #76d7ff; }
+.spell-shape-mark i { width: 72%; height: 72%; display: block; border: 2px dashed currentColor; background: rgba(118, 215, 255, 0.1); box-shadow: 0 0 16px rgba(118, 215, 255, 0.34), inset 0 0 12px rgba(118, 215, 255, 0.18); }
+.spell-shape-mark.is-circle i { border-radius: 50%; }
+.spell-shape-mark.is-square { color: #c29aff; }
+.spell-shape-mark.is-square i { background: rgba(194, 154, 255, 0.1); box-shadow: 0 0 16px rgba(194, 154, 255, 0.34), inset 0 0 12px rgba(194, 154, 255, 0.18); }
+.roster-spell-shape { display: grid; place-items: center; border-color: currentColor; background: #17151f; }
+.roster-spell-shape .spell-shape-mark, .roster-spell-shape { width: 1.55rem; height: 1.55rem; }
+.roster-spell-shape i { width: 58%; height: 58%; border-width: 1px; }
 .spell-copy { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.85rem 0.8rem; }
 .spell-copy small { color: #928aa0; font-size: 0.56rem; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; }
 .spell-copy strong { font-family: Georgia, "Times New Roman", serif; font-size: 1.08rem; font-weight: 500; }
@@ -577,6 +588,8 @@ input:focus {
 }
 .spell-detail-visual { height: 7rem; margin: -0.8rem -0.8rem 0.7rem; overflow: hidden; background: #000; mask-image: linear-gradient(to bottom, #000 70%, transparent); }
 .spell-detail-visual img { width: 100%; height: 160%; object-fit: cover; transform: translateY(-18%); filter: saturate(1.12) contrast(1.06); }
+.spell-detail-visual.is-generic-shape { display: grid; place-items: center; background: radial-gradient(circle, #242239, #0c0b10 72%); }
+.spell-detail-visual.is-generic-shape .spell-shape-mark { width: 6.2rem; height: 6.2rem; transform: translateY(-0.3rem); }
 .spell-detail-copy small { color: #91879f; font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .spell-detail-copy h2 { margin: 0.18rem 0 0.25rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; font-weight: 500; }
 .spell-detail-copy p { margin: 0; color: #938b99; font-size: 0.66rem; line-height: 1.45; }
@@ -584,6 +597,8 @@ input:focus {
 .spell-detail-meta span { display: grid; gap: 0.12rem; padding: 0.48rem; border-radius: 0.4rem; background: rgba(0,0,0,.2); }
 .spell-detail-meta small { color: #756d7e; font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .spell-detail-meta strong { color: #d9d0e2; font-size: 0.7rem; }
+.spell-size-control { margin-top: 0.65rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.6rem; color: #938b99; font-size: 0.65rem; font-weight: 650; }
+.spell-size-control select { min-width: 0; padding: 0.45rem 0.5rem; border-radius: 0.4rem; color: #ded4e7; font-size: 0.68rem; }
 .dismiss-spell-button { width: 100%; margin-top: 0.65rem; padding: 0.55rem; border: 1px solid #574d61; border-radius: 0.48rem; background: rgba(117, 91, 137, 0.1); color: #c9b8d6; font-size: 0.68rem; }
 .dismiss-spell-button:hover { border-color: #8e78a0; background: rgba(117, 91, 137, 0.18); color: #eee3f6; }
 

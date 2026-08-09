@@ -261,10 +261,17 @@ test("fixed identities independently move disposable summons without reservation
       x: 13.5,
       y: 8.5,
     });
+    const genericSquare = await command(dan, "create-spell-effect", {
+      spellId: "generic-square",
+      summonerTokenId: FIXED_IDENTITIES.dan.tokenId,
+      x: 6.5,
+      y: 7.5,
+    });
     assert.equal(moonbeam.response.status, 200);
     assert.equal(flamingSphere.response.status, 200);
     assert.equal(magicCircle.response.status, 200);
-    createdIds.push(moonbeam.body.tokenId, flamingSphere.body.tokenId, magicCircle.body.tokenId);
+    assert.equal(genericSquare.response.status, 200);
+    createdIds.push(moonbeam.body.tokenId, flamingSphere.body.tokenId, magicCircle.body.tokenId, genericSquare.body.tokenId);
     const moonbeamToken = moonbeam.body.state.tokens.find((token) => token.id === moonbeam.body.tokenId);
     const sphereToken = flamingSphere.body.state.tokens.find((token) => token.id === flamingSphere.body.tokenId);
     const circleToken = magicCircle.body.state.tokens.find((token) => token.id === magicCircle.body.tokenId);
@@ -277,6 +284,14 @@ test("fixed identities independently move disposable summons without reservation
     assert.equal(circleToken.kind, "spell-effect");
     assert.equal(circleToken.size, "gargantuan");
     assert.equal(circleToken.controller.name, "Dan");
+    const squareToken = genericSquare.body.state.tokens.find((token) => token.id === genericSquare.body.tokenId);
+    assert.equal(squareToken.size, "large");
+    assert.equal(squareToken.controller.name, "Dan");
+    const resizedSquare = await command(dan, "resize-spell-effect", { tokenId: genericSquare.body.tokenId, size: "huge" });
+    assert.equal(resizedSquare.response.status, 200);
+    assert.equal(resizedSquare.body.state.tokens.find((token) => token.id === genericSquare.body.tokenId).size, "huge");
+    const forbiddenResize = await command(dan, "resize-spell-effect", { tokenId: flamingSphere.body.tokenId, size: "large" });
+    assert.equal(forbiddenResize.response.status, 403);
     const moveMoonbeam = await request("move", {
       method: "POST",
       body: participantBody(dan, moonbeam.body.tokenId, { x: 9.25, y: 6.25 }),
