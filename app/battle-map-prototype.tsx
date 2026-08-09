@@ -215,14 +215,14 @@ const ICON_PATHS = {
 
 type IconName = keyof typeof ICON_PATHS;
 
-type PersonalUiSettings = { gridOpacity: number; transparentTokenBackgrounds: boolean };
+type PersonalUiSettings = { gridOpacity: number; transparentTokenBackgrounds: boolean; showHealthRings: boolean };
 
 function uiSettingsStorageKey(name: string, role: Role) {
   return `${UI_SETTINGS_STORAGE_PREFIX}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
 }
 
 function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
-  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, transparentTokenBackgrounds: false };
+  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, transparentTokenBackgrounds: false, showHealthRings: true };
   try {
     const stored = window.localStorage.getItem(uiSettingsStorageKey(name, role));
     if (!stored) return defaults;
@@ -234,6 +234,9 @@ function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
       transparentTokenBackgrounds: typeof parsed.transparentTokenBackgrounds === "boolean"
         ? parsed.transparentTokenBackgrounds
         : defaults.transparentTokenBackgrounds,
+      showHealthRings: typeof parsed.showHealthRings === "boolean"
+        ? parsed.showHealthRings
+        : defaults.showHealthRings,
     };
   } catch {
     return defaults;
@@ -978,6 +981,7 @@ function drawMap(
   selectedMapNoteId: string | null,
   gridOpacity: number,
   transparentTokenBackgrounds: boolean,
+  showHealthRings: boolean,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1182,13 +1186,11 @@ function drawMap(
     }
     if (!transparentTokenBackgrounds) {
       context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
-      context.lineWidth = owned || active
-        ? hasLargeFootprint ? Math.max(0.75, radius * 0.04) : Math.max(1.5, radius * 0.08)
-        : hasLargeFootprint ? Math.max(0.5, radius * 0.025) : Math.max(1, radius * 0.05);
+      context.lineWidth = hasLargeFootprint ? Math.max(0.5, radius * 0.025) : Math.max(1, radius * 0.05);
       context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
     }
 
-    if (health) {
+    if (health && showHealthRings) {
       const healthRadius = radius * 1.12;
       // Keep the HP ring as slim as it is on a Tiny token. Its radius still
       // follows the creature footprint, but larger creatures do not get a
@@ -1204,16 +1206,17 @@ function drawMap(
         context.arc(x, y, healthRadius, -Math.PI / 2, -Math.PI / 2 + health.ratio * Math.PI * 2);
         context.stroke();
       }
-      if (down) {
-        context.strokeStyle = health.color;
-        context.lineWidth = Math.max(2, radius * 0.14);
-        context.lineCap = "round";
-        const slash = radius * 0.6;
-        context.beginPath();
-        context.moveTo(x - slash, y - slash); context.lineTo(x + slash, y + slash);
-        context.moveTo(x + slash, y - slash); context.lineTo(x - slash, y + slash);
-        context.stroke();
-      }
+      context.lineCap = "butt";
+    }
+    if (down) {
+      context.strokeStyle = health!.color;
+      context.lineWidth = Math.max(2, radius * 0.14);
+      context.lineCap = "round";
+      const slash = radius * 0.6;
+      context.beginPath();
+      context.moveTo(x - slash, y - slash); context.lineTo(x + slash, y + slash);
+      context.moveTo(x + slash, y - slash); context.lineTo(x - slash, y + slash);
+      context.stroke();
       context.lineCap = "butt";
     }
 
@@ -1361,6 +1364,7 @@ export default function BattleMapPrototype() {
   const [rosterFilter, setRosterFilter] = useState("");
   const [gridOpacity, setGridOpacity] = useState(DEFAULT_GRID_OPACITY);
   const [transparentTokenBackgrounds, setTransparentTokenBackgrounds] = useState(false);
+  const [showHealthRings, setShowHealthRings] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1406,11 +1410,11 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     if (!personalUiSettingsKey) return;
     try {
-      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, transparentTokenBackgrounds }));
+      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, transparentTokenBackgrounds, showHealthRings }));
     } catch {
       // Browser privacy modes can disable storage; cosmetic settings still work for this session.
     }
-  }, [gridOpacity, personalUiSettingsKey, transparentTokenBackgrounds]);
+  }, [gridOpacity, personalUiSettingsKey, showHealthRings, transparentTokenBackgrounds]);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -1499,6 +1503,7 @@ export default function BattleMapPrototype() {
       const personalSettings = loadPersonalUiSettings(name, result.role);
       setGridOpacity(personalSettings.gridOpacity);
       setTransparentTokenBackgrounds(personalSettings.transparentTokenBackgrounds);
+      setShowHealthRings(personalSettings.showHealthRings);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
@@ -1729,8 +1734,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, transparentTokenBackgrounds);
-  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, transparentTokenBackgrounds, showHealthRings);
+  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, showHealthRings, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -2911,6 +2916,15 @@ export default function BattleMapPrototype() {
                   checked={transparentTokenBackgrounds}
                   aria-label="Transparent token centers"
                   onChange={(event) => setTransparentTokenBackgrounds(event.target.checked)}
+                />
+              </label>
+              <label className="ui-setting-toggle">
+                <span><strong>Health rings</strong><small>Show current health around tokens</small></span>
+                <input
+                  type="checkbox"
+                  checked={showHealthRings}
+                  aria-label="Health rings"
+                  onChange={(event) => setShowHealthRings(event.target.checked)}
                 />
               </label>
               {participant.role === "dm" ? <div className="ui-settings-global">

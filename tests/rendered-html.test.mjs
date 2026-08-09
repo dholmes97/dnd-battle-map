@@ -505,6 +505,7 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
 
   assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(DEFAULT_GRID_OPACITY\)/);
   assert.match(clientSource, /const \[transparentTokenBackgrounds, setTransparentTokenBackgrounds\] = useState\(false\)/);
+  assert.match(clientSource, /const \[showHealthRings, setShowHealthRings\] = useState\(true\)/);
   assert.match(clientSource, /aria-label="UI Settings"/);
   assert.match(clientSource, /<strong>Your display<\/strong><small>Only changes your view<\/small>/);
   assert.match(clientSource, /participant\.role === "dm" \? <div className="ui-settings-global">/);
@@ -514,6 +515,9 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(clientSource, /Only changes your view/);
   assert.match(clientSource, /aria-label="Transparent token centers"/);
   assert.match(clientSource, /setTransparentTokenBackgrounds\(event\.target\.checked\)/);
+  assert.match(clientSource, /aria-label="Health rings"/);
+  assert.match(clientSource, /setShowHealthRings\(event\.target\.checked\)/);
+  assert.match(clientSource, /if \(health && showHealthRings\)/);
   assert.match(clientSource, /transparentTokenBackgrounds\s+\? "rgba\(16, 15, 13, 0\.12\)"/);
   assert.match(clientSource, /if \(!transparentTokenBackgrounds\) \{\s+context\.strokeStyle = owned/);
   assert.match(clientSource, /rgba\(232, 220, 190, \$\{Math\.min\(1, Math\.max\(0, gridOpacity\)\)\}\)/);
@@ -527,13 +531,14 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(styles, /\.ui-settings-panel/);
   assert.match(styles, /\.ui-settings-global/);
   assert.match(styles, /\.ui-setting-toggle/);
-  assert.equal((clientSource.match(/className="ui-setting-toggle"/g) ?? []).length, 2);
+  assert.equal((clientSource.match(/className="ui-setting-toggle"/g) ?? []).length, 3);
   assert.doesNotMatch(styles, /\.strict-movement-toggle/);
   assert.match(clientSource, /const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1"/);
   assert.match(clientSource, /window\.localStorage\.getItem\(uiSettingsStorageKey\(name, role\)\)/);
-  assert.match(clientSource, /window\.localStorage\.setItem\(personalUiSettingsKey, JSON\.stringify\(\{ gridOpacity, transparentTokenBackgrounds \}\)\)/);
+  assert.match(clientSource, /window\.localStorage\.setItem\(personalUiSettingsKey, JSON\.stringify\(\{ gridOpacity, transparentTokenBackgrounds, showHealthRings \}\)\)/);
   assert.match(clientSource, /const personalSettings = loadPersonalUiSettings\(name, result\.role\)/);
   assert.match(clientSource, /setTransparentTokenBackgrounds\(personalSettings\.transparentTokenBackgrounds\)/);
+  assert.match(clientSource, /setShowHealthRings\(personalSettings\.showHealthRings\)/);
 });
 
 test("closes UI Settings when the user clicks elsewhere", async () => {
@@ -566,8 +571,8 @@ test("keeps creature outlines restrained at large token sizes", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
   assert.match(clientSource, /const hasLargeFootprint = token\.size === "large" \|\| token\.size === "huge" \|\| token\.size === "gargantuan"/);
-  assert.match(clientSource, /hasLargeFootprint \? Math\.max\(0\.75, radius \* 0\.04\) : Math\.max\(1\.5, radius \* 0\.08\)/);
-  assert.match(clientSource, /hasLargeFootprint \? Math\.max\(0\.5, radius \* 0\.025\) : Math\.max\(1, radius \* 0\.05\)/);
+  assert.match(clientSource, /context\.lineWidth = hasLargeFootprint \? Math\.max\(0\.5, radius \* 0\.025\) : Math\.max\(1, radius \* 0\.05\)/);
+  assert.doesNotMatch(clientSource, /context\.lineWidth = owned \|\| active/);
   assert.doesNotMatch(clientSource, /owned \|\| active \? Math\.max\(3, radius \* 0\.16\) : Math\.max\(2, radius \* 0\.1\)/);
 });
 
