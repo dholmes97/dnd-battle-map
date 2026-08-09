@@ -433,7 +433,7 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(0\.17\)/);
+  assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(DEFAULT_GRID_OPACITY\)/);
   assert.match(clientSource, /const \[transparentTokenBackgrounds, setTransparentTokenBackgrounds\] = useState\(false\)/);
   assert.match(clientSource, /aria-label="UI Settings"/);
   assert.match(clientSource, /<strong>Your display<\/strong><small>Only changes your view<\/small>/);
@@ -459,6 +459,11 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(styles, /\.ui-setting-toggle/);
   assert.equal((clientSource.match(/className="ui-setting-toggle"/g) ?? []).length, 2);
   assert.doesNotMatch(styles, /\.strict-movement-toggle/);
+  assert.match(clientSource, /const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1"/);
+  assert.match(clientSource, /window\.localStorage\.getItem\(uiSettingsStorageKey\(name, role\)\)/);
+  assert.match(clientSource, /window\.localStorage\.setItem\(personalUiSettingsKey, JSON\.stringify\(\{ gridOpacity, transparentTokenBackgrounds \}\)\)/);
+  assert.match(clientSource, /const personalSettings = loadPersonalUiSettings\(name, result\.role\)/);
+  assert.match(clientSource, /setTransparentTokenBackgrounds\(personalSettings\.transparentTokenBackgrounds\)/);
 });
 
 test("closes UI Settings when the user clicks elsewhere", async () => {

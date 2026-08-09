@@ -165,6 +165,8 @@ const JOIN_TIMEOUT_MS = 12_000;
 const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
 const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
+const DEFAULT_GRID_OPACITY = 0.17;
+const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1";
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
   "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token", "move",
@@ -198,6 +200,31 @@ const ICON_PATHS = {
 } as const;
 
 type IconName = keyof typeof ICON_PATHS;
+
+type PersonalUiSettings = { gridOpacity: number; transparentTokenBackgrounds: boolean };
+
+function uiSettingsStorageKey(name: string, role: Role) {
+  return `${UI_SETTINGS_STORAGE_PREFIX}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
+}
+
+function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
+  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, transparentTokenBackgrounds: false };
+  try {
+    const stored = window.localStorage.getItem(uiSettingsStorageKey(name, role));
+    if (!stored) return defaults;
+    const parsed = JSON.parse(stored) as Partial<PersonalUiSettings>;
+    return {
+      gridOpacity: typeof parsed.gridOpacity === "number" && Number.isFinite(parsed.gridOpacity)
+        ? Math.min(1, Math.max(0, parsed.gridOpacity))
+        : defaults.gridOpacity,
+      transparentTokenBackgrounds: typeof parsed.transparentTokenBackgrounds === "boolean"
+        ? parsed.transparentTokenBackgrounds
+        : defaults.transparentTokenBackgrounds,
+    };
+  } catch {
+    return defaults;
+  }
+}
 
 function Icon({ name }: { name: IconName }) {
   return (
@@ -1105,7 +1132,7 @@ export default function BattleMapPrototype() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [presenting, setPresenting] = useState(false);
   const [rosterFilter, setRosterFilter] = useState("");
-  const [gridOpacity, setGridOpacity] = useState(0.17);
+  const [gridOpacity, setGridOpacity] = useState(DEFAULT_GRID_OPACITY);
   const [transparentTokenBackgrounds, setTransparentTokenBackgrounds] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
@@ -1128,6 +1155,7 @@ export default function BattleMapPrototype() {
   const optimisticSequenceRef = useRef(0);
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
+  const personalUiSettingsKey = participant ? uiSettingsStorageKey(participant.name, participant.role) : null;
 
   useEffect(() => {
     const closeUiSettingsOutside = (event: PointerEvent) => {
@@ -1147,6 +1175,15 @@ export default function BattleMapPrototype() {
       document.removeEventListener("keydown", closeUiSettingsOnEscape);
     };
   }, []);
+
+  useEffect(() => {
+    if (!personalUiSettingsKey) return;
+    try {
+      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, transparentTokenBackgrounds }));
+    } catch {
+      // Browser privacy modes can disable storage; cosmetic settings still work for this session.
+    }
+  }, [gridOpacity, personalUiSettingsKey, transparentTokenBackgrounds]);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -1228,6 +1265,9 @@ export default function BattleMapPrototype() {
         { method: "POST", signal: controller.signal, body: JSON.stringify({ participantName: name, role: identity.role }) },
       );
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
+      const personalSettings = loadPersonalUiSettings(name, result.role);
+      setGridOpacity(personalSettings.gridOpacity);
+      setTransparentTokenBackgrounds(personalSettings.transparentTokenBackgrounds);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
