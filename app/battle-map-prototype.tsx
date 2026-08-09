@@ -2489,8 +2489,9 @@ export default function BattleMapPrototype() {
         <div className="map-tool-group" role="group" aria-label="Layout">
           <details className="ui-settings-menu">
             <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
-            <section className="ui-settings-panel" aria-label="Personal UI Settings">
-              <div className="ui-settings-heading"><strong>UI Settings</strong><small>Only changes your view</small></div>
+            <section className="ui-settings-panel" aria-label="UI Settings">
+              <div className="ui-settings-heading"><strong>UI Settings</strong><small>Personal and encounter display controls</small></div>
+              <div className="ui-settings-section-label"><strong>Your display</strong><small>Only changes your view</small></div>
               <label className="grid-opacity-control">
                 <span>Grid visibility <output>{Math.round(gridOpacity * 100)}%</output></span>
                 <input
@@ -2513,6 +2514,23 @@ export default function BattleMapPrototype() {
                   onChange={(event) => setTransparentTokenBackgrounds(event.target.checked)}
                 />
               </label>
+              {participant.role === "dm" ? <div className="ui-settings-global">
+                <div className="ui-settings-section-label"><strong>Encounter settings</strong><small>Affects everyone</small></div>
+                <label
+                  className="strict-movement-toggle"
+                  data-tooltip="With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token."
+                >
+                  <span><strong>Strict movement</strong><small>Players move only their tokens</small></span>
+                  <input
+                    type="checkbox"
+                    checked={state.encounter.strictMovement}
+                    aria-label="Strict movement"
+                    aria-describedby="strict-movement-help"
+                    onChange={(event) => setStrictMovementOptimistically(event.target.checked)}
+                  />
+                </label>
+                <span id="strict-movement-help" className="visually-hidden">With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token.</span>
+              </div> : null}
             </section>
           </details>
           <button className={`icon-tool${sidebarOpen ? "" : " tool-active"}`} aria-label={sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="sidebar" /></button>
@@ -2690,20 +2708,6 @@ export default function BattleMapPrototype() {
               ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button>
               : null}
             {participant.role === "dm" ? <>
-              <label
-                className="strict-movement-toggle"
-                data-tooltip="With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token."
-              >
-                <span><strong>Strict movement</strong><small>Players move only their tokens</small></span>
-                <input
-                  type="checkbox"
-                  checked={state.encounter.strictMovement}
-                  aria-label="Strict movement"
-                  aria-describedby="strict-movement-help"
-                  onChange={(event) => setStrictMovementOptimistically(event.target.checked)}
-                />
-              </label>
-              <span id="strict-movement-help" className="visually-hidden">With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token.</span>
               <div className="button-row">
                 <button className="primary-button" aria-describedby="restart-combat-help" data-tooltip={inCombat ? "Start again at round 1 using the current initiative. Keeps the map, tokens, HP, effects, and initiative values." : "Begin combat at round 1 using the entered initiative values."} onClick={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}>{inCombat ? "Restart combat" : "Start combat"}</button>
                 <span id="restart-combat-help" className="visually-hidden">Restart begins combat again at round 1 using the current initiative values while preserving the map, tokens, HP, and effects.</span>

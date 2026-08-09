@@ -432,7 +432,9 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(0\.17\)/);
   assert.match(clientSource, /const \[transparentTokenBackgrounds, setTransparentTokenBackgrounds\] = useState\(false\)/);
   assert.match(clientSource, /aria-label="UI Settings"/);
-  assert.match(clientSource, /aria-label="Personal UI Settings"/);
+  assert.match(clientSource, /<strong>Your display<\/strong><small>Only changes your view<\/small>/);
+  assert.match(clientSource, /participant\.role === "dm" \? <div className="ui-settings-global">/);
+  assert.match(clientSource, /<strong>Encounter settings<\/strong><small>Affects everyone<\/small>/);
   assert.match(clientSource, /aria-label="Grid visibility"/);
   assert.match(clientSource, /setGridOpacity\(Number\(event\.target\.value\) \/ 100\)/);
   assert.match(clientSource, /Only changes your view/);
@@ -449,6 +451,7 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(styles, /::-webkit-slider-thumb/);
   assert.match(styles, /::-moz-range-progress/);
   assert.match(styles, /\.ui-settings-panel/);
+  assert.match(styles, /\.ui-settings-global/);
   assert.match(styles, /\.ui-setting-toggle/);
 });
 

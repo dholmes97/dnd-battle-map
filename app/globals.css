@@ -386,6 +386,11 @@ input:focus {
 .ui-settings-heading { display: grid; gap: 0.08rem; padding-bottom: 0.5rem; border-bottom: 1px solid #34302a; }
 .ui-settings-heading strong { font-size: 0.74rem; }
 .ui-settings-heading small { color: #827b70; font-size: 0.58rem; }
+.ui-settings-section-label { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding-top: 0.55rem; }
+.ui-settings-section-label strong { color: #b9b0a3; font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; }
+.ui-settings-section-label small { color: #777066; font-size: 0.55rem; }
+.ui-settings-global { margin-top: 0.6rem; padding-top: 0.05rem; border-top: 1px solid #4a4031; }
+.ui-settings-global .strict-movement-toggle { margin-top: 0.45rem; }
 .grid-opacity-control { display: grid; gap: 0.28rem; padding: 0.58rem 0 0.5rem; color: #a69e92; font-size: 0.64rem; letter-spacing: 0.025em; }
 .grid-opacity-control > span { display: flex; justify-content: space-between; gap: 0.5rem; }
 .grid-opacity-control output { color: #d5c498; font-family: var(--font-geist-mono), monospace; font-variant-numeric: tabular-nums; }
