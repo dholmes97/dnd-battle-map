@@ -1,3 +1,18 @@
+export function isReversibleHistoryRow(row, reversibleActionTypes) {
+  if (row.action_type === "action_undone" || row.action_type === "action_redone") return true;
+  if (!reversibleActionTypes.has(row.action_type)) return false;
+  if (row.action_type !== "annotation_added" && row.action_type !== "annotation_removed") return true;
+  try {
+    const payload = JSON.parse(row.payload_json);
+    const annotation = payload?.annotation ?? payload;
+    // Pings and spotlights expire on their own. Only durable drawings belong in
+    // undo history, including when reading action rows created by older builds.
+    return annotation?.annotationType === "drawing";
+  } catch {
+    return false;
+  }
+}
+
 export function deriveHistoryActionIds(chronologicalRows, reversibleActionTypes) {
   const knownIds = new Set();
   const undoIds = [];

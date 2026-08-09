@@ -18,7 +18,7 @@ import {
   identityControlsToken,
   resolveTokenControllerName,
 } from "../shared/token-control.mjs";
-import { deriveHistoryActionIds } from "../shared/action-history.mjs";
+import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
 import { healthBand } from "../shared/health.mjs";
 import {
   SPELL_EFFECT_KIND,
@@ -1306,6 +1306,22 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "token_updated",
 ]);
 
+function historyConflictMessage(direction: "undone" | "redone", actionType: string): string {
+  const messages: Record<string, string> = {
+    token_moved: `This move cannot be ${direction} because the token moved again.`,
+    hp_changed: `This HP change cannot be ${direction} because the token's HP changed again.`,
+    initiative_set: `This initiative change cannot be ${direction} because the token's initiative or group changed again.`,
+    initiative_group_set: `This initiative-group change cannot be ${direction} because its members or initiative changed again.`,
+    effect_added: `This effect change cannot be ${direction} because the effect changed again.`,
+    effect_removed: `This effect change cannot be ${direction} because the effect changed again.`,
+    annotation_added: `This drawing cannot be ${direction} because it was changed, erased, or cleared.`,
+    annotation_removed: `This erased drawing cannot be ${direction} because the drawing changed again.`,
+    token_created: `This placement cannot be ${direction} because the token was deleted, reassigned, or otherwise changed.`,
+    token_updated: `This token edit cannot be ${direction} because the token no longer exists or its details changed again.`,
+  };
+  return messages[actionType] ?? `This action cannot be ${direction} because its shared state changed.`;
+}
+
 async function historyStacks(
   env: Env,
   encounterId: string,
@@ -1318,8 +1334,9 @@ async function historyStacks(
   )
     .bind(encounterId, participantId)
     .all<ActionRow>();
-  const actions = new Map(rows.results.filter((row) => REVERSIBLE_ACTION_TYPES.has(row.action_type)).map((row) => [row.id, row]));
-  const { undoIds, redoIds } = deriveHistoryActionIds([...rows.results].reverse(), REVERSIBLE_ACTION_TYPES);
+  const eligibleRows = rows.results.filter((row) => isReversibleHistoryRow(row, REVERSIBLE_ACTION_TYPES));
+  const actions = new Map(eligibleRows.filter((row) => REVERSIBLE_ACTION_TYPES.has(row.action_type)).map((row) => [row.id, row]));
+  const { undoIds, redoIds } = deriveHistoryActionIds([...eligibleRows].reverse(), REVERSIBLE_ACTION_TYPES);
   return {
     undo: undoIds.slice(0, 10).map((id) => actions.get(id)!).filter(Boolean),
     redo: redoIds.slice(0, 10).map((id) => actions.get(id)!).filter(Boolean),
@@ -1626,7 +1643,7 @@ async function handleCommand(
       ? (Array.isArray(payload.members) ? payload.members.length : 0)
       : 1;
     if (changes !== expectedChanges || expectedChanges === 0) {
-      return json({ error: "That action can no longer be undone because its shared state changed." }, { status: 409 });
+      return json({ error: historyConflictMessage("undone", action.action_type) }, { status: 409 });
     }
     if (action.action_type === "initiative_set" || action.action_type === "initiative_group_set") {
       await rebuildInitiativeOrders(env, encounter, now, activeLeaderIdsBeforeHistory);
@@ -1769,7 +1786,7 @@ async function handleCommand(
       ? (Array.isArray(payload.members) ? payload.members.length : 0)
       : 1;
     if (changes !== expectedChanges || expectedChanges === 0) {
-      return json({ error: "That action can no longer be redone because its shared state changed." }, { status: 409 });
+      return json({ error: historyConflictMessage("redone", action.action_type) }, { status: 409 });
     }
     if (action.action_type === "initiative_set" || action.action_type === "initiative_group_set") {
       await rebuildInitiativeOrders(env, encounter, now, activeLeaderIdsBeforeHistory);

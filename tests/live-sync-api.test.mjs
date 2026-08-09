@@ -96,6 +96,28 @@ test("lists durable scenarios for the join chooser", async () => {
   assert.ok(body.items.every((encounter) => typeof encounter.status === "string" && Number.isFinite(encounter.updatedAt)));
 });
 
+test("temporary pings and spotlights stay out of undo history", async () => {
+  const dm = (await joinIdentity(FIXED_IDENTITIES.kevin)).participant;
+  const before = await viewerState(dm);
+  assert.equal(before.response.status, 200);
+
+  const ping = await command(dm, "add-annotation", {
+    annotationType: "ping",
+    x: 6.25,
+    y: 4.75,
+  });
+  assert.equal(ping.response.status, 200);
+  assert.equal(ping.body.state.undo.available, before.body.undo.available);
+
+  const spotlight = await command(dm, "add-annotation", {
+    annotationType: "spotlight",
+    x: 5.5,
+    y: 5.5,
+  });
+  assert.equal(spotlight.response.status, 200);
+  assert.equal(spotlight.body.state.undo.available, before.body.undo.available);
+});
+
 async function waitForPolledState(since, predicate, timeoutMs = 15_000, headers = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -735,7 +757,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
         y: 8.2,
       }),
     });
-    assert.equal(inheritedSummonMove.response.status, 200);
+    assert.equal(inheritedSummonMove.response.status, 200, JSON.stringify(inheritedSummonMove.body));
     assert.equal(
       inheritedSummonMove.body.state.tokens.find((token) => token.id === inheritedSummonId).controller.name,
       "Scott",
@@ -933,6 +955,7 @@ test("eight joined clients converge on one collaboration update", async () => {
       label: suffix,
     });
     assert.equal(ping.response.status, 200);
+    assert.equal(ping.body.state.undo.available, baselines[0].body.undo.available, "temporary pings must not enter undo history");
     await Promise.all(observations);
     const convergenceMs = performance.now() - started;
     assert.ok(convergenceMs < 2_500, `Eight-client convergence took ${convergenceMs.toFixed(0)}ms`);

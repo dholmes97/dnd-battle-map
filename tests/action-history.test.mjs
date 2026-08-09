@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveHistoryActionIds } from "../shared/action-history.mjs";
+import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
 
 const reversible = new Set(["token_moved"]);
 const action = (id) => ({ id, action_type: "token_moved", payload_json: "{}" });
@@ -33,4 +33,18 @@ test("redo restores undo order and a new action clears remaining redo", () => {
     undoIds: ["d", "b", "a"],
     redoIds: [],
   });
+});
+
+test("only durable drawings are reversible annotations", () => {
+  const annotationTypes = new Set(["annotation_added", "annotation_removed"]);
+  const row = (annotationType) => ({
+    id: annotationType,
+    action_type: "annotation_added",
+    payload_json: JSON.stringify({ annotation: { annotationType } }),
+  });
+
+  assert.equal(isReversibleHistoryRow(row("drawing"), annotationTypes), true);
+  assert.equal(isReversibleHistoryRow(row("ping"), annotationTypes), false);
+  assert.equal(isReversibleHistoryRow(row("spotlight"), annotationTypes), false);
+  assert.equal(isReversibleHistoryRow({ ...row("broken"), payload_json: "{" }, annotationTypes), false);
 });

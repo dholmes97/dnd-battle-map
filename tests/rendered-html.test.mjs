@@ -705,7 +705,7 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
   assert.match(workerSource, /redoAvailable: availableHistory\.redo\.length/);
   assert.match(workerSource, /if \(command === "redo"\)/);
   assert.match(workerSource, /"action_redone"/);
-  assert.match(workerSource, /That action can no longer be redone because its shared state changed/);
+  assert.match(workerSource, /historyConflictMessage\("redone", action\.action_type\)/);
 });
 
 test("includes a durable full-scene workshop with no retired editor path", async () => {
@@ -851,4 +851,19 @@ test("bounds client map media and transient ping memory", async () => {
   assert.match(clientSource, /scene\.canvas\.width = 1;/);
   // Expired server pings must also leave the client's timestamp registry.
   assert.match(clientSource, /pingStartedAtRef\.current\.delete\(pingId\)/);
+});
+
+test("keeps temporary annotations out of undo and explains history conflicts", async () => {
+  const [workerSource, historySource] = await Promise.all([
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/action-history.mjs", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(historySource, /return annotation\?\.annotationType === "drawing";/);
+  assert.match(historySource, /including when reading action rows created by older builds/);
+  assert.match(workerSource, /This move cannot be \$\{direction\} because the token moved again\./);
+  assert.match(workerSource, /This HP change cannot be \$\{direction\} because the token's HP changed again\./);
+  assert.match(workerSource, /This initiative-group change cannot be \$\{direction\} because its members or initiative changed again\./);
+  assert.match(workerSource, /This drawing cannot be \$\{direction\} because it was changed, erased, or cleared\./);
+  assert.doesNotMatch(workerSource, /That action can no longer be undone because its shared state changed/);
 });
