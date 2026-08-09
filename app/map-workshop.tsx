@@ -50,6 +50,10 @@ function loadImage(path: string): Promise<[string, HTMLImageElement] | null> {
   });
 }
 
+function mapThumbnailUrl(assetUrl: string): string {
+  return `/assets/full-map-thumbnails/${assetUrl.split("/").pop()}`;
+}
+
 function canvasPoint(canvas: HTMLCanvasElement, map: MapPackage, clientX: number, clientY: number): Point {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -192,6 +196,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
 
   useEffect(() => {
     let disposed = false;
+    queueMicrotask(() => { if (!disposed) setImages(new Map()); });
     void Promise.all(assetPaths.map(loadImage)).then((entries) => {
       if (!disposed) setImages(new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)));
     });
@@ -344,7 +349,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     <header className="workshop-header"><div><div className="eyebrow">Map workshop · DM only</div><h1>{map.name}</h1><p>Build privately, then apply the complete scene when players should see it.</p></div><div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Private changes" : "Matches players"}</span><button className="secondary-button" onClick={discard}>Discard</button><button className="primary-button" disabled={busy} onClick={() => void apply()}>Apply to players</button><button className="secondary-button" onClick={onClose}>Return</button></div></header>
     <div className="workshop-layout">
       <aside className="workshop-controls" aria-label="Scene workshop controls">
-        <section><div className="workshop-section-heading"><small>Complete scenes</small><strong>Choose a cohesive base</strong></div><p className="workshop-help">Each starter is one high-resolution image with its own matching additions.</p><div className="full-scene-list">{FULL_SCENE_MAPS.map((scene) => <button key={scene.id} className={map.visual.assetUrl === scene.assetUrl ? "is-active" : ""} onClick={() => chooseScene(scene)}><NextImage src={scene.assetUrl} alt="" width={96} height={64} unoptimized /><span><strong>{scene.name}</strong><small>{scene.biome} · {scene.width ?? 24} × {scene.height ?? 16}</small></span></button>)}</div></section>
+        <section><div className="workshop-section-heading"><small>Complete scenes</small><strong>Choose a cohesive base</strong></div><p className="workshop-help">Each starter is one high-resolution image with its own matching additions.</p><div className="full-scene-list">{FULL_SCENE_MAPS.map((scene) => <button key={scene.id} className={map.visual.assetUrl === scene.assetUrl ? "is-active" : ""} onClick={() => chooseScene(scene)}><NextImage src={mapThumbnailUrl(scene.assetUrl)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{scene.name}</strong><small>{scene.biome} · {scene.width ?? 24} × {scene.height ?? 16}</small></span></button>)}</div></section>
         <section><div className="workshop-section-heading"><small>Edit</small><strong>Scene annotations</strong></div><div className="draft-history-row"><button disabled={!historyCounts.undo} onClick={undo}>Undo{historyCounts.undo ? ` (${historyCounts.undo})` : ""}</button><button disabled={!historyCounts.redo} onClick={redo}>Redo{historyCounts.redo ? ` (${historyCounts.redo})` : ""}</button></div><div className="workshop-tool-row is-expanded">{(["select", "wall", "door", "window", "label", "note"] as Tool[]).map((value) => <button key={value} className={tool === value ? "is-active" : ""} onClick={() => setTool(value)}>{value === "note" ? "DM note" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div>
           {tool === "select" ? <p className="workshop-help">Select additions, labels, or notes on the map. Drag additions to move them; use Delete below to remove the selection.</p> : null}
           {tool === "wall" ? <p className="workshop-help">Drag between grid intersections to add a wall.</p> : null}

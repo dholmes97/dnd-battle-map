@@ -173,6 +173,14 @@ const OPTIMISTIC_HISTORY_COMMANDS = new Set([
   "create-spell-effect",
 ]);
 
+function releaseRenderedMapScene(scene: RenderedMapScene | null): void {
+  if (!scene) return;
+  // Explicitly release the GPU/backing store. WebKit can otherwise retain a
+  // discarded 3072x2048 canvas until a later garbage-collection cycle.
+  scene.canvas.width = 1;
+  scene.canvas.height = 1;
+}
+
 // Stroked 20x20 paths so every tool reads at the same weight. The glyph
 // characters they replace rendered inconsistently across fonts.
 const ICON_PATHS = {
@@ -1409,7 +1417,16 @@ export default function BattleMapPrototype() {
 
   useEffect(() => {
     const receivedAt = Date.now();
-    for (const annotation of state?.annotations ?? []) {
+    const annotations = state?.annotations ?? [];
+    const activePingIds = new Set(
+      annotations
+        .filter((annotation) => annotation.type === "ping")
+        .map((annotation) => annotation.id),
+    );
+    for (const pingId of pingStartedAtRef.current.keys()) {
+      if (!activePingIds.has(pingId)) pingStartedAtRef.current.delete(pingId);
+    }
+    for (const annotation of annotations) {
       if (annotation.type !== "ping" || pingStartedAtRef.current.has(annotation.id)) continue;
       pingStartedAtRef.current.set(annotation.id, receivedAt);
       if (pingAudioContextRef.current) playPingSound(pingAudioContextRef.current);
@@ -1451,12 +1468,19 @@ export default function BattleMapPrototype() {
 
   useEffect(() => {
     const mapPackage = state?.encounter.mapPackage;
-    if (!mapPackage) return;
+    if (!mapPackage) {
+      const timer = window.setTimeout(() => setRenderedMapScene((current) => {
+        releaseRenderedMapScene(current);
+        return null;
+      }), 0);
+      return () => window.clearTimeout(timer);
+    }
     const assets = [...new Set([
       mapPackage.visual.assetUrl,
       ...mapPackage.sceneObjects.map((object) => object.assetUrl),
     ])];
     let disposed = false;
+    let builtScene: HTMLCanvasElement | null = null;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement] | null>((resolve) => {
       const image = new Image();
       image.onload = () => resolve([path, image]);
@@ -1468,9 +1492,19 @@ export default function BattleMapPrototype() {
       scene.width = mapPackage.visual.pixelWidth;
       scene.height = mapPackage.visual.pixelHeight;
       renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), participant?.role === "dm");
-      setRenderedMapScene({ mapId: mapPackage.id, canvas: scene });
+      builtScene = scene;
+      setRenderedMapScene((current) => {
+        releaseRenderedMapScene(current);
+        return { mapId: mapPackage.id, canvas: scene };
+      });
     });
-    return () => { disposed = true; };
+    return () => {
+      disposed = true;
+      if (builtScene) {
+        builtScene.width = 1;
+        builtScene.height = 1;
+      }
+    };
   }, [participant?.role, state?.encounter.mapPackage]);
 
   useEffect(() => {
@@ -1478,7 +1512,10 @@ export default function BattleMapPrototype() {
       ...(state?.tokens.flatMap((token) => token.artAsset ? [token.artAsset] : []) ?? []),
       ...(placementArtAsset ? [placementArtAsset] : []),
     ])];
-    if (assets.length === 0) return;
+    if (assets.length === 0) {
+      const timer = window.setTimeout(() => setTokenArt(new Map()), 0);
+      return () => window.clearTimeout(timer);
+    }
     let disposed = false;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
       const image = new Image(); image.onload = () => resolve([path, image]); image.onerror = () => resolve([path, image]); image.src = path;

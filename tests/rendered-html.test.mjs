@@ -836,3 +836,19 @@ test("hides exact hit points from players and snaps their rings to bands", async
   // A row prints digits only when the server sent them.
   assert.match(clientSource, /token\.hp !== null && token\.maxHp !== null \? `\$\{token\.hp\}\/\$\{token\.maxHp\}` : ""/);
 });
+
+test("bounds client map media and transient ping memory", async () => {
+  const [clientSource, workshopSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // The workshop must not decode every 3072x2048 scene just to show its picker.
+  assert.match(workshopSource, /\/assets\/full-map-thumbnails\//);
+  assert.match(workshopSource, /loading="lazy"/);
+  // WebKit can retain detached canvas backing stores until a later GC cycle.
+  assert.match(clientSource, /function releaseRenderedMapScene\(/);
+  assert.match(clientSource, /scene\.canvas\.width = 1;/);
+  // Expired server pings must also leave the client's timestamp registry.
+  assert.match(clientSource, /pingStartedAtRef\.current\.delete\(pingId\)/);
+});
