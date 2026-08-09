@@ -23,6 +23,15 @@ type FullSceneDefinition = {
 
 export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
   {
+    id: "grandfather-tree-roots-v1",
+    name: "Grandfather Tree Roots",
+    description: "The shaded base of the Grandfather Tree, where an immense curved trunk wall and branching, overlapping roots shape the entire battlefield.",
+    biome: "forest",
+    mood: "daylight",
+    assetUrl: "/map-assets/grandfather-tree-roots-01.jpg",
+    sceneKitId: "none",
+  },
+  {
     id: "ancient-forest-clearing-v2",
     name: "Ancient Forest Crossing",
     description: "An old-growth woodland crossing with a mossy ruin, pond, trails, and open tactical ground.",

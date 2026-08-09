@@ -6,7 +6,7 @@ import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap } from "../shared/full-
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
-  assert.equal(FULL_SCENE_MAPS.length, 15);
+  assert.equal(FULL_SCENE_MAPS.length, 16);
   for (const definition of FULL_SCENE_MAPS) {
     const map = createFullSceneMap(definition);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
