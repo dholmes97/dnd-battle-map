@@ -282,6 +282,8 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /suppressNativeDragGhost\(event\.dataTransfer\);/);
   assert.match(clientSource, /width=\{240\} height=\{240\} draggable=\{false\} unoptimized/);
   assert.match(clientSource, /if \(!isMagicCircle\) \{[\s\S]+const echoRadius = visualRadius \* \(isMoonbeam \? 0\.76 : 0\.7\)/);
+  assert.match(clientSource, /Spell placements are intentionally one-shot/);
+  assert.match(clientSource, /setArmedSpellId\(null\);\s+setSpellPlacementPreview\(null\);\s+const matchingCount/);
   assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
   assert.match(clientSource, /aria-label="Spell footprint size"/);
   assert.match(clientSource, /"resize-spell-effect"/);

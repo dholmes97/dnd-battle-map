@@ -2130,6 +2130,10 @@ export default function BattleMapPrototype() {
       setError("Your character is not available in this scenario, so the spell cannot be placed.");
       return;
     }
+    // Spell placements are intentionally one-shot. Clear the armed palette
+    // choice before the optimistic paint so rapid clicks cannot create copies.
+    setArmedSpellId(null);
+    setSpellPlacementPreview(null);
     const matchingCount = state.tokens.filter((token) => token.kind === SPELL_EFFECT_KIND && token.artAsset === spell.artAsset).length;
     const name = matchingCount === 0 ? spell.name : `${spell.name} ${matchingCount + 1}`;
     const caster = effectivePlacementSummonerId ? state.tokens.find((token) => token.id === effectivePlacementSummonerId) : null;
@@ -2166,7 +2170,6 @@ export default function BattleMapPrototype() {
       localRedoHistoryRef.current = [];
       return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: [...current.tokens, optimisticToken] };
     });
-    setSpellPlacementPreview(null);
     setError("");
     try {
       await command<{ tokenId: string; state: EncounterState }>("create-spell-effect", {
