@@ -718,7 +718,7 @@ async function ensureSchema(env: Env): Promise<void> {
         db.prepare(
           `INSERT OR IGNORE INTO encounters (id, code, name, version, updated_at)
            VALUES (?, ?, ?, 1, ?)`,
-        ).bind("encounter-ember-keep", "EMBER-KEEP", "The Ember Keep", now),
+        ).bind("encounter-ember-keep", "EMBER-KEEP", "Swamp Battle", now),
         db.prepare(
           `INSERT OR IGNORE INTO tokens
             (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
@@ -1752,6 +1752,29 @@ async function handleCommand(
       actionType: action.action_type,
     }, now);
     return json({ redone: true, actionType: action.action_type, state: await state() });
+  }
+
+  if (command === "rename-scenario") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const name = cleanText(body.name, 64);
+    if (name.length < 3) {
+      return json({ error: "Scenario name must be at least three characters." }, { status: 400 });
+    }
+    if (name !== encounter.name) {
+      await env.DB.prepare(
+        "UPDATE encounters SET name = ?, version = version + 1, updated_at = ? WHERE id = ?",
+      ).bind(name, now, encounter.id).run();
+      await recordAction(env, encounter.id, participant.id, "scenario_renamed", {
+        previousName: encounter.name,
+        name,
+      }, now);
+    }
+    return json({
+      renamed: name !== encounter.name,
+      scenario: { code: encounter.code, name, status: encounter.status, updatedAt: name === encounter.name ? encounter.updated_at : now },
+      state: await state(),
+    });
   }
 
   if (command === "create-scenario") {

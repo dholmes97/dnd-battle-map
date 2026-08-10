@@ -34,9 +34,9 @@ test("server-renders the finished encounter join surface", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Ember Keep Encounter \| D&amp;D Battle Map<\/title>/i);
+  assert.match(html, /<title>D&amp;D Battle Map<\/title>/i);
   assert.match(html, /Choose a scenario/);
-  assert.match(html, /<select[^>]*><option value="EMBER-KEEP" selected="">The Ember Keep<\/option><\/select>/);
+  assert.match(html, /<select[^>]*><option value="EMBER-KEEP" selected="">Swamp Battle<\/option><\/select>/);
   assert.match(html, /Join as Dan \(Dar&#x27;eleth\)/);
   assert.match(html, /Join as Barry \(Jelton\)/);
   assert.match(html, /Join as Scott \(Malichar\)/);
@@ -48,20 +48,30 @@ test("server-renders the finished encounter join surface", async () => {
   assert.match(clientSource, /api<\{ items: EncounterSummary\[\] \}>\("\/api\/encounters"\)/);
 });
 
-test("gives the DM a durable scenario creation workflow", async () => {
-  const [clientSource, workerSource, styles] = await Promise.all([
+test("gives the DM a durable scenario creation and rename workflow", async () => {
+  const [clientSource, workerSource, styles, renameMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0013_rename-ember-keep.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(clientSource, /aria-label="Create scenario" data-tooltip="Create scenario"/);
+  assert.match(clientSource, /aria-label="Manage scenarios" data-tooltip="Manage scenarios"/);
+  assert.match(clientSource, /Current scenario name/);
+  assert.match(clientSource, /"rename-scenario"/);
+  assert.match(clientSource, /Rename current scenario/);
+  assert.match(clientSource, /encounter: \{ \.\.\.current\.encounter, name, updatedAt: Date\.now\(\) \}/);
   assert.match(clientSource, /Fresh scenario — current party only/);
   assert.match(clientSource, /Duplicate current map and tokens/);
   assert.match(clientSource, /command: "create-scenario", name, mode: scenarioMode/);
   assert.match(clientSource, /setParticipant\(joined\);\s+setState\(result\.state\);\s+setEncounterCode\(result\.scenario\.code\)/);
   assert.match(clientSource, /next\.encounter\.code !== current\.encounter\.code/);
   assert.match(workerSource, /if \(command === "create-scenario"\)/);
+  assert.match(workerSource, /if \(command === "rename-scenario"\)/);
+  assert.match(workerSource, /UPDATE encounters SET name = \?, version = version \+ 1, updated_at = \?/);
+  assert.match(workerSource, /"scenario_renamed"/);
+  assert.match(renameMigration, /SET `name` = 'Swamp Battle'/);
+  assert.match(renameMigration, /WHERE `code` = 'EMBER-KEEP'/);
   assert.match(workerSource, /const denied = requireDm\(\)/);
   assert.match(workerSource, /async function uniqueScenarioCode/);
   assert.match(workerSource, /baseTokenControllerName\(token\) !== "Kevin"/);

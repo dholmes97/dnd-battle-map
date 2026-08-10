@@ -162,7 +162,7 @@ type EncounterSummary = {
 };
 
 const DEFAULT_CODE = "EMBER-KEEP";
-const DEFAULT_ENCOUNTER: EncounterSummary = { code: DEFAULT_CODE, name: "The Ember Keep", status: "setup", updatedAt: 0 };
+const DEFAULT_ENCOUNTER: EncounterSummary = { code: DEFAULT_CODE, name: "Swamp Battle", status: "setup", updatedAt: 0 };
 const JOIN_IDENTITIES: JoinIdentity[] = [
   { label: "Join as Dan (Dar'eleth)", participantName: "Dan", role: "player" },
   { label: "Join as Barry (Jelton)", participantName: "Barry", role: "player" },
@@ -1168,6 +1168,9 @@ export default function BattleMapPrototype() {
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const [scenarioCreatorOpen, setScenarioCreatorOpen] = useState(false);
+  const [scenarioRenameName, setScenarioRenameName] = useState("");
+  const [scenarioRenaming, setScenarioRenaming] = useState(false);
+  const [scenarioRenameError, setScenarioRenameError] = useState("");
   const [scenarioName, setScenarioName] = useState("");
   const [scenarioMode, setScenarioMode] = useState<"party" | "duplicate">("party");
   const [scenarioCreating, setScenarioCreating] = useState(false);
@@ -1685,6 +1688,48 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const renameScenario = async () => {
+    if (!participant || participant.role !== "dm" || !state || scenarioRenaming || scenarioCreating) return;
+    const name = scenarioRenameName.trim();
+    if (name.length < 3) {
+      setScenarioRenameError("Enter a scenario name of at least three characters.");
+      return;
+    }
+    if (name === state.encounter.name) {
+      setScenarioRenameError("");
+      setScenarioCreatorOpen(false);
+      setNotice(`This scenario is already named ${name}.`);
+      return;
+    }
+    setScenarioRenaming(true);
+    setScenarioRenameError("");
+    const result = await runOptimisticCommand<{
+      renamed: boolean;
+      scenario: EncounterSummary;
+      state: EncounterState;
+    }>(
+      "rename-scenario",
+      { name },
+      (current) => ({
+        ...current,
+        encounter: { ...current.encounter, name, updatedAt: Date.now() },
+      }),
+      `${name} saved.`,
+      (response) => setEncounters((current) => [
+        response.scenario,
+        ...current.filter((item) => item.code !== response.scenario.code),
+      ]),
+      false,
+    );
+    if (result) {
+      setScenarioRenameName(result.scenario.name);
+      setScenarioCreatorOpen(false);
+    } else {
+      setScenarioRenameError("The scenario name could not be saved. Try again.");
+    }
+    setScenarioRenaming(false);
+  };
+
   const runHistoryOptimistically = async (direction: "undo" | "redo") => {
     const historyNotice = direction === "undo" ? "Last action undone." : "Last action redone.";
     setNotice(historyNotice);
@@ -2022,12 +2067,12 @@ export default function BattleMapPrototype() {
       if (event.key === "Escape") {
         setResetConfirmOpen(false);
         setRestartConfirmOpen(false);
-        if (!scenarioCreating) setScenarioCreatorOpen(false);
+        if (!scenarioCreating && !scenarioRenaming) setScenarioCreatorOpen(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen]);
+  }, [resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming]);
 
   const loadMoreCreatures = async () => {
     if (!creatureCursor || creatureCatalogLoading) return;
@@ -2696,7 +2741,7 @@ export default function BattleMapPrototype() {
           <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
           <button className={`icon-tool${spellPaletteOpen ? " tool-active" : ""}`} aria-label="Spell effects" data-tooltip="Spell effects" aria-pressed={spellPaletteOpen} onClick={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="spells" /></button>
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button> : null}
-          {participant.role === "dm" ? <button className="icon-tool" aria-label="Create scenario" data-tooltip="Create scenario" onClick={() => { setScenarioError(""); setScenarioCreatorOpen(true); }}><Icon name="scenarios" /></button> : null}
+          {participant.role === "dm" ? <button className="icon-tool" aria-label="Manage scenarios" data-tooltip="Manage scenarios" onClick={() => { setScenarioError(""); setScenarioRenameError(""); setScenarioRenameName(state.encounter.name); setScenarioCreatorOpen(true); }}><Icon name="scenarios" /></button> : null}
         </div>
         <div className="map-tool-group" role="group" aria-label="Action history">
           <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><Icon name="undo" /></button>
@@ -3005,21 +3050,27 @@ export default function BattleMapPrototype() {
           </div>
         </section>
       </div> : null}
-      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating) setScenarioCreatorOpen(false); }}>
-        <section className="confirm-dialog scenario-dialog" role="dialog" aria-modal="true" aria-labelledby="create-scenario-title" aria-describedby="create-scenario-description">
+      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating && !scenarioRenaming) setScenarioCreatorOpen(false); }}>
+        <section className="confirm-dialog scenario-dialog" role="dialog" aria-modal="true" aria-labelledby="manage-scenarios-title" aria-describedby="manage-scenarios-description">
           <div className="eyebrow">Scenario library</div>
-          <h2 id="create-scenario-title">Create a scenario</h2>
-          <p id="create-scenario-description">The new scenario gets its own map, tokens, combat state, and history. You will switch to it immediately.</p>
-          <label>Scenario name<input autoFocus maxLength={64} value={scenarioName} onChange={(event) => setScenarioName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void createScenario(); } }} placeholder="The Sunken Observatory" disabled={scenarioCreating} /></label>
-          <label>Starting point<select value={scenarioMode} onChange={(event) => setScenarioMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenarioCreating}>
+          <h2 id="manage-scenarios-title">Manage scenarios</h2>
+          <p id="manage-scenarios-description">Rename this scenario without changing its map or history, or prepare another scenario with its own encounter state.</p>
+          <div className="scenario-rename-section">
+            <label>Current scenario name<input autoFocus maxLength={64} value={scenarioRenameName} onChange={(event) => setScenarioRenameName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void renameScenario(); } }} disabled={scenarioCreating || scenarioRenaming} /></label>
+            {scenarioRenameError ? <div className="form-error" role="alert">{scenarioRenameError}</div> : null}
+            <div className="button-row"><button className={`secondary-button${scenarioRenaming ? " is-pending" : ""}`} onClick={() => void renameScenario()} disabled={scenarioCreating || scenarioRenaming || scenarioRenameName.trim().length < 3 || scenarioRenameName.trim() === state.encounter.name}>{scenarioRenaming ? "Saving…" : "Rename current scenario"}</button></div>
+          </div>
+          <div className="scenario-create-heading"><strong>Create another scenario</strong><small>The new scenario gets its own map, tokens, combat state, and history.</small></div>
+          <label>New scenario name<input maxLength={64} value={scenarioName} onChange={(event) => setScenarioName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void createScenario(); } }} placeholder="The Sunken Observatory" disabled={scenarioCreating || scenarioRenaming} /></label>
+          <label>Starting point<select value={scenarioMode} onChange={(event) => setScenarioMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenarioCreating || scenarioRenaming}>
             <option value="party">Fresh scenario — current party only</option>
             <option value="duplicate">Duplicate current map and tokens</option>
           </select></label>
           <p className="scenario-mode-help">{scenarioMode === "duplicate" ? "Copies the map and every token. Combat, initiative, effects, and history start clean." : "Copies Dar'eleth, Jelton, and Malichar at full health. Choose a map and add encounters afterward."}</p>
           {scenarioError ? <div className="form-error" role="alert">{scenarioError}</div> : null}
           <div className="button-row">
-            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating}>Cancel</button>
-            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
+            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating || scenarioRenaming}>Close</button>
+            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioRenaming || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
           </div>
         </section>
       </div> : null}

@@ -92,7 +92,7 @@ test("lists durable scenarios for the join chooser", async () => {
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(Array.isArray(body.items));
-  assert.ok(body.items.some((encounter) => encounter.code === code && encounter.name === "The Ember Keep"));
+  assert.ok(body.items.some((encounter) => encounter.code === code && ["The Ember Keep", "Swamp Battle"].includes(encounter.name)));
   assert.ok(body.items.every((encounter) => typeof encounter.status === "string" && Number.isFinite(encounter.updatedAt)));
 });
 
