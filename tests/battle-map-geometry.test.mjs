@@ -4,6 +4,7 @@ import {
   calculateDirectDistance,
   clampMapPoint,
   drawingAtPoint,
+  tokenArtScale,
   viewportGeometry,
   zoomViewportAt,
 } from "../shared/battle-map-geometry.mjs";
@@ -17,6 +18,13 @@ const mapKey = "keep:24x16";
 test("direct movement uses equal-cost D&D diagonals", () => {
   assert.equal(calculateDirectDistance({ x: 1, y: 1 }, { x: 4, y: 3 }, 5), 15);
   assert.equal(calculateDirectDistance({ x: 4, y: 3 }, { x: 1, y: 1 }, 10), 30);
+});
+
+test("Small creatures keep a full footprint but render visibly smaller artwork", () => {
+  assert.equal(tokenArtScale("small"), 0.75);
+  for (const size of ["tiny", "medium", "large", "huge", "gargantuan"]) {
+    assert.equal(tokenArtScale(size), 1, size);
+  }
 });
 
 test("token centers clamp to the map using their footprint", () => {

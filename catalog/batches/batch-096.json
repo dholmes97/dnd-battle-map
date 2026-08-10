@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-apau-perape",
+      "name": "Apau Perape",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10 + 40",
+      "armorClass": 16,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_apau-perape",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_apau-perape/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Apau Perape, a Large Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-apau-perape.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-apau-perape.png"
+    },
+    {
+      "id": "open5e-ccdx-blood-giant",
+      "name": "Blood Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "12d12+48",
+      "armorClass": 15,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_blood-giant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_blood-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-blood-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-blood-giant.png"
+    },
+    {
+      "id": "open5e-tob2-trollkin-raider",
+      "name": "Trollkin Raider",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8+10",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_trollkin-raider",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_trollkin-raider/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Trollkin Raider, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-trollkin-raider.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-trollkin-raider.png"
+    },
+    {
+      "id": "open5e-tob3-lycanthrope-wereotter",
+      "name": "Lycanthrope, Wereotter",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8 +8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_lycanthrope-wereotter",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_lycanthrope-wereotter/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lycanthrope, Wereotter, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-lycanthrope-wereotter.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-lycanthrope-wereotter.png"
+    },
+    {
+      "id": "open5e-tob-2023-boloti",
+      "name": "Boloti",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4 + 20",
+      "armorClass": 15,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_boloti",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_boloti/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Boloti, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-boloti.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-boloti.png"
+    },
+    {
+      "id": "open5e-ccdx-rattok",
+      "name": "Rattok",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 66,
+      "hitDice": "12d6+24",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 20,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_rattok",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_rattok/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rattok, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-rattok.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-rattok.png"
+    },
+    {
+      "id": "open5e-tob2-xing-tian",
+      "name": "Xing Tian",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 16,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_xing-tian",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_xing-tian/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Xing Tian, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-xing-tian.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-xing-tian.png"
+    },
+    {
+      "id": "open5e-tob3-ogre-rockchewer",
+      "name": "Ogre, Rockchewer",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "12d12+48",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ogre-rockchewer",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ogre-rockchewer/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ogre, Rockchewer, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ogre-rockchewer.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ogre-rockchewer.png"
+    },
+    {
+      "id": "open5e-tob-2023-al-aeshma-genie",
+      "name": "Al-Aeshma Genie",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 149,
+      "hitDice": "13d10 + 78",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 90,
+        "fly": 30,
+        "swim": 45,
+        "climb": 45,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_al-aeshma-genie",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_al-aeshma-genie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Al-Aeshma Genie, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-al-aeshma-genie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-al-aeshma-genie.png"
+    },
+    {
+      "id": "open5e-ccdx-kitsune",
+      "name": "Kitsune",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 49,
+      "hitDice": "14d6",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_kitsune",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_kitsune/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kitsune, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-kitsune.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-kitsune.png"
+    }
+  ]
+}

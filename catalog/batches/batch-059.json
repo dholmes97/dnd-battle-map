@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-keyhole-dragonette",
+      "name": "Keyhole Dragonette",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "6d4+12",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_keyhole-dragonette",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_keyhole-dragonette/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Keyhole Dragonette, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-keyhole-dragonette.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-keyhole-dragonette.png"
+    },
+    {
+      "id": "open5e-tob3-dragonette-barnyard",
+      "name": "Dragonette, Barnyard",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 18,
+      "hitDice": "4d4+8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dragonette-barnyard",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dragonette-barnyard/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dragonette, Barnyard, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dragonette-barnyard.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dragonette-barnyard.png"
+    },
+    {
+      "id": "open5e-tob-2023-living-wick",
+      "name": "Living Wick",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 28,
+      "hitDice": "8d6",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_living-wick",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_living-wick/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Living Wick, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-living-wick.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-living-wick.png"
+    },
+    {
+      "id": "open5e-ccdx-bookkeeper",
+      "name": "Bookkeeper",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 5,
+      "hitDice": "2d4",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_bookkeeper",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_bookkeeper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bookkeeper, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-bookkeeper.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-bookkeeper.png"
+    },
+    {
+      "id": "open5e-tob2-greed-swarm",
+      "name": "Greed Swarm",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8+4",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_greed-swarm",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_greed-swarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Greed Swarm, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-greed-swarm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-greed-swarm.png"
+    },
+    {
+      "id": "open5e-tob3-animated-instrument",
+      "name": "Animated Instrument",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "7d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_animated-instrument",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_animated-instrument/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Animated Instrument, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-animated-instrument.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-animated-instrument.png"
+    },
+    {
+      "id": "open5e-tob-2023-uraeus",
+      "name": "Uraeus",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 40,
+      "hitDice": "9d4 + 18",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": 30,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_uraeus",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_uraeus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Uraeus, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-uraeus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-uraeus.png"
+    },
+    {
+      "id": "open5e-ccdx-hallowed-reed",
+      "name": "Hallowed Reed",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_hallowed-reed",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_hallowed-reed/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hallowed Reed, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-hallowed-reed.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-hallowed-reed.png"
+    },
+    {
+      "id": "open5e-tob2-aviere",
+      "name": "Aviere",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "5d4+5",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 30,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_aviere",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_aviere/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Aviere, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-aviere.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-aviere.png"
+    },
+    {
+      "id": "open5e-tob3-angel-haladron",
+      "name": "Angel, Haladron",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 28,
+      "hitDice": "8d4+8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_angel-haladron",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_angel-haladron/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Angel, Haladron, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-angel-haladron.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-angel-haladron.png"
+    }
+  ]
+}

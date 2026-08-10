@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-hobgoblin-captain",
+      "name": "Hobgoblin Captain",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8 + 18",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_hobgoblin-captain",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_hobgoblin-captain/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hobgoblin Captain, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-hobgoblin-captain.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-hobgoblin-captain.png"
+    },
+    {
+      "id": "open5e-srd-2024-vampire",
+      "name": "Vampire",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 195,
+      "hitDice": "23d8 + 92",
+      "armorClass": 16,
+      "challengeRating": "13",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_vampire",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_vampire/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Vampire, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-vampire.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-vampire.png"
+    },
+    {
+      "id": "open5e-srd-2024-vampire-familiar",
+      "name": "Vampire Familiar",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 65,
+      "hitDice": "10d8 + 20",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_vampire-familiar",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_vampire-familiar/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Vampire Familiar, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-vampire-familiar.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-vampire-familiar.png"
+    },
+    {
+      "id": "open5e-srd-2024-piranha",
+      "name": "Piranha",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 1,
+      "hitDice": "1d4 - 1",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 40,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_piranha",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_piranha/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Piranha, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-piranha.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-piranha.png"
+    },
+    {
+      "id": "open5e-srd-2024-minotaur-of-baphomet",
+      "name": "Minotaur of Baphomet",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10 + 30",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_minotaur-of-baphomet",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_minotaur-of-baphomet/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Minotaur of Baphomet, a Large Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-minotaur-of-baphomet.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-minotaur-of-baphomet.png"
+    },
+    {
+      "id": "open5e-srd-2024-warrior-veteran",
+      "name": "Warrior Veteran",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 65,
+      "hitDice": "10d8 + 20",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_warrior-veteran",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_warrior-veteran/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Warrior Veteran, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-warrior-veteran.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-warrior-veteran.png"
+    },
+    {
+      "id": "open5e-srd-2024-guard-captain",
+      "name": "Guard Captain",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 75,
+      "hitDice": "10d8 + 30",
+      "armorClass": 18,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_guard-captain",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_guard-captain/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Guard Captain, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-guard-captain.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-guard-captain.png"
+    },
+    {
+      "id": "open5e-srd-2024-tough-boss",
+      "name": "Tough Boss",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 82,
+      "hitDice": "11d8 + 33",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_tough-boss",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_tough-boss/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tough Boss, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-tough-boss.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-tough-boss.png"
+    },
+    {
+      "id": "open5e-srd-2024-werewolf",
+      "name": "Werewolf",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 71,
+      "hitDice": "11d8 + 22",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_werewolf",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_werewolf/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Werewolf, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-werewolf.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-werewolf.png"
+    },
+    {
+      "id": "open5e-srd-2024-wereboar",
+      "name": "Wereboar",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 97,
+      "hitDice": "15d8 + 30",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_wereboar",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_wereboar/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wereboar, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-wereboar.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-wereboar.png"
+    }
+  ]
+}

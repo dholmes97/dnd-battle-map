@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-animated-bearskin-rug",
+      "name": "Animated Bearskin Rug",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 65,
+      "hitDice": "10d10+10",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_animated-bearskin-rug",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_animated-bearskin-rug/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Animated Bearskin Rug, a Large Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-animated-bearskin-rug.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-animated-bearskin-rug.png"
+    },
+    {
+      "id": "open5e-tob3-stained-glass-moth",
+      "name": "Stained-Glass Moth",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 45,
+      "hitDice": "6d6+24",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_stained-glass-moth",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_stained-glass-moth/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Stained-Glass Moth, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-stained-glass-moth.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-stained-glass-moth.png"
+    },
+    {
+      "id": "open5e-tob-2023-war-ostrich",
+      "name": "War Ostrich",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 42,
+      "hitDice": "5d10 + 15",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_war-ostrich",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_war-ostrich/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of War Ostrich, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-war-ostrich.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-war-ostrich.png"
+    },
+    {
+      "id": "open5e-ccdx-sootwing",
+      "name": "Sootwing",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 13,
+      "hitDice": "3d6+3",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 25,
+        "fly": 30,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_sootwing",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_sootwing/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sootwing, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-sootwing.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-sootwing.png"
+    },
+    {
+      "id": "open5e-tob2-astri",
+      "name": "Astri",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 112,
+      "hitDice": "15d6+60",
+      "armorClass": 15,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_astri",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_astri/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Astri, a Small Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-astri.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-astri.png"
+    },
+    {
+      "id": "open5e-tob3-blestsessebe",
+      "name": "Blestsessebe",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 144,
+      "hitDice": "17d10+51",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_blestsessebe",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_blestsessebe/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blestsessebe, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-blestsessebe.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-blestsessebe.png"
+    },
+    {
+      "id": "open5e-tob-2023-tusked-skyfish",
+      "name": "Tusked Skyfish",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 102,
+      "hitDice": "12d10 + 36",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": 5,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_tusked-skyfish",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_tusked-skyfish/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tusked Skyfish, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-tusked-skyfish.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-tusked-skyfish.png"
+    },
+    {
+      "id": "open5e-ccdx-ahu-nixta",
+      "name": "Ahu-Nixta",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 67,
+      "hitDice": "9d10+18",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_ahu-nixta",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_ahu-nixta/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ahu-Nixta, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-ahu-nixta.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-ahu-nixta.png"
+    },
+    {
+      "id": "open5e-tob2-bull",
+      "name": "Bull",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 25,
+      "hitDice": "3d10+9",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_bull",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_bull/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bull, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-bull.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-bull.png"
+    },
+    {
+      "id": "open5e-tob3-brumalek",
+      "name": "Brumalek",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 40,
+      "hitDice": "9d6+9",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_brumalek",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_brumalek/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Brumalek, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-brumalek.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-brumalek.png"
+    }
+  ]
+}

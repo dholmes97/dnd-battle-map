@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-anubian",
+      "name": "Anubian",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8 + 8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_anubian",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_anubian/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Anubian, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-anubian.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-anubian.png"
+    },
+    {
+      "id": "open5e-ccdx-bilwis",
+      "name": "Bilwis",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "11d8",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_bilwis",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_bilwis/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bilwis, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-bilwis.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-bilwis.png"
+    },
+    {
+      "id": "open5e-tob2-storm-maiden",
+      "name": "Storm Maiden",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_storm-maiden",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_storm-maiden/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Storm Maiden, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-storm-maiden.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-storm-maiden.png"
+    },
+    {
+      "id": "open5e-tob3-rock-salamander",
+      "name": "Rock Salamander",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "6d4+12",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_rock-salamander",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_rock-salamander/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rock Salamander, a Tiny Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-rock-salamander.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-rock-salamander.png"
+    },
+    {
+      "id": "open5e-tob-2023-alehouse-drake",
+      "name": "Alehouse Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4 + 20",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 60,
+        "fly": 30,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_alehouse-drake",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_alehouse-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alehouse Drake, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-alehouse-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-alehouse-drake.png"
+    },
+    {
+      "id": "open5e-ccdx-forest-drake",
+      "name": "Forest Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 60,
+      "hitDice": "8d6+32",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 50,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_forest-drake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_forest-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Forest Drake, a Small Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-forest-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-forest-drake.png"
+    },
+    {
+      "id": "open5e-tob2-light-drake",
+      "name": "Light Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 24,
+      "hitDice": "7d4+7",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 60,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_light-drake",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_light-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Light Drake, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-light-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-light-drake.png"
+    },
+    {
+      "id": "open5e-tob3-dragonette-sedge",
+      "name": "Dragonette, Sedge",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "5d4+15",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 50,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dragonette-sedge",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dragonette-sedge/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dragonette, Sedge, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dragonette-sedge.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dragonette-sedge.png"
+    },
+    {
+      "id": "open5e-tob-2023-witchlight",
+      "name": "Witchlight",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 20,
+      "hitDice": "8d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_witchlight",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_witchlight/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Witchlight, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-witchlight.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-witchlight.png"
+    },
+    {
+      "id": "open5e-ccdx-clockwork-servant",
+      "name": "Clockwork Servant",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8+4",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_clockwork-servant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_clockwork-servant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Servant, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-clockwork-servant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-clockwork-servant.png"
+    }
+  ]
+}

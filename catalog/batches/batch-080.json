@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-dream-eater",
+      "name": "Dream Eater",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8 + 30",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_dream-eater",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_dream-eater/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dream Eater, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-dream-eater.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-dream-eater.png"
+    },
+    {
+      "id": "open5e-ccdx-wind-demon",
+      "name": "Wind Demon",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 28,
+      "hitDice": "8d6",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_wind-demon",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_wind-demon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wind Demon, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-wind-demon.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-wind-demon.png"
+    },
+    {
+      "id": "open5e-tob2-arachnocrat",
+      "name": "Arachnocrat",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 93,
+      "hitDice": "17d8+17",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_arachnocrat",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_arachnocrat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Arachnocrat, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-arachnocrat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-arachnocrat.png"
+    },
+    {
+      "id": "open5e-tob3-dubius",
+      "name": "Dubius",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 36,
+      "hitDice": "8d6+8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dubius",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dubius/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dubius, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dubius.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dubius.png"
+    },
+    {
+      "id": "open5e-tob-2023-fraughashar",
+      "name": "Fraughashar",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6 + 5",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_fraughashar",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_fraughashar/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fraughashar, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-fraughashar.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-fraughashar.png"
+    },
+    {
+      "id": "open5e-ccdx-dream-squire",
+      "name": "Dream Squire",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 71,
+      "hitDice": "13d8+13",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_dream-squire",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_dream-squire/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dream Squire, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-dream-squire.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-dream-squire.png"
+    },
+    {
+      "id": "open5e-tob2-attercroppe",
+      "name": "Attercroppe",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 21,
+      "hitDice": "6d4+6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 30,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_attercroppe",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_attercroppe/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Attercroppe, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-attercroppe.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-attercroppe.png"
+    },
+    {
+      "id": "open5e-tob3-rochade",
+      "name": "Rochade",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6+6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_rochade",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_rochade/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rochade, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-rochade.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-rochade.png"
+    },
+    {
+      "id": "open5e-tob-2023-spark",
+      "name": "Spark",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 104,
+      "hitDice": "16d4 + 64",
+      "armorClass": 15,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 60,
+        "fly": 10,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_spark",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_spark/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Spark, a Tiny Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-spark.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-spark.png"
+    },
+    {
+      "id": "open5e-ccdx-venom-elemental",
+      "name": "Venom Elemental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 93,
+      "hitDice": "11d10+33",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 50,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_venom-elemental",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_venom-elemental/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Venom Elemental, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-venom-elemental.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-venom-elemental.png"
+    }
+  ]
+}

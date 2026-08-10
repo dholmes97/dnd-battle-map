@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-edjet-initiate",
+      "name": "Edjet Initiate",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 19,
+      "hitDice": "3d8+6",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_edjet-initiate",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_edjet-initiate/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Edjet Initiate, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-edjet-initiate.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-edjet-initiate.png"
+    },
+    {
+      "id": "open5e-tob3-avestruzii",
+      "name": "Avestruzii",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "3d8+9",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_avestruzii",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_avestruzii/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Avestruzii, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-avestruzii.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-avestruzii.png"
+    },
+    {
+      "id": "open5e-tob-2023-thursir",
+      "name": "Thursir",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10 + 48",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_thursir",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_thursir/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Thursir, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-thursir.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-thursir.png"
+    },
+    {
+      "id": "open5e-ccdx-laestrigonian-giant",
+      "name": "Laestrigonian Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_laestrigonian-giant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_laestrigonian-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Laestrigonian Giant, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-laestrigonian-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-laestrigonian-giant.png"
+    },
+    {
+      "id": "open5e-tob2-abbanith-giant",
+      "name": "Abbanith Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_abbanith-giant",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_abbanith-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Abbanith Giant, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-abbanith-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-abbanith-giant.png"
+    },
+    {
+      "id": "open5e-tob3-ettin-kobold",
+      "name": "Ettin, Kobold",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 34,
+      "hitDice": "4d8+16",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ettin-kobold",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ettin-kobold/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ettin, Kobold, a Medium Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ettin-kobold.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ettin-kobold.png"
+    },
+    {
+      "id": "open5e-tob-2023-kalke",
+      "name": "Kalke",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6 + 4",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_kalke",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_kalke/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kalke, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-kalke.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-kalke.png"
+    },
+    {
+      "id": "open5e-ccdx-execrable-shrub",
+      "name": "Execrable Shrub",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 40,
+      "hitDice": "9d8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_execrable-shrub",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_execrable-shrub/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Execrable Shrub, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-execrable-shrub.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-execrable-shrub.png"
+    },
+    {
+      "id": "open5e-tob2-blood-imp",
+      "name": "Blood Imp",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 14,
+      "hitDice": "4d4+4",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_blood-imp",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_blood-imp/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Imp, a Tiny Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-blood-imp.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-blood-imp.png"
+    },
+    {
+      "id": "open5e-tob3-devil-moldering",
+      "name": "Devil, Moldering",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6+6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_devil-moldering",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_devil-moldering/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Devil, Moldering, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-devil-moldering.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-devil-moldering.png"
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-clockwork-watchman",
+      "name": "Clockwork Watchman",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8 + 8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_clockwork-watchman",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_clockwork-watchman/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Watchman, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-clockwork-watchman.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-clockwork-watchman.png"
+    },
+    {
+      "id": "open5e-ccdx-inkling",
+      "name": "Inkling",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "4d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_inkling",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_inkling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Inkling, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-inkling.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-inkling.png"
+    },
+    {
+      "id": "open5e-tob2-mad-piper",
+      "name": "Mad Piper",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d8+6",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_mad-piper",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mad-piper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mad Piper, a Large Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-mad-piper.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-mad-piper.png"
+    },
+    {
+      "id": "open5e-tob3-harvest-horse",
+      "name": "Harvest Horse",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 37,
+      "hitDice": "5d10+10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_harvest-horse",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_harvest-horse/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Harvest Horse, a Large Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-harvest-horse.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-harvest-horse.png"
+    },
+    {
+      "id": "open5e-tob-2023-fidele-angel",
+      "name": "Fidele Angel",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 104,
+      "hitDice": "16d8 + 32",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 80,
+        "fly": 10,
+        "swim": 40,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_fidele-angel",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_fidele-angel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fidele Angel, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-fidele-angel.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-fidele-angel.png"
+    },
+    {
+      "id": "open5e-ccdx-kinnara",
+      "name": "Kinnara",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 65,
+      "hitDice": "10d8+20",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 50,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_kinnara",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_kinnara/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kinnara, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-kinnara.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-kinnara.png"
+    },
+    {
+      "id": "open5e-tob2-irid",
+      "name": "Irid",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 20,
+      "hitDice": "8d4",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_irid",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_irid/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Irid, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-irid.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-irid.png"
+    },
+    {
+      "id": "open5e-tob3-angel-psychopomp",
+      "name": "Angel, Psychopomp",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 68,
+      "hitDice": "8d8+32",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_angel-psychopomp",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_angel-psychopomp/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Angel, Psychopomp, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-angel-psychopomp.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-angel-psychopomp.png"
+    },
+    {
+      "id": "open5e-tob-2023-suturefly",
+      "name": "Suturefly",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "4d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": 10,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_suturefly",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_suturefly/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Suturefly, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-suturefly.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-suturefly.png"
+    },
+    {
+      "id": "open5e-ccdx-necrotic-tick",
+      "name": "Necrotic Tick",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 3,
+      "hitDice": "1d4+1",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_necrotic-tick",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_necrotic-tick/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Necrotic Tick, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-necrotic-tick.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-necrotic-tick.png"
+    }
+  ]
+}

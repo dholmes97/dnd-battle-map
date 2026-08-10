@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-angelic-enforcer",
+      "name": "Angelic Enforcer",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 152,
+      "hitDice": "16d10+64",
+      "armorClass": 18,
+      "challengeRating": "12",
+      "speeds": {
+        "walk": 30,
+        "fly": 90,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_angelic-enforcer",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_angelic-enforcer/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Angelic Enforcer, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-angelic-enforcer.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-angelic-enforcer.png"
+    },
+    {
+      "id": "open5e-tob3-cyonaxin",
+      "name": "Cyonaxin",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 117,
+      "hitDice": "18d8+36",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 20,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_cyonaxin",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_cyonaxin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cyonaxin, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-cyonaxin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-cyonaxin.png"
+    },
+    {
+      "id": "open5e-tob-2023-putrid-haunt",
+      "name": "Putrid Haunt",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8 + 8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_putrid-haunt",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_putrid-haunt/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Putrid Haunt, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-putrid-haunt.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-putrid-haunt.png"
+    },
+    {
+      "id": "open5e-ccdx-shadow-skeleton",
+      "name": "Shadow Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_shadow-skeleton",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_shadow-skeleton/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shadow Skeleton, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-shadow-skeleton.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-shadow-skeleton.png"
+    },
+    {
+      "id": "open5e-tob2-cave-goat",
+      "name": "Cave Goat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_cave-goat",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_cave-goat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cave Goat, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-cave-goat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-cave-goat.png"
+    },
+    {
+      "id": "open5e-tob3-meerkats-swarm",
+      "name": "Meerkats, Swarm",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_meerkats-swarm",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_meerkats-swarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Meerkats, Swarm, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-meerkats-swarm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-meerkats-swarm.png"
+    },
+    {
+      "id": "open5e-tob-2023-frostveil",
+      "name": "Frostveil",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 67,
+      "hitDice": "9d8 + 27",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 15,
+        "fly": 10,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_frostveil",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_frostveil/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Frostveil, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-frostveil.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-frostveil.png"
+    },
+    {
+      "id": "open5e-ccdx-warlocks-trumpetbloom",
+      "name": "Warlock's Trumpetbloom",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 152,
+      "hitDice": "16d10+64",
+      "armorClass": 15,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_warlocks-trumpetbloom",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_warlocks-trumpetbloom/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Warlock's Trumpetbloom, a Large Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-warlocks-trumpetbloom.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-warlocks-trumpetbloom.png"
+    },
+    {
+      "id": "open5e-tob2-gaunt-one",
+      "name": "Gaunt One",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_gaunt-one",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_gaunt-one/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gaunt One, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-gaunt-one.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-gaunt-one.png"
+    },
+    {
+      "id": "open5e-tob3-the-flesh",
+      "name": "The Flesh",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8+24",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_the-flesh",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_the-flesh/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of The Flesh, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-the-flesh.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-the-flesh.png"
+    }
+  ]
+}

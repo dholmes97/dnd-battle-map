@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-map-mimic",
+      "name": "Map Mimic",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "5d4 + 10",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 15,
+        "fly": 30,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_map-mimic",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_map-mimic/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Map Mimic, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-map-mimic.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-map-mimic.png"
+    },
+    {
+      "id": "open5e-ccdx-exploding-toad",
+      "name": "Exploding Toad",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_exploding-toad",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_exploding-toad/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Exploding Toad, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-exploding-toad.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-exploding-toad.png"
+    },
+    {
+      "id": "open5e-tob2-orniraptor",
+      "name": "Orniraptor",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 16,
+      "hitDice": "3d6+6",
+      "armorClass": 11,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_orniraptor",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_orniraptor/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Orniraptor, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-orniraptor.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-orniraptor.png"
+    },
+    {
+      "id": "open5e-tob3-alabroza",
+      "name": "Alabroza",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 45,
+      "hitDice": "10d6+10",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": 50,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_alabroza",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_alabroza/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alabroza, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-alabroza.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-alabroza.png"
+    },
+    {
+      "id": "open5e-tob-2023-erina",
+      "name": "Erina",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6 + 8",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_erina",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_erina/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Erina, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-erina.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-erina.png"
+    },
+    {
+      "id": "open5e-ccdx-corpse-thief",
+      "name": "Corpse Thief",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 30,
+      "hitDice": "4d8+12",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_corpse-thief",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_corpse-thief/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Corpse Thief, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-corpse-thief.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-corpse-thief.png"
+    },
+    {
+      "id": "open5e-tob2-gray-orc",
+      "name": "Gray Orc",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 15,
+      "hitDice": "2d8+6",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 30,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_gray-orc",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_gray-orc/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gray Orc, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-gray-orc.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-gray-orc.png"
+    },
+    {
+      "id": "open5e-tob3-dwarf-pike-guard",
+      "name": "Dwarf, Pike Guard",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 30,
+      "hitDice": "4d8+12",
+      "armorClass": 16,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dwarf-pike-guard",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dwarf-pike-guard/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dwarf, Pike Guard, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dwarf-pike-guard.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dwarf-pike-guard.png"
+    },
+    {
+      "id": "open5e-tob-2023-flab-giant",
+      "name": "Flab Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 110,
+      "hitDice": "13d10 + 39",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_flab-giant",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_flab-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Flab Giant, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-flab-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-flab-giant.png"
+    },
+    {
+      "id": "open5e-ccdx-dvarapala",
+      "name": "Dvarapala",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 136,
+      "hitDice": "13d12+52",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_dvarapala",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_dvarapala/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dvarapala, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-dvarapala.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-dvarapala.png"
+    }
+  ]
+}

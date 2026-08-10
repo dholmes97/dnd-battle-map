@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-lesser-lunarchidna",
+      "name": "Lesser Lunarchidna",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_lesser-lunarchidna",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_lesser-lunarchidna/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lesser Lunarchidna, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-lesser-lunarchidna.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-lesser-lunarchidna.png"
+    },
+    {
+      "id": "open5e-tob3-obeleric",
+      "name": "Obeleric",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_obeleric",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_obeleric/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Obeleric, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-obeleric.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-obeleric.png"
+    },
+    {
+      "id": "open5e-tob-2023-sharkjaw-skeleton",
+      "name": "Sharkjaw Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10 + 12",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_sharkjaw-skeleton",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_sharkjaw-skeleton/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sharkjaw Skeleton, a Large Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-sharkjaw-skeleton.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-sharkjaw-skeleton.png"
+    },
+    {
+      "id": "open5e-ccdx-clacking-skeleton",
+      "name": "Clacking Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "10d8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_clacking-skeleton",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_clacking-skeleton/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clacking Skeleton, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-clacking-skeleton.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-clacking-skeleton.png"
+    },
+    {
+      "id": "open5e-tob2-glacial-corrupter",
+      "name": "Glacial Corrupter",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 34,
+      "hitDice": "4d8+16",
+      "armorClass": 15,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_glacial-corrupter",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_glacial-corrupter/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Glacial Corrupter, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-glacial-corrupter.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-glacial-corrupter.png"
+    },
+    {
+      "id": "open5e-tob3-relentless-hound",
+      "name": "Relentless Hound",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": 20,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_relentless-hound",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_relentless-hound/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Relentless Hound, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-relentless-hound.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-relentless-hound.png"
+    },
+    {
+      "id": "open5e-tob-2023-mindrot-thrall",
+      "name": "Mindrot Thrall",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8 + 33",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_mindrot-thrall",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_mindrot-thrall/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mindrot Thrall, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-mindrot-thrall.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-mindrot-thrall.png"
+    },
+    {
+      "id": "open5e-ccdx-gloomflower",
+      "name": "Gloomflower",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 44,
+      "hitDice": "8d4+24",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_gloomflower",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_gloomflower/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gloomflower, a Tiny Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-gloomflower.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-gloomflower.png"
+    },
+    {
+      "id": "open5e-tob2-carnivorous-sod",
+      "name": "Carnivorous Sod",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8+6",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_carnivorous-sod",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_carnivorous-sod/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Carnivorous Sod, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-carnivorous-sod.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-carnivorous-sod.png"
+    },
+    {
+      "id": "open5e-tob3-alpine-creeper",
+      "name": "Alpine Creeper",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 95,
+      "hitDice": "10d12+30",
+      "armorClass": 5,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_alpine-creeper",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_alpine-creeper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alpine Creeper, a Huge Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-alpine-creeper.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-alpine-creeper.png"
+    }
+  ]
+}

@@ -31,6 +31,10 @@ export function calculateDirectDistance(from, to, feetPerCell = 5) {
   return Math.round(squares * feetPerCell * 10) / 10;
 }
 
+export function tokenArtScale(size) {
+  return size === "small" ? 0.75 : 1;
+}
+
 export function viewportGeometry(viewport, state, width, height) {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const matchesMap = viewport.mapKey === mapKey;

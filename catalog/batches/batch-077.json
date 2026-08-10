@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-alligator",
+      "name": "Alligator",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8+2",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 30,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_alligator",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_alligator/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alligator, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-alligator.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-alligator.png"
+    },
+    {
+      "id": "open5e-tob3-giant-flea",
+      "name": "Giant Flea",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "5d6 +10",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_giant-flea",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_giant-flea/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Giant Flea, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-giant-flea.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-giant-flea.png"
+    },
+    {
+      "id": "open5e-tob-2023-mngwa",
+      "name": "Mngwa",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 91,
+      "hitDice": "14d8 + 28",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_mngwa",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_mngwa/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mngwa, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-mngwa.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-mngwa.png"
+    },
+    {
+      "id": "open5e-ccdx-sooze",
+      "name": "Sooze",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "11d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_sooze",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_sooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sooze, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-sooze.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-sooze.png"
+    },
+    {
+      "id": "open5e-tob2-minor-malleable",
+      "name": "Minor Malleable",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8+10",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_minor-malleable",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_minor-malleable/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Minor Malleable, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-minor-malleable.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-minor-malleable.png"
+    },
+    {
+      "id": "open5e-tob3-leashed-lesion",
+      "name": "Leashed Lesion",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 65,
+      "hitDice": "10d10+10",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_leashed-lesion",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_leashed-lesion/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Leashed Lesion, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-leashed-lesion.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-leashed-lesion.png"
+    },
+    {
+      "id": "open5e-tob-2023-nihilethic-zombie",
+      "name": "Nihilethic Zombie",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8 + 15",
+      "armorClass": 8,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_nihilethic-zombie",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_nihilethic-zombie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Nihilethic Zombie, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-nihilethic-zombie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-nihilethic-zombie.png"
+    },
+    {
+      "id": "open5e-ccdx-blood-zombie",
+      "name": "Blood Zombie",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 51,
+      "hitDice": "6d8+24",
+      "armorClass": 10,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_blood-zombie",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_blood-zombie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Zombie, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-blood-zombie.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-blood-zombie.png"
+    },
+    {
+      "id": "open5e-tob2-yowler",
+      "name": "Yowler",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "4d4+12",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_yowler",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_yowler/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Yowler, a Tiny Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-yowler.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-yowler.png"
+    },
+    {
+      "id": "open5e-tob3-zombie-smokeplume",
+      "name": "Zombie, Smokeplume",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_zombie-smokeplume",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_zombie-smokeplume/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Zombie, Smokeplume, a Large Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-zombie-smokeplume.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-zombie-smokeplume.png"
+    }
+  ]
+}

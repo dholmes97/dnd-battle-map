@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-miremal",
+      "name": "Miremal",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6 + 5",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_miremal",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_miremal/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Miremal, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-miremal.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-miremal.png"
+    },
+    {
+      "id": "open5e-ccdx-blood-elemental",
+      "name": "Blood Elemental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_blood-elemental",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_blood-elemental/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Elemental, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-blood-elemental.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-blood-elemental.png"
+    },
+    {
+      "id": "open5e-tob2-wintergrim",
+      "name": "Wintergrim",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 26,
+      "hitDice": "4d6+12",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_wintergrim",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_wintergrim/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wintergrim, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-wintergrim.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-wintergrim.png"
+    },
+    {
+      "id": "open5e-tob3-sunflower-sprite",
+      "name": "Sunflower Sprite",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 14,
+      "hitDice": "4d6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_sunflower-sprite",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_sunflower-sprite/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sunflower Sprite, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-sunflower-sprite.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-sunflower-sprite.png"
+    },
+    {
+      "id": "open5e-tob-2023-swarm-of-fire-dancers",
+      "name": "Swarm of Fire Dancers",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 90,
+      "hitDice": "12d8 + 36",
+      "armorClass": 15,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_swarm-of-fire-dancers",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_swarm-of-fire-dancers/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm of Fire Dancers, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-swarm-of-fire-dancers.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-swarm-of-fire-dancers.png"
+    },
+    {
+      "id": "open5e-ccdx-skull-drake",
+      "name": "Skull Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_skull-drake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_skull-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Skull Drake, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-skull-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-skull-drake.png"
+    },
+    {
+      "id": "open5e-tob2-fire-infused-water-elemental",
+      "name": "Fire-Infused Water Elemental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 138,
+      "hitDice": "12d12+60",
+      "armorClass": 14,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 90,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_fire-infused-water-elemental",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_fire-infused-water-elemental/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fire-Infused Water Elemental, a Huge Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-fire-infused-water-elemental.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-fire-infused-water-elemental.png"
+    },
+    {
+      "id": "open5e-tob3-peri",
+      "name": "Peri",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 60,
+      "hitDice": "11d6+22",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 50,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_peri",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_peri/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Peri, a Small Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-peri.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-peri.png"
+    },
+    {
+      "id": "open5e-tob-2023-cave-dragon-wyrmling",
+      "name": "Cave Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "7d8 + 21",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": 20,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_cave-dragon-wyrmling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_cave-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cave Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-cave-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-cave-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-ccdx-shard-swarm",
+      "name": "Shard Swarm",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_shard-swarm",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_shard-swarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shard Swarm, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-shard-swarm.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-shard-swarm.png"
+    }
+  ]
+}

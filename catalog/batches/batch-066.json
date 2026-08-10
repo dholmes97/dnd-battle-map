@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-arboreal-grappler",
+      "name": "Arboreal Grappler",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 90,
+      "hitDice": "12d8 + 36",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_arboreal-grappler",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_arboreal-grappler/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Arboreal Grappler, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-arboreal-grappler.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-arboreal-grappler.png"
+    },
+    {
+      "id": "open5e-ccdx-boot-grabber",
+      "name": "Boot Grabber",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_boot-grabber",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_boot-grabber/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Boot Grabber, a Small Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-boot-grabber.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-boot-grabber.png"
+    },
+    {
+      "id": "open5e-tob2-brain-hood",
+      "name": "Brain Hood",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "5d4+10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_brain-hood",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_brain-hood/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Brain Hood, a Tiny Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-brain-hood.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-brain-hood.png"
+    },
+    {
+      "id": "open5e-tob3-birgemon-seal",
+      "name": "Birgemon Seal",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8+24",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 60,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_birgemon-seal",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_birgemon-seal/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Birgemon Seal, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-birgemon-seal.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-birgemon-seal.png"
+    },
+    {
+      "id": "open5e-tob-2023-skin-bat",
+      "name": "Skin Bat",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 28,
+      "hitDice": "8d6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": 10,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_skin-bat",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_skin-bat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Skin Bat, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-skin-bat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-skin-bat.png"
+    },
+    {
+      "id": "open5e-ccdx-flesh-reaver",
+      "name": "Flesh Reaver",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 19,
+      "hitDice": "3d8+6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_flesh-reaver",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_flesh-reaver/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Flesh Reaver, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-flesh-reaver.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-flesh-reaver.png"
+    },
+    {
+      "id": "open5e-tob2-cadaver-sprite",
+      "name": "Cadaver Sprite",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 20,
+      "hitDice": "8d4",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_cadaver-sprite",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_cadaver-sprite/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cadaver Sprite, a Tiny Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-cadaver-sprite.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-cadaver-sprite.png"
+    },
+    {
+      "id": "open5e-tob3-swampgas-shade",
+      "name": "Swampgas Shade",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_swampgas-shade",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_swampgas-shade/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swampgas Shade, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-swampgas-shade.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-swampgas-shade.png"
+    },
+    {
+      "id": "open5e-tob-2023-tendril-puppet",
+      "name": "Tendril Puppet",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 51,
+      "hitDice": "6d8 + 24",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_tendril-puppet",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_tendril-puppet/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tendril Puppet, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-tendril-puppet.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-tendril-puppet.png"
+    },
+    {
+      "id": "open5e-ccdx-great-mandrake",
+      "name": "Great Mandrake",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 44,
+      "hitDice": "8d4+24",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_great-mandrake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_great-mandrake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Great Mandrake, a Tiny Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-great-mandrake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-great-mandrake.png"
+    }
+  ]
+}

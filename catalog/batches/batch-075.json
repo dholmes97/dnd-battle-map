@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-nyctli",
+      "name": "Nyctli",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 7,
+      "hitDice": "3d4",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_nyctli",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_nyctli/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Nyctli, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-nyctli.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-nyctli.png"
+    },
+    {
+      "id": "open5e-tob3-juniper-sheriff",
+      "name": "Juniper Sheriff",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 31,
+      "hitDice": "7d6+7",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_juniper-sheriff",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_juniper-sheriff/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Juniper Sheriff, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-juniper-sheriff.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-juniper-sheriff.png"
+    },
+    {
+      "id": "open5e-tob-2023-rime-worm",
+      "name": "Rime Worm",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10 + 48",
+      "armorClass": 15,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_rime-worm",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_rime-worm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rime Worm, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-rime-worm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-rime-worm.png"
+    },
+    {
+      "id": "open5e-ccdx-pech-stonemaster",
+      "name": "Pech Stonemaster",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 65,
+      "hitDice": "10d6+30",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_pech-stonemaster",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_pech-stonemaster/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pech Stonemaster, a Small Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-pech-stonemaster.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-pech-stonemaster.png"
+    },
+    {
+      "id": "open5e-tob2-ice-elemental",
+      "name": "Ice Elemental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10+48",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ice-elemental",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ice-elemental/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ice Elemental, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ice-elemental.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ice-elemental.png"
+    },
+    {
+      "id": "open5e-tob3-myrmex-young",
+      "name": "Myrmex, Young",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 54,
+      "hitDice": "12d6+12",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_myrmex-young",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_myrmex-young/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Myrmex, Young, a Small Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-myrmex-young.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-myrmex-young.png"
+    },
+    {
+      "id": "open5e-tob-2023-mithral-dragon-wyrmling",
+      "name": "Mithral Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8 + 8",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 60,
+        "fly": 50,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_mithral-dragon-wyrmling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_mithral-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mithral Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-mithral-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-mithral-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-ccdx-bathhouse-drake",
+      "name": "Bathhouse Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 16,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 60,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_bathhouse-drake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_bathhouse-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bathhouse Drake, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-bathhouse-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-bathhouse-drake.png"
+    },
+    {
+      "id": "open5e-tob2-hoarfrost-drake",
+      "name": "Hoarfrost Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_hoarfrost-drake",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_hoarfrost-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hoarfrost Drake, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-hoarfrost-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-hoarfrost-drake.png"
+    },
+    {
+      "id": "open5e-tob3-dragon-prismatic-wyrmling",
+      "name": "Dragon, Prismatic Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dragon-prismatic-wyrmling",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dragon-prismatic-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dragon, Prismatic Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dragon-prismatic-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dragon-prismatic-wyrmling.png"
+    }
+  ]
+}

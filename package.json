@@ -12,6 +12,7 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/map-generation.test.mjs tests/creature-catalog.test.mjs tests/token-control.test.mjs tests/action-history.test.mjs tests/health-bands.test.mjs tests/battle-map-policies.test.mjs tests/battle-map-geometry.test.mjs tests/initiative-domain.test.mjs tests/map-workshop-domain.test.mjs tests/encounter-domain.test.mjs",
     "test:live": "node --test tests/live-sync-api.test.mjs",
     "catalog:expand": "node scripts/build-creature-expansion.mjs",
+    "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-bone-crab",
+      "name": "Bone Crab",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 33,
+      "hitDice": "6d6 + 12",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_bone-crab",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bone-crab/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bone Crab, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-bone-crab.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-bone-crab.png"
+    },
+    {
+      "id": "open5e-ccdx-yann-an-oed",
+      "name": "Yann-An-Oed",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 47,
+      "hitDice": "5d12+15",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_yann-an-oed",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_yann-an-oed/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Yann-An-Oed, a Huge Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-yann-an-oed.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-yann-an-oed.png"
+    },
+    {
+      "id": "open5e-tob2-backup-holler-spider",
+      "name": "Backup Holler Spider",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 14,
+      "hitDice": "4d4+4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_backup-holler-spider",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_backup-holler-spider/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Backup Holler Spider, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-backup-holler-spider.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-backup-holler-spider.png"
+    },
+    {
+      "id": "open5e-tob3-swarm-biting-gnat",
+      "name": "Swarm, Biting Gnat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 16,
+      "hitDice": "3d8+3",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 30,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_swarm-biting-gnat",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_swarm-biting-gnat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm, Biting Gnat, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-swarm-biting-gnat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-swarm-biting-gnat.png"
+    },
+    {
+      "id": "open5e-tob-2023-ostinato",
+      "name": "Ostinato",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8 + 12",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_ostinato",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_ostinato/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ostinato, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-ostinato.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-ostinato.png"
+    },
+    {
+      "id": "open5e-ccdx-fear-liath",
+      "name": "Fear Liath",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 33,
+      "hitDice": "6d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_fear-liath",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_fear-liath/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fear Liath, a Large Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-fear-liath.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-fear-liath.png"
+    },
+    {
+      "id": "open5e-tob2-bloodsapper",
+      "name": "Bloodsapper",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 90,
+      "hitDice": "12d8+36",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_bloodsapper",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_bloodsapper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bloodsapper, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-bloodsapper.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-bloodsapper.png"
+    },
+    {
+      "id": "open5e-tob3-dust-grazer",
+      "name": "Dust Grazer",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 105,
+      "hitDice": "10d10+50",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dust-grazer",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dust-grazer/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dust Grazer, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dust-grazer.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dust-grazer.png"
+    },
+    {
+      "id": "open5e-tob-2023-gray-thirster",
+      "name": "Gray Thirster",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8 + 16",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_gray-thirster",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_gray-thirster/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gray Thirster, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-gray-thirster.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-gray-thirster.png"
+    },
+    {
+      "id": "open5e-ccdx-mandriano",
+      "name": "Mandriano",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 13,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_mandriano",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_mandriano/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mandriano, a Large Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-mandriano.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-mandriano.png"
+    }
+  ]
+}

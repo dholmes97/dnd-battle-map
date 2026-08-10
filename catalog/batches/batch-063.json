@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-deep-troll",
+      "name": "Deep Troll",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 63,
+      "hitDice": "6d10+30",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_deep-troll",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_deep-troll/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Deep Troll, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-deep-troll.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-deep-troll.png"
+    },
+    {
+      "id": "open5e-tob3-crystallite",
+      "name": "Crystallite",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 90,
+      "hitDice": "12d10+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_crystallite",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_crystallite/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Crystallite, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-crystallite.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-crystallite.png"
+    },
+    {
+      "id": "open5e-tob-2023-ink-devil",
+      "name": "Ink Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 54,
+      "hitDice": "12d6 + 12",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_ink-devil",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_ink-devil/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ink Devil, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-ink-devil.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-ink-devil.png"
+    },
+    {
+      "id": "open5e-ccdx-fire-imp",
+      "name": "Fire Imp",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 14,
+      "hitDice": "4d4+4",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_fire-imp",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_fire-imp/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fire Imp, a Tiny Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-fire-imp.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-fire-imp.png"
+    },
+    {
+      "id": "open5e-tob2-corrupted-pixie",
+      "name": "Corrupted Pixie",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 5,
+      "hitDice": "2d4",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 30,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_corrupted-pixie",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_corrupted-pixie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Corrupted Pixie, a Tiny Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-corrupted-pixie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-corrupted-pixie.png"
+    },
+    {
+      "id": "open5e-tob3-rakshasa-servitor",
+      "name": "Rakshasa, Servitor",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 32,
+      "hitDice": "5d8+10",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_rakshasa-servitor",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_rakshasa-servitor/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rakshasa, Servitor, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-rakshasa-servitor.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-rakshasa-servitor.png"
+    },
+    {
+      "id": "open5e-tob-2023-azza-gremlin",
+      "name": "Azza Gremlin",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": 10,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_azza-gremlin",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_azza-gremlin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Azza Gremlin, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-azza-gremlin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-azza-gremlin.png"
+    },
+    {
+      "id": "open5e-ccdx-morko",
+      "name": "Morko",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 17,
+      "hitDice": "5d6",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_morko",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_morko/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Morko, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-morko.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-morko.png"
+    },
+    {
+      "id": "open5e-tob2-ice-bogie",
+      "name": "Ice Bogie",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 10,
+      "hitDice": "3d6",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ice-bogie",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ice-bogie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ice Bogie, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ice-bogie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ice-bogie.png"
+    },
+    {
+      "id": "open5e-tob3-aziza",
+      "name": "Aziza",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 21,
+      "hitDice": "6d4+6",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_aziza",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_aziza/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Aziza, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-aziza.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-aziza.png"
+    }
+  ]
+}

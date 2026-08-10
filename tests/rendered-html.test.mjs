@@ -592,10 +592,14 @@ test("keeps creature outlines restrained at large token sizes", async () => {
   assert.doesNotMatch(clientSource, /owned \|\| active \? Math\.max\(3, radius \* 0\.16\) : Math\.max\(2, radius \* 0\.1\)/);
 });
 
-test("lets creature art fill the complete token footprint", async () => {
+test("lets creature art fill its footprint except for a deliberate Small-size inset", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
 
   assert.match(clientSource, /context\.beginPath\(\); context\.arc\(x, y, radius, 0, Math\.PI \* 2\); context\.clip\(\)/);
+  assert.match(clientSource, /const artRadius = radius \* tokenArtScale\(token\.size\)/);
+  assert.match(clientSource, /const artRadius = radius \* tokenArtScale\(placementPreview\.creature\.size\)/);
+  assert.doesNotMatch(clientSource, /token\.artAsset\?\.includes\("\/characters\/"\)/);
+  assert.doesNotMatch(clientSource, /art\.naturalHeight \* 0\.6/);
   assert.doesNotMatch(clientSource, /context\.arc\(x, y, radius \* 0\.9, 0, Math\.PI \* 2\); context\.clip\(\)/);
 });
 

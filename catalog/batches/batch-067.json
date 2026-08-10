@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-boomer",
+      "name": "Boomer",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8+4",
+      "armorClass": 7,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_boomer",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_boomer/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Boomer, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-boomer.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-boomer.png"
+    },
+    {
+      "id": "open5e-tob3-alliumite-husker",
+      "name": "Alliumite, Husker",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 68,
+      "hitDice": "8d8+32",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_alliumite-husker",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_alliumite-husker/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alliumite, Husker, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-alliumite-husker.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-alliumite-husker.png"
+    },
+    {
+      "id": "open5e-tob-2023-sap-demon",
+      "name": "Sap Demon",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 81,
+      "hitDice": "18d6 + 18",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_sap-demon",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_sap-demon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sap Demon, a Small Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-sap-demon.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-sap-demon.png"
+    },
+    {
+      "id": "open5e-ccdx-purple-slime",
+      "name": "Purple Slime",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "8d10+32",
+      "armorClass": 7,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 30,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_purple-slime",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_purple-slime/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Purple Slime, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-purple-slime.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-purple-slime.png"
+    },
+    {
+      "id": "open5e-tob2-rotsam",
+      "name": "Rotsam",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4+20",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 30,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_rotsam",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_rotsam/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rotsam, a Tiny Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-rotsam.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-rotsam.png"
+    },
+    {
+      "id": "open5e-tob3-ooze-manure",
+      "name": "Ooze, Manure",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8+18",
+      "armorClass": 7,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ooze-manure",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ooze-manure/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ooze, Manure, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ooze-manure.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ooze-manure.png"
+    },
+    {
+      "id": "open5e-tob-2023-alseid",
+      "name": "Alseid",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8 + 6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_alseid",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_alseid/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alseid, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-alseid.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-alseid.png"
+    },
+    {
+      "id": "open5e-ccdx-wolpertinger",
+      "name": "Wolpertinger",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 9,
+      "hitDice": "2d4+4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_wolpertinger",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_wolpertinger/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wolpertinger, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-wolpertinger.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-wolpertinger.png"
+    },
+    {
+      "id": "open5e-tob2-narshark",
+      "name": "Narshark",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 25,
+      "hitDice": "3d10+9",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_narshark",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_narshark/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Narshark, a Large Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-narshark.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-narshark.png"
+    },
+    {
+      "id": "open5e-tob3-capybear",
+      "name": "Capybear",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8+24",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 20,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_capybear",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_capybear/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Capybear, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-capybear.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-capybear.png"
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-kobold-spellclerk",
+      "name": "Kobold Spellclerk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_kobold-spellclerk",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_kobold-spellclerk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kobold Spellclerk, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-kobold-spellclerk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-kobold-spellclerk.png"
+    },
+    {
+      "id": "open5e-tob3-puffinfolk",
+      "name": "Puffinfolk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 30,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_puffinfolk",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_puffinfolk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Puffinfolk, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-puffinfolk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-puffinfolk.png"
+    },
+    {
+      "id": "open5e-tob-2023-lake-troll",
+      "name": "Lake Troll",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 126,
+      "hitDice": "12d10 + 60",
+      "armorClass": 15,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_lake-troll",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_lake-troll/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lake Troll, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-lake-troll.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-lake-troll.png"
+    },
+    {
+      "id": "open5e-ccdx-pishacha",
+      "name": "Pishacha",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 55,
+      "hitDice": "10d8+10",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_pishacha",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_pishacha/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pishacha, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-pishacha.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-pishacha.png"
+    },
+    {
+      "id": "open5e-tob2-snow-giant",
+      "name": "Snow Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 138,
+      "hitDice": "12d12+60",
+      "armorClass": 11,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_snow-giant",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_snow-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Snow Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-snow-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-snow-giant.png"
+    },
+    {
+      "id": "open5e-tob3-troll-gutter",
+      "name": "Troll, Gutter",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_troll-gutter",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_troll-gutter/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Troll, Gutter, a Medium Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-troll-gutter.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-troll-gutter.png"
+    },
+    {
+      "id": "open5e-tob-2023-spawn-of-akyishigal",
+      "name": "Spawn of Akyishigal",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 119,
+      "hitDice": "14d8 + 56",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_spawn-of-akyishigal",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_spawn-of-akyishigal/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Spawn of Akyishigal, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-spawn-of-akyishigal.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-spawn-of-akyishigal.png"
+    },
+    {
+      "id": "open5e-ccdx-kallikantzaros",
+      "name": "Kallikantzaros",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 59,
+      "hitDice": "17d6",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_kallikantzaros",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_kallikantzaros/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kallikantzaros, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-kallikantzaros.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-kallikantzaros.png"
+    },
+    {
+      "id": "open5e-tob2-scribe-devil",
+      "name": "Scribe Devil",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8+33",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_scribe-devil",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_scribe-devil/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Scribe Devil, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-scribe-devil.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-scribe-devil.png"
+    },
+    {
+      "id": "open5e-tob3-blaspheming-hand",
+      "name": "Blaspheming Hand",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 68,
+      "hitDice": "8d10+24",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_blaspheming-hand",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_blaspheming-hand/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blaspheming Hand, a Large Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-blaspheming-hand.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-blaspheming-hand.png"
+    }
+  ]
+}

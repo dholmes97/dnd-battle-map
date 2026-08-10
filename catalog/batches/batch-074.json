@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-zimwi",
+      "name": "Zimwi",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 110,
+      "hitDice": "13d8 + 52",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_zimwi",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_zimwi/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Zimwi, a Medium Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-zimwi.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-zimwi.png"
+    },
+    {
+      "id": "open5e-ccdx-cacus-giant",
+      "name": "Cacus Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 138,
+      "hitDice": "12d12+60",
+      "armorClass": 16,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_cacus-giant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_cacus-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cacus Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-cacus-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-cacus-giant.png"
+    },
+    {
+      "id": "open5e-tob2-one-horned-ogre",
+      "name": "One-Horned Ogre",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 93,
+      "hitDice": "11d10+33",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_one-horned-ogre",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_one-horned-ogre/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of One-Horned Ogre, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-one-horned-ogre.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-one-horned-ogre.png"
+    },
+    {
+      "id": "open5e-tob3-ogre-alleybasher",
+      "name": "Ogre, Alleybasher",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ogre-alleybasher",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ogre-alleybasher/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ogre, Alleybasher, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ogre-alleybasher.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ogre-alleybasher.png"
+    },
+    {
+      "id": "open5e-tob-2023-bouda",
+      "name": "Bouda",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 93,
+      "hitDice": "11d8 + 44",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_bouda",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bouda/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bouda, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-bouda.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-bouda.png"
+    },
+    {
+      "id": "open5e-ccdx-kuunganisha",
+      "name": "Kuunganisha",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 17,
+      "hitDice": "5d6",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_kuunganisha",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_kuunganisha/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kuunganisha, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-kuunganisha.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-kuunganisha.png"
+    },
+    {
+      "id": "open5e-tob2-infernal-centaur",
+      "name": "Infernal Centaur",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8+24",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_infernal-centaur",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_infernal-centaur/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Infernal Centaur, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-infernal-centaur.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-infernal-centaur.png"
+    },
+    {
+      "id": "open5e-tob3-demon-balbazu",
+      "name": "Demon, Balbazu",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 36,
+      "hitDice": "8d6+8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 20,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_demon-balbazu",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_demon-balbazu/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Demon, Balbazu, a Tiny Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-demon-balbazu.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-demon-balbazu.png"
+    },
+    {
+      "id": "open5e-tob-2023-bucca",
+      "name": "Bucca",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "5d4 + 15",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 20,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_bucca",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bucca/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bucca, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-bucca.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-bucca.png"
+    },
+    {
+      "id": "open5e-ccdx-alp",
+      "name": "Alp",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 44,
+      "hitDice": "8d6+16",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_alp",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_alp/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alp, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-alp.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-alp.png"
+    }
+  ]
+}

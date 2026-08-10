@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-archelon",
+      "name": "Archelon",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 90,
+      "hitDice": "12d12 + 12",
+      "armorClass": 17,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 80,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_archelon",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_archelon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Archelon, a Huge Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-archelon.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-archelon.png"
+    },
+    {
+      "id": "open5e-srd-2024-hippopotamus",
+      "name": "Hippopotamus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 82,
+      "hitDice": "11d10 + 22",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_hippopotamus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_hippopotamus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hippopotamus, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-hippopotamus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-hippopotamus.png"
+    },
+    {
+      "id": "open5e-tob-2023-shroud",
+      "name": "Shroud",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_shroud",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_shroud/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shroud, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-shroud.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-shroud.png"
+    },
+    {
+      "id": "open5e-ccdx-goreling",
+      "name": "Goreling",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 11,
+      "hitDice": "2d6+4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_goreling",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_goreling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Goreling, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-goreling.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-goreling.png"
+    },
+    {
+      "id": "open5e-tob2-ghoul-bat",
+      "name": "Ghoul Bat",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 14,
+      "hitDice": "4d6",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": 30,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ghoul-bat",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ghoul-bat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ghoul Bat, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ghoul-bat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ghoul-bat.png"
+    },
+    {
+      "id": "open5e-tob3-bone-collector",
+      "name": "Bone Collector",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 15,
+        "fly": 60,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_bone-collector",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_bone-collector/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bone Collector, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-bone-collector.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-bone-collector.png"
+    },
+    {
+      "id": "open5e-tob-2023-morphoi",
+      "name": "Morphoi",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8 + 6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_morphoi",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_morphoi/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Morphoi, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-morphoi.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-morphoi.png"
+    },
+    {
+      "id": "open5e-ccdx-alliumite",
+      "name": "Alliumite",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6+4",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_alliumite",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_alliumite/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alliumite, a Small Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-alliumite.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-alliumite.png"
+    },
+    {
+      "id": "open5e-tob2-pixies-umbrella",
+      "name": "Pixie's Umbrella",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 10,
+      "hitDice": "4d4",
+      "armorClass": 7,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_pixies-umbrella",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_pixies-umbrella/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pixie's Umbrella, a Small Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-pixies-umbrella.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-pixies-umbrella.png"
+    },
+    {
+      "id": "open5e-tob3-climbing-vine",
+      "name": "Climbing Vine",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "2d8+4",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_climbing-vine",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_climbing-vine/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Climbing Vine, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-climbing-vine.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-climbing-vine.png"
+    }
+  ]
+}

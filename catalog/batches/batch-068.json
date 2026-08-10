@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-lemurfolk",
+      "name": "Lemurfolk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_lemurfolk",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_lemurfolk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lemurfolk, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-lemurfolk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-lemurfolk.png"
+    },
+    {
+      "id": "open5e-ccdx-cueyatl",
+      "name": "Cueyatl",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 11,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_cueyatl",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_cueyatl/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cueyatl, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-cueyatl.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-cueyatl.png"
+    },
+    {
+      "id": "open5e-tob2-harefolk",
+      "name": "Harefolk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6+4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_harefolk",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_harefolk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Harefolk, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-harefolk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-harefolk.png"
+    },
+    {
+      "id": "open5e-tob3-gullkin",
+      "name": "Gullkin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8+5",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 30,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_gullkin",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_gullkin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gullkin, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-gullkin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-gullkin.png"
+    },
+    {
+      "id": "open5e-tob-2023-forest-marauder",
+      "name": "Forest Marauder",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10 + 48",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_forest-marauder",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_forest-marauder/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Forest Marauder, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-forest-marauder.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-forest-marauder.png"
+    },
+    {
+      "id": "open5e-ccdx-tusked-crimson-ogre",
+      "name": "Tusked Crimson Ogre",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 93,
+      "hitDice": "11d10+33",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_tusked-crimson-ogre",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_tusked-crimson-ogre/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tusked Crimson Ogre, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-tusked-crimson-ogre.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-tusked-crimson-ogre.png"
+    },
+    {
+      "id": "open5e-tob2-manggus",
+      "name": "Manggus",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 127,
+      "hitDice": "15d10+45",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_manggus",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_manggus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Manggus, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-manggus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-manggus.png"
+    },
+    {
+      "id": "open5e-tob3-giant-thursir-hearth-priestess",
+      "name": "Giant, Thursir Hearth Priestess",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_giant-thursir-hearth-priestess",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_giant-thursir-hearth-priestess/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Giant, Thursir Hearth Priestess, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-giant-thursir-hearth-priestess.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-giant-thursir-hearth-priestess.png"
+    },
+    {
+      "id": "open5e-tob-2023-volguloth",
+      "name": "Volguloth",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8 + 24",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_volguloth",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_volguloth/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Volguloth, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-volguloth.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-volguloth.png"
+    },
+    {
+      "id": "open5e-ccdx-gumienniki",
+      "name": "Gumienniki",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6+5",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_gumienniki",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_gumienniki/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gumienniki, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-gumienniki.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-gumienniki.png"
+    }
+  ]
+}

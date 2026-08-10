@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-thin-giant",
+      "name": "Thin Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 168,
+      "hitDice": "16d12+64",
+      "armorClass": 16,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_thin-giant",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_thin-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Thin Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-thin-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-thin-giant.png"
+    },
+    {
+      "id": "open5e-tob3-ogre-cunning-artisan",
+      "name": "Ogre, Cunning Artisan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 119,
+      "hitDice": "14d10+42",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ogre-cunning-artisan",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ogre-cunning-artisan/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ogre, Cunning Artisan, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ogre-cunning-artisan.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ogre-cunning-artisan.png"
+    },
+    {
+      "id": "open5e-tob-2023-rum-gremlin",
+      "name": "Rum Gremlin",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "6d4 + 12",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_rum-gremlin",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_rum-gremlin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rum Gremlin, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-rum-gremlin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-rum-gremlin.png"
+    },
+    {
+      "id": "open5e-ccdx-kappa",
+      "name": "Kappa",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 49,
+      "hitDice": "11d6+11",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 40,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_kappa",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_kappa/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kappa, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-kappa.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-kappa.png"
+    },
+    {
+      "id": "open5e-tob2-spawn-of-alquam",
+      "name": "Spawn of Alquam",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 114,
+      "hitDice": "12d10+48",
+      "armorClass": 16,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 20,
+        "fly": 60,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_spawn-of-alquam",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_spawn-of-alquam/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Spawn of Alquam, a Large Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-spawn-of-alquam.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-spawn-of-alquam.png"
+    },
+    {
+      "id": "open5e-tob3-rakshasa-myrmidon",
+      "name": "Rakshasa, Myrmidon",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 51,
+      "hitDice": "6d8+24",
+      "armorClass": 18,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_rakshasa-myrmidon",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_rakshasa-myrmidon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rakshasa, Myrmidon, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-rakshasa-myrmidon.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-rakshasa-myrmidon.png"
+    },
+    {
+      "id": "open5e-tob-2023-chronalmental",
+      "name": "Chronalmental",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 142,
+      "hitDice": "15d10 + 60",
+      "armorClass": 17,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_chronalmental",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_chronalmental/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chronalmental, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-chronalmental.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-chronalmental.png"
+    },
+    {
+      "id": "open5e-ccdx-fragrite",
+      "name": "Fragrite",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 91,
+      "hitDice": "14d8+28",
+      "armorClass": 14,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_fragrite",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_fragrite/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fragrite, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-fragrite.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-fragrite.png"
+    },
+    {
+      "id": "open5e-tob2-flithidir",
+      "name": "Flithidir",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6+6",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_flithidir",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_flithidir/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Flithidir, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-flithidir.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-flithidir.png"
+    },
+    {
+      "id": "open5e-tob3-brownie",
+      "name": "Brownie",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 28,
+      "hitDice": "8d4+8",
+      "armorClass": 15,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_brownie",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_brownie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Brownie, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-brownie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-brownie.png"
+    }
+  ]
+}

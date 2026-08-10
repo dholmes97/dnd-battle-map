@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-stone-creeper",
+      "name": "Stone Creeper",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 30,
+      "hitDice": "4d8+12",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_stone-creeper",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_stone-creeper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Stone Creeper, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-stone-creeper.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-stone-creeper.png"
+    },
+    {
+      "id": "open5e-tob3-fungi-void-fungus",
+      "name": "Fungi, Void Fungus",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 65,
+      "hitDice": "10d8+20",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_fungi-void-fungus",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_fungi-void-fungus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fungi, Void Fungus, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-fungi-void-fungus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-fungi-void-fungus.png"
+    },
+    {
+      "id": "open5e-tob-2023-burrowling",
+      "name": "Burrowling",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6 + 6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_burrowling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_burrowling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Burrowling, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-burrowling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-burrowling.png"
+    },
+    {
+      "id": "open5e-ccdx-carbuncle",
+      "name": "Carbuncle",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 36,
+      "hitDice": "8d6+8",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_carbuncle",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_carbuncle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Carbuncle, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-carbuncle.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-carbuncle.png"
+    },
+    {
+      "id": "open5e-tob2-voidpool",
+      "name": "Voidpool",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 112,
+      "hitDice": "15d10+30",
+      "armorClass": 8,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_voidpool",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_voidpool/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Voidpool, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-voidpool.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-voidpool.png"
+    },
+    {
+      "id": "open5e-tob3-gearmass",
+      "name": "Gearmass",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 115,
+      "hitDice": "11d10+55",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_gearmass",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_gearmass/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gearmass, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-gearmass.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-gearmass.png"
+    },
+    {
+      "id": "open5e-tob-2023-desert-giant",
+      "name": "Desert Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 175,
+      "hitDice": "14d12 + 84",
+      "armorClass": 17,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_desert-giant",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_desert-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Desert Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-desert-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-desert-giant.png"
+    },
+    {
+      "id": "open5e-ccdx-cueyatl-sea-priest",
+      "name": "Cueyatl Sea Priest",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 45,
+      "hitDice": "10d6+10",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_cueyatl-sea-priest",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_cueyatl-sea-priest/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cueyatl Sea Priest, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-cueyatl-sea-priest.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-cueyatl-sea-priest.png"
+    },
+    {
+      "id": "open5e-tob2-ophinix",
+      "name": "Ophinix",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 60,
+      "hitDice": "8d10+16",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ophinix",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ophinix/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ophinix, a Large Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ophinix.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ophinix.png"
+    },
+    {
+      "id": "open5e-tob3-scorchrunner-jackal",
+      "name": "Scorchrunner Jackal",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 38,
+      "hitDice": "7d8+7",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_scorchrunner-jackal",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_scorchrunner-jackal/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Scorchrunner Jackal, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-scorchrunner-jackal.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-scorchrunner-jackal.png"
+    }
+  ]
+}

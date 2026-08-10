@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-shadow-fey",
+      "name": "Shadow Fey",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 31,
+      "hitDice": "7d8",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_shadow-fey",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_shadow-fey/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shadow Fey, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-shadow-fey.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-shadow-fey.png"
+    },
+    {
+      "id": "open5e-ccdx-woodwose",
+      "name": "Woodwose",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "6d8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_woodwose",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_woodwose/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Woodwose, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-woodwose.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-woodwose.png"
+    },
+    {
+      "id": "open5e-tob2-egret-harpy",
+      "name": "Egret Harpy",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_egret-harpy",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_egret-harpy/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Egret Harpy, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-egret-harpy.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-egret-harpy.png"
+    },
+    {
+      "id": "open5e-tob3-iceworm",
+      "name": "Iceworm",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 38,
+      "hitDice": "7d6+14",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": 10,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_iceworm",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_iceworm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Iceworm, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-iceworm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-iceworm.png"
+    },
+    {
+      "id": "open5e-tob-2023-degenerate-titan",
+      "name": "Degenerate Titan",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 161,
+      "hitDice": "14d12 + 70",
+      "armorClass": 12,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_degenerate-titan",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_degenerate-titan/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Degenerate Titan, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-degenerate-titan.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-degenerate-titan.png"
+    },
+    {
+      "id": "open5e-ccdx-chuhaister",
+      "name": "Chuhaister",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 157,
+      "hitDice": "15d10+75",
+      "armorClass": 16,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_chuhaister",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_chuhaister/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chuhaister, a Large Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-chuhaister.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-chuhaister.png"
+    },
+    {
+      "id": "open5e-tob2-mydnari",
+      "name": "Mydnari",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8+4",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_mydnari",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mydnari/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mydnari, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-mydnari.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-mydnari.png"
+    },
+    {
+      "id": "open5e-tob3-avestruzii-champion",
+      "name": "Avestruzii Champion",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8+18",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_avestruzii-champion",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_avestruzii-champion/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Avestruzii Champion, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-avestruzii-champion.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-avestruzii-champion.png"
+    },
+    {
+      "id": "open5e-tob-2023-spawn-of-arbeyach",
+      "name": "Spawn of Arbeyach",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8 + 24",
+      "armorClass": 17,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_spawn-of-arbeyach",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_spawn-of-arbeyach/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Spawn of Arbeyach, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-spawn-of-arbeyach.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-spawn-of-arbeyach.png"
+    },
+    {
+      "id": "open5e-ccdx-plaresh",
+      "name": "Plaresh",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 30,
+      "hitDice": "4d8+12",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_plaresh",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_plaresh/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Plaresh, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-plaresh.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-plaresh.png"
+    }
+  ]
+}

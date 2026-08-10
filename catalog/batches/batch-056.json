@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-dipsa",
+      "name": "Dipsa",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "6d4 + 12",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_dipsa",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_dipsa/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dipsa, a Tiny Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-dipsa.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-dipsa.png"
+    },
+    {
+      "id": "open5e-ccdx-alchemical-apprentice",
+      "name": "Alchemical Apprentice",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 63,
+      "hitDice": "14d6+14",
+      "armorClass": 11,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_alchemical-apprentice",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_alchemical-apprentice/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alchemical Apprentice, a Small Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-alchemical-apprentice.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-alchemical-apprentice.png"
+    },
+    {
+      "id": "open5e-tob2-putrescent-slime",
+      "name": "Putrescent Slime",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8+18",
+      "armorClass": 8,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_putrescent-slime",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_putrescent-slime/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Putrescent Slime, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-putrescent-slime.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-putrescent-slime.png"
+    },
+    {
+      "id": "open5e-tob3-diving-gel",
+      "name": "Diving Gel",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "5d4+5",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 40,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_diving-gel",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_diving-gel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Diving Gel, a Tiny Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-diving-gel.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-diving-gel.png"
+    },
+    {
+      "id": "open5e-tob-2023-stryx",
+      "name": "Stryx",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "4d4",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 60,
+        "fly": 10,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_stryx",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_stryx/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Stryx, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-stryx.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-stryx.png"
+    },
+    {
+      "id": "open5e-ccdx-acid-ant",
+      "name": "Acid Ant",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 13,
+      "hitDice": "3d6+3",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_acid-ant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_acid-ant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Acid Ant, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-acid-ant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-acid-ant.png"
+    },
+    {
+      "id": "open5e-tob2-wicked-skull",
+      "name": "Wicked Skull",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 7,
+      "hitDice": "2d4+2",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_wicked-skull",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_wicked-skull/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wicked Skull, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-wicked-skull.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-wicked-skull.png"
+    },
+    {
+      "id": "open5e-tob3-torch-mimic",
+      "name": "Torch Mimic",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 21,
+      "hitDice": "6d4+6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_torch-mimic",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_torch-mimic/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Torch Mimic, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-torch-mimic.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-torch-mimic.png"
+    },
+    {
+      "id": "open5e-tob-2023-dust-goblin",
+      "name": "Dust Goblin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 16,
+      "hitDice": "3d6 + 6",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_dust-goblin",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_dust-goblin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dust Goblin, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-dust-goblin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-dust-goblin.png"
+    },
+    {
+      "id": "open5e-ccdx-chaos-spawn-goblin",
+      "name": "Chaos-Spawn Goblin",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6+5",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_chaos-spawn-goblin",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_chaos-spawn-goblin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chaos-Spawn Goblin, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-chaos-spawn-goblin.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-chaos-spawn-goblin.png"
+    }
+  ]
+}

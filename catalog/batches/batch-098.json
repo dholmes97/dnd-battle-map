@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-planewatcher",
+      "name": "Planewatcher",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 136,
+      "hitDice": "16d8 + 64",
+      "armorClass": 18,
+      "challengeRating": "10",
+      "speeds": {
+        "walk": 90,
+        "fly": 30,
+        "swim": 45,
+        "climb": 45,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_planewatcher",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_planewatcher/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Planewatcher, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-planewatcher.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-planewatcher.png"
+    },
+    {
+      "id": "open5e-ccdx-song-angel",
+      "name": "Song Angel",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 15,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_song-angel",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_song-angel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Song Angel, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-song-angel.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-song-angel.png"
+    },
+    {
+      "id": "open5e-tob2-diminution-drake",
+      "name": "Diminution Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 71,
+      "hitDice": "13d8+13",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_diminution-drake",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_diminution-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Diminution Drake, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-diminution-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-diminution-drake.png"
+    },
+    {
+      "id": "open5e-tob3-zilaq",
+      "name": "Zilaq",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 82,
+      "hitDice": "15d4+45",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_zilaq",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_zilaq/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Zilaq, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-zilaq.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-zilaq.png"
+    },
+    {
+      "id": "open5e-tob-2023-dogmole",
+      "name": "Dogmole",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8 + 18",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_dogmole",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_dogmole/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dogmole, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-dogmole.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-dogmole.png"
+    },
+    {
+      "id": "open5e-ccdx-albino-death-weasel",
+      "name": "Albino Death Weasel",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10+12",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_albino-death-weasel",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_albino-death-weasel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Albino Death Weasel, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-albino-death-weasel.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-albino-death-weasel.png"
+    },
+    {
+      "id": "open5e-tob2-death-shroud-golem",
+      "name": "Death Shroud Golem",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10+40",
+      "armorClass": 12,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_death-shroud-golem",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_death-shroud-golem/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Death Shroud Golem, a Large Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-death-shroud-golem.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-death-shroud-golem.png"
+    },
+    {
+      "id": "open5e-tob3-ahu-nixta-mechanon",
+      "name": "Ahu-Nixta Mechanon",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 51,
+      "hitDice": "6d8+24",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ahu-nixta-mechanon",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ahu-nixta-mechanon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ahu-Nixta Mechanon, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ahu-nixta-mechanon.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ahu-nixta-mechanon.png"
+    },
+    {
+      "id": "open5e-tob-2023-asanbosam",
+      "name": "Asanbosam",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 102,
+      "hitDice": "12d10 + 36",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_asanbosam",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_asanbosam/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Asanbosam, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-asanbosam.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-asanbosam.png"
+    },
+    {
+      "id": "open5e-ccdx-astral-snapper",
+      "name": "Astral Snapper",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 78,
+      "hitDice": "12d8+24",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_astral-snapper",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_astral-snapper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Astral Snapper, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-astral-snapper.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-astral-snapper.png"
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-ghillie-dubh",
+      "name": "Ghillie Dubh",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8+16",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ghillie-dubh",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ghillie-dubh/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ghillie Dubh, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ghillie-dubh.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ghillie-dubh.png"
+    },
+    {
+      "id": "open5e-tob3-pescavitus",
+      "name": "Pescavitus",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 44,
+      "hitDice": "8d6+16",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": null,
+        "swim": 60,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_pescavitus",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_pescavitus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pescavitus, a Small Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-pescavitus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-pescavitus.png"
+    },
+    {
+      "id": "open5e-tob-2023-red-banded-line-spider",
+      "name": "Red-Banded Line Spider",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 15,
+      "hitDice": "6d4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_red-banded-line-spider",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_red-banded-line-spider/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Red-Banded Line Spider, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-red-banded-line-spider.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-red-banded-line-spider.png"
+    },
+    {
+      "id": "open5e-ccdx-archaeopteryx",
+      "name": "Archaeopteryx",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 7,
+      "hitDice": "3d4",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": 50,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_archaeopteryx",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_archaeopteryx/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Archaeopteryx, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-archaeopteryx.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-archaeopteryx.png"
+    },
+    {
+      "id": "open5e-tob2-fennec-fox",
+      "name": "Fennec Fox",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 7,
+      "hitDice": "2d4+2",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": 5
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_fennec-fox",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_fennec-fox/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fennec Fox, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-fennec-fox.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-fennec-fox.png"
+    },
+    {
+      "id": "open5e-tob3-dinosaur-jeholopterus",
+      "name": "Dinosaur, Jeholopterus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 12,
+      "hitDice": "5d4",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dinosaur-jeholopterus",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dinosaur-jeholopterus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dinosaur, Jeholopterus, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dinosaur-jeholopterus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dinosaur-jeholopterus.png"
+    },
+    {
+      "id": "open5e-tob-2023-dorreq",
+      "name": "Dorreq",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 93,
+      "hitDice": "17d8 + 17",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_dorreq",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_dorreq/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dorreq, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-dorreq.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-dorreq.png"
+    },
+    {
+      "id": "open5e-ccdx-nalusa-falaya",
+      "name": "Nalusa Falaya",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8+6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_nalusa-falaya",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_nalusa-falaya/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Nalusa Falaya, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-nalusa-falaya.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-nalusa-falaya.png"
+    },
+    {
+      "id": "open5e-tob2-heggarna",
+      "name": "Heggarna",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 40,
+      "hitDice": "9d4+18",
+      "armorClass": 16,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_heggarna",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_heggarna/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Heggarna, a Tiny Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-heggarna.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-heggarna.png"
+    },
+    {
+      "id": "open5e-tob3-umbral-shambler",
+      "name": "Umbral Shambler",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_umbral-shambler",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_umbral-shambler/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Umbral Shambler, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-umbral-shambler.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-umbral-shambler.png"
+    }
+  ]
+}

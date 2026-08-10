@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-cikavak",
+      "name": "Cikavak",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "7d4",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 40,
+        "fly": 10,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_cikavak",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_cikavak/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cikavak, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-cikavak.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-cikavak.png"
+    },
+    {
+      "id": "open5e-ccdx-living-shade",
+      "name": "Living Shade",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 18,
+      "hitDice": "4d8",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_living-shade",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_living-shade/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Living Shade, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-living-shade.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-living-shade.png"
+    },
+    {
+      "id": "open5e-tob2-gorao-ka",
+      "name": "Gorao-Ka",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "5d4+5",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_gorao-ka",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_gorao-ka/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gorao-Ka, a Tiny Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-gorao-ka.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-gorao-ka.png"
+    },
+    {
+      "id": "open5e-tob3-hinderling",
+      "name": "Hinderling",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 13,
+      "hitDice": "3d6+3",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_hinderling",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_hinderling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hinderling, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-hinderling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-hinderling.png"
+    },
+    {
+      "id": "open5e-tob-2023-rime-worm-grub",
+      "name": "Rime Worm Grub",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8 + 18",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_rime-worm-grub",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_rime-worm-grub/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rime Worm Grub, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-rime-worm-grub.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-rime-worm-grub.png"
+    },
+    {
+      "id": "open5e-ccdx-storm-spirit",
+      "name": "Storm Spirit",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "5d8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_storm-spirit",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_storm-spirit/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Storm Spirit, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-storm-spirit.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-storm-spirit.png"
+    },
+    {
+      "id": "open5e-tob2-radiant-spark-swarm",
+      "name": "Radiant Spark Swarm",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 38,
+      "hitDice": "7d8+7",
+      "armorClass": 16,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 0,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_radiant-spark-swarm",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_radiant-spark-swarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Radiant Spark Swarm, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-radiant-spark-swarm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-radiant-spark-swarm.png"
+    },
+    {
+      "id": "open5e-tob3-qumdaq",
+      "name": "Qumdaq",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6+4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_qumdaq",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_qumdaq/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Qumdaq, a Small Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-qumdaq.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-qumdaq.png"
+    },
+    {
+      "id": "open5e-tob-2023-lantern-dragonette",
+      "name": "Lantern Dragonette",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 28,
+      "hitDice": "8d4 + 8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 40,
+        "fly": 15,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_lantern-dragonette",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_lantern-dragonette/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lantern Dragonette, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-lantern-dragonette.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-lantern-dragonette.png"
+    },
+    {
+      "id": "open5e-ccdx-pact-drake",
+      "name": "Pact Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 45,
+      "hitDice": "8d6+24",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_pact-drake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_pact-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pact Drake, a Small Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-pact-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-pact-drake.png"
+    }
+  ]
+}

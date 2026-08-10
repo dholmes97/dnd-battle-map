@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-flame-dragon-wyrmling",
+      "name": "Flame Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8 + 16",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": 30,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_flame-dragon-wyrmling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_flame-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Flame Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-flame-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-flame-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-ccdx-wasteland-dragon-wyrmling",
+      "name": "Wasteland Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8+24",
+      "armorClass": 17,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": 50,
+        "swim": 15,
+        "climb": 30,
+        "burrow": 15
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_wasteland-dragon-wyrmling",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_wasteland-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wasteland Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-wasteland-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-wasteland-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-tob2-hongaek",
+      "name": "Hongaek",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 105,
+      "hitDice": "14d10+28",
+      "armorClass": 15,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_hongaek",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_hongaek/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hongaek, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-hongaek.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-hongaek.png"
+    },
+    {
+      "id": "open5e-tob3-swarm-ice-borers",
+      "name": "Swarm, Ice Borers",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 40,
+      "hitDice": "9d8",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": 30,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_swarm-ice-borers",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_swarm-ice-borers/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm, Ice Borers, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-swarm-ice-borers.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-swarm-ice-borers.png"
+    },
+    {
+      "id": "open5e-tob-2023-xanka",
+      "name": "Xanka",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 27,
+      "hitDice": "6d6 + 6",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_xanka",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_xanka/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Xanka, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-xanka.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-xanka.png"
+    },
+    {
+      "id": "open5e-ccdx-weirding-scroll",
+      "name": "Weirding Scroll",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 27,
+      "hitDice": "6d4+12",
+      "armorClass": 10,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 0,
+        "fly": 10,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_weirding-scroll",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_weirding-scroll/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Weirding Scroll, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-weirding-scroll.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-weirding-scroll.png"
+    },
+    {
+      "id": "open5e-tob2-kelp-drake",
+      "name": "Kelp Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 60,
+      "hitDice": "8d8+24",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 50,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_kelp-drake",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_kelp-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kelp Drake, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-kelp-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-kelp-drake.png"
+    },
+    {
+      "id": "open5e-tob3-drake-cactus",
+      "name": "Drake, Cactus",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8+30",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_drake-cactus",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_drake-cactus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Drake, Cactus, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-drake-cactus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-drake-cactus.png"
+    },
+    {
+      "id": "open5e-tob-2023-chained-angel",
+      "name": "Chained Angel",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 121,
+      "hitDice": "22d8 + 22",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 60,
+        "fly": 30,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_chained-angel",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_chained-angel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chained Angel, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-chained-angel.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-chained-angel.png"
+    },
+    {
+      "id": "open5e-ccdx-simurg",
+      "name": "Simurg",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 108,
+      "hitDice": "8d20+24",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": 80,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_simurg",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_simurg/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Simurg, a Gargantuan Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-simurg.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-simurg.png"
+    }
+  ]
+}

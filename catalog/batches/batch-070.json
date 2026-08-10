@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-crimson-drake",
+      "name": "Crimson Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4 + 20",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 80,
+        "fly": 15,
+        "swim": 40,
+        "climb": 40,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_crimson-drake",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_crimson-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Crimson Drake, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-crimson-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-crimson-drake.png"
+    },
+    {
+      "id": "open5e-ccdx-light-dragon-wyrmling",
+      "name": "Light Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_light-dragon-wyrmling",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_light-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Light Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-light-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-light-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-tob2-boreal-dragon-wyrmling",
+      "name": "Boreal Dragon Wyrmling",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 20,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_boreal-dragon-wyrmling",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_boreal-dragon-wyrmling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Boreal Dragon Wyrmling, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-boreal-dragon-wyrmling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-boreal-dragon-wyrmling.png"
+    },
+    {
+      "id": "open5e-tob3-dragonette-shovel",
+      "name": "Dragonette, Shovel",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 33,
+      "hitDice": "6d4+18",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_dragonette-shovel",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dragonette-shovel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Dragonette, Shovel, a Tiny Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-dragonette-shovel.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-dragonette-shovel.png"
+    },
+    {
+      "id": "open5e-tob-2023-clockwork-beetle",
+      "name": "Clockwork Beetle",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 20,
+      "hitDice": "8d4",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 50,
+        "fly": 30,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_clockwork-beetle",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_clockwork-beetle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Beetle, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-clockwork-beetle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-clockwork-beetle.png"
+    },
+    {
+      "id": "open5e-ccdx-hair-golem",
+      "name": "Hair Golem",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 13,
+      "hitDice": "3d6+3",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_hair-golem",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_hair-golem/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hair Golem, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-hair-golem.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-hair-golem.png"
+    },
+    {
+      "id": "open5e-tob2-wood-ward",
+      "name": "Wood Ward",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 19,
+      "hitDice": "2d10+8",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_wood-ward",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_wood-ward/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wood Ward, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-wood-ward.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-wood-ward.png"
+    },
+    {
+      "id": "open5e-tob3-clockwork-conductor",
+      "name": "Clockwork Conductor",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 28,
+      "hitDice": "8d6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_clockwork-conductor",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_clockwork-conductor/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Conductor, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-clockwork-conductor.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-clockwork-conductor.png"
+    },
+    {
+      "id": "open5e-tob-2023-ratatosk",
+      "name": "Ratatosk",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 42,
+      "hitDice": "12d4 + 12",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_ratatosk",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_ratatosk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ratatosk, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-ratatosk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-ratatosk.png"
+    },
+    {
+      "id": "open5e-ccdx-white-stag",
+      "name": "White Stag",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "7d10+7",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_white-stag",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_white-stag/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of White Stag, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-white-stag.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-white-stag.png"
+    }
+  ]
+}

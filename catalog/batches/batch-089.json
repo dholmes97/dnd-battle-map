@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-web-zombie",
+      "name": "Web Zombie",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "3d8+9",
+      "armorClass": 8,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_web-zombie",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_web-zombie/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Web Zombie, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-web-zombie.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-web-zombie.png"
+    },
+    {
+      "id": "open5e-tob3-wraith-oathrot",
+      "name": "Wraith, Oathrot",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 52,
+      "hitDice": "8d8 +16",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 0,
+        "fly": 60,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_wraith-oathrot",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_wraith-oathrot/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wraith, Oathrot, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-wraith-oathrot.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-wraith-oathrot.png"
+    },
+    {
+      "id": "open5e-tob-2023-cavelight-moss",
+      "name": "Cavelight Moss",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 95,
+      "hitDice": "10d10 + 40",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_cavelight-moss",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_cavelight-moss/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cavelight Moss, a Large Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-cavelight-moss.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-cavelight-moss.png"
+    },
+    {
+      "id": "open5e-ccdx-yaga-goo",
+      "name": "Yaga Goo",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 85,
+      "hitDice": "10d6+50",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_yaga-goo",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_yaga-goo/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Yaga Goo, a Small Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-yaga-goo.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-yaga-goo.png"
+    },
+    {
+      "id": "open5e-tob2-garlicle",
+      "name": "Garlicle",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 31,
+      "hitDice": "7d6+7",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_garlicle",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_garlicle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Garlicle, a Small Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-garlicle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-garlicle.png"
+    },
+    {
+      "id": "open5e-tob3-fungi-mush-marcher",
+      "name": "Fungi, Mush Marcher",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 85,
+      "hitDice": "10d10+30",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_fungi-mush-marcher",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_fungi-mush-marcher/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Fungi, Mush Marcher, a Large Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-fungi-mush-marcher.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-fungi-mush-marcher.png"
+    },
+    {
+      "id": "open5e-tob-2023-cobbleswarm",
+      "name": "Cobbleswarm",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 36,
+      "hitDice": "8d8",
+      "armorClass": 15,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_cobbleswarm",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_cobbleswarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cobbleswarm, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-cobbleswarm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-cobbleswarm.png"
+    },
+    {
+      "id": "open5e-ccdx-anophiloi",
+      "name": "Anophiloi",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 33,
+      "hitDice": "6d6+12",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": 40,
+        "swim": 15,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_anophiloi",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_anophiloi/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Anophiloi, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-anophiloi.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-anophiloi.png"
+    },
+    {
+      "id": "open5e-tob2-eldritch-ooze",
+      "name": "Eldritch Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 153,
+      "hitDice": "18d10+54",
+      "armorClass": 8,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_eldritch-ooze",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_eldritch-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Eldritch Ooze, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-eldritch-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-eldritch-ooze.png"
+    },
+    {
+      "id": "open5e-tob3-stone-eater-slime",
+      "name": "Stone-Eater Slime",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 90,
+      "hitDice": "12d6+48",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_stone-eater-slime",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_stone-eater-slime/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Stone-Eater Slime, a Small Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-stone-eater-slime.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-stone-eater-slime.png"
+    }
+  ]
+}

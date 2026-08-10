@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-wharfling",
+      "name": "Wharfling",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "4d4",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_wharfling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_wharfling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wharfling, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-wharfling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-wharfling.png"
+    },
+    {
+      "id": "open5e-ccdx-giant-moth",
+      "name": "Giant Moth",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 25,
+        "fly": 30,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_giant-moth",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_giant-moth/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Giant Moth, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-giant-moth.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-giant-moth.png"
+    },
+    {
+      "id": "open5e-tob2-lantern-beetle",
+      "name": "Lantern Beetle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": 10,
+        "swim": 15,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_lantern-beetle",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_lantern-beetle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lantern Beetle, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-lantern-beetle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-lantern-beetle.png"
+    },
+    {
+      "id": "open5e-tob3-meerkat",
+      "name": "Meerkat",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 2,
+      "hitDice": "1d4",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 10
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_meerkat",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_meerkat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Meerkat, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-meerkat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-meerkat.png"
+    },
+    {
+      "id": "open5e-tob-2023-bagiennik",
+      "name": "Bagiennik",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 75,
+      "hitDice": "10d8 + 30",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_bagiennik",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bagiennik/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bagiennik, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-bagiennik.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-bagiennik.png"
+    },
+    {
+      "id": "open5e-ccdx-zoog",
+      "name": "Zoog",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 3,
+      "hitDice": "1d4+1",
+      "armorClass": 13,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_zoog",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_zoog/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Zoog, a Tiny Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-zoog.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-zoog.png"
+    },
+    {
+      "id": "open5e-tob2-ahu-nixta-drudge",
+      "name": "Ahu-Nixta Drudge",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 26,
+      "hitDice": "4d8+8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ahu-nixta-drudge",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ahu-nixta-drudge/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ahu-Nixta Drudge, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ahu-nixta-drudge.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ahu-nixta-drudge.png"
+    },
+    {
+      "id": "open5e-tob3-light-eater",
+      "name": "Light Eater",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 26,
+      "hitDice": "4d6+12",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 10,
+        "fly": 40,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_light-eater",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_light-eater/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Light Eater, a Small Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-light-eater.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-light-eater.png"
+    },
+    {
+      "id": "open5e-tob-2023-beggar-ghoul",
+      "name": "Beggar Ghoul",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_beggar-ghoul",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_beggar-ghoul/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Beggar Ghoul, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-beggar-ghoul.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-beggar-ghoul.png"
+    },
+    {
+      "id": "open5e-ccdx-skull-lantern",
+      "name": "Skull Lantern",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 14,
+      "hitDice": "4d4+4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_skull-lantern",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_skull-lantern/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Skull Lantern, a Tiny Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-skull-lantern.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-skull-lantern.png"
+    }
+  ]
+}

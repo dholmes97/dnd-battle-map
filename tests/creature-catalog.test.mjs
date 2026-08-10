@@ -33,8 +33,8 @@ test("makes every creature placement-ready", () => {
   }
 });
 
-test("captures 500 additional, non-duplicate, placement-ready creatures as metadata", () => {
-  assert.equal(expansion.phase, "metadata-only");
+test("captures 500 additional, non-duplicate, placement-ready creatures with completed art", () => {
+  assert.equal(expansion.phase, "art-complete");
   assert.equal(expansion.existingProductionTotal, 500);
   assert.equal(expansion.targetProductionTotal, 1000);
   assert.equal(expansion.count, 500);
@@ -60,10 +60,26 @@ test("captures 500 additional, non-duplicate, placement-ready creatures as metad
     assert.ok(creature.hitDice, `${creature.id} hit dice`);
     assert.ok(creature.challengeRating !== null, `${creature.id} challenge rating`);
     assert.equal(creature.source.kind, "open5e-v2");
-    assert.equal(creature.artStatus, "not-started");
+    assert.equal(creature.artStatus, "complete");
     assert.equal(typeof creature.speeds.walk, "number");
     for (const mode of ["fly", "swim", "climb", "burrow"]) {
       assert.ok(creature.speeds[mode] === null || typeof creature.speeds[mode] === "number", `${creature.id} ${mode}`);
     }
   }
+});
+
+test("partitions the completed expansion into fifty ten-creature import batches", async () => {
+  const ids = [];
+  for (let batchNumber = 50; batchNumber <= 99; batchNumber += 1) {
+    const filename = `batch-${String(batchNumber).padStart(3, "0")}.json`;
+    const batch = JSON.parse(await readFile(new URL(`../catalog/batches/${filename}`, import.meta.url), "utf8"));
+    assert.equal(batch.creatures.length, 10, filename);
+    for (const creature of batch.creatures) {
+      assert.equal(creature.image, `../art/full/${creature.id}.png`);
+      assert.equal(creature.thumbnail, `../art/thumbnails/${creature.id}.png`);
+      ids.push(creature.id);
+    }
+  }
+  assert.deepEqual(ids, expansion.creatures.map((creature) => creature.id));
+  assert.equal(new Set(ids).size, 500);
 });

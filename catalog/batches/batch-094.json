@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-myling",
+      "name": "Myling",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 45,
+      "hitDice": "10d6 + 10",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": 30
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_myling",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_myling/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Myling, a Small Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-myling.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-myling.png"
+    },
+    {
+      "id": "open5e-ccdx-lady-in-white",
+      "name": "Lady in White",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "11d8",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 0,
+        "fly": 30,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_lady-in-white",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_lady-in-white/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lady in White, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-lady-in-white.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-lady-in-white.png"
+    },
+    {
+      "id": "open5e-tob2-catscratch",
+      "name": "Catscratch",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 76,
+      "hitDice": "8d12+24",
+      "armorClass": 13,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_catscratch",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_catscratch/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Catscratch, a Huge Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-catscratch.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-catscratch.png"
+    },
+    {
+      "id": "open5e-tob3-mindshard",
+      "name": "Mindshard",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 81,
+      "hitDice": "18d6+18",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_mindshard",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_mindshard/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mindshard, a Small Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-mindshard.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-mindshard.png"
+    },
+    {
+      "id": "open5e-tob-2023-deathcap-myconid",
+      "name": "Deathcap Myconid",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 90,
+      "hitDice": "12d8 + 36",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_deathcap-myconid",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_deathcap-myconid/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Deathcap Myconid, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-deathcap-myconid.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-deathcap-myconid.png"
+    },
+    {
+      "id": "open5e-ccdx-razorleaf",
+      "name": "Razorleaf",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 112,
+      "hitDice": "15d8+45",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_razorleaf",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_razorleaf/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Razorleaf, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-razorleaf.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-razorleaf.png"
+    },
+    {
+      "id": "open5e-tob2-chimeric-phantom",
+      "name": "Chimeric Phantom",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 36,
+      "hitDice": "8d8",
+      "armorClass": 11,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 0,
+        "fly": 40,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_chimeric-phantom",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_chimeric-phantom/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chimeric Phantom, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-chimeric-phantom.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-chimeric-phantom.png"
+    },
+    {
+      "id": "open5e-tob3-lakescourge-lotus",
+      "name": "Lakescourge Lotus",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 90,
+      "hitDice": "12d8+36",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_lakescourge-lotus",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_lakescourge-lotus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Lakescourge Lotus, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-lakescourge-lotus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-lakescourge-lotus.png"
+    },
+    {
+      "id": "open5e-tob-2023-doppelrat",
+      "name": "Doppelrat",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4 + 20",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_doppelrat",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_doppelrat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Doppelrat, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-doppelrat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-doppelrat.png"
+    },
+    {
+      "id": "open5e-ccdx-blood-ooze",
+      "name": "Blood Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "8d10+32",
+      "armorClass": 8,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_blood-ooze",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_blood-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Ooze, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-blood-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-blood-ooze.png"
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-sphinx-of-lore",
+      "name": "Sphinx of Lore",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 170,
+      "hitDice": "20d10 + 60",
+      "armorClass": 17,
+      "challengeRating": "11",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_sphinx-of-lore",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_sphinx-of-lore/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sphinx of Lore, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-sphinx-of-lore.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-sphinx-of-lore.png"
+    },
+    {
+      "id": "open5e-srd-2024-giant-fly",
+      "name": "Giant Fly",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 19,
+      "hitDice": "3d10 + 3",
+      "armorClass": 11,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_giant-fly",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_giant-fly/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Giant Fly, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-giant-fly.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-giant-fly.png"
+    },
+    {
+      "id": "open5e-srd-2024-centaur-trooper",
+      "name": "Centaur Trooper",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10 + 12",
+      "armorClass": 16,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_centaur-trooper",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_centaur-trooper/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Centaur Trooper, a Large Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-centaur-trooper.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-centaur-trooper.png"
+    },
+    {
+      "id": "open5e-srd-2024-swarm-of-crawling-claws",
+      "name": "Swarm of Crawling Claws",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 49,
+      "hitDice": "11d8",
+      "armorClass": 12,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_swarm-of-crawling-claws",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_swarm-of-crawling-claws/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm of Crawling Claws, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-swarm-of-crawling-claws.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-swarm-of-crawling-claws.png"
+    },
+    {
+      "id": "open5e-srd-2024-succubus",
+      "name": "Succubus",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 71,
+      "hitDice": "13d8 + 13",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_succubus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_succubus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Succubus, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-succubus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-succubus.png"
+    },
+    {
+      "id": "open5e-srd-2024-sphinx-of-valor",
+      "name": "Sphinx of Valor",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 199,
+      "hitDice": "19d10 + 95",
+      "armorClass": 17,
+      "challengeRating": "17",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_sphinx-of-valor",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_sphinx-of-valor/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sphinx of Valor, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-sphinx-of-valor.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-sphinx-of-valor.png"
+    },
+    {
+      "id": "open5e-srd-2024-bugbear-stalker",
+      "name": "Bugbear Stalker",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 65,
+      "hitDice": "10d8 + 20",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_bugbear-stalker",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_bugbear-stalker/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bugbear Stalker, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-bugbear-stalker.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-bugbear-stalker.png"
+    },
+    {
+      "id": "open5e-srd-2024-half-dragon",
+      "name": "Half-Dragon",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 105,
+      "hitDice": "14d8 + 42",
+      "armorClass": 18,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_half-dragon",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_half-dragon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Half-Dragon, a Medium Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-half-dragon.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-half-dragon.png"
+    },
+    {
+      "id": "open5e-srd-2024-cultist-fanatic",
+      "name": "Cultist Fanatic",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 44,
+      "hitDice": "8d8 + 8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_cultist-fanatic",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_cultist-fanatic/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cultist Fanatic, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-cultist-fanatic.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-cultist-fanatic.png"
+    },
+    {
+      "id": "open5e-srd-2024-wererat",
+      "name": "Wererat",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 60,
+      "hitDice": "11d8 + 11",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_wererat",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_wererat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wererat, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-wererat.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-wererat.png"
+    }
+  ]
+}

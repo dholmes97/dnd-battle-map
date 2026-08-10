@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-troll-limb",
+      "name": "Troll Limb",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 14,
+      "hitDice": "4d6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_troll-limb",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_troll-limb/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Troll Limb, a Small Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-troll-limb.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-troll-limb.png"
+    },
+    {
+      "id": "open5e-srd-2024-goblin-minion",
+      "name": "Goblin Minion",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "2d6",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_goblin-minion",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_goblin-minion/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Goblin Minion, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-goblin-minion.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-goblin-minion.png"
+    },
+    {
+      "id": "open5e-srd-2024-merfolk-skirmisher",
+      "name": "Merfolk Skirmisher",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8 + 2",
+      "armorClass": 11,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 40,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_merfolk-skirmisher",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_merfolk-skirmisher/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Merfolk Skirmisher, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-merfolk-skirmisher.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-merfolk-skirmisher.png"
+    },
+    {
+      "id": "open5e-srd-2024-kobold-warrior",
+      "name": "Kobold Warrior",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 7,
+      "hitDice": "3d6 - 3",
+      "armorClass": 14,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_kobold-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_kobold-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Kobold Warrior, a Small Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-kobold-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-kobold-warrior.png"
+    },
+    {
+      "id": "open5e-srd-2024-shrieker-fungus",
+      "name": "Shrieker Fungus",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 5,
+      "challengeRating": "0",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_shrieker-fungus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_shrieker-fungus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shrieker Fungus, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-shrieker-fungus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-shrieker-fungus.png"
+    },
+    {
+      "id": "open5e-srd-2024-animated-flying-sword",
+      "name": "Animated Flying Sword",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 14,
+      "hitDice": "4d6",
+      "armorClass": 17,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 5,
+        "fly": 50,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_animated-flying-sword",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_animated-flying-sword/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Animated Flying Sword, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-animated-flying-sword.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-animated-flying-sword.png"
+    },
+    {
+      "id": "open5e-srd-2024-gnoll-warrior",
+      "name": "Gnoll Warrior",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "6d8",
+      "armorClass": 15,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_gnoll-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_gnoll-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Gnoll Warrior, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-gnoll-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-gnoll-warrior.png"
+    },
+    {
+      "id": "open5e-srd-2024-goblin-warrior",
+      "name": "Goblin Warrior",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 10,
+      "hitDice": "3d6",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_goblin-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_goblin-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Goblin Warrior, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-goblin-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-goblin-warrior.png"
+    },
+    {
+      "id": "open5e-srd-2024-sphinx-of-wonder",
+      "name": "Sphinx of Wonder",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 24,
+      "hitDice": "7d4 + 7",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_sphinx-of-wonder",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_sphinx-of-wonder/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sphinx of Wonder, a Small Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-sphinx-of-wonder.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-sphinx-of-wonder.png"
+    },
+    {
+      "id": "open5e-srd-2024-sahuagin-warrior",
+      "name": "Sahuagin Warrior",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 22,
+      "hitDice": "4d8 + 4",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 40,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_sahuagin-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_sahuagin-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sahuagin Warrior, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-sahuagin-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-sahuagin-warrior.png"
+    }
+  ]
+}

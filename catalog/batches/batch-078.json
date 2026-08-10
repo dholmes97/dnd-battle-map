@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-citrullus",
+      "name": "Citrullus",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 85,
+      "hitDice": "10d10 + 30",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 15,
+        "fly": null,
+        "swim": 7,
+        "climb": 7,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_citrullus",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_citrullus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Citrullus, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-citrullus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-citrullus.png"
+    },
+    {
+      "id": "open5e-ccdx-wirbeln-fungi",
+      "name": "Wirbeln Fungi",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 16,
+      "hitDice": "3d8+3",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": 20,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_wirbeln-fungi",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_wirbeln-fungi/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wirbeln Fungi, a Small Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-wirbeln-fungi.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-wirbeln-fungi.png"
+    },
+    {
+      "id": "open5e-tob2-bulbous-violet",
+      "name": "Bulbous Violet",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 38,
+      "hitDice": "7d8+7",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_bulbous-violet",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_bulbous-violet/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bulbous Violet, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-bulbous-violet.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-bulbous-violet.png"
+    },
+    {
+      "id": "open5e-tob3-sinstar-thrall",
+      "name": "Sinstar Thrall",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 58,
+      "hitDice": "9d8+18",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_sinstar-thrall",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_sinstar-thrall/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sinstar Thrall, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-sinstar-thrall.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-sinstar-thrall.png"
+    },
+    {
+      "id": "open5e-tob-2023-corrupting-ooze",
+      "name": "Corrupting Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 115,
+      "hitDice": "10d10 + 60",
+      "armorClass": 12,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_corrupting-ooze",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_corrupting-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Corrupting Ooze, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-corrupting-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-corrupting-ooze.png"
+    },
+    {
+      "id": "open5e-ccdx-ink-guardian",
+      "name": "Ink Guardian",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 102,
+      "hitDice": "12d10+36",
+      "armorClass": 8,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_ink-guardian",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_ink-guardian/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ink Guardian, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-ink-guardian.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-ink-guardian.png"
+    },
+    {
+      "id": "open5e-tob2-mineral-ooze",
+      "name": "Mineral Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "8d10+32",
+      "armorClass": 9,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_mineral-ooze",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mineral-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mineral Ooze, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-mineral-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-mineral-ooze.png"
+    },
+    {
+      "id": "open5e-tob3-ooze-leavesrot",
+      "name": "Ooze, Leavesrot",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 105,
+      "hitDice": "14d10+28",
+      "armorClass": 8,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ooze-leavesrot",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ooze-leavesrot/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ooze, Leavesrot, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ooze-leavesrot.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ooze-leavesrot.png"
+    },
+    {
+      "id": "open5e-tob-2023-leshy",
+      "name": "Leshy",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "7d8 + 14",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_leshy",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_leshy/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Leshy, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-leshy.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-leshy.png"
+    },
+    {
+      "id": "open5e-ccdx-chupacabra",
+      "name": "Chupacabra",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 36,
+      "hitDice": "8d6+8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_chupacabra",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_chupacabra/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chupacabra, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-chupacabra.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-chupacabra.png"
+    }
+  ]
+}

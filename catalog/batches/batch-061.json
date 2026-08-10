@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-cackling-skeleton",
+      "name": "Cackling Skeleton",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 26,
+      "hitDice": "4d8+8",
+      "armorClass": 9,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_cackling-skeleton",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_cackling-skeleton/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Cackling Skeleton, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-cackling-skeleton.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-cackling-skeleton.png"
+    },
+    {
+      "id": "open5e-tob3-offal-walker",
+      "name": "Offal Walker",
+      "family": "undead",
+      "creatureType": "undead",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 37,
+      "hitDice": "5d8+15",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_offal-walker",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_offal-walker/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Offal Walker, a Medium Undead; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-offal-walker.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-offal-walker.png"
+    },
+    {
+      "id": "open5e-tob-2023-child-of-the-briar",
+      "name": "Child of the Briar",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 50,
+      "hitDice": "20d4",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_child-of-the-briar",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_child-of-the-briar/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Child of the Briar, a Tiny Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-child-of-the-briar.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-child-of-the-briar.png"
+    },
+    {
+      "id": "open5e-ccdx-mandrake",
+      "name": "Mandrake",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "4d4+12",
+      "armorClass": 8,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 2,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_mandrake",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_mandrake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mandrake, a Tiny Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-mandrake.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-mandrake.png"
+    },
+    {
+      "id": "open5e-tob2-shiftshroom",
+      "name": "Shiftshroom",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 18,
+      "hitDice": "4d8",
+      "armorClass": 5,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_shiftshroom",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_shiftshroom/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Shiftshroom, a Medium Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-shiftshroom.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-shiftshroom.png"
+    },
+    {
+      "id": "open5e-tob3-tuberkith",
+      "name": "Tuberkith",
+      "family": "plant",
+      "creatureType": "plant",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_tuberkith",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_tuberkith/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tuberkith, a Small Plant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-tuberkith.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-tuberkith.png"
+    },
+    {
+      "id": "open5e-tob-2023-treacle",
+      "name": "Treacle",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "4d4 + 12",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_treacle",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_treacle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Treacle, a Tiny Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-treacle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-treacle.png"
+    },
+    {
+      "id": "open5e-ccdx-suppurating-ooze",
+      "name": "Suppurating Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 30,
+      "hitDice": "4d8+12",
+      "armorClass": 8,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_suppurating-ooze",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_suppurating-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Suppurating Ooze, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-suppurating-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-suppurating-ooze.png"
+    },
+    {
+      "id": "open5e-tob2-ichor-ooze",
+      "name": "Ichor Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 8,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ichor-ooze",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ichor-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ichor Ooze, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ichor-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ichor-ooze.png"
+    },
+    {
+      "id": "open5e-tob3-doppelixir",
+      "name": "Doppelixir",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 45,
+      "hitDice": "10d4+20",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_doppelixir",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_doppelixir/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Doppelixir, a Tiny Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-doppelixir.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-doppelixir.png"
+    }
+  ]
+}

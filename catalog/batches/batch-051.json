@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-animated-rug-of-smothering",
+      "name": "Animated Rug of Smothering",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 27,
+      "hitDice": "5d10",
+      "armorClass": 12,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_animated-rug-of-smothering",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_animated-rug-of-smothering/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Animated Rug of Smothering, a Large Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-animated-rug-of-smothering.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-animated-rug-of-smothering.png"
+    },
+    {
+      "id": "open5e-srd-2024-hobgoblin-warrior",
+      "name": "Hobgoblin Warrior",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8 + 2",
+      "armorClass": 18,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_hobgoblin-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_hobgoblin-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hobgoblin Warrior, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-hobgoblin-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-hobgoblin-warrior.png"
+    },
+    {
+      "id": "open5e-srd-2024-warrior-infantry",
+      "name": "Warrior Infantry",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 9,
+      "hitDice": "2d8",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_warrior-infantry",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_warrior-infantry/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Warrior Infantry, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-warrior-infantry.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-warrior-infantry.png"
+    },
+    {
+      "id": "open5e-srd-2024-priest-acolyte",
+      "name": "Priest Acolyte",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 11,
+      "hitDice": "2d8 + 2",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_priest-acolyte",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_priest-acolyte/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Priest Acolyte, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-priest-acolyte.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-priest-acolyte.png"
+    },
+    {
+      "id": "open5e-srd-2024-azer-sentinel",
+      "name": "Azer Sentinel",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8 + 12",
+      "armorClass": 17,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_azer-sentinel",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_azer-sentinel/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Azer Sentinel, a Medium Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-azer-sentinel.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-azer-sentinel.png"
+    },
+    {
+      "id": "open5e-srd-2024-bugbear-warrior",
+      "name": "Bugbear Warrior",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 33,
+      "hitDice": "6d8 + 6",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_bugbear-warrior",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_bugbear-warrior/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bugbear Warrior, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-bugbear-warrior.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-bugbear-warrior.png"
+    },
+    {
+      "id": "open5e-srd-2024-tough",
+      "name": "Tough",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 32,
+      "hitDice": "5d8 + 10",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_tough",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_tough/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Tough, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-tough.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-tough.png"
+    },
+    {
+      "id": "open5e-srd-2024-pirate",
+      "name": "Pirate",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 33,
+      "hitDice": "6d8 + 6",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_pirate",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_pirate/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pirate, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-pirate.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-pirate.png"
+    },
+    {
+      "id": "open5e-srd-2024-incubus",
+      "name": "Incubus",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 66,
+      "hitDice": "12d8 + 12",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_incubus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_incubus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Incubus, a Medium Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-incubus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-incubus.png"
+    },
+    {
+      "id": "open5e-srd-2024-goblin-boss",
+      "name": "Goblin Boss",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 17,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_goblin-boss",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_goblin-boss/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Goblin Boss, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-goblin-boss.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-goblin-boss.png"
+    }
+  ]
+}

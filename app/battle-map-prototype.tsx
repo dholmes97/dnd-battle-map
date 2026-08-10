@@ -29,6 +29,7 @@ import {
   clampMapPoint,
   clampViewport,
   drawingAtPoint,
+  tokenArtScale,
   viewportGeometry,
   zoomViewportAt,
 } from "@/shared/battle-map-geometry.mjs";
@@ -987,23 +988,10 @@ function drawMap(
     context.shadowBlur = 0;
     const art = token.artAsset ? tokenArt.get(token.artAsset) : null;
     if (art) {
+      const artRadius = radius * tokenArtScale(token.size);
       context.save();
       context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.clip();
-      if (token.artAsset?.includes("/characters/")) {
-        context.drawImage(
-          art,
-          art.naturalWidth * 0.2,
-          0,
-          art.naturalWidth * 0.6,
-          art.naturalHeight * 0.6,
-          x - radius,
-          y - radius,
-          radius * 2,
-          radius * 2,
-        );
-      } else {
-        context.drawImage(art, x - radius, y - radius, radius * 2, radius * 2);
-      }
+      context.drawImage(art, x - artRadius, y - artRadius, artRadius * 2, artRadius * 2);
       context.restore();
     } else {
       context.fillStyle = transparentTokenBackgrounds ? "#f3eadb" : "#261d18";
@@ -1101,7 +1089,10 @@ function drawMap(
     context.setLineDash([7, 5]);
     context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke();
     context.setLineDash([]);
-    if (art) context.drawImage(art, x - radius, y - radius, radius * 2, radius * 2);
+    if (art) {
+      const artRadius = radius * tokenArtScale(placementPreview.creature.size);
+      context.drawImage(art, x - artRadius, y - artRadius, artRadius * 2, artRadius * 2);
+    }
     context.restore();
   }
   if (spellPlacementPreview) {

@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-clockwork-leech",
+      "name": "Clockwork Leech",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8+18",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 60,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_clockwork-leech",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_clockwork-leech/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Leech, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-clockwork-leech.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-clockwork-leech.png"
+    },
+    {
+      "id": "open5e-tob3-clockwork-armadillo",
+      "name": "Clockwork Armadillo",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_clockwork-armadillo",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_clockwork-armadillo/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Armadillo, a Small Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-clockwork-armadillo.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-clockwork-armadillo.png"
+    },
+    {
+      "id": "open5e-tob-2023-firebird",
+      "name": "Firebird",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 88,
+      "hitDice": "16d6 + 32",
+      "armorClass": 16,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 60,
+        "fly": 20,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_firebird",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_firebird/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Firebird, a Small Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-firebird.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-firebird.png"
+    },
+    {
+      "id": "open5e-ccdx-eye-of-the-gods",
+      "name": "Eye of the Gods",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 36,
+      "hitDice": "8d6+8",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": 50,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_eye-of-the-gods",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_eye-of-the-gods/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Eye of the Gods, a Small Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-eye-of-the-gods.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-eye-of-the-gods.png"
+    },
+    {
+      "id": "open5e-tob2-chamrosh",
+      "name": "Chamrosh",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8+12",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 40,
+        "fly": 60,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_chamrosh",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_chamrosh/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Chamrosh, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-chamrosh.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-chamrosh.png"
+    },
+    {
+      "id": "open5e-tob3-archon-word",
+      "name": "Archon, Word",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 28,
+      "hitDice": "8d4+8",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 0,
+        "fly": 90,
+        "swim": null,
+        "climb": null,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_archon-word",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_archon-word/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Archon, Word, a Tiny Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-archon-word.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-archon-word.png"
+    },
+    {
+      "id": "open5e-tob-2023-garroter-crab",
+      "name": "Garroter Crab",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 18,
+      "hitDice": "4d4 + 8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_garroter-crab",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_garroter-crab/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Garroter Crab, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-garroter-crab.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-garroter-crab.png"
+    },
+    {
+      "id": "open5e-ccdx-leonino",
+      "name": "Leonino",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 13,
+      "hitDice": "3d4+6",
+      "armorClass": 13,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": 40,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_leonino",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_leonino/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Leonino, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-leonino.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-leonino.png"
+    },
+    {
+      "id": "open5e-tob2-compsognathus",
+      "name": "Compsognathus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 10,
+      "hitDice": "3d4+3",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_compsognathus",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_compsognathus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Compsognathus, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-compsognathus.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-compsognathus.png"
+    },
+    {
+      "id": "open5e-tob3-blood-barnacle",
+      "name": "Blood Barnacle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 25,
+      "hitDice": "10d4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 30,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_blood-barnacle",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_blood-barnacle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Blood Barnacle, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-blood-barnacle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-blood-barnacle.png"
+    }
+  ]
+}

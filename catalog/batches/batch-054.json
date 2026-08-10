@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-srd-2024-pirate-captain",
+      "name": "Pirate Captain",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 84,
+      "hitDice": "13d8 + 26",
+      "armorClass": 17,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_pirate-captain",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_pirate-captain/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pirate Captain, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-pirate-captain.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-pirate-captain.png"
+    },
+    {
+      "id": "open5e-srd-2024-weretiger",
+      "name": "Weretiger",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 120,
+      "hitDice": "16d8 + 48",
+      "armorClass": 12,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_weretiger",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_weretiger/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Weretiger, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-weretiger.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-weretiger.png"
+    },
+    {
+      "id": "open5e-srd-2024-werebear",
+      "name": "Werebear",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 135,
+      "hitDice": "18d8 + 54",
+      "armorClass": 15,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_werebear",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_werebear/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Werebear, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-werebear.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-werebear.png"
+    },
+    {
+      "id": "open5e-srd-2024-venomous-snake",
+      "name": "Venomous Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 5,
+      "hitDice": "2d4",
+      "armorClass": 12,
+      "challengeRating": "1/8",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_venomous-snake",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_venomous-snake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Venomous Snake, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-venomous-snake.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-venomous-snake.png"
+    },
+    {
+      "id": "open5e-srd-2024-giant-venomous-snake",
+      "name": "Giant Venomous Snake",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8 + 2",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 40,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_giant-venomous-snake",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_giant-venomous-snake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Giant Venomous Snake, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-giant-venomous-snake.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-giant-venomous-snake.png"
+    },
+    {
+      "id": "open5e-srd-2024-pteranodon",
+      "name": "Pteranodon",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 13,
+      "hitDice": "3d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 10,
+        "fly": 60,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_pteranodon",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_pteranodon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pteranodon, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-pteranodon.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-pteranodon.png"
+    },
+    {
+      "id": "open5e-srd-2024-swarm-of-piranhas",
+      "name": "Swarm of Piranhas",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 28,
+      "hitDice": "8d8 - 8",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 5,
+        "fly": null,
+        "swim": 40,
+        "climb": 2,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_swarm-of-piranhas",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_swarm-of-piranhas/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm of Piranhas, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-swarm-of-piranhas.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-swarm-of-piranhas.png"
+    },
+    {
+      "id": "open5e-srd-2024-allosaurus",
+      "name": "Allosaurus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 51,
+      "hitDice": "6d10 + 18",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": null,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_allosaurus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_allosaurus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Allosaurus, a Large Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-allosaurus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-allosaurus.png"
+    },
+    {
+      "id": "open5e-srd-2024-swarm-of-venomous-snakes",
+      "name": "Swarm of Venomous Snakes",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 36,
+      "hitDice": "8d8",
+      "armorClass": 14,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_swarm-of-venomous-snakes",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_swarm-of-venomous-snakes/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swarm of Venomous Snakes, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-swarm-of-venomous-snakes.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-swarm-of-venomous-snakes.png"
+    },
+    {
+      "id": "open5e-srd-2024-ankylosaurus",
+      "name": "Ankylosaurus",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 68,
+      "hitDice": "8d12 + 16",
+      "armorClass": 15,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "srd-2024_ankylosaurus",
+        "documentKey": "srd-2024",
+        "documentName": "System Reference Document 5.2",
+        "publisher": "Wizards of the Coast",
+        "gameSystem": "5th Edition 2024",
+        "url": "https://api.open5e.com/v2/creatures/srd-2024_ankylosaurus/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ankylosaurus, a Huge Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-srd-2024-ankylosaurus.png",
+      "thumbnail": "../art/thumbnails/open5e-srd-2024-ankylosaurus.png"
+    }
+  ]
+}

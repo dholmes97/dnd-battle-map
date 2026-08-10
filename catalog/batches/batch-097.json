@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-spawn-of-rhopalocerex",
+      "name": "Spawn of Rhopalocerex",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 112,
+      "hitDice": "15d10+30",
+      "armorClass": 17,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 30,
+        "fly": 30,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_spawn-of-rhopalocerex",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_spawn-of-rhopalocerex/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Spawn of Rhopalocerex, a Large Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-spawn-of-rhopalocerex.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-spawn-of-rhopalocerex.png"
+    },
+    {
+      "id": "open5e-tob3-alabroza-bloodfiend",
+      "name": "Alabroza, Bloodfiend",
+      "family": "fiend",
+      "creatureType": "fiend",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 72,
+      "hitDice": "16d6+16",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 10,
+        "fly": 50,
+        "swim": 5,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_alabroza-bloodfiend",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_alabroza-bloodfiend/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alabroza, Bloodfiend, a Small Fiend; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-alabroza-bloodfiend.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-alabroza-bloodfiend.png"
+    },
+    {
+      "id": "open5e-tob-2023-paper-drake",
+      "name": "Paper Drake",
+      "family": "dragon",
+      "creatureType": "dragon",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 78,
+      "hitDice": "12d6 + 36",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 60,
+        "fly": 20,
+        "swim": 30,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_paper-drake",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_paper-drake/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Paper Drake, a Small Dragon; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-paper-drake.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-paper-drake.png"
+    },
+    {
+      "id": "open5e-ccdx-pech-lithlord",
+      "name": "Pech Lithlord",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 104,
+      "hitDice": "16d6+48",
+      "armorClass": 17,
+      "challengeRating": "7",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_pech-lithlord",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_pech-lithlord/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Pech Lithlord, a Small Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-pech-lithlord.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-pech-lithlord.png"
+    },
+    {
+      "id": "open5e-tob2-crinaea",
+      "name": "Crinaea",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 44,
+      "hitDice": "8d8+8",
+      "armorClass": 13,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 60,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_crinaea",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_crinaea/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Crinaea, a Medium Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-crinaea.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-crinaea.png"
+    },
+    {
+      "id": "open5e-tob3-catterball",
+      "name": "Catterball",
+      "family": "fey",
+      "creatureType": "fey",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 44,
+      "hitDice": "8d6+16",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_catterball",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_catterball/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Catterball, a Small Fey; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-catterball.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-catterball.png"
+    },
+    {
+      "id": "open5e-tob-2023-broodiken",
+      "name": "Broodiken",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 44,
+      "hitDice": "8d4 + 24",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_broodiken",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_broodiken/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Broodiken, a Tiny Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-broodiken.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-broodiken.png"
+    },
+    {
+      "id": "open5e-ccdx-clockwork-soldier",
+      "name": "Clockwork Soldier",
+      "family": "construct",
+      "creatureType": "construct",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 45,
+      "hitDice": "6d8+18",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_clockwork-soldier",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_clockwork-soldier/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Clockwork Soldier, a Medium Construct; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-clockwork-soldier.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-clockwork-soldier.png"
+    },
+    {
+      "id": "open5e-tob2-ikuchi",
+      "name": "Ikuchi",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 116,
+      "hitDice": "8d20+32",
+      "armorClass": 16,
+      "challengeRating": "8",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 50,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_ikuchi",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ikuchi/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ikuchi, a Gargantuan Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-ikuchi.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-ikuchi.png"
+    },
+    {
+      "id": "open5e-tob3-beach-weird",
+      "name": "Beach Weird",
+      "family": "elemental",
+      "creatureType": "elemental",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 65,
+      "hitDice": "10d10+10",
+      "armorClass": 14,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 40,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_beach-weird",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_beach-weird/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Beach Weird, a Large Elemental; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-beach-weird.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-beach-weird.png"
+    }
+  ]
+}

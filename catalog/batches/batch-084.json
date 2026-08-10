@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-oozasis",
+      "name": "Oozasis",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 217,
+      "hitDice": "14d20 + 70",
+      "armorClass": 7,
+      "challengeRating": "9",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_oozasis",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_oozasis/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Oozasis, a Gargantuan Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-oozasis.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-oozasis.png"
+    },
+    {
+      "id": "open5e-ccdx-philosophers-ghost",
+      "name": "Philosopher's Ghost",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 77,
+      "hitDice": "14d8+14",
+      "armorClass": 13,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_philosophers-ghost",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_philosophers-ghost/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Philosopher's Ghost, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-philosophers-ghost.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-philosophers-ghost.png"
+    },
+    {
+      "id": "open5e-tob2-amber-ooze",
+      "name": "Amber Ooze",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 76,
+      "hitDice": "9d10+27",
+      "armorClass": 7,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_amber-ooze",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_amber-ooze/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Amber Ooze, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-amber-ooze.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-amber-ooze.png"
+    },
+    {
+      "id": "open5e-tob3-ooze-sinkhole",
+      "name": "Ooze, Sinkhole",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "gargantuan",
+      "defaultHp": 108,
+      "hitDice": "8d20+24",
+      "armorClass": 7,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 20,
+        "burrow": 40
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ooze-sinkhole",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ooze-sinkhole/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ooze, Sinkhole, a Gargantuan Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ooze-sinkhole.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ooze-sinkhole.png"
+    },
+    {
+      "id": "open5e-tob-2023-wampus-cat",
+      "name": "Wampus Cat",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 39,
+      "hitDice": "6d8 + 12",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_wampus-cat",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_wampus-cat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Wampus Cat, a Medium Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-wampus-cat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-wampus-cat.png"
+    },
+    {
+      "id": "open5e-ccdx-agnibarra",
+      "name": "Agnibarra",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 39,
+      "hitDice": "6d6+18",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_agnibarra",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_agnibarra/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Agnibarra, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-agnibarra.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-agnibarra.png"
+    },
+    {
+      "id": "open5e-tob2-mountain-strider",
+      "name": "Mountain Strider",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 34,
+      "hitDice": "4d10+12",
+      "armorClass": 12,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_mountain-strider",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mountain-strider/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mountain Strider, a Large Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-mountain-strider.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-mountain-strider.png"
+    },
+    {
+      "id": "open5e-tob3-ice-urchin",
+      "name": "Ice Urchin",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 45,
+      "hitDice": "6d10+12",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_ice-urchin",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_ice-urchin/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ice Urchin, a Large Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-ice-urchin.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-ice-urchin.png"
+    },
+    {
+      "id": "open5e-tob-2023-roachling-skirmisher",
+      "name": "Roachling Skirmisher",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 21,
+      "hitDice": "6d6",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_roachling-skirmisher",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_roachling-skirmisher/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Roachling Skirmisher, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-roachling-skirmisher.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-roachling-skirmisher.png"
+    },
+    {
+      "id": "open5e-ccdx-haunted-giant",
+      "name": "Haunted Giant",
+      "family": "giant",
+      "creatureType": "giant",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 126,
+      "hitDice": "12d12+48",
+      "armorClass": 20,
+      "challengeRating": "6",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_haunted-giant",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_haunted-giant/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Haunted Giant, a Huge Giant; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-haunted-giant.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-haunted-giant.png"
+    }
+  ]
+}

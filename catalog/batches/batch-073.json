@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob2-swampgas-bubble",
+      "name": "Swampgas Bubble",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 59,
+      "hitDice": "7d8+28",
+      "armorClass": 8,
+      "challengeRating": "2",
+      "speeds": {
+        "walk": 20,
+        "fly": 30,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_swampgas-bubble",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_swampgas-bubble/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swampgas Bubble, a Medium Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-swampgas-bubble.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-swampgas-bubble.png"
+    },
+    {
+      "id": "open5e-tob3-desert-slime",
+      "name": "Desert Slime",
+      "family": "ooze",
+      "creatureType": "ooze",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 75,
+      "hitDice": "10d10+20",
+      "armorClass": 8,
+      "challengeRating": "3",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_desert-slime",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_desert-slime/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Desert Slime, a Large Ooze; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-desert-slime.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-desert-slime.png"
+    },
+    {
+      "id": "open5e-tob-2023-bastet-temple-cat",
+      "name": "Bastet Temple Cat",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 40,
+      "hitDice": "9d6 + 9",
+      "armorClass": 14,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_bastet-temple-cat",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bastet-temple-cat/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Bastet Temple Cat, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-bastet-temple-cat.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-bastet-temple-cat.png"
+    },
+    {
+      "id": "open5e-ccdx-alkonost",
+      "name": "Alkonost",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 17,
+      "hitDice": "5d6",
+      "armorClass": 12,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 20,
+        "fly": 40,
+        "swim": 10,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_alkonost",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_alkonost/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alkonost, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-alkonost.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-alkonost.png"
+    },
+    {
+      "id": "open5e-tob2-valkruung",
+      "name": "Valkruung",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 22,
+      "hitDice": "4d6+8",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 12,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_valkruung",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_valkruung/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Valkruung, a Tiny Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-valkruung.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-valkruung.png"
+    },
+    {
+      "id": "open5e-tob3-death-worm",
+      "name": "Death Worm",
+      "family": "monstrosity",
+      "creatureType": "monstrosity",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 44,
+      "hitDice": "8d6+16",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 10,
+        "climb": 10,
+        "burrow": 20
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_death-worm",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_death-worm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Death Worm, a Small Monstrosity; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-death-worm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-death-worm.png"
+    },
+    {
+      "id": "open5e-tob-2023-ramag",
+      "name": "Ramag",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "6d8",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_ramag",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_ramag/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Ramag, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-ramag.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-ramag.png"
+    },
+    {
+      "id": "open5e-ccdx-green-abyss-orc",
+      "name": "Green Abyss Orc",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 15,
+      "hitDice": "2d8+6",
+      "armorClass": 13,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 30,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_green-abyss-orc",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_green-abyss-orc/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Green Abyss Orc, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-green-abyss-orc.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-green-abyss-orc.png"
+    },
+    {
+      "id": "open5e-tob2-otterfolk",
+      "name": "Otterfolk",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6+4",
+      "armorClass": 14,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 25,
+        "fly": null,
+        "swim": 30,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_otterfolk",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_otterfolk/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Otterfolk, a Small Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-otterfolk.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-otterfolk.png"
+    },
+    {
+      "id": "open5e-tob3-jinnborn-air-pirate",
+      "name": "Jinnborn Air Pirate",
+      "family": "humanoid",
+      "creatureType": "humanoid",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 26,
+      "hitDice": "4d8+8",
+      "armorClass": 14,
+      "challengeRating": "1/2",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_jinnborn-air-pirate",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_jinnborn-air-pirate/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Jinnborn Air Pirate, a Medium Humanoid; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-jinnborn-air-pirate.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-jinnborn-air-pirate.png"
+    }
+  ]
+}

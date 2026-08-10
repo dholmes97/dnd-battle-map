@@ -1,0 +1,324 @@
+{
+  "creatures": [
+    {
+      "id": "open5e-tob-2023-sandman",
+      "name": "Sandman",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8 + 33",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 40,
+        "fly": null,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_sandman",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_sandman/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Sandman, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-sandman.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-sandman.png"
+    },
+    {
+      "id": "open5e-ccdx-aatxe",
+      "name": "Aatxe",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 105,
+      "hitDice": "10d10+50",
+      "armorClass": 14,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 50,
+        "fly": null,
+        "swim": 25,
+        "climb": 25,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_aatxe",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_aatxe/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Aatxe, a Large Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-aatxe.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-aatxe.png"
+    },
+    {
+      "id": "open5e-tob2-mead-archon",
+      "name": "Mead Archon",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 82,
+      "hitDice": "11d8+33",
+      "armorClass": 14,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 30,
+        "fly": 60,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_mead-archon",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mead-archon/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Mead Archon, a Medium Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-mead-archon.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-mead-archon.png"
+    },
+    {
+      "id": "open5e-tob3-hippopotamus-sacred",
+      "name": "Hippopotamus, Sacred",
+      "family": "celestial",
+      "creatureType": "celestial",
+      "subtype": null,
+      "size": "huge",
+      "defaultHp": 114,
+      "hitDice": "12d12+36",
+      "armorClass": 16,
+      "challengeRating": "5",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_hippopotamus-sacred",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_hippopotamus-sacred/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Hippopotamus, Sacred, a Huge Celestial; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-hippopotamus-sacred.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-hippopotamus-sacred.png"
+    },
+    {
+      "id": "open5e-tob-2023-swamp-adder",
+      "name": "Swamp Adder",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 18,
+      "hitDice": "4d6 + 4",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_swamp-adder",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_swamp-adder/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Swamp Adder, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-swamp-adder.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-swamp-adder.png"
+    },
+    {
+      "id": "open5e-ccdx-rimewing",
+      "name": "Rimewing",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "small",
+      "defaultHp": 22,
+      "hitDice": "5d6+5",
+      "armorClass": 12,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 25,
+        "fly": 30,
+        "swim": 12,
+        "climb": 12,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_rimewing",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_rimewing/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Rimewing, a Small Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-rimewing.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-rimewing.png"
+    },
+    {
+      "id": "open5e-tob2-alligator-turtle",
+      "name": "Alligator Turtle",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 11,
+      "hitDice": "2d8+2",
+      "armorClass": 15,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 20,
+        "fly": null,
+        "swim": 30,
+        "climb": 10,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob2_alligator-turtle",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob2_alligator-turtle/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Alligator Turtle, a Medium Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob2-alligator-turtle.png",
+      "thumbnail": "../art/thumbnails/open5e-tob2-alligator-turtle.png"
+    },
+    {
+      "id": "open5e-tob3-musk-deer",
+      "name": "Musk Deer",
+      "family": "beast",
+      "creatureType": "beast",
+      "subtype": null,
+      "size": "tiny",
+      "defaultHp": 17,
+      "hitDice": "5d4+5",
+      "armorClass": 13,
+      "challengeRating": "1/4",
+      "speeds": {
+        "walk": 30,
+        "fly": null,
+        "swim": 15,
+        "climb": 15,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob3_musk-deer",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob3_musk-deer/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Musk Deer, a Tiny Beast; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob3-musk-deer.png",
+      "thumbnail": "../art/thumbnails/open5e-tob3-musk-deer.png"
+    },
+    {
+      "id": "open5e-tob-2023-oculo-swarm",
+      "name": "Oculo Swarm",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "large",
+      "defaultHp": 82,
+      "hitDice": "11d10 + 22",
+      "armorClass": 15,
+      "challengeRating": "4",
+      "speeds": {
+        "walk": 40,
+        "fly": 5,
+        "swim": 20,
+        "climb": 20,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "tob-2023_oculo-swarm",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_oculo-swarm/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Oculo Swarm, a Large Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-tob-2023-oculo-swarm.png",
+      "thumbnail": "../art/thumbnails/open5e-tob-2023-oculo-swarm.png"
+    },
+    {
+      "id": "open5e-ccdx-grindylow",
+      "name": "Grindylow",
+      "family": "aberration",
+      "creatureType": "aberration",
+      "subtype": null,
+      "size": "medium",
+      "defaultHp": 27,
+      "hitDice": "5d8+5",
+      "armorClass": 13,
+      "challengeRating": "1",
+      "speeds": {
+        "walk": 10,
+        "fly": null,
+        "swim": 40,
+        "climb": 5,
+        "burrow": null
+      },
+      "source": {
+        "kind": "open5e-v2",
+        "key": "ccdx_grindylow",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_grindylow/"
+      },
+      "artDirection": "Original top-down tactical fantasy depiction of Grindylow, a Medium Aberration; transparent background, readable silhouette, no text or border.",
+      "artStatus": "complete",
+      "image": "../art/full/open5e-ccdx-grindylow.png",
+      "thumbnail": "../art/thumbnails/open5e-ccdx-grindylow.png"
+    }
+  ]
+}
