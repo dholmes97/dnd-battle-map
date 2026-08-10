@@ -518,7 +518,7 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   ]);
 
   assert.match(clientSource, /const \[gridOpacity, setGridOpacity\] = useState\(DEFAULT_GRID_OPACITY\)/);
-  assert.match(clientSource, /const \[transparentTokenBackgrounds, setTransparentTokenBackgrounds\] = useState\(false\)/);
+  assert.match(clientSource, /const \[showColoredTokenCenters, setShowColoredTokenCenters\] = useState\(true\)/);
   assert.match(clientSource, /const \[showHealthRings, setShowHealthRings\] = useState\(true\)/);
   assert.match(clientSource, /aria-label="UI Settings"/);
   assert.match(clientSource, /<strong>Your display<\/strong><small>Only changes your view<\/small>/);
@@ -527,13 +527,13 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.match(clientSource, /aria-label="Grid visibility"/);
   assert.match(clientSource, /setGridOpacity\(Number\(event\.target\.value\) \/ 100\)/);
   assert.match(clientSource, /Only changes your view/);
-  assert.match(clientSource, /aria-label="Transparent token centers"/);
-  assert.match(clientSource, /setTransparentTokenBackgrounds\(event\.target\.checked\)/);
+  assert.match(clientSource, /aria-label="Colored token centers"/);
+  assert.match(clientSource, /setShowColoredTokenCenters\(event\.target\.checked\)/);
   assert.match(clientSource, /aria-label="Health rings"/);
   assert.match(clientSource, /setShowHealthRings\(event\.target\.checked\)/);
   assert.match(clientSource, /if \(health && showHealthRings\)/);
-  assert.match(clientSource, /transparentTokenBackgrounds\s+\? "rgba\(16, 15, 13, 0\.12\)"/);
-  assert.match(clientSource, /if \(!transparentTokenBackgrounds\) \{\s+context\.strokeStyle = owned/);
+  assert.match(clientSource, /showColoredTokenCenters\s+\? active \? "#f5c65c"/);
+  assert.match(clientSource, /if \(showColoredTokenCenters\) \{\s+context\.strokeStyle = owned/);
   assert.match(clientSource, /rgba\(232, 220, 190, \$\{Math\.min\(1, Math\.max\(0, gridOpacity\)\)\}\)/);
   assert.match(clientSource, /"--grid-level": `\$\{Math\.round\(gridOpacity \* 100\)\}%`/);
   assert.doesNotMatch(clientSource, /command\("set-grid-opacity"|runOptimisticCommand\("set-grid-opacity"/);
@@ -549,10 +549,11 @@ test("groups personal grid and token presentation controls in UI Settings", asyn
   assert.doesNotMatch(styles, /\.strict-movement-toggle/);
   assert.match(clientSource, /const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1"/);
   assert.match(clientSource, /window\.localStorage\.getItem\(uiSettingsStorageKey\(name, role\)\)/);
-  assert.match(clientSource, /window\.localStorage\.setItem\(personalUiSettingsKey, JSON\.stringify\(\{ gridOpacity, transparentTokenBackgrounds, showHealthRings \}\)\)/);
+  assert.match(clientSource, /window\.localStorage\.setItem\(personalUiSettingsKey, JSON\.stringify\(\{ gridOpacity, showColoredTokenCenters, showHealthRings \}\)\)/);
   assert.match(clientSource, /const personalSettings = loadPersonalUiSettings\(name, result\.role\)/);
-  assert.match(clientSource, /setTransparentTokenBackgrounds\(personalSettings\.transparentTokenBackgrounds\)/);
+  assert.match(clientSource, /setShowColoredTokenCenters\(personalSettings\.showColoredTokenCenters\)/);
   assert.match(clientSource, /setShowHealthRings\(personalSettings\.showHealthRings\)/);
+  assert.match(clientSource, /typeof parsed\.transparentTokenBackgrounds === "boolean"\s+\? !parsed\.transparentTokenBackgrounds/);
 });
 
 test("closes UI Settings when the user clicks elsewhere", async () => {

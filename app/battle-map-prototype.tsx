@@ -222,25 +222,27 @@ const ICON_PATHS = {
 
 type IconName = keyof typeof ICON_PATHS;
 
-type PersonalUiSettings = { gridOpacity: number; transparentTokenBackgrounds: boolean; showHealthRings: boolean };
+type PersonalUiSettings = { gridOpacity: number; showColoredTokenCenters: boolean; showHealthRings: boolean };
 
 function uiSettingsStorageKey(name: string, role: Role) {
   return `${UI_SETTINGS_STORAGE_PREFIX}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
 }
 
 function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
-  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, transparentTokenBackgrounds: false, showHealthRings: true };
+  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, showColoredTokenCenters: true, showHealthRings: true };
   try {
     const stored = window.localStorage.getItem(uiSettingsStorageKey(name, role));
     if (!stored) return defaults;
-    const parsed = JSON.parse(stored) as Partial<PersonalUiSettings>;
+    const parsed = JSON.parse(stored) as Partial<PersonalUiSettings> & { transparentTokenBackgrounds?: boolean };
     return {
       gridOpacity: typeof parsed.gridOpacity === "number" && Number.isFinite(parsed.gridOpacity)
         ? Math.min(1, Math.max(0, parsed.gridOpacity))
         : defaults.gridOpacity,
-      transparentTokenBackgrounds: typeof parsed.transparentTokenBackgrounds === "boolean"
-        ? parsed.transparentTokenBackgrounds
-        : defaults.transparentTokenBackgrounds,
+      showColoredTokenCenters: typeof parsed.showColoredTokenCenters === "boolean"
+        ? parsed.showColoredTokenCenters
+        : typeof parsed.transparentTokenBackgrounds === "boolean"
+          ? !parsed.transparentTokenBackgrounds
+          : defaults.showColoredTokenCenters,
       showHealthRings: typeof parsed.showHealthRings === "boolean"
         ? parsed.showHealthRings
         : defaults.showHealthRings,
@@ -820,7 +822,7 @@ function drawMap(
   selectedTokenId: string | null,
   selectedMapNoteId: string | null,
   gridOpacity: number,
-  transparentTokenBackgrounds: boolean,
+  showColoredTokenCenters: boolean,
   showHealthRings: boolean,
 ) {
   const rect = canvas.getBoundingClientRect();
@@ -988,10 +990,10 @@ function drawMap(
     if (token.hidden) context.globalAlpha *= 0.48;
     if (down) context.globalAlpha *= 0.55;
     context.shadowColor = "rgba(0,0,0,.45)";
-    context.shadowBlur = transparentTokenBackgrounds ? 5 : 10;
-    context.fillStyle = transparentTokenBackgrounds
-      ? "rgba(16, 15, 13, 0.12)"
-      : active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length];
+    context.shadowBlur = showColoredTokenCenters ? 10 : 5;
+    context.fillStyle = showColoredTokenCenters
+      ? active ? "#f5c65c" : TOKEN_COLORS[index % TOKEN_COLORS.length]
+      : "rgba(16, 15, 13, 0.12)";
     context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
     context.shadowBlur = 0;
     const art = token.artAsset ? tokenArt.get(token.artAsset) : null;
@@ -1002,8 +1004,8 @@ function drawMap(
       context.drawImage(art, x - artRadius, y - artRadius, artRadius * 2, artRadius * 2);
       context.restore();
     } else {
-      context.fillStyle = transparentTokenBackgrounds ? "#f3eadb" : "#261d18";
-      if (transparentTokenBackgrounds) {
+      context.fillStyle = showColoredTokenCenters ? "#261d18" : "#f3eadb";
+      if (!showColoredTokenCenters) {
         context.shadowColor = "rgba(0, 0, 0, 0.9)";
         context.shadowBlur = 4;
       }
@@ -1011,7 +1013,7 @@ function drawMap(
       context.textAlign = "center"; context.textBaseline = "middle";
       context.fillText(tokenInitial(token), x, y + 1);
     }
-    if (!transparentTokenBackgrounds) {
+    if (showColoredTokenCenters) {
       context.strokeStyle = owned ? "#fff1ba" : active ? "#ffe29a" : "#f0d0a0";
       context.lineWidth = hasLargeFootprint ? Math.max(0.5, radius * 0.025) : Math.max(1, radius * 0.05);
       context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.stroke();
@@ -1193,7 +1195,7 @@ export default function BattleMapPrototype() {
   const [presenting, setPresenting] = useState(false);
   const [rosterFilter, setRosterFilter] = useState("");
   const [gridOpacity, setGridOpacity] = useState(DEFAULT_GRID_OPACITY);
-  const [transparentTokenBackgrounds, setTransparentTokenBackgrounds] = useState(false);
+  const [showColoredTokenCenters, setShowColoredTokenCenters] = useState(true);
   const [showHealthRings, setShowHealthRings] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
@@ -1241,11 +1243,11 @@ export default function BattleMapPrototype() {
   useEffect(() => {
     if (!personalUiSettingsKey) return;
     try {
-      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, transparentTokenBackgrounds, showHealthRings }));
+      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, showColoredTokenCenters, showHealthRings }));
     } catch {
       // Browser privacy modes can disable storage; cosmetic settings still work for this session.
     }
-  }, [gridOpacity, personalUiSettingsKey, showHealthRings, transparentTokenBackgrounds]);
+  }, [gridOpacity, personalUiSettingsKey, showColoredTokenCenters, showHealthRings]);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -1338,7 +1340,7 @@ export default function BattleMapPrototype() {
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       const personalSettings = loadPersonalUiSettings(name, result.role);
       setGridOpacity(personalSettings.gridOpacity);
-      setTransparentTokenBackgrounds(personalSettings.transparentTokenBackgrounds);
+      setShowColoredTokenCenters(personalSettings.showColoredTokenCenters);
       setShowHealthRings(personalSettings.showHealthRings);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
@@ -1573,8 +1575,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, transparentTokenBackgrounds, showHealthRings);
-  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, showHealthRings, spellPlacementPreview, state, tokenArt, transparentTokenBackgrounds, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings);
+  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -2737,12 +2739,12 @@ export default function BattleMapPrototype() {
                 />
               </label>
               <label className="ui-setting-toggle">
-                <span><strong>Transparent token centers</strong><small>Show terrain instead of colored disks</small></span>
+                <span><strong>Colored token centers</strong><small>Show ownership colors behind token art</small></span>
                 <input
                   type="checkbox"
-                  checked={transparentTokenBackgrounds}
-                  aria-label="Transparent token centers"
-                  onChange={(event) => setTransparentTokenBackgrounds(event.target.checked)}
+                  checked={showColoredTokenCenters}
+                  aria-label="Colored token centers"
+                  onChange={(event) => setShowColoredTokenCenters(event.target.checked)}
                 />
               </label>
               <label className="ui-setting-toggle">
