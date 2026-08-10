@@ -276,8 +276,12 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /Drag an effect onto the battlefield/);
   assert.match(clientSource, /void placeSpellEffect\(spell, point\)/);
   assert.match(clientSource, /function suppressNativeDragGhost\(dataTransfer: DataTransfer\)/);
-  assert.match(clientSource, /dataTransfer\.setDragImage\(ghost, 0, 0\)/);
+  assert.match(clientSource, /let nativeDragGhost: HTMLCanvasElement \| null = null/);
+  assert.match(clientSource, /dataTransfer\.setDragImage\(nativeDragGhost, 0, 0\)/);
+  assert.doesNotMatch(clientSource, /requestAnimationFrame\(\(\) => ghost\.remove\(\)\)/);
   assert.match(clientSource, /suppressNativeDragGhost\(event\.dataTransfer\);/);
+  assert.match(clientSource, /width=\{240\} height=\{240\} draggable=\{false\} unoptimized/);
+  assert.match(clientSource, /if \(!isMagicCircle\) \{[\s\S]+const echoRadius = visualRadius \* \(isMoonbeam \? 0\.76 : 0\.7\)/);
   assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
   assert.match(clientSource, /aria-label="Spell footprint size"/);
   assert.match(clientSource, /"resize-spell-effect"/);

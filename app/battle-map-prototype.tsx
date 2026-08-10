@@ -344,24 +344,30 @@ function sessionPayload(participant: Participant, extra: Record<string, unknown>
   });
 }
 
+let nativeDragGhost: HTMLCanvasElement | null = null;
+
 function suppressNativeDragGhost(dataTransfer: DataTransfer) {
-  // The palette tile is a poor drag image: source spell art intentionally has
-  // black pixels for screen blending, and the full tile duplicates the live
-  // canvas preview. Keep a renderable one-pixel node just long enough for the
-  // browser to snapshot a transparent drag image.
-  const ghost = document.createElement("span");
-  Object.assign(ghost.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "1px",
-    height: "1px",
-    opacity: "0.01",
-    pointerEvents: "none",
-  });
-  document.body.appendChild(ghost);
-  dataTransfer.setDragImage(ghost, 0, 0);
-  requestAnimationFrame(() => ghost.remove());
+  // Browsers can snapshot a drag image after the dragstart frame. Reusing a
+  // persistent, nearly transparent square prevents a late fallback to the
+  // rectangular palette tile and its black-backed source artwork.
+  if (!nativeDragGhost) {
+    const ghost = document.createElement("canvas");
+    ghost.width = 1;
+    ghost.height = 1;
+    ghost.getContext("2d")?.fillRect(0, 0, 1, 1);
+    Object.assign(ghost.style, {
+      position: "fixed",
+      top: "-2px",
+      left: "-2px",
+      width: "1px",
+      height: "1px",
+      opacity: "0.01",
+      pointerEvents: "none",
+    });
+    document.body.appendChild(ghost);
+    nativeDragGhost = ghost;
+  }
+  dataTransfer.setDragImage(nativeDragGhost, 0, 0);
 }
 
 function viewerHeaders(participant: Participant) {
@@ -575,13 +581,15 @@ function drawSpellEffect(
     context.globalAlpha *= isMoonbeam ? 0.86 : isMagicCircle ? 0.92 : 0.94;
     context.drawImage(art, -plateRadius, -plateRadius, plateRadius * 2, plateRadius * 2);
     context.restore();
-    context.save();
-    context.translate(x, y);
-    context.rotate(-time * (isMoonbeam ? 0.22 : isMagicCircle ? 0.09 : 0.46));
-    const echoRadius = visualRadius * (isMoonbeam ? 0.76 : isMagicCircle ? 0.93 : 0.7) * (2 - pulse);
-    context.globalAlpha *= isMoonbeam ? 0.34 : isMagicCircle ? 0.24 : 0.46;
-    context.drawImage(art, -echoRadius, -echoRadius, echoRadius * 2, echoRadius * 2);
-    context.restore();
+    if (!isMagicCircle) {
+      context.save();
+      context.translate(x, y);
+      context.rotate(-time * (isMoonbeam ? 0.22 : 0.46));
+      const echoRadius = visualRadius * (isMoonbeam ? 0.76 : 0.7) * (2 - pulse);
+      context.globalAlpha *= isMoonbeam ? 0.34 : 0.46;
+      context.drawImage(art, -echoRadius, -echoRadius, echoRadius * 2, echoRadius * 2);
+      context.restore();
+    }
   }
 
   if (isMoonbeam) {
@@ -2800,7 +2808,7 @@ export default function BattleMapPrototype() {
               <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
               <div className="spell-grid">
                 {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedSpellId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onSpellDragStart(event, spell)} onDragEnd={() => setSpellPlacementPreview(null)} onClick={() => setArmedSpellId((current) => current === spell.id ? null : spell.id)} aria-pressed={armedSpellId === spell.id}>
-                  <span className={`spell-art${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={240} height={240} unoptimized />}</span>
+                  <span className={`spell-art${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={240} height={240} draggable={false} unoptimized />}</span>
                   <span className="spell-copy"><small>{spell.areaLabel}</small><strong>{spell.name}</strong><em>{spell.description}</em></span>
                 </button>)}
               </div>
