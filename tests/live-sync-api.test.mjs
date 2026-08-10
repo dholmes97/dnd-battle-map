@@ -175,7 +175,7 @@ test("the creature catalog pages metadata and serves artwork only on request", a
   assert.equal(secondPage.items.length, 8);
   assert.equal(new Set([...firstPage.items, ...secondPage.items].map((item) => item.id)).size, 16);
 
-  const catalogResponse = await fetch(`${baseUrl}/api/creatures?limit=8&q=imp`);
+  const catalogResponse = await fetch(`${baseUrl}/api/creatures?limit=8&q=Ember%20Imp`);
   assert.equal(catalogResponse.status, 200);
   const catalog = await catalogResponse.json();
   assert.equal(catalog.items.length, 1);
