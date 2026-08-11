@@ -170,6 +170,15 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     width: 45,
     height: 30,
   },
+  {
+    id: "ravenloft-grand-dining-hall-v1",
+    name: "Ravenloft Grand Dining Hall",
+    description: "A vast gothic banquet chamber with a laden satin-draped table, crystal chandeliers, mirrored walls, and a despairing pipe organ.",
+    biome: "dungeon",
+    mood: "torchlight",
+    assetUrl: "/map-assets/ravenloft-grand-dining-hall-01.jpg",
+    sceneKitId: "none",
+  },
 ];
 
 export const SCENE_KITS: Record<string, SceneKitDefinition[]> = {
