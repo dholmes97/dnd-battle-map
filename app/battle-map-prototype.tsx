@@ -40,6 +40,12 @@ import {
   rosterBaseName,
 } from "@/shared/initiative-domain.mjs";
 import {
+  CHAT_DM_NAME,
+  CHAT_MESSAGE_MAX_LENGTH,
+  CHAT_PLAYER_NAMES,
+  chatChannelKeyForMessage,
+} from "@/shared/chat-domain.mjs";
+import {
   isSpellShapeArt,
   SPELL_AREA_SIZES,
   SPELL_EFFECT_KIND,
@@ -98,6 +104,14 @@ type SharedAnnotation = {
   createdBy: string;
   expiresAt: number | null;
 };
+type SharedChatMessage = {
+  id: string;
+  senderName: string;
+  senderRole: Role;
+  recipientName: string | null;
+  body: string;
+  createdAt: number;
+};
 type EncounterState = {
   encounter: {
     code: string;
@@ -116,6 +130,7 @@ type EncounterState = {
   undo: { available: number; redoAvailable: number; lastAction: string | null; nextRedoAction: string | null };
   tokens: SharedToken[];
   annotations: SharedAnnotation[];
+  chatMessages: SharedChatMessage[];
   savedMapPresets: Array<{
     id: string;
     name: string;
@@ -147,6 +162,7 @@ type PanGesture = {
   viewport: Viewport;
 };
 type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight" | "neon-spotlight";
+type ChatDock = "left" | "right";
 type Viewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
 type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
 type CreatureCatalogPage = {
@@ -180,6 +196,7 @@ const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
 const SPOTLIGHT_DURATION_MS = 6_500;
 const DEFAULT_GRID_OPACITY = 0.17;
 const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1";
+const CHAT_UI_STORAGE_PREFIX = "dnd-battle-map:chat:v1";
 const OPTIMISTIC_HISTORY_COMMANDS = new Set([
   "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token", "move",
@@ -208,6 +225,7 @@ const ICON_PATHS = {
   spells: "M10 2.8 11.6 7l4.4-1.4-2.5 3.8 3.7 2.7-4.6.2.2 4.7-2.8-3.7L7.2 17l.2-4.7-4.6-.2 3.7-2.7L4 5.6 8.4 7zM15.5 3.5h.01M3.8 15.8h.01",
   workshop: "M3 5.6 7.6 3.5l4.8 2.1L17 3.5v10.9l-4.6 2.1-4.8-2.1L3 16.5zM7.6 3.5v10.9M12.4 5.6v10.9",
   scenarios: "M3 5h5l1.7 2H17v9H3zM6 10h8M6 13h5",
+  chat: "M4 4h12v8H9l-3.5 3V12H4zM7 7h6M7 9.5h4",
   undo: "M7 5 3.5 8.5 7 12M3.5 8.5H12a4.5 4.5 0 0 1 0 9h-3",
   redo: "M13 5l3.5 3.5L13 12M16.5 8.5H8a4.5 4.5 0 0 0 0 9h3",
   fit: "M3.5 7.5v-4h4M16.5 7.5v-4h-4M3.5 12.5v4h4M16.5 12.5v4h-4",
@@ -223,6 +241,7 @@ const ICON_PATHS = {
 type IconName = keyof typeof ICON_PATHS;
 
 type PersonalUiSettings = { gridOpacity: number; showColoredTokenCenters: boolean; showHealthRings: boolean };
+type ChatPreferences = { dock: ChatDock; readAt: Record<string, number> };
 
 function uiSettingsStorageKey(name: string, role: Role) {
   return `${UI_SETTINGS_STORAGE_PREFIX}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
@@ -250,6 +269,28 @@ function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
   } catch {
     return defaults;
   }
+}
+
+function chatPreferencesStorageKey(name: string, role: Role, encounterCode: string) {
+  return `${CHAT_UI_STORAGE_PREFIX}:${encounterCode}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
+}
+
+function loadChatPreferences(name: string, role: Role, encounterCode: string): ChatPreferences {
+  try {
+    const stored = window.localStorage.getItem(chatPreferencesStorageKey(name, role, encounterCode));
+    if (!stored) return { dock: "left", readAt: {} };
+    const parsed = JSON.parse(stored) as Partial<ChatPreferences>;
+    const readAt = parsed.readAt && typeof parsed.readAt === "object"
+      ? Object.fromEntries(Object.entries(parsed.readAt).filter((entry): entry is [string, number] => Number.isFinite(entry[1])))
+      : {};
+    return { dock: parsed.dock === "right" ? "right" : "left", readAt };
+  } catch {
+    return { dock: "left", readAt: {} };
+  }
+}
+
+function chatTime(createdAt: number) {
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(createdAt));
 }
 
 function Icon({ name }: { name: IconName }) {
@@ -1180,6 +1221,13 @@ export default function BattleMapPrototype() {
   const [encounterAction, setEncounterAction] = useState<"pause" | "resume" | "reset" | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [spellPaletteOpen, setSpellPaletteOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMinimized, setChatMinimized] = useState(false);
+  const [chatDock, setChatDock] = useState<ChatDock>("left");
+  const [activeChatChannel, setActiveChatChannel] = useState("everyone");
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const [chatReadAt, setChatReadAt] = useState<Record<string, number>>({});
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
   const [creatureQuery, setCreatureQuery] = useState("");
@@ -1204,6 +1252,9 @@ export default function BattleMapPrototype() {
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
+  const chatShouldStickRef = useRef(true);
+  const chatDockDragRef = useRef<number | null>(null);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
@@ -1222,6 +1273,9 @@ export default function BattleMapPrototype() {
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const creatureCatalogRequestRef = useRef(0);
   const personalUiSettingsKey = participant ? uiSettingsStorageKey(participant.name, participant.role) : null;
+  const chatPreferencesKey = participant && state
+    ? chatPreferencesStorageKey(participant.name, participant.role, state.encounter.code)
+    : null;
   const mapSceneKey = mapSceneContentKey(state?.encounter.mapPackage ?? null);
 
   useEffect(() => {
@@ -1251,6 +1305,15 @@ export default function BattleMapPrototype() {
       // Browser privacy modes can disable storage; cosmetic settings still work for this session.
     }
   }, [gridOpacity, personalUiSettingsKey, showColoredTokenCenters, showHealthRings]);
+
+  useEffect(() => {
+    if (!chatPreferencesKey) return;
+    try {
+      window.localStorage.setItem(chatPreferencesKey, JSON.stringify({ dock: chatDock, readAt: chatReadAt }));
+    } catch {
+      // Chat content remains authoritative; only docking and read markers are local preferences.
+    }
+  }, [chatDock, chatPreferencesKey, chatReadAt]);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     setState((current) => {
@@ -1308,6 +1371,41 @@ export default function BattleMapPrototype() {
   const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
   const placementArtCandidate = placementPreview?.creature.artAsset ?? spellPlacementPreview?.spell.artAsset ?? null;
   const placementArtAsset = isSpellShapeArt(placementArtCandidate) ? null : placementArtCandidate;
+  const chatChannels = participant?.role === "dm"
+    ? [{ key: "everyone", label: "Everyone" }, ...CHAT_PLAYER_NAMES.map((name) => ({ key: name, label: name }))]
+    : [{ key: "everyone", label: "Everyone" }, { key: CHAT_DM_NAME, label: "DM" }];
+  const chatMessagesForChannel = participant && state
+    ? state.chatMessages.filter((message) => chatChannelKeyForMessage(message, participant) === activeChatChannel)
+    : [];
+  const chatUnreadByChannel = participant && state
+    ? state.chatMessages.reduce<Record<string, number>>((counts, message) => {
+      const channel = chatChannelKeyForMessage(message, participant);
+        const readThrough = chatOpen && !chatMinimized && channel === activeChatChannel
+          ? Number.POSITIVE_INFINITY
+          : chatReadAt[channel] ?? 0;
+        if (message.senderName !== participant.name && message.createdAt > readThrough) {
+          counts[channel] = (counts[channel] ?? 0) + 1;
+        }
+        return counts;
+      }, {})
+    : {};
+  const chatUnreadTotal = Object.values(chatUnreadByChannel).reduce((total, count) => total + count, 0);
+  const activeChatLatestAt = chatMessagesForChannel.at(-1)?.createdAt ?? 0;
+
+  const markChatChannelRead = (channel: string) => {
+    if (!participant || !state) return;
+    const latest = state.chatMessages
+      .filter((message) => chatChannelKeyForMessage(message, participant) === channel)
+      .at(-1)?.createdAt ?? 0;
+    if (!latest) return;
+    setChatReadAt((current) => latest > (current[channel] ?? 0) ? { ...current, [channel]: latest } : current);
+  };
+
+  useEffect(() => {
+    const messages = chatMessagesRef.current;
+    if (!chatOpen || chatMinimized || !messages || !chatShouldStickRef.current) return;
+    messages.scrollTop = messages.scrollHeight;
+  }, [activeChatChannel, activeChatLatestAt, chatMinimized, chatOpen]);
 
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
@@ -1345,6 +1443,12 @@ export default function BattleMapPrototype() {
       setGridOpacity(personalSettings.gridOpacity);
       setShowColoredTokenCenters(personalSettings.showColoredTokenCenters);
       setShowHealthRings(personalSettings.showHealthRings);
+      const chatPreferences = loadChatPreferences(name, result.role, result.state.encounter.code);
+      setChatDock(chatPreferences.dock);
+      setChatReadAt(chatPreferences.readAt);
+      setActiveChatChannel("everyone");
+      setChatOpen(false);
+      setChatMinimized(false);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
@@ -1384,6 +1488,12 @@ export default function BattleMapPrototype() {
       localUndoHistoryRef.current = [];
       localRedoHistoryRef.current = [];
       const joined = { id: result.participantId, name: "Kevin", role: result.role, sessionSecret: result.sessionSecret };
+      const chatPreferences = loadChatPreferences(joined.name, joined.role, result.scenario.code);
+      setChatDock(chatPreferences.dock);
+      setChatReadAt(chatPreferences.readAt);
+      setActiveChatChannel("everyone");
+      setChatOpen(false);
+      setChatMinimized(false);
       setParticipant(joined);
       setState(result.state);
       setEncounterCode(result.scenario.code);
@@ -1686,6 +1796,54 @@ export default function BattleMapPrototype() {
       await refreshAfterError();
       return null;
     }
+  };
+
+  const sendChatMessage = async () => {
+    if (!participant || !state || chatSending) return;
+    const message = chatDraft.replace(/\r\n?/g, "\n").trim().slice(0, CHAT_MESSAGE_MAX_LENGTH);
+    if (!message) return;
+    const recipientName = activeChatChannel === "everyone"
+      ? null
+      : participant.role === "dm" ? activeChatChannel : CHAT_DM_NAME;
+    const optimisticMessage: SharedChatMessage = {
+      id: `pending-chat-${crypto.randomUUID()}`,
+      senderName: participant.name,
+      senderRole: participant.role,
+      recipientName,
+      body: message,
+      createdAt: Date.now(),
+    };
+    setChatSending(true);
+    setChatDraft("");
+    chatShouldStickRef.current = true;
+    const result = await runOptimisticCommand<{ state: EncounterState; messageId: string }>(
+      "send-chat-message",
+      { recipientName, message },
+      (current) => ({ ...current, chatMessages: [...current.chatMessages, optimisticMessage] }),
+      undefined,
+      undefined,
+      false,
+    );
+    if (!result) setChatDraft((current) => current || message);
+    setChatSending(false);
+  };
+
+  const onChatDockPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    chatDockDragRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onChatDockPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (chatDockDragRef.current !== event.pointerId) return;
+    const bounds = canvasRef.current?.getBoundingClientRect();
+    if (bounds) setChatDock(event.clientX < bounds.left + bounds.width / 2 ? "left" : "right");
+  };
+
+  const onChatDockPointerEnd = (event: ReactPointerEvent<HTMLElement>) => {
+    if (chatDockDragRef.current !== event.pointerId) return;
+    chatDockDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const renameScenario = async () => {
@@ -2738,6 +2896,20 @@ export default function BattleMapPrototype() {
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
         </div>
         <div className="map-tool-group" role="group" aria-label="Map content">
+          <button
+            className={`icon-tool chat-launcher${chatOpen ? " tool-active" : ""}`}
+            aria-label={chatUnreadTotal > 0 ? `Chat, ${chatUnreadTotal} unread messages` : "Chat"}
+            data-tooltip="Chat"
+            aria-pressed={chatOpen}
+            onClick={() => {
+              if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; }
+              else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; }
+              else { markChatChannelRead(activeChatChannel); setChatOpen(false); }
+            }}
+          >
+            <Icon name="chat" />
+            {chatUnreadTotal > 0 ? <span className="chat-unread-badge" aria-hidden="true">{Math.min(99, chatUnreadTotal)}</span> : null}
+          </button>
           <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
           <button className={`icon-tool${spellPaletteOpen ? " tool-active" : ""}`} aria-label="Spell effects" data-tooltip="Spell effects" aria-pressed={spellPaletteOpen} onClick={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="spells" /></button>
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button> : null}
@@ -2865,6 +3037,76 @@ export default function BattleMapPrototype() {
               {participant.role === "player" ? <p className="palette-controller">Your effects are controlled by {playerCharacter?.name ?? "your character"}.</p> : <p className="palette-controller">DM effects are controlled by Kevin.</p>}
               {armedSpellId ? <button className="palette-cancel" onClick={() => { setArmedSpellId(null); setSpellPlacementPreview(null); }}>Cancel spell placement</button> : null}
               <p className="palette-hint">Drag onto the map, or select an effect and click to place it.</p>
+            </section> : null}
+            {chatOpen && !presenting ? <section className={`chat-panel is-${chatDock}${chatMinimized ? " is-minimized" : ""}`} aria-label="Encounter chat">
+              <header
+                className="chat-panel-header"
+                onPointerDown={onChatDockPointerDown}
+                onPointerMove={onChatDockPointerMove}
+                onPointerUp={onChatDockPointerEnd}
+                onPointerCancel={onChatDockPointerEnd}
+                title="Drag to dock chat on the other side"
+              >
+                <span><small>Encounter</small><strong>Chat</strong></span>
+                {chatMinimized && chatUnreadTotal > 0 ? <em>{chatUnreadTotal} unread</em> : null}
+                <div className="chat-window-actions">
+                  <button type="button" className="chat-minimize" aria-label={chatMinimized ? "Expand chat" : "Minimize chat"} onClick={() => { markChatChannelRead(activeChatChannel); setChatMinimized((value) => !value); chatShouldStickRef.current = true; }}>{chatMinimized ? "▢" : "—"}</button>
+                  <IconActionButton variant="close" label="Close chat" onClick={() => { markChatChannelRead(activeChatChannel); setChatOpen(false); }} />
+                </div>
+              </header>
+              {!chatMinimized ? <>
+                <nav className="chat-channels" aria-label="Chat conversations">
+                  {chatChannels.map((channel) => <button
+                    type="button"
+                    key={channel.key}
+                    className={activeChatChannel === channel.key ? "is-active" : ""}
+                    aria-pressed={activeChatChannel === channel.key}
+                    onClick={() => { markChatChannelRead(activeChatChannel); markChatChannelRead(channel.key); setActiveChatChannel(channel.key); chatShouldStickRef.current = true; }}
+                  >
+                    <span>{channel.label}</span>
+                    {(chatUnreadByChannel[channel.key] ?? 0) > 0 ? <em>{chatUnreadByChannel[channel.key]}</em> : null}
+                  </button>)}
+                </nav>
+                <div
+                  ref={chatMessagesRef}
+                  className="chat-messages"
+                  role="log"
+                  aria-live="polite"
+                  aria-label={`${chatChannels.find((channel) => channel.key === activeChatChannel)?.label ?? "Chat"} messages`}
+                  onScroll={(event) => {
+                    const element = event.currentTarget;
+                    chatShouldStickRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 64;
+                  }}
+                >
+                  {chatMessagesForChannel.length === 0 ? <div className="chat-empty"><strong>No messages yet</strong><span>{activeChatChannel === "everyone" ? "Start the table conversation." : "This conversation is private."}</span></div> : null}
+                  {chatMessagesForChannel.map((message) => <article className={`chat-message${message.senderName === participant.name ? " is-mine" : ""}${message.id.startsWith("pending-chat-") ? " is-pending" : ""}`} key={message.id}>
+                    <div><strong>{message.senderName}</strong><time dateTime={new Date(message.createdAt).toISOString()}>{chatTime(message.createdAt)}</time></div>
+                    <p>{message.body}</p>
+                  </article>)}
+                </div>
+                <form className="chat-compose" onSubmit={(event) => { event.preventDefault(); void sendChatMessage(); }}>
+                  <label htmlFor="chat-message-input">{activeChatChannel === "everyone" ? "Everyone can see this" : `Private with ${activeChatChannel}`}</label>
+                  <div>
+                    <textarea
+                      id="chat-message-input"
+                      value={chatDraft}
+                      maxLength={CHAT_MESSAGE_MAX_LENGTH}
+                      rows={2}
+                      placeholder="Write a message…"
+                      aria-label="Chat message"
+                      onChange={(event) => setChatDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void sendChatMessage();
+                        }
+                      }}
+                    />
+                    <button type="submit" disabled={chatSending || !chatDraft.trim()}>{chatSending ? "Sending…" : "Send"}</button>
+                  </div>
+                  <small>Enter to send · Shift+Enter for a new line</small>
+                </form>
+              </> : null}
             </section> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>{state.encounter.status === "paused" ? "The DM paused the encounter. Movement and turn advancement are temporarily disabled." : "Movement is paused until shared state is current."}</span></div> : null}

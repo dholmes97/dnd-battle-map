@@ -29,6 +29,11 @@ import {
 } from "../shared/encounter-domain.mjs";
 import { nextInitiativeTurn, orderedInitiativeGroups } from "../shared/initiative-domain.mjs";
 import {
+  CHAT_MESSAGE_MAX_LENGTH,
+  chatMessageVisibleToViewer,
+  resolveChatRecipient,
+} from "../shared/chat-domain.mjs";
+import {
   isSpellAreaSize,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
@@ -131,6 +136,15 @@ type ActionRow = {
   id: string;
   action_type: string;
   payload_json: string;
+  created_at: number;
+};
+
+type ChatMessageRow = {
+  id: string;
+  sender_name: string;
+  sender_role: "dm" | "player";
+  recipient_name: string | null;
+  body: string;
   created_at: number;
 };
 
@@ -383,6 +397,16 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
+function cleanChatBody(value: unknown): string {
+  return typeof value === "string"
+    ? value
+      .replace(/\r\n?/g, "\n")
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+      .trim()
+      .slice(0, CHAT_MESSAGE_MAX_LENGTH)
+    : "";
+}
+
 function cleanMapPackage(value: unknown): MapPackage | null {
   try {
     const parsed = typeof value === "string" ? JSON.parse(value) : value;
@@ -499,6 +523,15 @@ async function ensureSchema(env: Env): Promise<void> {
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY NOT NULL,
+          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
+          sender_name TEXT NOT NULL,
+          sender_role TEXT NOT NULL,
+          recipient_name TEXT,
+          body TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS creature_catalog (
           id TEXT PRIMARY KEY NOT NULL,
           name TEXT NOT NULL,
@@ -540,6 +573,9 @@ async function ensureSchema(env: Env): Promise<void> {
         ),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_map_presets_encounter_updated ON map_presets(encounter_id, updated_at)",
+        ),
+        db.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_chat_messages_encounter_created ON chat_messages(encounter_id, created_at, id)",
         ),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_creature_catalog_active_sort_id ON creature_catalog(is_active, sort_order, id)",
@@ -1132,6 +1168,15 @@ async function encounterState(
   )
     .bind(encounter!.id)
     .all<AnnotationRow>();
+  const recentChatMessages = viewer
+    ? await env.DB.prepare(
+        `SELECT id, sender_name, sender_role, recipient_name, body, created_at
+         FROM chat_messages
+         WHERE encounter_id = ?
+           AND (? = 'dm' OR recipient_name IS NULL OR sender_name = ? OR recipient_name = ?)
+         ORDER BY created_at DESC, id DESC LIMIT 200`,
+      ).bind(encounter!.id, viewer.role, viewer.name, viewer.name).all<ChatMessageRow>()
+    : { results: [] as ChatMessageRow[] };
   const availableHistory = viewer
     ? await historyStacks(env, encounter!.id, viewer.id)
     : { undo: [], redo: [] };
@@ -1240,6 +1285,20 @@ async function encounterState(
       createdBy: annotation.created_by,
       expiresAt: annotation.expires_at,
     })),
+    chatMessages: recentChatMessages.results
+      .filter((message) => chatMessageVisibleToViewer({
+        senderName: message.sender_name,
+        recipientName: message.recipient_name,
+      }, viewer))
+      .reverse()
+      .map((message) => ({
+        id: message.id,
+        senderName: message.sender_name,
+        senderRole: message.sender_role,
+        recipientName: message.recipient_name,
+        body: message.body,
+        createdAt: message.created_at,
+      })),
     savedMapPresets: savedMapPresets.results.flatMap((preset) => {
       try {
         const mapPackage = parseMapPackage(JSON.parse(preset.package_json));
@@ -1468,6 +1527,31 @@ async function handleCommand(
     participant.role === "dm"
       ? null
       : json({ error: "This action requires the DM role." }, { status: 403 });
+
+  if (command === "send-chat-message") {
+    const messageBody = cleanChatBody(body.message);
+    if (!messageBody) {
+      return json({ error: "Enter a message before sending." }, { status: 400 });
+    }
+    const recipient = resolveChatRecipient({
+      senderName: participant.name,
+      senderRole: participant.role,
+      requestedRecipientName: body.recipientName,
+    });
+    if (!recipient.allowed) {
+      return json({ error: recipient.error }, { status: 403 });
+    }
+    const messageId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO chat_messages
+       (id, encounter_id, sender_name, sender_role, recipient_name, body, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, now)
+      .run();
+    await bumpEncounter(env, encounter.id, now);
+    return json({ messageId, state: await state() });
+  }
 
   if (command === "undo") {
     const stacks = await historyStacks(env, encounter.id, participant.id);

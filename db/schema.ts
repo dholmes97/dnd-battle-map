@@ -202,3 +202,25 @@ export const actions = sqliteTable(
     ),
   ],
 );
+
+export const chatMessages = sqliteTable(
+  "chat_messages",
+  {
+    id: text("id").primaryKey(),
+    encounterId: text("encounter_id")
+      .notNull()
+      .references(() => encounters.id, { onDelete: "cascade" }),
+    senderName: text("sender_name").notNull(),
+    senderRole: text("sender_role").notNull(),
+    recipientName: text("recipient_name"),
+    body: text("body").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_chat_messages_encounter_created").on(
+      table.encounterId,
+      table.createdAt,
+      table.id,
+    ),
+  ],
+);

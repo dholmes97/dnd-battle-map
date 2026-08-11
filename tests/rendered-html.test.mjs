@@ -80,6 +80,35 @@ test("gives the DM a durable scenario creation and rename workflow", async () =>
   assert.match(styles, /\.scenario-dialog label/);
 });
 
+test("ships durable public and DM-private encounter chat", async () => {
+  const [clientSource, workerSource, chatDomain, styles, migration] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/chat-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0014_perpetual_steel_serpent.sql", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /aria-label=\{chatUnreadTotal > 0 \? `Chat, \$\{chatUnreadTotal\} unread messages` : "Chat"\}/);
+  assert.match(clientSource, /className=\{`chat-panel is-\$\{chatDock\}/);
+  assert.match(clientSource, /Drag to dock chat on the other side/);
+  assert.match(clientSource, /CHAT_PLAYER_NAMES\.map/);
+  assert.match(clientSource, /Private with \$\{activeChatChannel\}/);
+  assert.match(clientSource, /"send-chat-message"/);
+  assert.match(clientSource, /Enter to send · Shift\+Enter for a new line/);
+  assert.match(clientSource, /chatPreferencesStorageKey/);
+  assert.match(workerSource, /CREATE TABLE IF NOT EXISTS chat_messages/);
+  assert.match(workerSource, /if \(command === "send-chat-message"\)/);
+  assert.match(workerSource, /chatMessageVisibleToViewer/);
+  assert.doesNotMatch(workerSource, /recordAction\([^)]*chat/i);
+  assert.match(chatDomain, /Players can privately message the DM/);
+  assert.match(styles, /\.chat-panel\.is-left/);
+  assert.match(styles, /\.chat-panel\.is-right/);
+  assert.match(styles, /\.chat-panel\.is-minimized/);
+  assert.match(migration, /CREATE TABLE `chat_messages`/);
+  assert.match(migration, /idx_chat_messages_encounter_created/);
+});
+
 test("keeps DM notes private while making map labels and notes directly manageable", async () => {
   const [clientSource, workshopSource, workerSource, encounterDomain, workshopDomain, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
