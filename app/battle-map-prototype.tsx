@@ -46,6 +46,16 @@ import {
   chatChannelKeyForMessage,
 } from "@/shared/chat-domain.mjs";
 import {
+  HANDOUT_DISPLAY_MAX_BYTES,
+  HANDOUT_DISPLAY_MAX_EDGE,
+  HANDOUT_MAX_PER_SCENARIO,
+  HANDOUT_THUMBNAIL_MAX_BYTES,
+  HANDOUT_THUMBNAIL_MAX_HEIGHT,
+  HANDOUT_THUMBNAIL_MAX_WIDTH,
+  cleanHandoutTitle,
+  handoutUploadInputError,
+} from "@/shared/handout-domain.mjs";
+import {
   isSpellShapeArt,
   SPELL_AREA_SIZES,
   SPELL_EFFECT_KIND,
@@ -110,7 +120,26 @@ type SharedChatMessage = {
   senderRole: Role;
   recipientName: string | null;
   body: string;
+  handout: null | {
+    id: string;
+    title: string;
+    width: number | null;
+    height: number | null;
+    updatedAt: number | null;
+    available: boolean;
+  };
   createdAt: number;
+};
+type SharedHandout = {
+  id: string;
+  title: string;
+  width: number;
+  height: number;
+  displayBytes: number;
+  thumbnailBytes: number;
+  messageCount: number;
+  createdAt: number;
+  updatedAt: number;
 };
 type EncounterState = {
   encounter: {
@@ -131,6 +160,7 @@ type EncounterState = {
   tokens: SharedToken[];
   annotations: SharedAnnotation[];
   chatMessages: SharedChatMessage[];
+  handouts: SharedHandout[];
   savedMapPresets: Array<{
     id: string;
     name: string;
@@ -377,6 +407,132 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const data = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
   return data;
+}
+
+function handoutAssetUrl(encounterCode: string, handoutId: string, variant: "thumbnail" | "display", revision: number | null) {
+  return `/api/encounters/${encodeURIComponent(encounterCode)}/handouts/${encodeURIComponent(handoutId)}/${variant}?v=${revision ?? 0}`;
+}
+
+function ProtectedHandoutImage({
+  participant,
+  encounterCode,
+  handoutId,
+  variant,
+  revision,
+  alt,
+}: {
+  participant: Participant;
+  encounterCode: string;
+  handoutId: string;
+  variant: "thumbnail" | "display";
+  revision: number | null;
+  alt: string;
+}) {
+  const [source, setSource] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(() => typeof IntersectionObserver === "undefined");
+  const shellRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell || shouldLoad) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoad(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "120px" });
+    observer.observe(shell);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+  useEffect(() => {
+    if (!shouldLoad) return;
+    let disposed = false;
+    let objectUrl = "";
+    void fetch(handoutAssetUrl(encounterCode, handoutId, variant, revision), {
+      cache: "no-store",
+      headers: {
+        "x-participant-id": participant.id,
+        "x-session-secret": participant.sessionSecret,
+      },
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("Handout unavailable");
+      objectUrl = URL.createObjectURL(await response.blob());
+      if (disposed) URL.revokeObjectURL(objectUrl);
+      else setSource(objectUrl);
+    }).catch(() => { if (!disposed) setFailed(true); });
+    return () => {
+      disposed = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [encounterCode, handoutId, participant.id, participant.sessionSecret, revision, shouldLoad, variant]);
+  return <span className="handout-image-shell" ref={shellRef}>
+    {failed ? <span className="handout-image-status">Image unavailable</span>
+      // Protected images are authenticated fetch blobs, so Next Image cannot address them directly.
+      // eslint-disable-next-line @next/next/no-img-element
+      : source ? <img src={source} alt={alt} />
+      : <span className="handout-image-status">Loading image…</span>}
+  </span>;
+}
+
+function canvasToWebp(canvas: HTMLCanvasElement, maxBytes: number): Promise<Blob> {
+  const qualities = [0.82, 0.72, 0.62, 0.52, 0.44];
+  return new Promise((resolve, reject) => {
+    const encode = (index: number) => {
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error("This browser could not prepare the image.")); return; }
+        if (blob.type !== "image/webp") { reject(new Error("This browser cannot prepare storage-efficient WebP handouts.")); return; }
+        if (blob.size <= maxBytes) { resolve(blob); return; }
+        if (index + 1 >= qualities.length) { reject(new Error("The image is too detailed to fit the handout storage limit.")); return; }
+        encode(index + 1);
+      }, "image/webp", qualities[index]);
+    };
+    encode(0);
+  });
+}
+
+async function prepareHandoutImages(file: File) {
+  const initialPolicyError = handoutUploadInputError({
+    contentType: file.type,
+    byteLength: file.size,
+    width: 1,
+    height: 1,
+  });
+  if (initialPolicyError) throw new Error(initialPolicyError);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("That image could not be read. Choose a JPEG, PNG, or WebP image.");
+  }
+  try {
+    const policyError = handoutUploadInputError({
+      contentType: file.type,
+      byteLength: file.size,
+      width: bitmap.width,
+      height: bitmap.height,
+    });
+    if (policyError) throw new Error(policyError);
+    const render = (maxWidth: number, maxHeight: number) => {
+      const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) throw new Error("This browser could not prepare the image.");
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    };
+    const displayCanvas = render(HANDOUT_DISPLAY_MAX_EDGE, HANDOUT_DISPLAY_MAX_EDGE);
+    const thumbnailCanvas = render(HANDOUT_THUMBNAIL_MAX_WIDTH, HANDOUT_THUMBNAIL_MAX_HEIGHT);
+    const [display, thumbnail] = await Promise.all([
+      canvasToWebp(displayCanvas, HANDOUT_DISPLAY_MAX_BYTES),
+      canvasToWebp(thumbnailCanvas, HANDOUT_THUMBNAIL_MAX_BYTES),
+    ]);
+    return { display, thumbnail, width: displayCanvas.width, height: displayCanvas.height };
+  } finally {
+    bitmap.close();
+  }
 }
 
 function sessionPayload(participant: Participant, extra: Record<string, unknown> = {}) {
@@ -1228,6 +1384,13 @@ export default function BattleMapPrototype() {
   const [chatDraft, setChatDraft] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatReadAt, setChatReadAt] = useState<Record<string, number>>({});
+  const [handoutTitle, setHandoutTitle] = useState("");
+  const [handoutUploading, setHandoutUploading] = useState(false);
+  const [handoutUploadError, setHandoutUploadError] = useState("");
+  const [handoutDeletingId, setHandoutDeletingId] = useState<string | null>(null);
+  const [handoutPickerOpen, setHandoutPickerOpen] = useState(false);
+  const [selectedChatHandoutId, setSelectedChatHandoutId] = useState<string | null>(null);
+  const [lightboxHandout, setLightboxHandout] = useState<SharedChatMessage["handout"]>(null);
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
   const [creatureQuery, setCreatureQuery] = useState("");
@@ -1391,6 +1554,7 @@ export default function BattleMapPrototype() {
     : {};
   const chatUnreadTotal = Object.values(chatUnreadByChannel).reduce((total, count) => total + count, 0);
   const activeChatLatestAt = chatMessagesForChannel.at(-1)?.createdAt ?? 0;
+  const selectedChatHandout = state?.handouts.find((handout) => handout.id === selectedChatHandoutId) ?? null;
 
   const markChatChannelRead = (channel: string) => {
     if (!participant || !state) return;
@@ -1449,6 +1613,9 @@ export default function BattleMapPrototype() {
       setActiveChatChannel("everyone");
       setChatOpen(false);
       setChatMinimized(false);
+      setSelectedChatHandoutId(null);
+      setHandoutPickerOpen(false);
+      setLightboxHandout(null);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
@@ -1494,6 +1661,9 @@ export default function BattleMapPrototype() {
       setActiveChatChannel("everyone");
       setChatOpen(false);
       setChatMinimized(false);
+      setSelectedChatHandoutId(null);
+      setHandoutPickerOpen(false);
+      setLightboxHandout(null);
       setParticipant(joined);
       setState(result.state);
       setEncounterCode(result.scenario.code);
@@ -1801,7 +1971,7 @@ export default function BattleMapPrototype() {
   const sendChatMessage = async () => {
     if (!participant || !state || chatSending) return;
     const message = chatDraft.replace(/\r\n?/g, "\n").trim().slice(0, CHAT_MESSAGE_MAX_LENGTH);
-    if (!message) return;
+    if (!message && !selectedChatHandout) return;
     const recipientName = activeChatChannel === "everyone"
       ? null
       : participant.role === "dm" ? activeChatChannel : CHAT_DM_NAME;
@@ -1811,21 +1981,93 @@ export default function BattleMapPrototype() {
       senderRole: participant.role,
       recipientName,
       body: message,
-      createdAt: Date.now(),
+      handout: selectedChatHandout ? {
+        id: selectedChatHandout.id,
+        title: selectedChatHandout.title,
+        width: selectedChatHandout.width,
+        height: selectedChatHandout.height,
+        updatedAt: selectedChatHandout.updatedAt,
+        available: true,
+      } : null,
+      createdAt: Math.max(state.encounter.updatedAt, state.chatMessages.at(-1)?.createdAt ?? 0) + 1,
     };
     setChatSending(true);
     setChatDraft("");
+    setSelectedChatHandoutId(null);
+    setHandoutPickerOpen(false);
     chatShouldStickRef.current = true;
     const result = await runOptimisticCommand<{ state: EncounterState; messageId: string }>(
       "send-chat-message",
-      { recipientName, message },
+      { recipientName, message, handoutId: selectedChatHandout?.id ?? null },
       (current) => ({ ...current, chatMessages: [...current.chatMessages, optimisticMessage] }),
       undefined,
       undefined,
       false,
     );
-    if (!result) setChatDraft((current) => current || message);
+    if (!result) {
+      setChatDraft((current) => current || message);
+      setSelectedChatHandoutId(selectedChatHandout?.id ?? null);
+    }
     setChatSending(false);
+  };
+
+  const uploadHandout = async (file: File, requestedTitle: string, selectForChat = false, replaceId: string | null = null) => {
+    if (!participant || participant.role !== "dm" || !state || handoutUploading) return;
+    const fallbackTitle = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+    const title = cleanHandoutTitle(requestedTitle || fallbackTitle);
+    if (!title) { setHandoutUploadError("Give the handout a title."); return; }
+    setHandoutUploading(true);
+    setHandoutUploadError("");
+    try {
+      const prepared = await prepareHandoutImages(file);
+      const form = new FormData();
+      form.set("title", title);
+      form.set("display", prepared.display, "display.webp");
+      form.set("thumbnail", prepared.thumbnail, "thumbnail.webp");
+      if (replaceId) form.set("replaceId", replaceId);
+      const response = await fetch(`/api/encounters/${encodeURIComponent(state.encounter.code)}/handouts`, {
+        method: "POST",
+        headers: viewerHeaders(participant),
+        body: form,
+      });
+      const result = await response.json() as { handoutId?: string; state?: EncounterState; error?: string };
+      if (!response.ok || !result.state || !result.handoutId) throw new Error(result.error || "The handout could not be saved.");
+      acceptAuthoritativeState(result.state);
+      setHandoutTitle("");
+      if (selectForChat) {
+        setSelectedChatHandoutId(result.handoutId);
+        setHandoutPickerOpen(false);
+      }
+      setNotice(replaceId ? `${title} updated.` : `${title} prepared.`);
+    } catch (uploadError) {
+      setHandoutUploadError(uploadError instanceof Error ? uploadError.message : "The handout could not be saved.");
+    }
+    setHandoutUploading(false);
+  };
+
+  const deleteHandout = async (handout: SharedHandout) => {
+    if (!participant || participant.role !== "dm" || handoutDeletingId) return;
+    const warning = handout.messageCount > 0
+      ? `Delete “${handout.title}”? It appears in ${handout.messageCount} chat ${handout.messageCount === 1 ? "message" : "messages"}; those messages will keep their captions but show that the image is unavailable.`
+      : `Delete “${handout.title}” from this scenario?`;
+    if (!window.confirm(warning)) return;
+    setHandoutDeletingId(handout.id);
+    if (selectedChatHandoutId === handout.id) setSelectedChatHandoutId(null);
+    await runOptimisticCommand(
+      "delete-handout",
+      { handoutId: handout.id },
+      (current) => ({
+        ...current,
+        handouts: current.handouts.filter((candidate) => candidate.id !== handout.id),
+        chatMessages: current.chatMessages.map((message) => message.handout?.id === handout.id
+          ? { ...message, handout: { ...message.handout, available: false } }
+          : message),
+      }),
+      `${handout.title} deleted.`,
+      undefined,
+      false,
+    );
+    setHandoutDeletingId(null);
   };
 
   const onChatDockPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
@@ -2220,17 +2462,18 @@ export default function BattleMapPrototype() {
   };
 
   useEffect(() => {
-    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioCreatorOpen) return;
+    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioCreatorOpen && !lightboxHandout) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (lightboxHandout) { setLightboxHandout(null); return; }
         setResetConfirmOpen(false);
         setRestartConfirmOpen(false);
-        if (!scenarioCreating && !scenarioRenaming) setScenarioCreatorOpen(false);
+        if (!scenarioCreating && !scenarioRenaming && !handoutUploading) setScenarioCreatorOpen(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming]);
+  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming]);
 
   const loadMoreCreatures = async () => {
     if (!creatureCursor || creatureCatalogLoading) return;
@@ -3048,7 +3291,7 @@ export default function BattleMapPrototype() {
                 title="Drag to dock chat on the other side"
               >
                 <span><small>Encounter</small><strong>Chat</strong></span>
-                {chatMinimized && chatUnreadTotal > 0 ? <em>{chatUnreadTotal} unread</em> : null}
+                {chatMinimized && chatUnreadTotal > 0 ? <em className="chat-panel-unread-badge" aria-label={`${chatUnreadTotal} unread ${chatUnreadTotal === 1 ? "message" : "messages"}`}>{Math.min(99, chatUnreadTotal)}</em> : null}
                 <div className="chat-window-actions">
                   <button type="button" className="chat-minimize" aria-label={chatMinimized ? "Expand chat" : "Minimize chat"} onClick={() => { markChatChannelRead(activeChatChannel); setChatMinimized((value) => !value); chatShouldStickRef.current = true; }}>{chatMinimized ? "▢" : "—"}</button>
                   <IconActionButton variant="close" label="Close chat" onClick={() => { markChatChannelRead(activeChatChannel); setChatOpen(false); }} />
@@ -3081,12 +3324,28 @@ export default function BattleMapPrototype() {
                   {chatMessagesForChannel.length === 0 ? <div className="chat-empty"><strong>No messages yet</strong><span>{activeChatChannel === "everyone" ? "Start the table conversation." : "This conversation is private."}</span></div> : null}
                   {chatMessagesForChannel.map((message) => <article className={`chat-message${message.senderName === participant.name ? " is-mine" : ""}${message.id.startsWith("pending-chat-") ? " is-pending" : ""}`} key={message.id}>
                     <div><strong>{message.senderName}</strong><time dateTime={new Date(message.createdAt).toISOString()}>{chatTime(message.createdAt)}</time></div>
-                    <p>{message.body}</p>
+                    {message.handout ? message.handout.available ? <button type="button" className="chat-handout-preview" onClick={() => setLightboxHandout(message.handout)} aria-label={`Open ${message.handout.title}`}>
+                      <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={message.handout.id} variant="thumbnail" revision={message.handout.updatedAt} alt="" />
+                      <span><small>Handout</small><strong>{message.handout.title}</strong><em>Click to enlarge</em></span>
+                    </button> : <div className="chat-handout-unavailable"><small>Handout removed</small><strong>{message.handout.title}</strong></div> : null}
+                    {message.body ? <p>{message.body}</p> : null}
                   </article>)}
                 </div>
                 <form className="chat-compose" onSubmit={(event) => { event.preventDefault(); void sendChatMessage(); }}>
-                  <label htmlFor="chat-message-input">{activeChatChannel === "everyone" ? "Everyone can see this" : `Private with ${activeChatChannel}`}</label>
-                  <div>
+                  <div className="chat-compose-heading">
+                    <label htmlFor="chat-message-input">{activeChatChannel === "everyone" ? "Everyone can see this" : `Private with ${activeChatChannel}`}</label>
+                    {participant.role === "dm" ? <button type="button" className={handoutPickerOpen ? "is-active" : ""} onClick={() => { setHandoutPickerOpen((open) => !open); setHandoutUploadError(""); }}>Attach image</button> : null}
+                  </div>
+                  {participant.role === "dm" && handoutPickerOpen ? <div className="chat-handout-picker">
+                    <div className="chat-handout-picker-head"><strong>Scenario handouts</strong><label className={handoutUploading ? "is-disabled" : ""}>{handoutUploading ? "Preparing…" : "Upload new"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={handoutUploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) void uploadHandout(file, "", true); }} /></label></div>
+                    {state.handouts.length ? <div className="chat-handout-options">{state.handouts.map((handout) => <button type="button" key={handout.id} className={selectedChatHandoutId === handout.id ? "is-selected" : ""} onClick={() => { setSelectedChatHandoutId(handout.id); setHandoutPickerOpen(false); }}>
+                      <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={handout.id} variant="thumbnail" revision={handout.updatedAt} alt="" />
+                      <span>{handout.title}</span>
+                    </button>)}</div> : <p>No prepared handouts yet. Upload one here or in Scenario Setup.</p>}
+                    {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
+                  </div> : null}
+                  {selectedChatHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedChatHandout.title}</strong></span><IconActionButton variant="close" label="Remove attached handout" onClick={() => setSelectedChatHandoutId(null)} /></div> : null}
+                  <div className="chat-compose-entry">
                     <textarea
                       id="chat-message-input"
                       value={chatDraft}
@@ -3102,7 +3361,7 @@ export default function BattleMapPrototype() {
                         }
                       }}
                     />
-                    <button type="submit" disabled={chatSending || !chatDraft.trim()}>{chatSending ? "Sending…" : "Send"}</button>
+                    <button type="submit" disabled={chatSending || (!chatDraft.trim() && !selectedChatHandout)}>{chatSending ? "Sending…" : "Send"}</button>
                   </div>
                   <small>Enter to send · Shift+Enter for a new line</small>
                 </form>
@@ -3292,7 +3551,7 @@ export default function BattleMapPrototype() {
           </div>
         </section>
       </div> : null}
-      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating && !scenarioRenaming) setScenarioCreatorOpen(false); }}>
+      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating && !scenarioRenaming && !handoutUploading) setScenarioCreatorOpen(false); }}>
         <section className="confirm-dialog scenario-dialog" role="dialog" aria-modal="true" aria-labelledby="manage-scenarios-title" aria-describedby="manage-scenarios-description">
           <div className="eyebrow">Scenario library</div>
           <h2 id="manage-scenarios-title">Manage scenarios</h2>
@@ -3302,6 +3561,25 @@ export default function BattleMapPrototype() {
             {scenarioRenameError ? <div className="form-error" role="alert">{scenarioRenameError}</div> : null}
             <div className="button-row"><button className={`secondary-button${scenarioRenaming ? " is-pending" : ""}`} onClick={() => void renameScenario()} disabled={scenarioCreating || scenarioRenaming || scenarioRenameName.trim().length < 3 || scenarioRenameName.trim() === state.encounter.name}>{scenarioRenaming ? "Saving…" : "Rename current scenario"}</button></div>
           </div>
+          <section className="scenario-handouts" aria-labelledby="scenario-handouts-title">
+            <div className="scenario-create-heading"><strong id="scenario-handouts-title">Prepared handouts</strong><small>Images are resized and compressed in your browser. Only a bounded display copy and thumbnail are stored.</small></div>
+            <div className="handout-upload-row">
+              <label>Title<input maxLength={80} value={handoutTitle} onChange={(event) => setHandoutTitle(event.target.value)} placeholder="Strahd's invitation" disabled={handoutUploading} /></label>
+              <label className={`handout-upload-button${handoutUploading ? " is-disabled" : ""}`}>{handoutUploading ? "Preparing image…" : "Add image"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={handoutUploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) void uploadHandout(file, handoutTitle); }} /></label>
+            </div>
+            <p className="handout-storage-note">JPEG, PNG, or WebP · source under 12 MB and 24 megapixels · up to {HANDOUT_MAX_PER_SCENARIO} handouts per scenario</p>
+            {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
+            {state.handouts.length ? <div className="scenario-handout-list">{state.handouts.map((handout) => <article key={handout.id}>
+              <button type="button" className="scenario-handout-preview" onClick={() => setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true })} aria-label={`Preview ${handout.title}`}>
+                <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={handout.id} variant="thumbnail" revision={handout.updatedAt} alt="" />
+              </button>
+              <span><strong>{handout.title}</strong><small>{handout.width} × {handout.height} · {handout.messageCount ? `sent ${handout.messageCount}×` : "not sent"}</small></span>
+              <div className="handout-item-actions">
+                <label className={handoutUploading ? "is-disabled" : ""}>Replace<input type="file" accept="image/jpeg,image/png,image/webp" disabled={handoutUploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) void uploadHandout(file, handout.title, false, handout.id); }} /></label>
+                <IconActionButton variant="delete" label={`Delete ${handout.title}`} disabled={handoutDeletingId === handout.id || handoutUploading} onClick={() => void deleteHandout(handout)} />
+              </div>
+            </article>)}</div> : <div className="scenario-handout-empty">No handouts prepared for this scenario.</div>}
+          </section>
           <div className="scenario-create-heading"><strong>Create another scenario</strong><small>The new scenario gets its own map, tokens, combat state, and history.</small></div>
           <label>New scenario name<input maxLength={64} value={scenarioName} onChange={(event) => setScenarioName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void createScenario(); } }} placeholder="The Sunken Observatory" disabled={scenarioCreating || scenarioRenaming} /></label>
           <label>Starting point<select value={scenarioMode} onChange={(event) => setScenarioMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenarioCreating || scenarioRenaming}>
@@ -3311,9 +3589,16 @@ export default function BattleMapPrototype() {
           <p className="scenario-mode-help">{scenarioMode === "duplicate" ? "Copies the map and every token. Combat, initiative, effects, and history start clean." : "Copies Dar'eleth, Jelton, and Malichar at full health. Choose a map and add encounters afterward."}</p>
           {scenarioError ? <div className="form-error" role="alert">{scenarioError}</div> : null}
           <div className="button-row">
-            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating || scenarioRenaming}>Close</button>
-            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioRenaming || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
+            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating || scenarioRenaming || handoutUploading}>Close</button>
+            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioRenaming || handoutUploading || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
           </div>
+        </section>
+      </div> : null}
+      {lightboxHandout?.available ? <div className="handout-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLightboxHandout(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="handout-lightbox-title">
+          <header><span><small>Handout</small><strong id="handout-lightbox-title">{lightboxHandout.title}</strong></span><IconActionButton variant="close" label="Close handout" autoFocus onClick={() => setLightboxHandout(null)} /></header>
+          <div className="handout-lightbox-image"><ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={lightboxHandout.id} variant="display" revision={lightboxHandout.updatedAt} alt={lightboxHandout.title} /></div>
+          <footer><span>Fit to screen</span>{lightboxHandout.width && lightboxHandout.height ? <span>{lightboxHandout.width} × {lightboxHandout.height}</span> : null}</footer>
         </section>
       </div> : null}
     </main>

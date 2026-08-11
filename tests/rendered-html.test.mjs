@@ -92,6 +92,8 @@ test("ships durable public and DM-private encounter chat", async () => {
   assert.match(clientSource, /aria-label=\{chatUnreadTotal > 0 \? `Chat, \$\{chatUnreadTotal\} unread messages` : "Chat"\}/);
   assert.match(clientSource, /className=\{`chat-panel is-\$\{chatDock\}/);
   assert.match(clientSource, /Drag to dock chat on the other side/);
+  assert.match(clientSource, /className="chat-panel-unread-badge"/);
+  assert.doesNotMatch(clientSource, />\{chatUnreadTotal\} unread<\/em>/);
   assert.match(clientSource, /CHAT_PLAYER_NAMES\.map/);
   assert.match(clientSource, /Private with \$\{activeChatChannel\}/);
   assert.match(clientSource, /"send-chat-message"/);
@@ -107,6 +109,40 @@ test("ships durable public and DM-private encounter chat", async () => {
   assert.match(styles, /\.chat-panel\.is-minimized/);
   assert.match(migration, /CREATE TABLE `chat_messages`/);
   assert.match(migration, /idx_chat_messages_encounter_created/);
+});
+
+test("prepares bounded private image handouts and delivers them through chat", async () => {
+  const [clientSource, workerSource, handoutDomain, styles, migration] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/handout-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0015_dry_ben_grimm.sql", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(clientSource, /async function prepareHandoutImages/);
+  assert.match(clientSource, /createImageBitmap\(file\)/);
+  assert.match(clientSource, /canvasToWebp/);
+  assert.match(clientSource, /Only a bounded display copy and thumbnail are stored/);
+  assert.match(clientSource, /x-participant-id/);
+  assert.match(clientSource, /variant="display"/);
+  assert.match(clientSource, /className="handout-lightbox"/);
+  assert.match(clientSource, /form\.set\("replaceId", replaceId\)/);
+  assert.match(clientSource, />Replace<input type="file"/);
+  assert.match(clientSource, /It appears in \$\{handout\.messageCount\} chat/);
+  assert.match(workerSource, /Only the DM can prepare handouts/);
+  assert.match(workerSource, /handoutVisibleToViewer/);
+  assert.match(workerSource, /handouts\/\$\{encounter\.id\}\/\$\{handoutId\}/);
+  assert.match(workerSource, /MAP_ASSETS\.delete\(handout\.display_key\)/);
+  assert.match(workerSource, /UPDATE handouts SET title = \?, display_key = \?, thumbnail_key = \?/);
+  assert.match(workerSource, /cache-control": "private, no-store"/);
+  assert.match(handoutDomain, /HANDOUT_INPUT_MAX_PIXELS = 24_000_000/);
+  assert.match(handoutDomain, /HANDOUT_DISPLAY_MAX_EDGE = 2048/);
+  assert.match(styles, /\.chat-handout-preview/);
+  assert.match(styles, /\.scenario-handout-list/);
+  assert.match(styles, /\.handout-lightbox/);
+  assert.match(migration, /CREATE TABLE `handouts`/);
+  assert.match(migration, /ALTER TABLE `chat_messages` ADD `handout_id`/);
 });
 
 test("keeps DM notes private while making map labels and notes directly manageable", async () => {

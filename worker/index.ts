@@ -34,6 +34,15 @@ import {
   resolveChatRecipient,
 } from "../shared/chat-domain.mjs";
 import {
+  HANDOUT_DISPLAY_MAX_BYTES,
+  HANDOUT_MAX_PER_SCENARIO,
+  HANDOUT_THUMBNAIL_MAX_BYTES,
+  cleanHandoutTitle,
+  handoutVisibleToViewer,
+  inspectWebp,
+  storedHandoutVariantError,
+} from "../shared/handout-domain.mjs";
+import {
   isSpellAreaSize,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
@@ -145,7 +154,30 @@ type ChatMessageRow = {
   sender_role: "dm" | "player";
   recipient_name: string | null;
   body: string;
+  handout_id: string | null;
+  handout_title: string | null;
+  handout_width: number | null;
+  handout_height: number | null;
+  handout_updated_at: number | null;
+  handout_deleted_at: number | null;
   created_at: number;
+};
+
+type HandoutRow = {
+  id: string;
+  title: string;
+  display_key: string;
+  thumbnail_key: string;
+  mime_type: string;
+  width: number;
+  height: number;
+  display_bytes: number;
+  thumbnail_bytes: number;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  deleted_at: number | null;
+  message_count?: number;
 };
 
 type MapPresetRow = {
@@ -183,6 +215,8 @@ const PING_TTL_MS = 2_000;
 const SPOTLIGHT_TTL_MS = 6_500;
 const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|move|command)$/;
+const HANDOUT_API_ROUTE =
+  /^\/api\/encounters\/([^/]+)\/handouts(?:\/([^/]+)(?:\/(thumbnail|display))?)?$/;
 
 let schemaReady: Promise<void> | null = null;
 
@@ -523,6 +557,22 @@ async function ensureSchema(env: Env): Promise<void> {
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS handouts (
+          id TEXT PRIMARY KEY NOT NULL,
+          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          display_key TEXT NOT NULL,
+          thumbnail_key TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          width INTEGER NOT NULL,
+          height INTEGER NOT NULL,
+          display_bytes INTEGER NOT NULL,
+          thumbnail_bytes INTEGER NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER
+        )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS chat_messages (
           id TEXT PRIMARY KEY NOT NULL,
           encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
@@ -530,6 +580,7 @@ async function ensureSchema(env: Env): Promise<void> {
           sender_role TEXT NOT NULL,
           recipient_name TEXT,
           body TEXT NOT NULL,
+          handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL,
           created_at INTEGER NOT NULL
         )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS creature_catalog (
@@ -575,6 +626,9 @@ async function ensureSchema(env: Env): Promise<void> {
           "CREATE INDEX IF NOT EXISTS idx_map_presets_encounter_updated ON map_presets(encounter_id, updated_at)",
         ),
         db.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_handouts_encounter_created ON handouts(encounter_id, created_at, id)",
+        ),
+        db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_chat_messages_encounter_created ON chat_messages(encounter_id, created_at, id)",
         ),
         db.prepare(
@@ -615,6 +669,21 @@ async function ensureSchema(env: Env): Promise<void> {
           "CREATE UNIQUE INDEX IF NOT EXISTS participants_session_secret_unique ON participants(session_secret)",
         )
         .run();
+
+      const chatColumns = await db
+        .prepare("PRAGMA table_info(chat_messages)")
+        .all<{ name: string }>();
+      if (!chatColumns.results.some((column) => column.name === "handout_id")) {
+        await db.prepare("ALTER TABLE chat_messages ADD COLUMN handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL").run();
+      }
+
+      const handoutColumns = await db
+        .prepare("PRAGMA table_info(handouts)")
+        .all<{ name: string }>();
+      if (!handoutColumns.results.some((column) => column.name === "updated_at")) {
+        await db.prepare("ALTER TABLE handouts ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0").run();
+        await db.prepare("UPDATE handouts SET updated_at = created_at WHERE updated_at = 0").run();
+      }
 
       const catalogColumns = await db
         .prepare("PRAGMA table_info(creature_catalog)")
@@ -1106,6 +1175,176 @@ async function participantFromHeaders(
     .first<ParticipantRow>();
 }
 
+async function handleHandoutUpload(request: Request, env: Env, code: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "POST" } });
+  }
+  await ensureSchema(env);
+  const encounter = await findEncounter(env, code);
+  if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
+  const participant = await participantFromHeaders(request, env, encounter.id);
+  if (!participant) return json({ error: "Participant session is invalid." }, { status: 401 });
+  if (participant.role !== "dm") return json({ error: "Only the DM can prepare handouts." }, { status: 403 });
+  if (!env.MAP_ASSETS) return json({ error: "Handout storage is unavailable." }, { status: 503 });
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > HANDOUT_DISPLAY_MAX_BYTES + HANDOUT_THUMBNAIL_MAX_BYTES + 128_000) {
+    return json({ error: "The prepared handout upload is too large." }, { status: 413 });
+  }
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return json({ error: "The handout upload could not be read." }, { status: 400 });
+  }
+  const title = cleanHandoutTitle(form.get("title"));
+  const replaceId = cleanTokenId(form.get("replaceId"));
+  const display = form.get("display");
+  const thumbnail = form.get("thumbnail");
+  if (!title) return json({ error: "Give the handout a title." }, { status: 400 });
+  if (!(display instanceof Blob) || !(thumbnail instanceof Blob)) {
+    return json({ error: "Both prepared handout images are required." }, { status: 400 });
+  }
+  const replacedHandout = replaceId
+    ? await env.DB.prepare(
+        `SELECT id, display_key, thumbnail_key
+         FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
+      ).bind(replaceId, encounter.id).first<Pick<HandoutRow, "id" | "display_key" | "thumbnail_key">>()
+    : null;
+  if (replaceId && !replacedHandout) return json({ error: "The handout to replace was not found." }, { status: 404 });
+  if (!replacedHandout) {
+    const existing = await env.DB.prepare(
+      "SELECT COUNT(*) AS value FROM handouts WHERE encounter_id = ? AND deleted_at IS NULL",
+    ).bind(encounter.id).first<{ value: number }>();
+    if ((Number(existing?.value) || 0) >= HANDOUT_MAX_PER_SCENARIO) {
+      return json({ error: `This scenario already has ${HANDOUT_MAX_PER_SCENARIO} handouts.` }, { status: 409 });
+    }
+  }
+  if (display.size > HANDOUT_DISPLAY_MAX_BYTES || thumbnail.size > HANDOUT_THUMBNAIL_MAX_BYTES) {
+    return json({ error: "The prepared handout images are too large." }, { status: 413 });
+  }
+  const [displayBuffer, thumbnailBuffer] = await Promise.all([display.arrayBuffer(), thumbnail.arrayBuffer()]);
+  const displayBytes = new Uint8Array(displayBuffer);
+  const thumbnailBytes = new Uint8Array(thumbnailBuffer);
+  const displaySize = inspectWebp(displayBytes);
+  const thumbnailSize = inspectWebp(thumbnailBytes);
+  const displayError = storedHandoutVariantError({
+    variant: "display",
+    contentType: display.type,
+    byteLength: displayBytes.byteLength,
+    width: displaySize?.width,
+    height: displaySize?.height,
+  });
+  const thumbnailError = storedHandoutVariantError({
+    variant: "thumbnail",
+    contentType: thumbnail.type,
+    byteLength: thumbnailBytes.byteLength,
+    width: thumbnailSize?.width,
+    height: thumbnailSize?.height,
+  });
+  if (displayError || thumbnailError || !displaySize || !thumbnailSize) {
+    return json({ error: displayError || thumbnailError || "The prepared handout is invalid." }, { status: 400 });
+  }
+  const handoutId = replacedHandout?.id ?? crypto.randomUUID();
+  const storagePrefix = `handouts/${encounter.id}/${handoutId}/${crypto.randomUUID()}`;
+  const displayKey = `${storagePrefix}/display.webp`;
+  const thumbnailKey = `${storagePrefix}/thumbnail.webp`;
+  const now = Date.now();
+  await Promise.all([
+    env.MAP_ASSETS.put(displayKey, displayBytes, {
+      httpMetadata: { contentType: "image/webp", cacheControl: "private, no-store" },
+    }),
+    env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
+      httpMetadata: { contentType: "image/webp", cacheControl: "private, no-store" },
+    }),
+  ]);
+  try {
+    if (replacedHandout) {
+      await env.DB.prepare(
+        `UPDATE handouts SET title = ?, display_key = ?, thumbnail_key = ?, mime_type = 'image/webp',
+                width = ?, height = ?, display_bytes = ?, thumbnail_bytes = ?, updated_at = ?
+         WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
+      ).bind(title, displayKey, thumbnailKey, displaySize.width, displaySize.height,
+        displayBytes.byteLength, thumbnailBytes.byteLength, now, handoutId, encounter.id).run();
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO handouts
+         (id, encounter_id, title, display_key, thumbnail_key, mime_type, width, height,
+          display_bytes, thumbnail_bytes, created_by, created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, 'image/webp', ?, ?, ?, ?, ?, ?, ?, NULL)`,
+      ).bind(
+        handoutId,
+        encounter.id,
+        title,
+        displayKey,
+        thumbnailKey,
+        displaySize.width,
+        displaySize.height,
+        displayBytes.byteLength,
+        thumbnailBytes.byteLength,
+        participant.id,
+        now,
+        now,
+      ).run();
+    }
+  } catch (error) {
+    await Promise.all([env.MAP_ASSETS.delete(displayKey), env.MAP_ASSETS.delete(thumbnailKey)]);
+    throw error;
+  }
+  if (replacedHandout) {
+    await Promise.allSettled([
+      env.MAP_ASSETS.delete(replacedHandout.display_key),
+      env.MAP_ASSETS.delete(replacedHandout.thumbnail_key),
+    ]);
+  }
+  await bumpEncounter(env, encounter.id, now);
+  return json({ handoutId, replaced: Boolean(replacedHandout), state: await encounterState(env, code, participant) }, { status: replacedHandout ? 200 : 201 });
+}
+
+async function handleHandoutAsset(
+  request: Request,
+  env: Env,
+  code: string,
+  handoutId: string,
+  variant: "thumbnail" | "display",
+): Promise<Response> {
+  if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: { allow: "GET" } });
+  await ensureSchema(env);
+  const encounter = await findEncounter(env, code);
+  if (!encounter) return new Response("Not found", { status: 404 });
+  const participant = await participantFromHeaders(request, env, encounter.id);
+  if (!participant) return new Response("Unauthorized", { status: 401 });
+  const handout = await env.DB.prepare(
+    `SELECT id, title, display_key, thumbnail_key, mime_type, width, height,
+            display_bytes, thumbnail_bytes, created_by, created_at, updated_at, deleted_at
+     FROM handouts WHERE id = ? AND encounter_id = ?`,
+  ).bind(cleanTokenId(handoutId), encounter.id).first<HandoutRow>();
+  if (!handout || handout.deleted_at !== null) return new Response("Not found", { status: 404 });
+  if (participant.role !== "dm") {
+    const delivery = await env.DB.prepare(
+      `SELECT sender_name, recipient_name
+       FROM chat_messages
+       WHERE encounter_id = ? AND handout_id = ?
+         AND (recipient_name IS NULL OR sender_name = ? OR recipient_name = ?)
+       ORDER BY created_at DESC LIMIT 1`,
+    ).bind(encounter.id, handout.id, participant.name, participant.name)
+      .first<{ sender_name: string; recipient_name: string | null }>();
+    if (!delivery || !handoutVisibleToViewer({ senderName: delivery.sender_name, recipientName: delivery.recipient_name }, participant)) {
+      return new Response("Forbidden", { status: 403 });
+    }
+  }
+  if (!env.MAP_ASSETS) return new Response("Handout storage unavailable", { status: 503 });
+  const stored = await env.MAP_ASSETS.get(variant === "thumbnail" ? handout.thumbnail_key : handout.display_key);
+  if (!stored) return new Response("Not found", { status: 404 });
+  return new Response(stored.body, {
+    headers: {
+      "cache-control": "private, no-store",
+      "content-type": handout.mime_type,
+      "content-disposition": "inline",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
 async function bumpEncounter(env: Env, encounterId: string, now = Date.now()) {
   await env.DB.prepare(
     "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
@@ -1170,13 +1409,31 @@ async function encounterState(
     .all<AnnotationRow>();
   const recentChatMessages = viewer
     ? await env.DB.prepare(
-        `SELECT id, sender_name, sender_role, recipient_name, body, created_at
-         FROM chat_messages
-         WHERE encounter_id = ?
-           AND (? = 'dm' OR recipient_name IS NULL OR sender_name = ? OR recipient_name = ?)
-         ORDER BY created_at DESC, id DESC LIMIT 200`,
+        `SELECT cm.id, cm.sender_name, cm.sender_role, cm.recipient_name, cm.body,
+                cm.handout_id, cm.created_at, h.title AS handout_title,
+                h.width AS handout_width, h.height AS handout_height,
+                h.updated_at AS handout_updated_at,
+                h.deleted_at AS handout_deleted_at
+         FROM chat_messages cm
+         LEFT JOIN handouts h ON h.id = cm.handout_id
+         WHERE cm.encounter_id = ?
+           AND (? = 'dm' OR cm.recipient_name IS NULL OR cm.sender_name = ? OR cm.recipient_name = ?)
+         ORDER BY cm.created_at DESC, cm.id DESC LIMIT 200`,
       ).bind(encounter!.id, viewer.role, viewer.name, viewer.name).all<ChatMessageRow>()
     : { results: [] as ChatMessageRow[] };
+  const handouts = viewer?.role === "dm"
+    ? await env.DB.prepare(
+        `SELECT h.id, h.title, h.display_key, h.thumbnail_key, h.mime_type,
+                h.width, h.height, h.display_bytes, h.thumbnail_bytes,
+                h.created_by, h.created_at, h.updated_at, h.deleted_at,
+                COUNT(cm.id) AS message_count
+         FROM handouts h
+         LEFT JOIN chat_messages cm ON cm.handout_id = h.id
+         WHERE h.encounter_id = ? AND h.deleted_at IS NULL
+         GROUP BY h.id
+         ORDER BY h.created_at DESC, h.id DESC`,
+      ).bind(encounter!.id).all<HandoutRow>()
+    : { results: [] as HandoutRow[] };
   const availableHistory = viewer
     ? await historyStacks(env, encounter!.id, viewer.id)
     : { undo: [], redo: [] };
@@ -1297,8 +1554,27 @@ async function encounterState(
         senderRole: message.sender_role,
         recipientName: message.recipient_name,
         body: message.body,
+        handout: message.handout_id && message.handout_title ? {
+          id: message.handout_id,
+          title: message.handout_title,
+          width: message.handout_width,
+          height: message.handout_height,
+          updatedAt: message.handout_updated_at,
+          available: message.handout_deleted_at === null,
+        } : null,
         createdAt: message.created_at,
       })),
+    handouts: handouts.results.map((handout) => ({
+      id: handout.id,
+      title: handout.title,
+      width: handout.width,
+      height: handout.height,
+      displayBytes: handout.display_bytes,
+      thumbnailBytes: handout.thumbnail_bytes,
+      messageCount: Number(handout.message_count) || 0,
+      createdAt: handout.created_at,
+      updatedAt: handout.updated_at,
+    })),
     savedMapPresets: savedMapPresets.results.flatMap((preset) => {
       try {
         const mapPackage = parseMapPackage(JSON.parse(preset.package_json));
@@ -1530,8 +1806,18 @@ async function handleCommand(
 
   if (command === "send-chat-message") {
     const messageBody = cleanChatBody(body.message);
-    if (!messageBody) {
-      return json({ error: "Enter a message before sending." }, { status: 400 });
+    const handoutId = cleanTokenId(body.handoutId) || null;
+    if (!messageBody && !handoutId) {
+      return json({ error: "Enter a message or attach a handout before sending." }, { status: 400 });
+    }
+    if (handoutId && participant.role !== "dm") {
+      return json({ error: "Only the DM can share handouts." }, { status: 403 });
+    }
+    if (handoutId) {
+      const handout = await env.DB.prepare(
+        "SELECT id FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL",
+      ).bind(handoutId, encounter.id).first<{ id: string }>();
+      if (!handout) return json({ error: "That handout is no longer available." }, { status: 404 });
     }
     const recipient = resolveChatRecipient({
       senderName: participant.name,
@@ -1544,13 +1830,38 @@ async function handleCommand(
     const messageId = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO chat_messages
-       (id, encounter_id, sender_name, sender_role, recipient_name, body, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, now)
+      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, handoutId, now)
       .run();
     await bumpEncounter(env, encounter.id, now);
     return json({ messageId, state: await state() });
+  }
+
+  if (command === "delete-handout") {
+    const denied = requireDm();
+    if (denied) return denied;
+    if (!env.MAP_ASSETS) return json({ error: "Handout storage is unavailable." }, { status: 503 });
+    const handoutId = cleanTokenId(body.handoutId);
+    const handout = await env.DB.prepare(
+      `SELECT id, display_key, thumbnail_key
+       FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
+    ).bind(handoutId, encounter.id).first<Pick<HandoutRow, "id" | "display_key" | "thumbnail_key">>();
+    if (!handout) return json({ error: "Handout not found." }, { status: 404 });
+    const references = await env.DB.prepare(
+      "SELECT COUNT(*) AS value FROM chat_messages WHERE encounter_id = ? AND handout_id = ?",
+    ).bind(encounter.id, handout.id).first<{ value: number }>();
+    await Promise.all([
+      env.MAP_ASSETS.delete(handout.display_key),
+      env.MAP_ASSETS.delete(handout.thumbnail_key),
+    ]);
+    await env.DB.prepare(
+      `UPDATE handouts SET display_key = '', thumbnail_key = '', updated_at = ?, deleted_at = ?
+       WHERE id = ? AND encounter_id = ?`,
+    ).bind(now, now, handout.id, encounter.id).run();
+    await bumpEncounter(env, encounter.id, now);
+    return json({ deleted: true, referencedMessages: Number(references?.value) || 0, state: await state() });
   }
 
   if (command === "undo") {
@@ -3011,6 +3322,23 @@ const worker = {
     if (url.pathname.startsWith("/map-assets/")) {
       const key = url.pathname.slice("/map-assets/".length);
       return handleMapAsset(request, env, key);
+    }
+
+    const handoutMatch = url.pathname.match(HANDOUT_API_ROUTE);
+    if (handoutMatch) {
+      try {
+        const code = cleanCode(handoutMatch[1]);
+        const handoutId = handoutMatch[2];
+        const variant = handoutMatch[3];
+        if (!handoutId) return await handleHandoutUpload(request, env, code);
+        if (variant === "thumbnail" || variant === "display") {
+          return await handleHandoutAsset(request, env, code, handoutId, variant);
+        }
+        return json({ error: "Handout route not found." }, { status: 404 });
+      } catch (error) {
+        console.error("Handout API error", error);
+        return json({ error: "The handout service is temporarily unavailable." }, { status: 500 });
+      }
     }
 
     const apiMatch = url.pathname.match(API_ROUTE);

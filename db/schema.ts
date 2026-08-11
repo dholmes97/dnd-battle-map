@@ -203,6 +203,35 @@ export const actions = sqliteTable(
   ],
 );
 
+export const handouts = sqliteTable(
+  "handouts",
+  {
+    id: text("id").primaryKey(),
+    encounterId: text("encounter_id")
+      .notNull()
+      .references(() => encounters.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    displayKey: text("display_key").notNull(),
+    thumbnailKey: text("thumbnail_key").notNull(),
+    mimeType: text("mime_type").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    displayBytes: integer("display_bytes").notNull(),
+    thumbnailBytes: integer("thumbnail_bytes").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+    deletedAt: integer("deleted_at"),
+  },
+  (table) => [
+    index("idx_handouts_encounter_created").on(
+      table.encounterId,
+      table.createdAt,
+      table.id,
+    ),
+  ],
+);
+
 export const chatMessages = sqliteTable(
   "chat_messages",
   {
@@ -214,6 +243,7 @@ export const chatMessages = sqliteTable(
     senderRole: text("sender_role").notNull(),
     recipientName: text("recipient_name"),
     body: text("body").notNull(),
+    handoutId: text("handout_id").references(() => handouts.id, { onDelete: "set null" }),
     createdAt: integer("created_at").notNull(),
   },
   (table) => [
