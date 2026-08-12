@@ -698,7 +698,10 @@ input:focus {
 .chat-selected-handout > span { min-width: 0; display: grid; gap: 0.08rem; }
 .chat-selected-handout small { color: #8e805f; font-size: 0.48rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .chat-selected-handout strong { overflow: hidden; color: #ddcfad; font-size: 0.64rem; text-overflow: ellipsis; white-space: nowrap; }
-.chat-selected-handout .icon-action-button { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; }
+.chat-compose .chat-selected-handout .icon-action-remove { width: 1.5rem; height: 1.5rem; min-height: 1.5rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #b9a882; }
+.chat-compose .chat-selected-handout .icon-action-remove:hover { border: 0; background: rgba(255, 255, 255, 0.06); color: #f0d693; }
+.chat-compose .chat-selected-handout .icon-action-remove:focus-visible { outline: 2px solid #d2aa56; outline-offset: 1px; }
+.chat-compose .chat-selected-handout .icon-action-remove .icon-action-glyph { width: 0.72rem; height: 0.72rem; stroke-width: 2; }
 .chat-compose .chat-show-immediately { grid-column: 1 / -1; margin: 0; padding-top: 0.34rem; display: flex; align-items: center; gap: 0.42rem; border-top: 1px solid rgba(245, 198, 92, 0.16); cursor: pointer; }
 .chat-show-immediately input { width: 1rem; height: 1rem; margin: 0; accent-color: #d2aa56; }
 .chat-show-immediately > span { min-width: 0; display: grid; gap: 0.06rem; }
@@ -1332,8 +1335,8 @@ input:focus {
 .workshop-canvas-heading small { color: #69645b; font-size: 0.56rem; font-weight: 750; letter-spacing: 0.09em; text-transform: uppercase; }
 .workshop-canvas-heading strong { color: #bcb4a7; font-family: var(--font-geist-mono), monospace; font-size: 0.66rem; }
 .workshop-canvas-heading > span { color: #665f56; font-size: 0.58rem; }
-.workshop-canvas-frame { width: 100%; overflow: hidden; border: 1px solid #3b3b34; border-radius: 0.42rem; background: #344128; box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32); }
-.workshop-canvas-frame canvas { display: block; width: 100%; max-height: calc(100vh - 9rem); touch-action: none; cursor: crosshair; }
+.workshop-canvas-frame { width: 100%; min-height: 0; overflow: hidden; border: 1px solid #3b3b34; border-radius: 0.42rem; background: #344128; box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32); }
+.workshop-canvas-frame canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 .workshop-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; padding: 0.55rem 0.1rem 0; color: #625d55; font-size: 0.56rem; }
 .workshop-legend span { display: inline-flex; align-items: center; gap: 0.32rem; }
 .workshop-legend i { width: 0.75rem; height: 0.75rem; display: inline-block; }
@@ -1349,7 +1352,7 @@ input:focus {
   .token-detail { max-height: none; }
   .workshop-layout { grid-template-columns: 1fr; }
   .workshop-controls { max-height: none; border-right: 0; border-bottom: 1px solid #292a25; }
-  .workshop-canvas-frame canvas { max-height: none; }
+  .workshop-canvas-frame { width: 100%; }
 }
 
 @media (min-width: 851px) {
@@ -1362,6 +1365,9 @@ input:focus {
   .map-panel { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; justify-content: stretch; }
   .map-stage { min-height: 0; display: grid; place-items: stretch; overflow: hidden; }
   .map-frame { width: 100%; height: 100%; max-width: none; }
+  .workshop-layout { height: calc(100vh - 4.5rem); min-height: 0; }
+  .workshop-canvas-panel { min-height: 0; }
+  .workshop-canvas-frame { flex: 1 1 auto; height: auto; aspect-ratio: auto !important; }
   .control-panel { max-height: 100%; }
 }
 

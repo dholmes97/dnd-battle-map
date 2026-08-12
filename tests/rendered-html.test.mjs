@@ -333,12 +333,14 @@ test("uses one aligned icon-action system for close, discard, remove, and delete
   assert.match(clientSource, /variant="close" label="Close DM note"/);
   assert.match(clientSource, /variant="discard" label="Discard token detail changes"/);
   assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
+  assert.match(clientSource, /variant="remove" label="Remove attached handout"/);
   assert.match(workshopSource, /variant="delete" label="Delete scene addition"/);
   assert.match(workshopSource, /variant="delete" label=\{`Delete \$\{preset\.name\}`\}/);
   assert.doesNotMatch(clientSource + workshopSource, />×<\/button>/);
   assert.match(iconSource, /variant === "delete" \? <TrashIcon \/> : <XIcon \/>/);
   assert.match(styles, /\.icon-action-button \{[^}]*display: grid;[^}]*place-items: center;[^}]*padding: 0;/s);
   assert.match(styles, /\.icon-action-close \{[^}]*width: 1\.65rem;[^}]*height: 1\.65rem;/s);
+  assert.match(styles, /\.chat-compose \.chat-selected-handout \.icon-action-remove \{[^}]*min-height: 1\.5rem;[^}]*padding: 0;[^}]*border: 0;[^}]*background: transparent;/s);
 });
 
 test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell entities", async () => {
@@ -834,7 +836,8 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
   assert.match(clientSource, /aria-label="Fit whole map"/);
   assert.match(clientSource, /onClick=\{fitViewport\}><Icon name="fit" \/><\/button>/);
   assert.match(clientSource, /viewport\.fit \? "Fit"/);
-  assert.match(geometrySource, /offsetX: Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
+  assert.match(geometrySource, /const fitted = fit \? fitGridGeometry\(state\.grid\.width, state\.grid\.height, width, height\) : null/);
+  assert.match(geometrySource, /offsetX: fitted\?\.offsetX \?\? Math\.max\(0, \(width - state\.grid\.width \* cellSize\) \/ 2\)/);
   assert.match(clientSource, /const cellWidth = geometry\.cellSize/);
   assert.match(clientSource, /const sourceWidth = geometry\.visibleWidth \/ state\.grid\.width \* mapScene\.width/);
   assert.match(clientSource, /geometry\.visibleWidth \* geometry\.cellSize/);
@@ -898,12 +901,13 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
 });
 
 test("includes a durable full-scene workshop with no retired editor path", async () => {
-  const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration] = await Promise.all([
+  const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
     readFile(new URL("../shared/map-package.ts", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0006_panoramic_scalphunter.sql", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(battleMapSource, /aria-label="Open Map Workshop" data-tooltip="Map Workshop"/);
@@ -922,6 +926,10 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workshopSource, /save-map-preset/);
   assert.match(workshopSource, /apply-map-package/);
   assert.match(workshopSource, /setWallPreview/);
+  assert.match(workshopSource, /fitGridGeometry\(map\.width, map\.height, rect\.width, rect\.height\)/);
+  assert.match(styles, /\.workshop-canvas-frame \{[^}]*width: 100%; min-height: 0/);
+  assert.match(styles, /\.workshop-canvas-frame canvas \{[^}]*width: 100%; height: 100%/);
+  assert.match(styles, /\.workshop-canvas-frame \{ flex: 1 1 auto; height: auto; aspect-ratio: auto !important; \}/);
   assert.match(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
   assert.match(workerSource, /map_package_applied/);
   assert.match(workerSource, /map_scene_migrated/);

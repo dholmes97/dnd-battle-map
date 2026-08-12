@@ -3394,7 +3394,7 @@ export default function BattleMapPrototype() {
                     </button>)}</div> : <p>No prepared handouts yet. Upload one here or in Scenario Setup.</p>}
                     {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
                   </div> : null}
-                  {selectedChatHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedChatHandout.title}</strong></span><IconActionButton variant="close" label="Remove attached handout" onClick={() => { setSelectedChatHandoutId(null); setShowHandoutImmediately(false); }} /><label className="chat-show-immediately"><input type="checkbox" checked={showHandoutImmediately} onChange={(event) => setShowHandoutImmediately(event.target.checked)} /><span><strong>Show immediately</strong><small>Opens for connected recipients without marking chat read.</small></span></label></div> : null}
+                  {selectedChatHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedChatHandout.title}</strong></span><IconActionButton variant="remove" label="Remove attached handout" onClick={() => { setSelectedChatHandoutId(null); setShowHandoutImmediately(false); }} /><label className="chat-show-immediately"><input type="checkbox" checked={showHandoutImmediately} onChange={(event) => setShowHandoutImmediately(event.target.checked)} /><span><strong>Show immediately</strong><small>Opens for connected recipients without marking chat read.</small></span></label></div> : null}
                   <div className="chat-compose-entry">
                     <textarea
                       id="chat-message-input"

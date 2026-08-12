@@ -35,15 +35,29 @@ export function tokenArtScale(size) {
   return size === "small" ? 0.75 : 1;
 }
 
+export function fitGridGeometry(gridWidth, gridHeight, width, height) {
+  const cellSize = Math.max(1, Math.min(width / gridWidth, height / gridHeight));
+  return {
+    cellSize,
+    visibleWidth: gridWidth,
+    visibleHeight: gridHeight,
+    panX: 0,
+    panY: 0,
+    offsetX: Math.max(0, (width - gridWidth * cellSize) / 2),
+    offsetY: Math.max(0, (height - gridHeight * cellSize) / 2),
+  };
+}
+
 export function viewportGeometry(viewport, state, width, height) {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const matchesMap = viewport.mapKey === mapKey;
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
   const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
   const fit = matchesMap && viewport.fit;
+  const fitted = fit ? fitGridGeometry(state.grid.width, state.grid.height, width, height) : null;
   const requestedZoom = matchesMap ? viewport.zoom : 1;
   const zoom = fit ? fitZoom : Math.max(1, Math.min(3, requestedZoom));
-  const cellSize = Math.max(1, baseCellSize * zoom);
+  const cellSize = fitted?.cellSize ?? Math.max(1, baseCellSize * zoom);
   const visibleWidth = Math.min(state.grid.width, width / cellSize);
   const visibleHeight = Math.min(state.grid.height, height / cellSize);
   const requestedCenterX = matchesMap ? viewport.centerX : state.grid.width / 2;
@@ -59,10 +73,10 @@ export function viewportGeometry(viewport, state, width, height) {
     cellSize,
     visibleWidth,
     visibleHeight,
-    panX: centerX - visibleWidth / 2,
-    panY: centerY - visibleHeight / 2,
-    offsetX: Math.max(0, (width - state.grid.width * cellSize) / 2),
-    offsetY: Math.max(0, (height - state.grid.height * cellSize) / 2),
+    panX: fitted?.panX ?? centerX - visibleWidth / 2,
+    panY: fitted?.panY ?? centerY - visibleHeight / 2,
+    offsetX: fitted?.offsetX ?? Math.max(0, (width - state.grid.width * cellSize) / 2),
+    offsetY: fitted?.offsetY ?? Math.max(0, (height - state.grid.height * cellSize) / 2),
   };
 }
 

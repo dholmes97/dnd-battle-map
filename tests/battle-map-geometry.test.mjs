@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  fitGridGeometry,
   calculateDirectDistance,
   clampMapPoint,
   drawingAtPoint,
@@ -8,6 +9,27 @@ import {
   viewportGeometry,
   zoomViewportAt,
 } from "../shared/battle-map-geometry.mjs";
+
+test("fit geometry keeps grid cells square in wide and tall containers", () => {
+  assert.deepEqual(fitGridGeometry(24, 16, 1600, 700), {
+    cellSize: 43.75,
+    visibleWidth: 24,
+    visibleHeight: 16,
+    panX: 0,
+    panY: 0,
+    offsetX: 275,
+    offsetY: 0,
+  });
+  assert.deepEqual(fitGridGeometry(24, 16, 900, 1000), {
+    cellSize: 37.5,
+    visibleWidth: 24,
+    visibleHeight: 16,
+    panX: 0,
+    panY: 0,
+    offsetX: 0,
+    offsetY: 200,
+  });
+});
 
 const state = {
   encounter: { mapPackage: { id: "keep" } },

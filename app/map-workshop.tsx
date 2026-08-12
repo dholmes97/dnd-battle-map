@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { fitGridGeometry } from "@/shared/battle-map-geometry.mjs";
 import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap, type SceneKitDefinition } from "@/shared/full-scene-maps";
 import { cloneMapPackage, parseMapPackage, type MapPackage, type MapRotation } from "@/shared/map-package";
 import {
@@ -61,17 +62,19 @@ function loadImage(path: string): Promise<[string, HTMLImageElement] | null> {
 
 function canvasPoint(canvas: HTMLCanvasElement, map: MapPackage, clientX: number, clientY: number): Point {
   const rect = canvas.getBoundingClientRect();
+  const geometry = fitGridGeometry(map.width, map.height, rect.width, rect.height);
   return {
-    x: Math.max(0, Math.min(map.width, ((clientX - rect.left) / rect.width) * map.width)),
-    y: Math.max(0, Math.min(map.height, ((clientY - rect.top) / rect.height) * map.height)),
+    x: Math.max(0, Math.min(map.width, (clientX - rect.left - geometry.offsetX) / geometry.cellSize)),
+    y: Math.max(0, Math.min(map.height, (clientY - rect.top - geometry.offsetY) / geometry.cellSize)),
   };
 }
 
 function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
   const context = canvas.getContext("2d");
   const rect = canvas.getBoundingClientRect();
-  const cellWidth = rect.width / map.width;
-  const cellHeight = rect.height / map.height;
+  const geometry = fitGridGeometry(map.width, map.height, rect.width, rect.height);
+  const cellWidth = geometry.cellSize;
+  const cellHeight = geometry.cellSize;
   if (!context || cellWidth <= 0 || cellHeight <= 0) return null;
   context.save();
   context.font = `700 ${Math.max(11, cellWidth * 0.24)}px ui-sans-serif, system-ui`;
@@ -122,14 +125,13 @@ function drawStructures(context: CanvasRenderingContext2D, map: MapPackage, cell
   context.restore();
 }
 
-export function renderMapPackageToCanvas(canvas: HTMLCanvasElement, map: MapPackage, images: ReadonlyMap<string, HTMLImageElement>, includePrivate = false) {
-  const context = canvas.getContext("2d");
-  if (!context) return;
-  const cellWidth = canvas.width / map.width; const cellHeight = canvas.height / map.height;
-  context.clearRect(0, 0, canvas.width, canvas.height);
+function renderMapPackageToContext(context: CanvasRenderingContext2D, map: MapPackage, images: ReadonlyMap<string, HTMLImageElement>, cellWidth: number, cellHeight: number, offsetX = 0, offsetY = 0, includePrivate = false) {
+  context.save();
+  context.translate(offsetX, offsetY);
+  const mapWidth = map.width * cellWidth; const mapHeight = map.height * cellHeight;
   const base = images.get(map.visual.assetUrl);
-  if (base) context.drawImage(base, 0, 0, canvas.width, canvas.height);
-  else { context.fillStyle = "#30372c"; context.fillRect(0, 0, canvas.width, canvas.height); }
+  if (base) context.drawImage(base, 0, 0, mapWidth, mapHeight);
+  else { context.fillStyle = "#30372c"; context.fillRect(0, 0, mapWidth, mapHeight); }
   for (const object of map.sceneObjects) {
     const image = images.get(object.assetUrl);
     if (!image) continue;
@@ -141,6 +143,15 @@ export function renderMapPackageToCanvas(canvas: HTMLCanvasElement, map: MapPack
     context.restore();
   }
   drawStructures(context, map, cellWidth, cellHeight, includePrivate);
+  context.restore();
+}
+
+export function renderMapPackageToCanvas(canvas: HTMLCanvasElement, map: MapPackage, images: ReadonlyMap<string, HTMLImageElement>, includePrivate = false) {
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  const cellWidth = canvas.width / map.width; const cellHeight = canvas.height / map.height;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  renderMapPackageToContext(context, map, images, cellWidth, cellHeight, 0, 0, includePrivate);
 }
 
 export default function MapWorkshop({ activeMapPackage, activeMapPresetId, savedPresets, onCommand, onClose }: Props) {
@@ -189,39 +200,51 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.max(1, Math.round(rect.width * dpr)); canvas.height = Math.max(1, Math.round(rect.height * dpr));
-    renderMapPackageToCanvas(canvas, map, images, true);
     const context = canvas.getContext("2d"); if (!context) return;
-    const cellWidth = canvas.width / map.width; const cellHeight = canvas.height / map.height;
-    context.strokeStyle = "rgba(241, 229, 198, 0.2)"; context.lineWidth = Math.max(1, dpr);
-    for (let x = 0; x <= map.width; x += 1) { context.beginPath(); context.moveTo(x * cellWidth, 0); context.lineTo(x * cellWidth, canvas.height); context.stroke(); }
-    for (let y = 0; y <= map.height; y += 1) { context.beginPath(); context.moveTo(0, y * cellHeight); context.lineTo(canvas.width, y * cellHeight); context.stroke(); }
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.clearRect(0, 0, rect.width, rect.height);
+    context.fillStyle = "#242622"; context.fillRect(0, 0, rect.width, rect.height);
+    const geometry = fitGridGeometry(map.width, map.height, rect.width, rect.height);
+    const cellWidth = geometry.cellSize; const cellHeight = geometry.cellSize;
+    const screenX = (x: number) => geometry.offsetX + x * cellWidth;
+    const screenY = (y: number) => geometry.offsetY + y * cellHeight;
+    renderMapPackageToContext(context, map, images, cellWidth, cellHeight, geometry.offsetX, geometry.offsetY, true);
+    context.strokeStyle = "rgba(241, 229, 198, 0.2)"; context.lineWidth = 1;
+    for (let x = 0; x <= map.width; x += 1) { context.beginPath(); context.moveTo(screenX(x), geometry.offsetY); context.lineTo(screenX(x), geometry.offsetY + map.height * cellHeight); context.stroke(); }
+    for (let y = 0; y <= map.height; y += 1) { context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + map.width * cellWidth, screenY(y)); context.stroke(); }
     if (selectedObject) {
       const bounds = sceneObjectBounds(selectedObject);
-      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
-      context.strokeRect(selectedObject.x * cellWidth, selectedObject.y * cellHeight, bounds.width * cellWidth, bounds.height * cellHeight); context.setLineDash([]);
+      context.strokeStyle = "#f5c65c"; context.lineWidth = 2; context.setLineDash([8, 5]);
+      context.strokeRect(screenX(selectedObject.x), screenY(selectedObject.y), bounds.width * cellWidth, bounds.height * cellHeight); context.setLineDash([]);
     }
     if (selectedLabel) {
       context.save();
       context.font = `700 ${Math.max(11, cellWidth * 0.24)}px ui-sans-serif, system-ui`;
-      const width = context.measureText(selectedLabel.text).width + 22 * dpr;
-      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
-      context.strokeRect(selectedLabel.x * cellWidth - width / 2, selectedLabel.y * cellHeight - 15 * dpr, width, 30 * dpr);
+      const width = context.measureText(selectedLabel.text).width + 22;
+      context.strokeStyle = "#f5c65c"; context.lineWidth = 2; context.setLineDash([8, 5]);
+      context.strokeRect(screenX(selectedLabel.x) - width / 2, screenY(selectedLabel.y) - 15, width, 30);
       context.restore();
     }
     if (selectedNote) {
       context.save();
-      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(2, dpr * 1.5); context.setLineDash([8 * dpr, 5 * dpr]);
-      context.beginPath(); context.arc(selectedNote.x * cellWidth, selectedNote.y * cellHeight, Math.max(12 * dpr, cellWidth * 0.3), 0, Math.PI * 2); context.stroke();
+      context.strokeStyle = "#f5c65c"; context.lineWidth = 2; context.setLineDash([8, 5]);
+      context.beginPath(); context.arc(screenX(selectedNote.x), screenY(selectedNote.y), Math.max(12, cellWidth * 0.3), 0, Math.PI * 2); context.stroke();
       context.restore();
     }
     if (wallPreview) {
-      context.strokeStyle = "#f5c65c"; context.lineWidth = Math.max(3, dpr * 2); context.setLineDash([7 * dpr, 5 * dpr]);
-      context.beginPath(); context.moveTo(wallPreview.start.x * cellWidth, wallPreview.start.y * cellHeight); context.lineTo(wallPreview.end.x * cellWidth, wallPreview.end.y * cellHeight); context.stroke(); context.setLineDash([]);
+      context.strokeStyle = "#f5c65c"; context.lineWidth = 3; context.setLineDash([7, 5]);
+      context.beginPath(); context.moveTo(screenX(wallPreview.start.x), screenY(wallPreview.start.y)); context.lineTo(screenX(wallPreview.end.x), screenY(wallPreview.end.y)); context.stroke(); context.setLineDash([]);
     }
   }, [images, map, selectedLabel, selectedNote, selectedObject, wallPreview]);
 
-  useEffect(() => { draw(); }, [draw]);
-  useEffect(() => { const resize = () => draw(); window.addEventListener("resize", resize); return () => window.removeEventListener("resize", resize); }, [draw]);
+  useEffect(() => {
+    draw();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => draw());
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [draw]);
 
   const remember = (before: MapPackage) => {
     undoRef.current = [...undoRef.current.slice(-(HISTORY_LIMIT - 1)), cloneMapPackage(before)]; redoRef.current = []; setHistoryCounts({ undo: undoRef.current.length, redo: 0 });
@@ -350,7 +373,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         {selectedLabel || selectedNote ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>{selectedLabel ? "Selected label" : "Selected DM note"}</small><strong>{selectedLabel?.text ?? `Note ${map.notes.findIndex((note) => note.id === selectedNote?.id) + 1}`}</strong></div>{selectedNote ? <p className="workshop-help selected-note-copy">{selectedNote.text}</p> : <p className="workshop-help">{selectedLabel?.visibility === "dm" ? "Visible only to the DM." : "Visible to everyone after the scene is applied."}</p>}<button className="danger-button" onClick={deleteSelectedAnnotation}>Delete</button></section> : null}
         <section className="map-library-panel"><div className="workshop-section-heading"><small>Scene library</small><strong>Save and exchange</strong></div><label>Title<input value={map.name} maxLength={100} onChange={(event) => commit((current) => ({ ...current, name: event.target.value }))} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><label>Preset name<input value={presetName} onChange={(event) => setPresetName(event.target.value)} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button><button className="secondary-button" onClick={exportPackage}>Export</button><button className="secondary-button" onClick={() => importRef.current?.click()}>Import</button></div><input ref={importRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => void importPackage(event)} /><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{preset.mapPackage.biome} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><IconActionButton className="saved-map-delete" variant="delete" label={`Delete ${preset.name}`} onClick={() => void runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`)} /></article>)}</div></section>
       </aside>
-      <section className="workshop-canvas-panel" aria-label="Editable full-scene map"><div className="workshop-canvas-heading"><div><small>Cohesive full-scene draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>3072 × 2048 base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame"><canvas ref={canvasRef} style={{ aspectRatio: `${map.width} / ${map.height}` }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDrop={onMapDrop} aria-label={`${map.name} draft with ${map.sceneObjects.length} matching additions`} /></div><div className="workshop-legend"><span><i className="legend-cell" />Gold outline marks the selected addition</span><span><i className="legend-grid" />Additions and annotations align to the grid</span><span>The base remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
+      <section className="workshop-canvas-panel" aria-label="Editable full-scene map"><div className="workshop-canvas-heading"><div><small>Cohesive full-scene draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>3072 × 2048 base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDrop={onMapDrop} aria-label={`${map.name} draft with ${map.sceneObjects.length} matching additions`} /></div><div className="workshop-legend"><span><i className="legend-cell" />Gold outline marks the selected addition</span><span><i className="legend-grid" />Additions and annotations align to the grid</span><span>The base remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>
   </main>;
 }
