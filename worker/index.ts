@@ -39,7 +39,7 @@ import {
   HANDOUT_THUMBNAIL_MAX_BYTES,
   cleanHandoutTitle,
   handoutVisibleToViewer,
-  inspectWebp,
+  inspectStoredHandout,
   storedHandoutVariantError,
 } from "../shared/handout-domain.mjs";
 import {
@@ -1225,8 +1225,12 @@ async function handleHandoutUpload(request: Request, env: Env, code: string): Pr
   const [displayBuffer, thumbnailBuffer] = await Promise.all([display.arrayBuffer(), thumbnail.arrayBuffer()]);
   const displayBytes = new Uint8Array(displayBuffer);
   const thumbnailBytes = new Uint8Array(thumbnailBuffer);
-  const displaySize = inspectWebp(displayBytes);
-  const thumbnailSize = inspectWebp(thumbnailBytes);
+  if (display.type !== thumbnail.type) {
+    return json({ error: "The prepared handout images must use the same format." }, { status: 400 });
+  }
+  const storedMimeType = display.type;
+  const displaySize = inspectStoredHandout(displayBytes, storedMimeType);
+  const thumbnailSize = inspectStoredHandout(thumbnailBytes, storedMimeType);
   const displayError = storedHandoutVariantError({
     variant: "display",
     contentType: display.type,
@@ -1246,37 +1250,39 @@ async function handleHandoutUpload(request: Request, env: Env, code: string): Pr
   }
   const handoutId = replacedHandout?.id ?? crypto.randomUUID();
   const storagePrefix = `handouts/${encounter.id}/${handoutId}/${crypto.randomUUID()}`;
-  const displayKey = `${storagePrefix}/display.webp`;
-  const thumbnailKey = `${storagePrefix}/thumbnail.webp`;
+  const fileExtension = storedMimeType === "image/jpeg" ? "jpg" : "webp";
+  const displayKey = `${storagePrefix}/display.${fileExtension}`;
+  const thumbnailKey = `${storagePrefix}/thumbnail.${fileExtension}`;
   const now = Date.now();
   await Promise.all([
     env.MAP_ASSETS.put(displayKey, displayBytes, {
-      httpMetadata: { contentType: "image/webp", cacheControl: "private, no-store" },
+      httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
     }),
     env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
-      httpMetadata: { contentType: "image/webp", cacheControl: "private, no-store" },
+      httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
     }),
   ]);
   try {
     if (replacedHandout) {
       await env.DB.prepare(
-        `UPDATE handouts SET title = ?, display_key = ?, thumbnail_key = ?, mime_type = 'image/webp',
+        `UPDATE handouts SET title = ?, display_key = ?, thumbnail_key = ?, mime_type = ?,
                 width = ?, height = ?, display_bytes = ?, thumbnail_bytes = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
-      ).bind(title, displayKey, thumbnailKey, displaySize.width, displaySize.height,
+      ).bind(title, displayKey, thumbnailKey, storedMimeType, displaySize.width, displaySize.height,
         displayBytes.byteLength, thumbnailBytes.byteLength, now, handoutId, encounter.id).run();
     } else {
       await env.DB.prepare(
         `INSERT INTO handouts
          (id, encounter_id, title, display_key, thumbnail_key, mime_type, width, height,
           display_bytes, thumbnail_bytes, created_by, created_at, updated_at, deleted_at)
-         VALUES (?, ?, ?, ?, ?, 'image/webp', ?, ?, ?, ?, ?, ?, ?, NULL)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
       ).bind(
         handoutId,
         encounter.id,
         title,
         displayKey,
         thumbnailKey,
+        storedMimeType,
         displaySize.width,
         displaySize.height,
         displayBytes.byteLength,

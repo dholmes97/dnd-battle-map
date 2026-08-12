@@ -475,17 +475,19 @@ function ProtectedHandoutImage({
   </span>;
 }
 
-function canvasToWebp(canvas: HTMLCanvasElement, maxBytes: number): Promise<Blob> {
-  const qualities = [0.82, 0.72, 0.62, 0.52, 0.44];
+function canvasToStorageImage(canvas: HTMLCanvasElement, maxBytes: number, contentType: "image/webp" | "image/jpeg"): Promise<Blob | null> {
+  const qualities = contentType === "image/webp"
+    ? [0.82, 0.72, 0.62, 0.52, 0.44]
+    : [0.86, 0.76, 0.66, 0.56, 0.46, 0.38];
   return new Promise((resolve, reject) => {
     const encode = (index: number) => {
       canvas.toBlob((blob) => {
         if (!blob) { reject(new Error("This browser could not prepare the image.")); return; }
-        if (blob.type !== "image/webp") { reject(new Error("This browser cannot prepare storage-efficient WebP handouts.")); return; }
+        if (blob.type !== contentType) { resolve(null); return; }
         if (blob.size <= maxBytes) { resolve(blob); return; }
         if (index + 1 >= qualities.length) { reject(new Error("The image is too detailed to fit the handout storage limit.")); return; }
         encode(index + 1);
-      }, "image/webp", qualities[index]);
+      }, contentType, qualities[index]);
     };
     encode(0);
   });
@@ -525,10 +527,15 @@ async function prepareHandoutImages(file: File) {
     };
     const displayCanvas = render(HANDOUT_DISPLAY_MAX_EDGE, HANDOUT_DISPLAY_MAX_EDGE);
     const thumbnailCanvas = render(HANDOUT_THUMBNAIL_MAX_WIDTH, HANDOUT_THUMBNAIL_MAX_HEIGHT);
-    const [display, thumbnail] = await Promise.all([
-      canvasToWebp(displayCanvas, HANDOUT_DISPLAY_MAX_BYTES),
-      canvasToWebp(thumbnailCanvas, HANDOUT_THUMBNAIL_MAX_BYTES),
-    ]);
+    let contentType: "image/webp" | "image/jpeg" = "image/webp";
+    let display = await canvasToStorageImage(displayCanvas, HANDOUT_DISPLAY_MAX_BYTES, contentType);
+    if (!display) {
+      contentType = "image/jpeg";
+      display = await canvasToStorageImage(displayCanvas, HANDOUT_DISPLAY_MAX_BYTES, contentType);
+    }
+    if (!display) throw new Error("This browser could not prepare a storage-efficient handout image.");
+    const thumbnail = await canvasToStorageImage(thumbnailCanvas, HANDOUT_THUMBNAIL_MAX_BYTES, contentType);
+    if (!thumbnail) throw new Error("This browser could not prepare a storage-efficient handout thumbnail.");
     return { display, thumbnail, width: displayCanvas.width, height: displayCanvas.height };
   } finally {
     bitmap.close();
@@ -1391,6 +1398,7 @@ export default function BattleMapPrototype() {
   const [handoutPickerOpen, setHandoutPickerOpen] = useState(false);
   const [selectedChatHandoutId, setSelectedChatHandoutId] = useState<string | null>(null);
   const [lightboxHandout, setLightboxHandout] = useState<SharedChatMessage["handout"]>(null);
+  const [handoutFitMode, setHandoutFitMode] = useState(true);
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
   const [creatureQuery, setCreatureQuery] = useState("");
@@ -3324,7 +3332,7 @@ export default function BattleMapPrototype() {
                   {chatMessagesForChannel.length === 0 ? <div className="chat-empty"><strong>No messages yet</strong><span>{activeChatChannel === "everyone" ? "Start the table conversation." : "This conversation is private."}</span></div> : null}
                   {chatMessagesForChannel.map((message) => <article className={`chat-message${message.senderName === participant.name ? " is-mine" : ""}${message.id.startsWith("pending-chat-") ? " is-pending" : ""}`} key={message.id}>
                     <div><strong>{message.senderName}</strong><time dateTime={new Date(message.createdAt).toISOString()}>{chatTime(message.createdAt)}</time></div>
-                    {message.handout ? message.handout.available ? <button type="button" className="chat-handout-preview" onClick={() => setLightboxHandout(message.handout)} aria-label={`Open ${message.handout.title}`}>
+                    {message.handout ? message.handout.available ? <button type="button" className="chat-handout-preview" onClick={() => { setLightboxHandout(message.handout); setHandoutFitMode(true); }} aria-label={`Open ${message.handout.title}`}>
                       <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={message.handout.id} variant="thumbnail" revision={message.handout.updatedAt} alt="" />
                       <span><small>Handout</small><strong>{message.handout.title}</strong><em>Click to enlarge</em></span>
                     </button> : <div className="chat-handout-unavailable"><small>Handout removed</small><strong>{message.handout.title}</strong></div> : null}
@@ -3570,7 +3578,7 @@ export default function BattleMapPrototype() {
             <p className="handout-storage-note">JPEG, PNG, or WebP · source under 12 MB and 24 megapixels · up to {HANDOUT_MAX_PER_SCENARIO} handouts per scenario</p>
             {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
             {state.handouts.length ? <div className="scenario-handout-list">{state.handouts.map((handout) => <article key={handout.id}>
-              <button type="button" className="scenario-handout-preview" onClick={() => setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true })} aria-label={`Preview ${handout.title}`}>
+              <button type="button" className="scenario-handout-preview" onClick={() => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }} aria-label={`Preview ${handout.title}`}>
                 <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={handout.id} variant="thumbnail" revision={handout.updatedAt} alt="" />
               </button>
               <span><strong>{handout.title}</strong><small>{handout.width} × {handout.height} · {handout.messageCount ? `sent ${handout.messageCount}×` : "not sent"}</small></span>
@@ -3597,8 +3605,8 @@ export default function BattleMapPrototype() {
       {lightboxHandout?.available ? <div className="handout-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLightboxHandout(null); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="handout-lightbox-title">
           <header><span><small>Handout</small><strong id="handout-lightbox-title">{lightboxHandout.title}</strong></span><IconActionButton variant="close" label="Close handout" autoFocus onClick={() => setLightboxHandout(null)} /></header>
-          <div className="handout-lightbox-image"><ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={lightboxHandout.id} variant="display" revision={lightboxHandout.updatedAt} alt={lightboxHandout.title} /></div>
-          <footer><span>Fit to screen</span>{lightboxHandout.width && lightboxHandout.height ? <span>{lightboxHandout.width} × {lightboxHandout.height}</span> : null}</footer>
+          <div className={`handout-lightbox-image${handoutFitMode ? " is-fit" : " is-actual"}`}><ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={lightboxHandout.id} variant="display" revision={lightboxHandout.updatedAt} alt={lightboxHandout.title} /></div>
+          <footer><div className="handout-view-controls" role="group" aria-label="Image size"><button type="button" aria-pressed={handoutFitMode} onClick={() => setHandoutFitMode(true)}>Fit</button><button type="button" aria-pressed={!handoutFitMode} onClick={() => setHandoutFitMode(false)}>Actual size</button></div>{lightboxHandout.width && lightboxHandout.height ? <span>{lightboxHandout.width} × {lightboxHandout.height}</span> : null}</footer>
         </section>
       </div> : null}
     </main>

@@ -122,16 +122,20 @@ test("prepares bounded private image handouts and delivers them through chat", a
 
   assert.match(clientSource, /async function prepareHandoutImages/);
   assert.match(clientSource, /createImageBitmap\(file\)/);
-  assert.match(clientSource, /canvasToWebp/);
+  assert.match(clientSource, /canvasToStorageImage/);
+  assert.match(clientSource, /contentType = "image\/jpeg"/);
   assert.match(clientSource, /Only a bounded display copy and thumbnail are stored/);
   assert.match(clientSource, /x-participant-id/);
   assert.match(clientSource, /variant="display"/);
   assert.match(clientSource, /className="handout-lightbox"/);
+  assert.match(clientSource, /handoutFitMode/);
+  assert.match(clientSource, />Actual size<\/button>/);
   assert.match(clientSource, /form\.set\("replaceId", replaceId\)/);
   assert.match(clientSource, />Replace<input type="file"/);
   assert.match(clientSource, /It appears in \$\{handout\.messageCount\} chat/);
   assert.match(workerSource, /Only the DM can prepare handouts/);
   assert.match(workerSource, /handoutVisibleToViewer/);
+  assert.match(workerSource, /inspectStoredHandout/);
   assert.match(workerSource, /handouts\/\$\{encounter\.id\}\/\$\{handoutId\}/);
   assert.match(workerSource, /MAP_ASSETS\.delete\(handout\.display_key\)/);
   assert.match(workerSource, /UPDATE handouts SET title = \?, display_key = \?, thumbnail_key = \?/);
@@ -141,6 +145,8 @@ test("prepares bounded private image handouts and delivers them through chat", a
   assert.match(styles, /\.chat-handout-preview/);
   assert.match(styles, /\.scenario-handout-list/);
   assert.match(styles, /\.handout-lightbox/);
+  assert.match(styles, /\.handout-lightbox-image \{[^}]*overflow: auto/s);
+  assert.match(styles, /\.handout-lightbox-image\.is-fit img \{[^}]*max-height: 100%/s);
   assert.match(migration, /CREATE TABLE `handouts`/);
   assert.match(migration, /ALTER TABLE `chat_messages` ADD `handout_id`/);
 });

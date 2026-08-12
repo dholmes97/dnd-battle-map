@@ -1,4 +1,5 @@
 export const HANDOUT_INPUT_MIME_TYPES = Object.freeze(["image/jpeg", "image/png", "image/webp"]);
+export const HANDOUT_STORED_MIME_TYPES = Object.freeze(["image/webp", "image/jpeg"]);
 export const HANDOUT_INPUT_MAX_BYTES = 12 * 1024 * 1024;
 export const HANDOUT_INPUT_MAX_PIXELS = 24_000_000;
 export const HANDOUT_DISPLAY_MAX_EDGE = 2048;
@@ -62,8 +63,39 @@ export function inspectWebp(bytes) {
   return null;
 }
 
+export function inspectJpeg(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 11 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  const startOfFrameMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+  let offset = 2;
+  while (offset + 4 <= bytes.length) {
+    while (offset < bytes.length && bytes[offset] !== 0xff) offset += 1;
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) return null;
+    const marker = bytes[offset];
+    offset += 1;
+    if (marker === 0xd9 || marker === 0xda) return null;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) continue;
+    if (offset + 2 > bytes.length) return null;
+    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) return null;
+    if (startOfFrameMarkers.has(marker) && segmentLength >= 7) {
+      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      return width > 0 && height > 0 ? { width, height } : null;
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+export function inspectStoredHandout(bytes, contentType) {
+  if (contentType === "image/webp") return inspectWebp(bytes);
+  if (contentType === "image/jpeg") return inspectJpeg(bytes);
+  return null;
+}
+
 export function storedHandoutVariantError({ variant, contentType, byteLength, width, height }) {
-  if (contentType !== "image/webp") return "Prepared handouts must be WebP images.";
+  if (!HANDOUT_STORED_MIME_TYPES.includes(contentType)) return "Prepared handouts must be WebP or JPEG images.";
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     return "The prepared handout dimensions are invalid.";
   }
