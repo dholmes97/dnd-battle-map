@@ -694,11 +694,16 @@ input:focus {
 .chat-compose button { min-height: 2.2rem; padding: 0.45rem 0.7rem; border: 1px solid #f0c86f; border-radius: 0.5rem; background: #e9bd59; color: #211b12; font-size: 0.68rem; font-weight: 800; }
 .chat-compose button:disabled { opacity: 0.38; }
 .chat-compose > small { display: block; margin-top: 0.3rem; color: #716b63; font-size: 0.55rem; }
-.chat-selected-handout { margin: 0.35rem 0; padding: 0.38rem 0.42rem 0.38rem 0.52rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border: 1px solid rgba(245, 198, 92, 0.28); border-radius: 0.48rem; background: rgba(95, 73, 35, 0.2); }
+.chat-selected-handout { margin: 0.35rem 0; padding: 0.38rem 0.42rem 0.38rem 0.52rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.38rem 0.5rem; border: 1px solid rgba(245, 198, 92, 0.28); border-radius: 0.48rem; background: rgba(95, 73, 35, 0.2); }
 .chat-selected-handout > span { min-width: 0; display: grid; gap: 0.08rem; }
 .chat-selected-handout small { color: #8e805f; font-size: 0.48rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .chat-selected-handout strong { overflow: hidden; color: #ddcfad; font-size: 0.64rem; text-overflow: ellipsis; white-space: nowrap; }
 .chat-selected-handout .icon-action-button { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; }
+.chat-compose .chat-show-immediately { grid-column: 1 / -1; margin: 0; padding-top: 0.34rem; display: flex; align-items: center; gap: 0.42rem; border-top: 1px solid rgba(245, 198, 92, 0.16); cursor: pointer; }
+.chat-show-immediately input { width: 1rem; height: 1rem; margin: 0; accent-color: #d2aa56; }
+.chat-show-immediately > span { min-width: 0; display: grid; gap: 0.06rem; }
+.chat-show-immediately > span strong { color: #d9c79e; font-size: 0.58rem; }
+.chat-show-immediately > span small { color: #817865; font-size: 0.5rem; line-height: 1.3; }
 .chat-handout-picker { margin: 0.35rem 0; padding: 0.45rem; border: 1px solid #4a4338; border-radius: 0.52rem; background: #171512; }
 .chat-handout-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .chat-handout-picker-head > strong { color: #c9beac; font-size: 0.62rem; }
@@ -1155,8 +1160,8 @@ input:focus {
 .handout-lightbox-image .handout-image-shell { width: max-content; min-width: 100%; height: max-content; min-height: 100%; display: flex; align-items: center; justify-content: center; overflow: visible; background: transparent; }
 .handout-lightbox-image img { flex: 0 0 auto; width: auto; height: auto; max-width: none; max-height: none; object-fit: contain; }
 .handout-lightbox-image.is-fit { overflow: hidden; }
-.handout-lightbox-image.is-fit .handout-image-shell { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-.handout-lightbox-image.is-fit img { min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; max-block-size: calc(90dvh - 8rem); }
+.handout-lightbox-image.is-fit .handout-image-shell { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; display: block; overflow: hidden; }
+.handout-lightbox-image.is-fit img { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; min-height: 0; max-width: none; max-height: none; object-fit: contain; }
 .handout-lightbox footer { min-height: 2rem; padding: 0.35rem 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-top: 1px solid #302c26; color: #756e63; font-family: var(--font-geist-mono), monospace; font-size: 0.52rem; }
 .handout-view-controls { display: flex; gap: 0.22rem; }
 .handout-view-controls button { min-height: 1.45rem; padding: 0.18rem 0.48rem; border: 1px solid #423b31; border-radius: 0.3rem; background: #171612; color: #82796d; font: inherit; cursor: pointer; }

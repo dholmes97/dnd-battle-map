@@ -44,6 +44,7 @@ import {
   CHAT_MESSAGE_MAX_LENGTH,
   CHAT_PLAYER_NAMES,
   chatChannelKeyForMessage,
+  incomingImmediateHandouts,
 } from "@/shared/chat-domain.mjs";
 import {
   HANDOUT_DISPLAY_MAX_BYTES,
@@ -120,6 +121,7 @@ type SharedChatMessage = {
   senderRole: Role;
   recipientName: string | null;
   body: string;
+  showImmediately: boolean;
   handout: null | {
     id: string;
     title: string;
@@ -1397,8 +1399,10 @@ export default function BattleMapPrototype() {
   const [handoutDeletingId, setHandoutDeletingId] = useState<string | null>(null);
   const [handoutPickerOpen, setHandoutPickerOpen] = useState(false);
   const [selectedChatHandoutId, setSelectedChatHandoutId] = useState<string | null>(null);
+  const [showHandoutImmediately, setShowHandoutImmediately] = useState(false);
   const [lightboxHandout, setLightboxHandout] = useState<SharedChatMessage["handout"]>(null);
   const [handoutFitMode, setHandoutFitMode] = useState(true);
+  const [forcedHandoutQueue, setForcedHandoutQueue] = useState<NonNullable<SharedChatMessage["handout"]>[]>([]);
   const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
   const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
   const [creatureQuery, setCreatureQuery] = useState("");
@@ -1426,6 +1430,8 @@ export default function BattleMapPrototype() {
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const chatShouldStickRef = useRef(true);
   const chatDockDragRef = useRef<number | null>(null);
+  const knownChatMessageIdsRef = useRef<Set<string>>(new Set());
+  const immediateHandoutsReadyRef = useRef(false);
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
@@ -1579,6 +1585,31 @@ export default function BattleMapPrototype() {
     messages.scrollTop = messages.scrollHeight;
   }, [activeChatChannel, activeChatLatestAt, chatMinimized, chatOpen]);
 
+  useEffect(() => {
+    if (!participant || !state) return;
+    const incoming = incomingImmediateHandouts(
+      state.chatMessages,
+      participant,
+      knownChatMessageIdsRef.current,
+      immediateHandoutsReadyRef.current,
+    );
+    knownChatMessageIdsRef.current = new Set(incoming.knownMessageIds);
+    immediateHandoutsReadyRef.current = true;
+    const newHandouts = incoming.handouts
+      .filter((handout): handout is NonNullable<SharedChatMessage["handout"]> => Boolean(handout));
+    if (newHandouts.length) setForcedHandoutQueue((current) => [...current, ...newHandouts]);
+  }, [participant, state]);
+
+  useEffect(() => {
+    if (lightboxHandout || forcedHandoutQueue.length === 0) return;
+    const timer = window.setTimeout(() => {
+      setLightboxHandout(forcedHandoutQueue[0]);
+      setHandoutFitMode(true);
+      setForcedHandoutQueue((current) => current.slice(1));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [forcedHandoutQueue, lightboxHandout]);
+
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
     if (!pingAudioContextRef.current || pingAudioContextRef.current.state === "closed") {
@@ -1622,6 +1653,10 @@ export default function BattleMapPrototype() {
       setChatOpen(false);
       setChatMinimized(false);
       setSelectedChatHandoutId(null);
+      setShowHandoutImmediately(false);
+      setForcedHandoutQueue([]);
+      knownChatMessageIdsRef.current.clear();
+      immediateHandoutsReadyRef.current = false;
       setHandoutPickerOpen(false);
       setLightboxHandout(null);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
@@ -1670,6 +1705,10 @@ export default function BattleMapPrototype() {
       setChatOpen(false);
       setChatMinimized(false);
       setSelectedChatHandoutId(null);
+      setShowHandoutImmediately(false);
+      setForcedHandoutQueue([]);
+      knownChatMessageIdsRef.current.clear();
+      immediateHandoutsReadyRef.current = false;
       setHandoutPickerOpen(false);
       setLightboxHandout(null);
       setParticipant(joined);
@@ -1989,6 +2028,7 @@ export default function BattleMapPrototype() {
       senderRole: participant.role,
       recipientName,
       body: message,
+      showImmediately: Boolean(selectedChatHandout && showHandoutImmediately),
       handout: selectedChatHandout ? {
         id: selectedChatHandout.id,
         title: selectedChatHandout.title,
@@ -2002,11 +2042,12 @@ export default function BattleMapPrototype() {
     setChatSending(true);
     setChatDraft("");
     setSelectedChatHandoutId(null);
+    setShowHandoutImmediately(false);
     setHandoutPickerOpen(false);
     chatShouldStickRef.current = true;
     const result = await runOptimisticCommand<{ state: EncounterState; messageId: string }>(
       "send-chat-message",
-      { recipientName, message, handoutId: selectedChatHandout?.id ?? null },
+      { recipientName, message, handoutId: selectedChatHandout?.id ?? null, showImmediately: Boolean(selectedChatHandout && showHandoutImmediately) },
       (current) => ({ ...current, chatMessages: [...current.chatMessages, optimisticMessage] }),
       undefined,
       undefined,
@@ -2015,6 +2056,7 @@ export default function BattleMapPrototype() {
     if (!result) {
       setChatDraft((current) => current || message);
       setSelectedChatHandoutId(selectedChatHandout?.id ?? null);
+      setShowHandoutImmediately(Boolean(selectedChatHandout && showHandoutImmediately));
     }
     setChatSending(false);
   };
@@ -3352,7 +3394,7 @@ export default function BattleMapPrototype() {
                     </button>)}</div> : <p>No prepared handouts yet. Upload one here or in Scenario Setup.</p>}
                     {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
                   </div> : null}
-                  {selectedChatHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedChatHandout.title}</strong></span><IconActionButton variant="close" label="Remove attached handout" onClick={() => setSelectedChatHandoutId(null)} /></div> : null}
+                  {selectedChatHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedChatHandout.title}</strong></span><IconActionButton variant="close" label="Remove attached handout" onClick={() => { setSelectedChatHandoutId(null); setShowHandoutImmediately(false); }} /><label className="chat-show-immediately"><input type="checkbox" checked={showHandoutImmediately} onChange={(event) => setShowHandoutImmediately(event.target.checked)} /><span><strong>Show immediately</strong><small>Opens for connected recipients without marking chat read.</small></span></label></div> : null}
                   <div className="chat-compose-entry">
                     <textarea
                       id="chat-message-input"

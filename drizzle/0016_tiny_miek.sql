@@ -1,0 +1,1 @@
+ALTER TABLE `chat_messages` ADD `show_immediately` integer DEFAULT false NOT NULL;

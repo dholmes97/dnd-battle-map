@@ -160,6 +160,7 @@ type ChatMessageRow = {
   handout_height: number | null;
   handout_updated_at: number | null;
   handout_deleted_at: number | null;
+  show_immediately: number;
   created_at: number;
 };
 
@@ -581,6 +582,7 @@ async function ensureSchema(env: Env): Promise<void> {
           recipient_name TEXT,
           body TEXT NOT NULL,
           handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL,
+          show_immediately INTEGER DEFAULT 0 NOT NULL,
           created_at INTEGER NOT NULL
         )`),
         db.prepare(`CREATE TABLE IF NOT EXISTS creature_catalog (
@@ -675,6 +677,9 @@ async function ensureSchema(env: Env): Promise<void> {
         .all<{ name: string }>();
       if (!chatColumns.results.some((column) => column.name === "handout_id")) {
         await db.prepare("ALTER TABLE chat_messages ADD COLUMN handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL").run();
+      }
+      if (!chatColumns.results.some((column) => column.name === "show_immediately")) {
+        await db.prepare("ALTER TABLE chat_messages ADD COLUMN show_immediately INTEGER DEFAULT 0 NOT NULL").run();
       }
 
       const handoutColumns = await db
@@ -1416,7 +1421,7 @@ async function encounterState(
   const recentChatMessages = viewer
     ? await env.DB.prepare(
         `SELECT cm.id, cm.sender_name, cm.sender_role, cm.recipient_name, cm.body,
-                cm.handout_id, cm.created_at, h.title AS handout_title,
+                cm.handout_id, cm.show_immediately, cm.created_at, h.title AS handout_title,
                 h.width AS handout_width, h.height AS handout_height,
                 h.updated_at AS handout_updated_at,
                 h.deleted_at AS handout_deleted_at
@@ -1560,6 +1565,7 @@ async function encounterState(
         senderRole: message.sender_role,
         recipientName: message.recipient_name,
         body: message.body,
+        showImmediately: message.show_immediately === 1,
         handout: message.handout_id && message.handout_title ? {
           id: message.handout_id,
           title: message.handout_title,
@@ -1813,6 +1819,7 @@ async function handleCommand(
   if (command === "send-chat-message") {
     const messageBody = cleanChatBody(body.message);
     const handoutId = cleanTokenId(body.handoutId) || null;
+    const showImmediately = Boolean(handoutId && participant.role === "dm" && body.showImmediately === true);
     if (!messageBody && !handoutId) {
       return json({ error: "Enter a message or attach a handout before sending." }, { status: 400 });
     }
@@ -1836,10 +1843,10 @@ async function handleCommand(
     const messageId = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO chat_messages
-       (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, show_immediately, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, handoutId, now)
+      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, handoutId, showImmediately ? 1 : 0, now)
       .run();
     await bumpEncounter(env, encounter.id, now);
     return json({ messageId, state: await state() });

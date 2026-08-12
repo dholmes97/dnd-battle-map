@@ -39,3 +39,25 @@ export function chatChannelKeyForMessage(message, viewer) {
   }
   return CHAT_DM_NAME;
 }
+
+export function shouldShowHandoutImmediately(message, viewer) {
+  return Boolean(
+    viewer?.role === "player"
+    && message?.senderRole === "dm"
+    && message?.showImmediately === true
+    && message?.handout?.available
+    && chatMessageVisibleToViewer(message, viewer),
+  );
+}
+
+export function incomingImmediateHandouts(messages, viewer, knownMessageIds, liveSessionReady) {
+  const known = new Set(knownMessageIds);
+  return {
+    knownMessageIds: messages.map((message) => message.id),
+    handouts: liveSessionReady
+      ? messages
+          .filter((message) => !known.has(message.id) && shouldShowHandoutImmediately(message, viewer))
+          .map((message) => message.handout)
+      : [],
+  };
+}

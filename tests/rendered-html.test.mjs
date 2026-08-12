@@ -112,12 +112,13 @@ test("ships durable public and DM-private encounter chat", async () => {
 });
 
 test("prepares bounded private image handouts and delivers them through chat", async () => {
-  const [clientSource, workerSource, handoutDomain, styles, migration] = await Promise.all([
+  const [clientSource, workerSource, handoutDomain, styles, migration, immediateMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/handout-domain.mjs", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0015_dry_ben_grimm.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0016_tiny_miek.sql", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /async function prepareHandoutImages/);
@@ -130,12 +131,17 @@ test("prepares bounded private image handouts and delivers them through chat", a
   assert.match(clientSource, /className="handout-lightbox"/);
   assert.match(clientSource, /handoutFitMode/);
   assert.match(clientSource, />Actual size<\/button>/);
+  assert.match(clientSource, /Show immediately/);
+  assert.match(clientSource, /incomingImmediateHandouts/);
+  assert.match(clientSource, /setForcedHandoutQueue/);
+  assert.match(clientSource, /without marking chat read/);
   assert.match(clientSource, /form\.set\("replaceId", replaceId\)/);
   assert.match(clientSource, />Replace<input type="file"/);
   assert.match(clientSource, /It appears in \$\{handout\.messageCount\} chat/);
   assert.match(workerSource, /Only the DM can prepare handouts/);
   assert.match(workerSource, /handoutVisibleToViewer/);
   assert.match(workerSource, /inspectStoredHandout/);
+  assert.match(workerSource, /show_immediately/);
   assert.match(workerSource, /handouts\/\$\{encounter\.id\}\/\$\{handoutId\}/);
   assert.match(workerSource, /MAP_ASSETS\.delete\(handout\.display_key\)/);
   assert.match(workerSource, /UPDATE handouts SET title = \?, display_key = \?, thumbnail_key = \?/);
@@ -146,9 +152,11 @@ test("prepares bounded private image handouts and delivers them through chat", a
   assert.match(styles, /\.scenario-handout-list/);
   assert.match(styles, /\.handout-lightbox/);
   assert.match(styles, /\.handout-lightbox-image \{[^}]*overflow: auto/s);
-  assert.match(styles, /\.handout-lightbox-image\.is-fit img \{[^}]*max-height: 100%/s);
+  assert.match(styles, /\.handout-lightbox-image\.is-fit \.handout-image-shell \{[^}]*position: relative[^}]*height: 100%/s);
+  assert.match(styles, /\.handout-lightbox-image\.is-fit img \{[^}]*position: absolute[^}]*width: 100%[^}]*height: 100%[^}]*object-fit: contain/s);
   assert.match(migration, /CREATE TABLE `handouts`/);
   assert.match(migration, /ALTER TABLE `chat_messages` ADD `handout_id`/);
+  assert.match(immediateMigration, /ALTER TABLE `chat_messages` ADD `show_immediately`/);
 });
 
 test("keeps DM notes private while making map labels and notes directly manageable", async () => {

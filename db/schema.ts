@@ -244,6 +244,7 @@ export const chatMessages = sqliteTable(
     recipientName: text("recipient_name"),
     body: text("body").notNull(),
     handoutId: text("handout_id").references(() => handouts.id, { onDelete: "set null" }),
+    showImmediately: integer("show_immediately", { mode: "boolean" }).default(false).notNull(),
     createdAt: integer("created_at").notNull(),
   },
   (table) => [
