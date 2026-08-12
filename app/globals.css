@@ -435,6 +435,14 @@ input:focus {
 .ui-settings-section-label strong { color: #b9b0a3; font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; }
 .ui-settings-section-label small { color: #777066; font-size: 0.55rem; }
 .ui-settings-global { margin-top: 0.6rem; padding-top: 0.05rem; border-top: 1px solid #4a4031; }
+.ui-setting-select { display: grid; gap: 0.35rem; margin: 0.45rem 0; }
+.ui-setting-select > span, .vision-door-controls > span { display: grid; gap: 0.08rem; }
+.ui-setting-select strong, .vision-door-controls strong { color: #d1c8ba; font-size: 0.62rem; }
+.ui-setting-select small, .vision-door-controls small { color: #746e65; font-size: 0.52rem; }
+.ui-setting-select select { width: 100%; padding: 0.38rem 0.45rem; border: 1px solid #3c3933; border-radius: 0.34rem; background: #171715; color: #cbc2b4; font-size: 0.58rem; }
+.vision-door-controls { display: grid; gap: 0.3rem; margin: 0.5rem 0; }
+.vision-door-controls button { min-height: 1.7rem; border: 1px solid #493c32; border-radius: 0.32rem; background: rgba(155, 82, 51, 0.1); color: #d09b77; font-size: 0.55rem; }
+.vision-door-controls button.is-open { border-color: #3d644b; background: rgba(74, 137, 91, 0.12); color: #91c99f; }
 .grid-opacity-control { display: grid; gap: 0.28rem; padding: 0.58rem 0 0.5rem; color: #a69e92; font-size: 0.64rem; letter-spacing: 0.025em; }
 .grid-opacity-control > span { display: flex; justify-content: space-between; gap: 0.5rem; }
 .grid-opacity-control output { color: #d5c498; font-family: var(--font-geist-mono), monospace; font-variant-numeric: tabular-nums; }
@@ -1272,6 +1280,12 @@ input:focus {
 .structure-options > span { display: block; margin-bottom: 0.35rem; color: #8f887d; font-size: 0.58rem; }
 .structure-options label { margin: 0.35rem 0; }
 .structure-options textarea { width: 100%; min-height: 3.6rem; resize: vertical; padding: 0.45rem; border: 1px solid #393a34; border-radius: 0.35rem; background: #11120f; color: #d0c8bb; font: 0.62rem/1.4 var(--font-geist-sans), sans-serif; }
+.fog-workshop-panel { background: linear-gradient(145deg, rgba(94, 70, 128, 0.09), transparent); }
+.fog-workshop-panel select { width: 100%; }
+.fog-workshop-panel .button-row { grid-template-columns: 1fr 1fr; }
+.selected-fog-blocker { margin-top: 0.5rem; padding: 0.45rem; display: grid; gap: 0.35rem; border: 1px solid #4a4057; border-radius: 0.38rem; background: #17141b; }
+.selected-fog-blocker strong { color: #c7b7dc; font-size: 0.6rem; text-transform: capitalize; }
+.selected-fog-blocker button { min-height: 1.8rem; font-size: 0.58rem; }
 
 .scene-kit-list { display: grid; gap: 0.3rem; }
 .scene-kit-list button {

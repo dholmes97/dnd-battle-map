@@ -1,4 +1,5 @@
 import type { MapBiome, MapPackage } from "./map-package.ts";
+import { defaultFogConfig } from "./fog-of-war.mjs";
 
 export type SceneKitDefinition = {
   id: string;
@@ -215,6 +216,7 @@ export function createFullSceneMap(definition: FullSceneDefinition): MapPackage 
     portals: [],
     labels: [],
     notes: [],
+    fog: defaultFogConfig(width, height),
     visual: {
       kind: "generated-scene",
       assetUrl: definition.assetUrl,

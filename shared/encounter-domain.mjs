@@ -14,6 +14,7 @@ export function mapPackageForViewer(mapPackage, viewer) {
     ...mapPackage,
     labels: mapPackage.labels.filter((label) => label.visibility === "everyone"),
     notes: [],
+    fog: mapPackage.fog ? { mode: mapPackage.fog.mode, sharedPolygon: [], walls: [], doors: [], circles: [] } : undefined,
   };
 }
 

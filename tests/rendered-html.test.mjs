@@ -1066,3 +1066,22 @@ test("keeps temporary annotations out of undo and explains history conflicts", a
   assert.match(encounterDomain, /This drawing cannot be \$\{direction\} because it was changed, erased, or cleared\./);
   assert.doesNotMatch(encounterDomain, /That action can no longer be undone because its shared state changed/);
 });
+
+test("ships all three authoritative fog-of-war modes and private vision guides", async () => {
+  const [clientSource, workshopSource, workerSource, packageSource] = await Promise.all([
+    readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/map-package.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(clientSource, /No fog/);
+  assert.match(clientSource, /DM-controlled shared fog/);
+  assert.match(clientSource, /Dynamic character vision/);
+  assert.match(clientSource, /aria-label="Edit shared fog"/);
+  assert.match(workshopSource, /Vision wall/);
+  assert.match(workshopSource, /Vision door/);
+  assert.match(workshopSource, /Round blocker/);
+  assert.match(workerSource, /command === "update-shared-fog"/);
+  assert.match(workerSource, /pointVisibleToViewer\(token, fogVisibility\)/);
+  assert.match(packageSource, /export type FogConfig/);
+});

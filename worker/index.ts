@@ -22,6 +22,7 @@ import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action
 import { healthBand } from "../shared/health.mjs";
 import { movementPolicyDenial } from "../shared/battle-map-policies.mjs";
 import { calculateDirectDistance } from "../shared/battle-map-geometry.mjs";
+import { pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.mjs";
 import {
   historyConflictMessage,
   mapPackageForViewer,
@@ -1472,11 +1473,14 @@ async function encounterState(
   const viewerControls = (token: TokenRow) => Boolean(
     viewer && identityControlsToken(viewer, controllerName(token)),
   );
+  const visibilityTokens = tokens.results.map((token) => ({
+    x: token.x, y: token.y, kind: token.kind, controlledByViewer: viewerControls(token),
+  }));
+  const fogVisibility = visibilityForViewer(activeMapPackage, visibilityTokens, viewer);
   const visibleTokens = tokens.results.filter(
     (token) =>
-      !token.is_hidden ||
-      viewer?.role === "dm" ||
-      viewerControls(token),
+      ((!token.is_hidden || viewer?.role === "dm" || viewerControls(token)) &&
+      (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
   return {
     encounter: {
@@ -1489,6 +1493,7 @@ async function encounterState(
       currentRound: encounter!.current_round,
       activeInitiativeOrder: encounter!.active_initiative_order,
       strictMovement: Boolean(encounter!.strict_movement),
+      fogVisibility,
       updatedAt: encounter!.updated_at,
     },
     grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
@@ -1541,7 +1546,7 @@ async function encounterState(
         controlledByViewer,
       };
     }),
-    annotations: annotations.results.map((annotation) => ({
+    annotations: annotations.results.filter((annotation) => viewer?.role === "dm" || pointVisibleToViewer(annotation, fogVisibility)).map((annotation) => ({
       id: annotation.id,
       type: annotation.annotation_type,
       x: annotation.x,
@@ -2631,6 +2636,52 @@ async function handleCommand(
       from: Boolean(encounter.strict_movement),
       to: body.enabled,
     }, now);
+    return json({ updated: true, state: await state() });
+  }
+
+  if (command === "set-fog-mode") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const mode = body.mode;
+    if (mode !== "off" && mode !== "shared" && mode !== "dynamic") return json({ error: "Choose no fog, shared fog, or dynamic vision." }, { status: 400 });
+    const mapPackage = cleanMapPackage(encounter.map_package_json);
+    if (!mapPackage) return json({ error: "Apply a map before enabling fog of war." }, { status: 400 });
+    const previousMode = mapPackage.fog.mode;
+    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, mode } };
+    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
+      .bind(JSON.stringify(nextPackage), now, encounter.id).run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "fog_mode_changed", { from: previousMode, to: mode }, now);
+    return json({ updated: true, state: await state() });
+  }
+
+  if (command === "set-vision-door-open") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const doorId = cleanTokenId(body.doorId);
+    if (!doorId || typeof body.open !== "boolean") return json({ error: "Choose a vision door and whether it is open." }, { status: 400 });
+    const mapPackage = cleanMapPackage(encounter.map_package_json);
+    if (!mapPackage) return json({ error: "Apply a map before changing vision doors." }, { status: 400 });
+    if (!mapPackage.fog.doors.some((door) => door.id === doorId)) return json({ error: "That vision door no longer exists." }, { status: 404 });
+    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, doors: mapPackage.fog.doors.map((door) => door.id === doorId ? { ...door, open: body.open as boolean } : door) } };
+    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
+      .bind(JSON.stringify(nextPackage), now, encounter.id).run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "vision_door_changed", { doorId, open: body.open }, now);
+    return json({ updated: true, state: await state() });
+  }
+
+  if (command === "update-shared-fog") {
+    const denied = requireDm();
+    if (denied) return denied;
+    const mapPackage = cleanMapPackage(encounter.map_package_json);
+    if (!mapPackage) return json({ error: "Apply a map before changing shared fog." }, { status: 400 });
+    const candidate = cleanMapPackage(JSON.stringify({ ...mapPackage, fog: { ...mapPackage.fog, sharedPolygon: body.polygon } }));
+    if (!candidate || candidate.fog.sharedPolygon.length < 3) return json({ error: "Shared fog needs at least three valid corners inside the map." }, { status: 400 });
+    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
+      .bind(JSON.stringify(candidate), now, encounter.id).run();
+    await bumpEncounter(env, encounter.id, now);
+    await recordAction(env, encounter.id, participant.id, "shared_fog_changed", { cornerCount: candidate.fog.sharedPolygon.length }, now);
     return json({ updated: true, state: await state() });
   }
 

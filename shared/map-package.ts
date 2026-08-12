@@ -54,6 +54,18 @@ export type MapNote = {
   text: string;
 };
 
+export type FogPoint = { x: number; y: number };
+export type FogSegment = { id: string; x1: number; y1: number; x2: number; y2: number };
+export type FogDoor = FogSegment & { open: boolean };
+export type FogCircle = { id: string; x: number; y: number; radius: number };
+export type FogConfig = {
+  mode: "off" | "shared" | "dynamic";
+  sharedPolygon: FogPoint[];
+  walls: FogSegment[];
+  doors: FogDoor[];
+  circles: FogCircle[];
+};
+
 export type MapPackage = {
   format: "dnd-battle-map";
   version: 1;
@@ -71,6 +83,7 @@ export type MapPackage = {
   portals: Portal[];
   labels: MapLabel[];
   notes: MapNote[];
+  fog: FogConfig;
   source: { kind: "generated-scene" | "imported" };
   createdAt: number;
 };
@@ -80,6 +93,9 @@ const MOODS = new Set<MapMood>(["daylight", "overcast", "moonlight", "torchlight
 const ROTATIONS = new Set<MapRotation>([0, 90, 180, 270]);
 const MAX_PACKAGE_BYTES = 200_000;
 const MAX_ITEMS = 500;
+const MAX_SHARED_FOG_POINTS = 100;
+const MAX_VISION_SEGMENTS = 300;
+const MAX_VISION_CIRCLES = 60;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -162,6 +178,38 @@ function parsedList<T>(value: unknown, parse: (item: unknown) => T | null): T[] 
   return parsed.every((item): item is T => item !== null) ? parsed : null;
 }
 
+function parseFogPoint(value: unknown, width: number, height: number): FogPoint | null {
+  const item = record(value); if (!item) return null;
+  const x = finite(item.x, 0, width); const y = finite(item.y, 0, height);
+  return x === null || y === null ? null : { x, y };
+}
+
+function parseFogSegment(value: unknown, width: number, height: number): FogSegment | null {
+  const item = record(value); if (!item) return null;
+  const id = text(item.id, 96); const a = parseFogPoint({ x: item.x1, y: item.y1 }, width, height); const b = parseFogPoint({ x: item.x2, y: item.y2 }, width, height);
+  return id && a && b ? { id, x1: a.x, y1: a.y, x2: b.x, y2: b.y } : null;
+}
+
+function parseFog(value: unknown, width: number, height: number): FogConfig | null {
+  const item = record(value);
+  if (!item) return { mode: "off", sharedPolygon: [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }], walls: [], doors: [], circles: [] };
+  const mode = item.mode;
+  if (mode !== "off" && mode !== "shared" && mode !== "dynamic") return null;
+  const sharedPolygon = parsedList(item.sharedPolygon, (entry) => parseFogPoint(entry, width, height));
+  const walls = parsedList(item.walls, (entry) => parseFogSegment(entry, width, height));
+  const doors = parsedList(item.doors, (entry) => {
+    const segment = parseFogSegment(entry, width, height); const source = record(entry);
+    return segment && source && typeof source.open === "boolean" ? { ...segment, open: source.open } : null;
+  });
+  const circles = parsedList(item.circles, (entry) => {
+    const source = record(entry); if (!source) return null;
+    const id = text(source.id, 96); const point = parseFogPoint(source, width, height); const radius = finite(source.radius, 0.1, Math.max(width, height));
+    return id && point && radius !== null ? { id, ...point, radius } : null;
+  });
+  if (!sharedPolygon || sharedPolygon.length < 3 || sharedPolygon.length > MAX_SHARED_FOG_POINTS || !walls || !doors || !circles || walls.length + doors.length > MAX_VISION_SEGMENTS || circles.length > MAX_VISION_CIRCLES) return null;
+  return { mode, sharedPolygon, walls, doors, circles };
+}
+
 export function parseMapPackage(value: unknown): MapPackage | null {
   try {
     if (JSON.stringify(value).length > MAX_PACKAGE_BYTES) return null;
@@ -182,11 +230,12 @@ export function parseMapPackage(value: unknown): MapPackage | null {
   const portals = parsedList(item.portals, (entry) => parsePortal(entry, width, height));
   const labels = parsedList(item.labels, (entry) => parseLabel(entry, width, height));
   const notes = parsedList(item.notes, (entry) => parseNote(entry, width, height));
-  if (!sceneObjects || !walls || !portals || !labels || !notes) return null;
+  const fog = parseFog(item.fog, width, height);
+  if (!sceneObjects || !walls || !portals || !labels || !notes || !fog) return null;
   return {
     format: "dnd-battle-map", version: 1, id, name, description, biome, mood, seed, width, height,
     visual: { kind: "generated-scene", assetUrl, pixelWidth, pixelHeight, sceneKitId },
-    sceneObjects, walls, portals, labels, notes, source: { kind: sourceKind }, createdAt,
+    sceneObjects, walls, portals, labels, notes, fog, source: { kind: sourceKind }, createdAt,
   };
 }
 

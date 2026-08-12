@@ -9,5 +9,6 @@ export function movementPolicyDenial({ strictMovement, participantRole, controll
 }
 
 export function mapSceneContentKey(mapPackage) {
-  return mapPackage ? JSON.stringify(mapPackage) : "";
+  if (!mapPackage) return "";
+  return JSON.stringify({ ...mapPackage, fog: undefined });
 }

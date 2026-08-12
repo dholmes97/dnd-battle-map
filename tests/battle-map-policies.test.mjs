@@ -56,11 +56,14 @@ test("equivalent map payloads share a cache key while content edits invalidate i
     visual: { assetUrl: "/map-assets/forest.jpg" },
     sceneObjects: [{ id: "rock-1", x: 2, y: 3 }],
     labels: [],
+    fog: { mode: "off", sharedPolygon: [], walls: [], doors: [], circles: [] },
   };
   const clone = JSON.parse(JSON.stringify(map));
   const edited = { ...clone, sceneObjects: [{ ...clone.sceneObjects[0], x: 4 }] };
+  const fogEdited = { ...clone, fog: { ...clone.fog, mode: "dynamic", walls: [{ id: "wall", x1: 1, y1: 1, x2: 2, y2: 2 }] } };
 
   assert.equal(mapSceneContentKey(map), mapSceneContentKey(clone));
   assert.notEqual(mapSceneContentKey(map), mapSceneContentKey(edited));
+  assert.equal(mapSceneContentKey(map), mapSceneContentKey(fogEdited), "fog guides must not rebuild the large scene canvas");
   assert.equal(mapSceneContentKey(null), "");
 });
