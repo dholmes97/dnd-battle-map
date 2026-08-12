@@ -1083,5 +1083,6 @@ test("ships all three authoritative fog-of-war modes and private vision guides",
   assert.match(workshopSource, /Round blocker/);
   assert.match(workerSource, /command === "update-shared-fog"/);
   assert.match(workerSource, /pointVisibleToViewer\(token, fogVisibility\)/);
+  assert.match(workerSource, /if \(encounter\.version === lastVersion\)[\s\S]*status: 204[\s\S]*const state = await encounterState/);
   assert.match(packageSource, /export type FogConfig/);
 });

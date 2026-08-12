@@ -1681,14 +1681,17 @@ async function handleStatePoll(
   const encounter = await findEncounter(env, code);
   if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
   const viewer = await participantFromHeaders(request, env, encounter.id);
+  // Version equality is authoritative: avoid loading tokens, effects, map
+  // packages, chat, and dynamic sight polygons for an unchanged idle poll.
+  if (encounter.version === lastVersion) {
+    return new Response(null, {
+      status: 204,
+      headers: { "cache-control": "no-store" },
+    });
+  }
   const state = await encounterState(env, code, viewer);
   if (!state) return json({ error: "Encounter not found." }, { status: 404 });
-  if (state.encounter.version !== lastVersion) return json(state);
-
-  return new Response(null, {
-    status: 204,
-    headers: { "cache-control": "no-store" },
-  });
+  return json(state);
 }
 
 async function canControlToken(

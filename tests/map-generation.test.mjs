@@ -48,6 +48,7 @@ test("full-scene packages round-trip with semantic additions", () => {
   map.portals.push({ id: "door-1", x: 3, y: 1, orientation: "horizontal", kind: "door", open: false });
   map.labels.push({ id: "label-1", x: 8, y: 5, text: "Old trail", visibility: "everyone" });
   map.notes.push({ id: "note-1", x: 9, y: 4, text: "Hidden cache" });
+  map.fog = { mode: "dynamic", sharedPolygon: map.fog.sharedPolygon, walls: [{ id: "vision-wall-1", x1: 2, y1: 2, x2: 2, y2: 8 }], doors: [{ id: "vision-door-1", x1: 2, y1: 4, x2: 2, y2: 5, open: false }], circles: [{ id: "vision-rock-1", x: 10, y: 8, radius: 1.5 }] };
   assert.deepEqual(parseMapPackage(JSON.parse(JSON.stringify(map))), map);
 });
 
@@ -57,5 +58,7 @@ test("validation rejects old editor packages, external images, and oversized dat
   assert.equal(parseMapPackage({ ...valid, visual: { ...valid.visual, assetUrl: "https://example.com/map.jpg" } }), null);
   assert.equal(parseMapPackage({ ...valid, width: 49 }), null);
   assert.equal(parseMapPackage({ ...valid, sceneObjects: Array(501).fill({ id: "x" }) }), null);
+  assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, walls: Array.from({ length: 161 }, (_, index) => ({ id: `w-${index}`, x1: 0, y1: 0, x2: 1, y2: 1 })) } }), null);
+  assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, circles: Array.from({ length: 33 }, (_, index) => ({ id: `c-${index}`, x: 1, y: 1, radius: 0.5 })) } }), null);
   assert.equal(parseMapPackage({ ...valid, format: "unknown-map" }), null);
 });

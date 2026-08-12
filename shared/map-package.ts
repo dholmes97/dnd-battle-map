@@ -94,8 +94,8 @@ const ROTATIONS = new Set<MapRotation>([0, 90, 180, 270]);
 const MAX_PACKAGE_BYTES = 200_000;
 const MAX_ITEMS = 500;
 const MAX_SHARED_FOG_POINTS = 100;
-const MAX_VISION_SEGMENTS = 300;
-const MAX_VISION_CIRCLES = 60;
+const MAX_VISION_SEGMENTS = 160;
+const MAX_VISION_CIRCLES = 32;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
