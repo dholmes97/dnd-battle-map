@@ -240,6 +240,32 @@ test("removes starter artifacts and packages the D1 migration", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
 });
 
+test("ships an authenticated read-only production backup path outside the repository", async () => {
+  const [packageText, workerSource, backupSource, backupDocs] = await Promise.all([
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/backup-production.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../docs/PRODUCTION-BACKUPS.md", import.meta.url), "utf8"),
+  ]);
+  const packageJson = JSON.parse(packageText);
+
+  assert.equal(packageJson.scripts["backup:production"], "node scripts/backup-production.mjs");
+  assert.match(workerSource, /PRODUCTION_BACKUP_TOKEN/);
+  assert.match(workerSource, /PRODUCTION_BACKUP_ROUTE/);
+  assert.match(workerSource, /SELECT \* FROM \$\{quoteBackupTable\(requestedTable\)\} ORDER BY rowid LIMIT \? OFFSET \?/);
+  assert.match(workerSource, /name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'/);
+  assert.match(workerSource, /MAP_ASSETS\.list/);
+  assert.match(workerSource, /MAP_ASSETS\.get\(key\)/);
+  assert.doesNotMatch(workerSource.match(/async function handleProductionR2Backup[\s\S]+?\n\}/)?.[0] ?? "", /MAP_ASSETS\.(?:put|delete)/);
+  assert.match(backupSource, /join\(dirname\(projectRoot\), `\$\{basename\(projectRoot\)\} Backups`\)/);
+  assert.match(backupSource, /\.incomplete/);
+  assert.match(backupSource, /PRAGMA integrity_check/);
+  assert.match(backupSource, /sha256/);
+  assert.match(backupSource, /Refusing to overwrite existing backup path/);
+  assert.match(backupDocs, /Run backups while the game is idle/);
+  assert.match(backupDocs, /Restoration is intentionally not automated/);
+});
+
 test("removes the retired editor art libraries", async () => {
   await assert.rejects(access(new URL("../public/assets/terrain/", import.meta.url)));
   await assert.rejects(access(new URL("../public/assets/map-stamps/", import.meta.url)));

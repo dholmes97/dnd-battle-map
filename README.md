@@ -34,6 +34,11 @@ npm run lint
 npm test
 ```
 
+Before a production deployment that changes persistence or storage behavior,
+create and verify a local D1/R2 snapshot with `npm run backup:production`. See
+[`docs/PRODUCTION-BACKUPS.md`](docs/PRODUCTION-BACKUPS.md) for setup, contents,
+and recovery precautions.
+
 With the development server running, exercise the authoritative multi-client
 API path against its printed local URL:
 

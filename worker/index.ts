@@ -55,6 +55,7 @@ interface Env {
   DB: D1Database;
   MAP_ASSETS?: R2Bucket;
   CATALOG_IMPORT_TOKEN?: string;
+  PRODUCTION_BACKUP_TOKEN?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -219,6 +220,9 @@ const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|move|command)$/;
 const HANDOUT_API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/handouts(?:\/([^/]+)(?:\/(thumbnail|display))?)?$/;
+const PRODUCTION_BACKUP_ROUTE = /^\/api\/admin\/production-backup\/(d1|r2(?:\/object)?)$/;
+
+const PRODUCTION_BACKUP_PAGE_SIZE = 100;
 
 let schemaReady: Promise<void> | null = null;
 
@@ -368,6 +372,135 @@ function json(data: unknown, init: ResponseInit = {}): Response {
   headers.set("content-type", "application/json; charset=utf-8");
   headers.set("cache-control", "no-store");
   return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+function bearerTokenMatches(request: Request, configured: string): boolean {
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (configured.length < 32 || supplied.length !== configured.length) return false;
+  let difference = 0;
+  for (let index = 0; index < configured.length; index += 1) {
+    difference |= configured.charCodeAt(index) ^ supplied.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function authorizedProductionBackup(request: Request, env: Env): boolean {
+  return bearerTokenMatches(request, env.PRODUCTION_BACKUP_TOKEN ?? env.CATALOG_IMPORT_TOKEN ?? "");
+}
+
+function cleanBackupCursor(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const decoded = new TextDecoder().decode(Uint8Array.from(atob(value), (character) => character.charCodeAt(0)));
+    return decoded && decoded.length <= 1_024 ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function cleanBackupOffset(value: string | null): number | null {
+  if (value === null) return 0;
+  if (!/^(0|[1-9]\d*)$/.test(value)) return null;
+  const offset = Number(value);
+  return Number.isSafeInteger(offset) && offset >= 0 && offset <= 10_000_000 ? offset : null;
+}
+
+function encodeBackupCursor(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function quoteBackupTable(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+async function productionBackupTables(env: Env): Promise<Array<{ name: string; sql: string }>> {
+  const rows = await env.DB.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND sql IS NOT NULL ORDER BY name",
+  ).all<{ name: string; sql: string }>();
+  return rows.results ?? [];
+}
+
+async function handleProductionD1Backup(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
+  if (!authorizedProductionBackup(request, env)) return json({ error: "Backup authorization failed." }, { status: 401 });
+  const url = new URL(request.url);
+  const requestedTable = url.searchParams.get("table");
+  const backupTables = await productionBackupTables(env);
+  if (!requestedTable) {
+    const tables = [];
+    for (const table of backupTables) {
+      const count = await env.DB.prepare(`SELECT COUNT(*) AS count FROM ${quoteBackupTable(table.name)}`).first<{ count: number }>();
+      tables.push({ name: table.name, rowCount: count?.count ?? 0 });
+    }
+    const includedTables = new Set(tables.map((table) => table.name));
+    const schema = await env.DB.prepare(
+      "SELECT type, name, tbl_name AS tableName, sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, name",
+    ).all<{ type: string; name: string; tableName: string; sql: string }>();
+    return json({
+      formatVersion: 1,
+      capturedAt: new Date().toISOString(),
+      tables,
+      schema: (schema.results ?? []).filter((entry) => includedTables.has(entry.tableName)),
+    });
+  }
+  if (!backupTables.some((table) => table.name === requestedTable)) {
+    return json({ error: "Unknown backup table." }, { status: 400 });
+  }
+  const offset = cleanBackupOffset(url.searchParams.get("offset"));
+  if (offset === null) return json({ error: "Invalid backup offset." }, { status: 400 });
+  const rows = await env.DB.prepare(`SELECT * FROM ${quoteBackupTable(requestedTable)} ORDER BY rowid LIMIT ? OFFSET ?`)
+    .bind(PRODUCTION_BACKUP_PAGE_SIZE, offset).all<Record<string, unknown>>();
+  const items = rows.results ?? [];
+  return json({
+    formatVersion: 1,
+    table: requestedTable,
+    offset,
+    items,
+    nextOffset: items.length === PRODUCTION_BACKUP_PAGE_SIZE ? offset + items.length : null,
+  });
+}
+
+async function handleProductionR2Backup(request: Request, env: Env, object = false): Promise<Response> {
+  if (request.method !== "GET") return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
+  if (!authorizedProductionBackup(request, env)) return json({ error: "Backup authorization failed." }, { status: 401 });
+  if (!env.MAP_ASSETS) return json({ error: "Backup object storage is unavailable." }, { status: 503 });
+  const url = new URL(request.url);
+  if (object) {
+    const key = cleanBackupCursor(url.searchParams.get("key"));
+    if (!key) return json({ error: "A valid object key is required." }, { status: 400 });
+    const stored = await env.MAP_ASSETS.get(key);
+    if (!stored) return json({ error: "Backup object not found." }, { status: 404 });
+    const headers = new Headers({
+      "cache-control": "private, no-store",
+      "content-type": stored.httpMetadata?.contentType ?? "application/octet-stream",
+      "x-content-type-options": "nosniff",
+      "x-r2-key": encodeBackupCursor(key),
+    });
+    if (stored.httpEtag) headers.set("etag", stored.httpEtag);
+    return new Response(stored.body, { headers });
+  }
+  const cursor = cleanBackupCursor(url.searchParams.get("cursor"));
+  const listed = await env.MAP_ASSETS.list({
+    limit: PRODUCTION_BACKUP_PAGE_SIZE,
+    include: ["httpMetadata"],
+    ...(cursor ? { cursor } : {}),
+  });
+  return json({
+    formatVersion: 1,
+    objects: listed.objects.map((entry) => ({
+      key: entry.key,
+      encodedKey: encodeBackupCursor(entry.key),
+      size: entry.size,
+      etag: entry.httpEtag,
+      uploaded: entry.uploaded.toISOString(),
+      contentType: entry.httpMetadata?.contentType ?? null,
+    })),
+    truncated: listed.truncated,
+    cursor: listed.truncated ? encodeBackupCursor(listed.cursor) : null,
+  });
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
@@ -3391,6 +3524,17 @@ async function handleApi(
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    const productionBackupMatch = url.pathname.match(PRODUCTION_BACKUP_ROUTE);
+    if (productionBackupMatch) {
+      try {
+        if (productionBackupMatch[1] === "d1") return await handleProductionD1Backup(request, env);
+        return await handleProductionR2Backup(request, env, productionBackupMatch[1] === "r2/object");
+      } catch (error) {
+        console.error("Production backup API error", error);
+        return json({ error: "The production backup could not be read." }, { status: 500 });
+      }
+    }
 
     if (url.pathname === "/api/creatures") {
       try {
