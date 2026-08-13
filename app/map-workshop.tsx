@@ -43,10 +43,10 @@ type Props = {
   onClose: () => void;
 };
 
-type Tool = "select" | "wall" | "door" | "window" | "label" | "note" | "fog-select" | "fog-add" | "vision-wall" | "vision-door" | "vision-circle";
+type Tool = "select" | "label" | "note" | "fog-select" | "fog-add" | "vision-wall" | "vision-door" | "vision-circle";
 type Point = { x: number; y: number };
 type DragState = { pointerId: number; objectId: string; offset: Point; before: MapPackage };
-type WallDrag = { pointerId: number; start: Point; kind: "wall" | "vision-wall" | "vision-door" };
+type WallDrag = { pointerId: number; start: Point; kind: "vision-wall" | "vision-door" };
 type FogVertexDrag = { pointerId: number; index: number; before: MapPackage };
 type FogCircleDrag = { pointerId: number; center: Point };
 type SelectedAnnotation = { kind: "label" | "note"; id: string };
@@ -56,6 +56,11 @@ type FogBlockerDrag = { pointerId: number; target: FogBlockerTarget; start: Poin
 
 const DEFAULT_SCENE = FULL_SCENE_MAPS[0];
 const HISTORY_LIMIT = 50;
+
+function withCanonicalBaseMapName(map: MapPackage): MapPackage {
+  const baseName = FULL_SCENE_MAPS.find((scene) => scene.assetUrl === map.visual.assetUrl)?.name;
+  return baseName && baseName !== map.name ? { ...map, name: baseName } : map;
+}
 
 function loadImage(path: string): Promise<[string, HTMLImageElement] | null> {
   return new Promise((resolve) => {
@@ -165,17 +170,17 @@ export function renderMapPackageToCanvas(canvas: HTMLCanvasElement, map: MapPack
 }
 
 export default function MapWorkshop({ activeMapPackage, activeMapPresetId, savedPresets, onCommand, onClose }: Props) {
-  const initial = useMemo(() => cloneMapPackage(activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE)), [activeMapPackage]);
+  const initial = useMemo(() => withCanonicalBaseMapName(cloneMapPackage(activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE))), [activeMapPackage]);
+  const initialPresetName = savedPresets.find((preset) => preset.id === activeMapPresetId)?.name ?? initial.name;
   const [map, setMap] = useState(initial);
   const [dirty, setDirty] = useState(false);
   const [tool, setTool] = useState<Tool>("select");
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [selectedAnnotation, setSelectedAnnotation] = useState<SelectedAnnotation | null>(null);
-  const [portalOrientation, setPortalOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [labelText, setLabelText] = useState("");
   const [labelVisibility, setLabelVisibility] = useState<"dm" | "everyone">("everyone");
   const [noteText, setNoteText] = useState("");
-  const [presetName, setPresetName] = useState(initial.name);
+  const [presetName, setPresetName] = useState(initialPresetName);
   const [loadedPresetId, setLoadedPresetId] = useState<string | null>(activeMapPresetId);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -302,8 +307,8 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     undoRef.current = [...undoRef.current.slice(-(HISTORY_LIMIT - 1)), cloneMapPackage(before)]; redoRef.current = []; setHistoryCounts({ undo: undoRef.current.length, redo: 0 });
   };
   const commit = (update: (current: MapPackage) => MapPackage) => setMap((current) => { const next = update(current); remember(current); setDirty(true); return next; });
-  const replaceDraft = (next: MapPackage, changed: boolean) => {
-    setMap(cloneMapPackage(next)); setDirty(changed); setPresetName(next.name); setSelectedObjectId(null); setSelectedAnnotation(null); setSelectedFogVertex(null); setSelectedFogBlocker(null); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
+  const replaceDraft = (next: MapPackage, changed: boolean, nextPresetName = next.name) => {
+    setMap(withCanonicalBaseMapName(cloneMapPackage(next))); setDirty(changed); setPresetName(nextPresetName); setSelectedObjectId(null); setSelectedAnnotation(null); setSelectedFogVertex(null); setSelectedFogBlocker(null); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
   };
   const undo = () => {
     const previous = undoRef.current.pop(); if (!previous) return;
@@ -373,9 +378,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       if (object) { objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, offset: { x: point.x - object.x, y: point.y - object.y }, before: cloneMapPackage(map) }; event.currentTarget.setPointerCapture(event.pointerId); }
       return;
     }
-    if (tool === "wall") { const start = snapMapPoint(point); wallDragRef.current = { pointerId: event.pointerId, start, kind: "wall" }; setWallPreview({ start, end: start }); event.currentTarget.setPointerCapture(event.pointerId); return; }
     const location = snapMapPoint(point); const id = crypto.randomUUID();
-    if (tool === "door" || tool === "window") commit((current) => ({ ...current, portals: [...current.portals, { id, x: location.x, y: location.y, orientation: portalOrientation, kind: tool, open: false }] }));
     if (tool === "label" && labelText.trim()) commit((current) => ({ ...current, labels: [...current.labels, { id, x: location.x, y: location.y, text: labelText.trim().slice(0, 120), visibility: labelVisibility }] }));
     if (tool === "note" && noteText.trim()) commit((current) => ({ ...current, notes: [...current.notes, { id, x: location.x, y: location.y, text: noteText.trim().slice(0, 500) }] }));
   };
@@ -393,7 +396,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     const objectDrag = objectDragRef.current;
     if (objectDrag?.pointerId === event.pointerId) setMap((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === objectDrag.objectId ? { ...object, x: Math.max(0, Math.min(current.width - sceneObjectBounds(object).width, Math.round(point.x - objectDrag.offset.x))), y: Math.max(0, Math.min(current.height - sceneObjectBounds(object).height, Math.round(point.y - objectDrag.offset.y))) } : object) }));
     const wallDrag = wallDragRef.current;
-    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: wallDrag.kind === "wall" ? snapMapPoint(point) : freeFogPoint(point) });
+    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: freeFogPoint(point) });
   };
 
   const finishPointer = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -413,12 +416,11 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     if (objectDrag?.pointerId === event.pointerId) { remember(objectDrag.before); setDirty(true); objectDragRef.current = null; }
     const wallDrag = wallDragRef.current;
     if (wallDrag?.pointerId === event.pointerId) {
-      const rawEnd = canvasPoint(event.currentTarget, map, event.clientX, event.clientY); const end = wallDrag.kind === "wall" ? snapMapPoint(rawEnd) : freeFogPoint(rawEnd); wallDragRef.current = null; setWallPreview(null);
+      const rawEnd = canvasPoint(event.currentTarget, map, event.clientX, event.clientY); const end = freeFogPoint(rawEnd); wallDragRef.current = null; setWallPreview(null);
       if (end.x !== wallDrag.start.x || end.y !== wallDrag.start.y) {
         const id = crypto.randomUUID();
-        if (wallDrag.kind === "wall") commit((current) => ({ ...current, walls: [...current.walls, { id, x1: wallDrag.start.x, y1: wallDrag.start.y, x2: end.x, y2: end.y, style: current.biome === "cave" ? "cave" : current.biome === "ruins" ? "ruined" : "stone" }] }));
-        else commit((current) => ({ ...current, fog: { ...current.fog, [wallDrag.kind === "vision-door" ? "doors" : "walls"]: [...current.fog[wallDrag.kind === "vision-door" ? "doors" : "walls"], { id, x1: wallDrag.start.x, y1: wallDrag.start.y, x2: end.x, y2: end.y, ...(wallDrag.kind === "vision-door" ? { open: false } : {}) }] } }));
-        if (wallDrag.kind !== "wall") { setSelectedFogBlocker({ kind: wallDrag.kind === "vision-door" ? "door" : "wall", id }); setTool("fog-select"); }
+        commit((current) => ({ ...current, fog: { ...current.fog, [wallDrag.kind === "vision-door" ? "doors" : "walls"]: [...current.fog[wallDrag.kind === "vision-door" ? "doors" : "walls"], { id, x1: wallDrag.start.x, y1: wallDrag.start.y, x2: end.x, y2: end.y, ...(wallDrag.kind === "vision-door" ? { open: false } : {}) }] } }));
+        setSelectedFogBlocker({ kind: wallDrag.kind === "vision-door" ? "door" : "wall", id }); setTool("fog-select");
       }
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -466,12 +468,13 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   };
 
   const savePreset = async () => {
-    const name = presetName.trim() || map.name; const result = await runCommand("save-map-preset", { presetId: loadedPresetId || undefined, name, description: map.description, mapPackage: { ...map, name } }, loadedPresetId ? `Updated “${name}”.` : `Saved “${name}”.`);
+    const name = presetName.trim() || map.name; const result = await runCommand("save-map-preset", { presetId: loadedPresetId || undefined, name, description: map.description, mapPackage: map }, loadedPresetId ? `Updated “${name}”.` : `Saved “${name}”.`);
+    setPresetName(name);
     if (!loadedPresetId && result?.presetId) setLoadedPresetId(result.presetId);
   };
   const apply = async () => { const result = await runCommand("apply-map-package", { mapPackage: map, presetId: loadedPresetId || undefined }, `Applied “${map.name}”. Players now receive this scene.`); if (result) setDirty(false); };
-  const discard = () => { const next = activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE); replaceDraft(next, false); setLoadedPresetId(activeMapPresetId); setMessage("Discarded private changes and restored the applied scene."); };
-  const loadPreset = (preset: SavedMapPreset) => { replaceDraft(preset.mapPackage, preset.id !== activeMapPresetId); setLoadedPresetId(preset.id); setMessage(`Loaded “${preset.name}” into the private workshop.`); };
+  const discard = () => { const next = activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE); const activePresetName = savedPresets.find((preset) => preset.id === activeMapPresetId)?.name ?? next.name; replaceDraft(next, false, activePresetName); setLoadedPresetId(activeMapPresetId); setMessage("Discarded private changes and restored the applied scene."); };
+  const loadPreset = (preset: SavedMapPreset) => { replaceDraft(preset.mapPackage, preset.id !== activeMapPresetId, preset.name); setLoadedPresetId(preset.id); setMessage(`Loaded “${preset.name}” into the private workshop.`); };
   const exportPackage = () => { const url = URL.createObjectURL(new Blob([JSON.stringify(map, null, 2)], { type: "application/json" })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${map.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "battle-map"}.dndmap.json`; anchor.click(); URL.revokeObjectURL(url); setMessage("Scene package exported."); };
   const importPackage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
@@ -483,11 +486,9 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     <header className="workshop-header"><div><div className="eyebrow">Map workshop · DM only</div><h1>{map.name}</h1><p>Build privately, then apply the complete scene when players should see it.</p></div><div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Private changes" : "Matches players"}</span><button className="secondary-button" onClick={discard}>Discard</button><button className="primary-button" disabled={busy} onClick={() => void apply()}>Apply to players</button><button className="secondary-button" onClick={onClose}>Return</button></div></header>
     <div className="workshop-layout">
       <aside className="workshop-controls" aria-label="Scene workshop controls">
-        <section><div className="workshop-section-heading"><small>Complete scenes</small><strong>Choose a cohesive base</strong></div><p className="workshop-help">Each starter is one high-resolution image with its own matching additions.</p><div className="full-scene-list">{FULL_SCENE_MAPS.map((scene) => <button key={scene.id} className={map.visual.assetUrl === scene.assetUrl ? "is-active" : ""} onClick={() => chooseScene(scene)}><NextImage src={mapThumbnailUrl(scene.assetUrl)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{scene.name}</strong><small>{scene.biome} · {scene.width ?? 24} × {scene.height ?? 16}</small></span></button>)}</div></section>
-        <section><div className="workshop-section-heading"><small>Edit</small><strong>Scene annotations</strong></div><div className="draft-history-row"><button disabled={!historyCounts.undo} onClick={undo}>Undo{historyCounts.undo ? ` (${historyCounts.undo})` : ""}</button><button disabled={!historyCounts.redo} onClick={redo}>Redo{historyCounts.redo ? ` (${historyCounts.redo})` : ""}</button></div><div className="workshop-tool-row is-expanded">{(["select", "wall", "door", "window", "label", "note"] as Tool[]).map((value) => <button key={value} className={tool === value ? "is-active" : ""} onClick={() => setTool(value)}>{value === "note" ? "DM note" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div>
+        <section><div className="workshop-section-heading"><small>Base map</small><strong>Choose a cohesive scene</strong></div><p className="workshop-help">This is the starting artwork for the preset. Scroll to browse the complete library.</p><div className="full-scene-list">{FULL_SCENE_MAPS.map((scene) => <button key={scene.id} className={map.visual.assetUrl === scene.assetUrl ? "is-active" : ""} onClick={() => chooseScene(scene)}><NextImage src={mapThumbnailUrl(scene.assetUrl)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{scene.name}</strong><small>{scene.biome} · {scene.width ?? 24} × {scene.height ?? 16}</small></span></button>)}</div></section>
+        <section><div className="workshop-section-heading"><small>Edit</small><strong>Labels and notes</strong></div><div className="draft-history-row"><button disabled={!historyCounts.undo} onClick={undo}>Undo{historyCounts.undo ? ` (${historyCounts.undo})` : ""}</button><button disabled={!historyCounts.redo} onClick={redo}>Redo{historyCounts.redo ? ` (${historyCounts.redo})` : ""}</button></div><div className="workshop-tool-row is-three">{(["select", "label", "note"] as Tool[]).map((value) => <button key={value} className={tool === value ? "is-active" : ""} onClick={() => setTool(value)}>{value === "note" ? "DM note" : value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div>
           {tool === "select" ? <p className="workshop-help">Select additions, labels, or notes on the map. Drag additions to move them; use Delete below to remove the selection.</p> : null}
-          {tool === "wall" ? <p className="workshop-help">Drag between grid intersections to add a wall.</p> : null}
-          {tool === "door" || tool === "window" ? <div className="structure-options"><span>Orientation</span><div className="terrain-edge-toggle"><button className={portalOrientation === "horizontal" ? "is-active" : ""} onClick={() => setPortalOrientation("horizontal")}>Horizontal</button><button className={portalOrientation === "vertical" ? "is-active" : ""} onClick={() => setPortalOrientation("vertical")}>Vertical</button></div><p className="workshop-help">Click the desired position.</p></div> : null}
           {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene.</p></div> : null}
           {tool === "note" ? <div className="structure-options"><label>Private note<textarea value={noteText} onChange={(event) => setNoteText(event.target.value)} rows={3} /></label><p className="workshop-help">Enter a note, then click its location.</p></div> : null}
         </section>
@@ -495,7 +496,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
           <label>Mode<select aria-label="Fog of war mode" value={map.fog.mode} onChange={(event) => setFogMode(event.target.value as MapPackage["fog"]["mode"])}><option value="off">No fog</option><option value="shared">DM-controlled shared fog</option><option value="dynamic">Dynamic character vision</option></select></label>
           {map.fog.mode === "off" ? <p className="workshop-help">The complete map and all normally visible tokens are shown to everyone.</p> : null}
           {map.fog.mode === "shared" ? <><p className="workshop-help">The shaded polygon is hidden from the whole party. Drag its corners inward to reveal the map; add corners for more detailed boundaries.</p><div className="workshop-tool-row"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Move corners</button><button className={tool === "fog-add" ? "is-active" : ""} onClick={() => setTool("fog-add")}>Add corner</button></div><div className="button-row"><button className="secondary-button" onClick={resetSharedFog}>Cover whole map</button><button className="danger-button" disabled={selectedFogVertex === null || map.fog.sharedPolygon.length <= 3} onClick={deleteSelectedFogItem}>Remove corner</button></div></> : null}
-          {map.fog.mode === "dynamic" ? <><p className="workshop-help">Draw free-angle sight blockers over walls, doors, rocks, pillars, trees, and statues. With Select, drag a line to move it, drag either endpoint to reshape it, drag inside a circle to move it, or drag its rim to resize.</p><div className="workshop-tool-row is-expanded"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Select</button><button className={tool === "vision-wall" ? "is-active" : ""} onClick={() => setTool("vision-wall")}>Vision wall</button><button className={tool === "vision-door" ? "is-active" : ""} onClick={() => setTool("vision-door")}>Vision door</button><button className={tool === "vision-circle" ? "is-active" : ""} onClick={() => setTool("vision-circle")}>Round blocker</button></div>{selectedFogBlocker ? <div className="selected-fog-blocker"><strong>Selected {selectedFogBlocker.kind}</strong><small>{selectedFogBlocker.kind === "circle" ? "Drag inside to move · drag rim to resize" : "Drag line to move · drag either endpoint to reshape"}</small>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete blocker</button></div> : null}</> : null}
+          {map.fog.mode === "dynamic" ? <><p className="workshop-help">Draw free-angle sight blockers over walls, doors, rocks, pillars, trees, and statues. Windows need no vision blocker—leave a gap between wall segments so players can see through. With Select, drag a line to move it, drag either endpoint to reshape it, drag inside a circle to move it, or drag its rim to resize.</p><div className="workshop-tool-row is-expanded"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Select</button><button className={tool === "vision-wall" ? "is-active" : ""} onClick={() => setTool("vision-wall")}>Vision wall</button><button className={tool === "vision-door" ? "is-active" : ""} onClick={() => setTool("vision-door")}>Vision door</button><button className={tool === "vision-circle" ? "is-active" : ""} onClick={() => setTool("vision-circle")}>Round blocker</button></div>{selectedFogBlocker ? <div className="selected-fog-blocker"><strong>Selected {selectedFogBlocker.kind}</strong><small>{selectedFogBlocker.kind === "circle" ? "Drag inside to move · drag rim to resize" : "Drag line to move · drag either endpoint to reshape"}</small>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete blocker</button></div> : null}</> : null}
         </section>
         <section className="scene-kit-panel"><div className="workshop-section-heading"><small>Matched additions</small><strong>Artwork for this scene</strong></div><p className="workshop-help">Drag onto the scene. These pieces share its palette, scale, viewpoint, and lighting.</p><div className="scene-kit-list">{kit.map((item) => <button key={item.id} draggable onDragStart={(event) => onKitDragStart(event, item)} onDragEnd={() => { kitDragRef.current = null; }}><NextImage src={item.assetUrl} alt="" width={64} height={64} unoptimized draggable={false} /><span><strong>{item.name}</strong><small>{item.width} × {item.height} cells</small></span></button>)}</div></section>
         <details className="map-object-list"><summary>Scene details <span>{map.sceneObjects.length + map.walls.length + map.portals.length + map.labels.length + map.notes.length}</span></summary>
@@ -507,7 +508,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         </details>
         {selectedObject ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected addition</small><strong>{kit.find((item) => item.id === selectedObject.definitionId)?.name ?? selectedObject.definitionId}</strong></div><p className="workshop-help">Drag to reposition; rotation remains grid-aligned.</p><div className="button-row"><button className="secondary-button" onClick={rotateSelected}>Rotate 90°</button><button className="danger-button" onClick={deleteSelected}>Delete</button></div></section> : null}
         {selectedLabel || selectedNote ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>{selectedLabel ? "Selected label" : "Selected DM note"}</small><strong>{selectedLabel?.text ?? `Note ${map.notes.findIndex((note) => note.id === selectedNote?.id) + 1}`}</strong></div>{selectedNote ? <p className="workshop-help selected-note-copy">{selectedNote.text}</p> : <p className="workshop-help">{selectedLabel?.visibility === "dm" ? "Visible only to the DM." : "Visible to everyone after the scene is applied."}</p>}<button className="danger-button" onClick={deleteSelectedAnnotation}>Delete</button></section> : null}
-        <section className="map-library-panel"><div className="workshop-section-heading"><small>Scene library</small><strong>Save and exchange</strong></div><label>Title<input value={map.name} maxLength={100} onChange={(event) => commit((current) => ({ ...current, name: event.target.value }))} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><label>Preset name<input value={presetName} onChange={(event) => setPresetName(event.target.value)} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button><button className="secondary-button" onClick={exportPackage}>Export</button><button className="secondary-button" onClick={() => importRef.current?.click()}>Import</button></div><input ref={importRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => void importPackage(event)} /><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{preset.mapPackage.biome} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><IconActionButton className="saved-map-delete" variant="delete" label={`Delete ${preset.name}`} onClick={() => void runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`)} /></article>)}</div></section>
+        <section className="map-library-panel"><div className="workshop-section-heading"><small>Scene library</small><strong>Save and exchange</strong></div><label>Preset name<input value={presetName} maxLength={72} onChange={(event) => setPresetName(event.target.value)} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button><button className="secondary-button" onClick={exportPackage}>Export</button><button className="secondary-button" onClick={() => importRef.current?.click()}>Import</button></div><input ref={importRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => void importPackage(event)} /><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{withCanonicalBaseMapName(preset.mapPackage).name} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><IconActionButton className="saved-map-delete" variant="delete" label={`Delete ${preset.name}`} onClick={() => void runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`)} /></article>)}</div></section>
       </aside>
       <section className="workshop-canvas-panel" aria-label="Editable full-scene map"><div className="workshop-canvas-heading"><div><small>Cohesive full-scene draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>3072 × 2048 base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDrop={onMapDrop} aria-label={`${map.name} draft with ${map.sceneObjects.length} matching additions`} /></div><div className="workshop-legend"><span><i className="legend-cell" />Gold outline marks the selected addition</span><span><i className="legend-grid" />Additions and annotations align to the grid</span><span>The base remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>

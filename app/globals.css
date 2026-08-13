@@ -1274,18 +1274,19 @@ input:focus {
 .workshop-section-heading strong { color: #d8d0c3; font-size: 0.76rem; }
 .workshop-help { margin: 0.45rem 0 0; color: #716c63; font-size: 0.61rem; line-height: 1.45; }
 
-.full-scene-list { display: grid; gap: 0.35rem; margin-top: 0.55rem; }
+.full-scene-list { max-height: 15rem; padding-right: 0.25rem; display: grid; gap: 0.35rem; margin-top: 0.55rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .full-scene-list button { min-width: 0; padding: 0.32rem; display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); align-items: center; gap: 0.48rem; border: 1px solid #363832; border-radius: 0.42rem; background: #191a17; color: #c9c1b5; text-align: left; }
 .full-scene-list button:hover, .full-scene-list button.is-active { border-color: #76623a; background: #211f18; }
 .full-scene-list img { width: 4.8rem; height: 3.2rem; border-radius: 0.28rem; object-fit: cover; }
 .full-scene-list span { min-width: 0; display: grid; gap: 0.15rem; }
 .full-scene-list strong { overflow: hidden; font-size: 0.64rem; text-overflow: ellipsis; white-space: nowrap; }
 .full-scene-list small { color: #746e64; font-size: 0.54rem; text-transform: capitalize; }
-.terrain-edge-toggle, .workshop-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; }
+.workshop-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; }
 .workshop-tool-row { margin-top: 0.5rem; }
+.workshop-tool-row.is-three { grid-template-columns: repeat(3, 1fr); }
 .workshop-tool-row.is-expanded { grid-template-columns: repeat(3, 1fr); }
 .workshop-tool-row.is-expanded button:last-child { grid-column: span 2; }
-.terrain-edge-toggle button, .workshop-tool-row button {
+.workshop-tool-row button {
   min-height: 1.9rem;
   padding: 0.35rem 0.45rem;
   border: 1px solid #373932;
@@ -1295,7 +1296,7 @@ input:focus {
   font-size: 0.62rem;
   font-weight: 650;
 }
-.terrain-edge-toggle button.is-active, .workshop-tool-row button.is-active { border-color: #776437; background: rgba(245, 198, 92, 0.08); color: #e5ca88; }
+.workshop-tool-row button.is-active { border-color: #776437; background: rgba(245, 198, 92, 0.08); color: #e5ca88; }
 .draft-history-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-top: 0.45rem; }
 .draft-history-row button { min-height: 1.7rem; border: 1px solid #34362f; border-radius: 0.34rem; background: #171815; color: #888178; font-size: 0.58rem; }
 .draft-history-row button:disabled { opacity: 0.35; }
