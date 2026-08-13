@@ -1908,10 +1908,7 @@ export default function BattleMapPrototype() {
       }), 0);
       return () => window.clearTimeout(timer);
     }
-    const assets = [...new Set([
-      mapPackage.visual.assetUrl,
-      ...mapPackage.sceneObjects.map((object) => object.assetUrl),
-    ])];
+    const assets = [mapPackage.visual.assetUrl];
     let disposed = false;
     let builtScene: HTMLCanvasElement | null = null;
     void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement] | null>((resolve) => {

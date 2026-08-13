@@ -54,12 +54,11 @@ test("equivalent map payloads share a cache key while content edits invalidate i
   const map = {
     id: "map-1",
     visual: { assetUrl: "/map-assets/forest.jpg" },
-    sceneObjects: [{ id: "rock-1", x: 2, y: 3 }],
-    labels: [],
+    labels: [{ id: "label-1", x: 2, y: 3, text: "Gate" }],
     fog: { mode: "off", sharedPolygon: [], walls: [], doors: [], circles: [] },
   };
   const clone = JSON.parse(JSON.stringify(map));
-  const edited = { ...clone, sceneObjects: [{ ...clone.sceneObjects[0], x: 4 }] };
+  const edited = { ...clone, labels: [{ ...clone.labels[0], x: 4 }] };
   const fogEdited = { ...clone, fog: { ...clone.fog, mode: "dynamic", walls: [{ id: "wall", x1: 1, y1: 1, x2: 2, y2: 2 }] } };
 
   assert.equal(mapSceneContentKey(map), mapSceneContentKey(clone));

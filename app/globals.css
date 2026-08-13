@@ -1244,7 +1244,7 @@ input:focus {
 .workshop-header-title strong { overflow: hidden; color: #ded5c7; font-size: 0.82rem; font-weight: 650; letter-spacing: -0.01em; text-overflow: ellipsis; white-space: nowrap; }
 .workshop-header-title span { flex: 0 0 auto; color: #8b8377; font-family: var(--font-geist-mono), monospace; font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .workshop-header-actions { min-width: 0; display: flex; align-items: center; justify-self: end; gap: 0.4rem; }
-.workshop-history-tools { position: relative; display: inline-flex; gap: 0.18rem; padding: 0.18rem; border: 1px solid #302e2a; border-radius: 0.48rem; background: #141412; }
+.workshop-history-tools, .workshop-annotation-tools { position: relative; display: inline-flex; gap: 0.18rem; padding: 0.18rem; border: 1px solid #302e2a; border-radius: 0.48rem; background: #141412; }
 .workshop-action-tools { position: relative; display: inline-flex; gap: 0.18rem; padding: 0.18rem; border: 1px solid #302e2a; border-radius: 0.48rem; background: #141412; }
 .workshop-icon-tool { position: relative; display: grid; place-items: center; width: 1.85rem; min-height: 1.75rem; padding: 0; border: 1px solid transparent; border-radius: 0.38rem; background: transparent; color: #a49b8e; }
 .workshop-icon-tool:hover:not(:disabled) { border-color: #49443c; background: #292720; color: #f2d99b; }
@@ -1305,6 +1305,12 @@ input:focus {
 .full-scene-list span { min-width: 0; display: grid; gap: 0.15rem; }
 .full-scene-list strong { overflow: hidden; font-size: 0.64rem; text-overflow: ellipsis; white-space: nowrap; }
 .full-scene-list small { color: #746e64; font-size: 0.54rem; text-transform: capitalize; }
+.current-base-map { min-width: 0; padding: 0.32rem; display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); align-items: center; gap: 0.48rem; border: 1px solid #363832; border-radius: 0.42rem; background: #191a17; }
+.current-base-map img { width: 4.8rem; height: 3.2rem; border-radius: 0.28rem; object-fit: cover; }
+.current-base-map span { min-width: 0; display: grid; gap: 0.15rem; }
+.current-base-map strong { overflow: hidden; color: #d1c8bb; font-size: 0.67rem; text-overflow: ellipsis; white-space: nowrap; }
+.current-base-map small { color: #746e64; font-size: 0.54rem; text-transform: capitalize; }
+.base-map-panel > .secondary-button { width: 100%; margin-top: 0.45rem; }
 .workshop-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; }
 .workshop-tool-row { margin-top: 0.5rem; }
 .workshop-tool-row.is-three { grid-template-columns: repeat(3, 1fr); }
@@ -1325,29 +1331,6 @@ input:focus {
 .structure-options > span { display: block; margin-bottom: 0.35rem; color: #8f887d; font-size: 0.58rem; }
 .structure-options label { margin: 0.35rem 0; }
 .structure-options textarea { width: 100%; min-height: 3.6rem; resize: vertical; padding: 0.45rem; border: 1px solid #393a34; border-radius: 0.35rem; background: #11120f; color: #d0c8bb; font: 0.62rem/1.4 var(--font-geist-sans), sans-serif; }
-.scene-kit-list { display: grid; gap: 0.3rem; }
-.scene-kit-list button {
-  min-width: 0;
-  min-height: 3.3rem;
-  padding: 0.3rem;
-  display: grid;
-  grid-template-columns: 2.8rem minmax(0, 1fr);
-  align-items: center;
-  gap: 0.45rem;
-  border: 1px solid #34362f;
-  border-radius: 0.4rem;
-  background: #191a17;
-  color: #c9c1b5;
-  text-align: left;
-  cursor: grab;
-}
-.scene-kit-list button:hover { border-color: #615338; background: #202019; }
-.scene-kit-list button:active { cursor: grabbing; }
-.scene-kit-list img { width: 2.8rem; height: 2.8rem; border-radius: 0.3rem; background: #23241f; object-fit: contain; }
-.scene-kit-list span { min-width: 0; display: grid; gap: 0.16rem; }
-.scene-kit-list strong { overflow: hidden; font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
-.scene-kit-list small { color: #706a61; font-size: 0.56rem; }
-
 .map-object-list { border: 1px solid #30322c; border-radius: 0.42rem; background: #151613; }
 .map-object-list summary { padding: 0.55rem 0.65rem; display: flex; justify-content: space-between; color: #a59e93; cursor: pointer; font-size: 0.64rem; font-weight: 720; }
 .map-object-list summary span { padding: 0.05rem 0.34rem; border-radius: 999px; background: #292a25; color: #7d776d; font-size: 0.55rem; }

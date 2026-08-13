@@ -334,7 +334,7 @@ test("uses one aligned icon-action system for close, discard, remove, and delete
   assert.match(clientSource, /variant="discard" label="Discard token detail changes"/);
   assert.match(clientSource, /variant="remove" label=\{`Remove \$\{effect\.name\}`\}/);
   assert.match(clientSource, /variant="remove" label="Remove attached handout"/);
-  assert.match(workshopSource, /variant="delete" label="Delete scene addition"/);
+  assert.match(workshopSource, /variant="delete" label=\{`Delete label \$\{index \+ 1\}`\}/);
   assert.match(workshopSource, /variant="delete" label=\{`Delete \$\{preset\.name\}`\}/);
   assert.doesNotMatch(clientSource + workshopSource, />×<\/button>/);
   assert.match(iconSource, /variant === "delete" \? <TrashIcon \/> : <XIcon \/>/);
@@ -917,11 +917,11 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(packageSource, /export type FullSceneVisual/);
   assert.match(packageSource, /kind: "generated-scene"/);
   assert.match(packageSource, /export function parseMapPackage/);
-  assert.match(workshopSource, /Rotate 90°/);
   assert.match(workshopSource, /Private until applied/);
-  assert.match(workshopSource, /onKitDragStart/);
-  assert.match(workshopSource, /onDrop=\{onMapDrop\}/);
-  assert.match(workshopSource, /Artwork for this scene/);
+  assert.doesNotMatch(workshopSource, /onKitDragStart|Artwork for this scene|Matched additions|sceneObjects/);
+  assert.match(workshopSource, /aria-label="Map labels and notes"/);
+  assert.match(workshopSource, /aria-label="Add map label"/);
+  assert.match(workshopSource, /aria-label="Add DM note"/);
   assert.match(workshopSource, /Windows need no vision blocker/);
   assert.match(workshopSource, /aria-label="Undo draft change" data-tooltip="Undo — Ctrl\/Cmd \+ Z"/);
   assert.match(workshopSource, /aria-label="Redo draft change" data-tooltip="Redo — Ctrl \+ Y or Cmd \+ Shift \+ Z"/);
@@ -939,7 +939,8 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.doesNotMatch(workshopSource, /portalOrientation/);
   assert.doesNotMatch(workshopSource, /tool === "wall"/);
   assert.doesNotMatch(workshopSource, /\["select", "wall", "door", "window", "label", "note"\]/);
-  assert.match(workshopSource, /\{scene\.width \?\? 24\} × \{scene\.height \?\? 16\}/);
+  assert.match(workshopSource, /Change base map/);
+  assert.match(workshopSource, /baseMapChooserOpen \? <div className="full-scene-list"/);
   assert.match(workshopSource, /save-map-preset/);
   assert.match(workshopSource, /This permanently removes its prepared vision walls, doors, round blockers, labels, and notes/);
   assert.match(workshopSource, /window\.confirm\(warning\)/);
@@ -947,7 +948,7 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workshopSource, /savedDraftRef\.current !== `\$\{presetName\}\\n\$\{JSON\.stringify\(map\)\}`/);
   assert.match(workshopSource, /if \(result\) savedDraftRef\.current = `\$\{name\}\\n\$\{JSON\.stringify\(map\)\}`/);
   assert.match(workshopSource, /onClick=\{\(\) => void deletePreset\(preset\)\}/);
-  assert.ok(workshopSource.indexOf('className="map-library-panel"') < workshopSource.indexOf('<small>Base map</small>'));
+  assert.ok(workshopSource.indexOf('className="map-library-panel"') < workshopSource.indexOf('className="base-map-panel"'));
   assert.match(workshopSource, /<small>Map presets<\/small><strong>Save and load<\/strong>/);
   assert.doesNotMatch(workshopSource, />Export<\/button>|>Import<\/button>|importRef|exportPackage|importPackage/);
   assert.match(workshopSource, /Reset shared fog\? This replaces the current fog boundary with the default eight corners/);
@@ -972,6 +973,8 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
   assert.match(workerSource, /map_package_applied/);
   assert.match(workerSource, /map_scene_migrated/);
+  assert.match(workerSource, /remove-scene-stickers-v1/);
+  assert.match(workerSource, /json_remove\(json_remove\(map_package_json, '\$\.sceneObjects'\), '\$\.visual\.sceneKitId'\)/);
   assert.match(mapMigration, /CREATE TABLE `map_presets`/);
   assert.match(mapMigration, /ADD `grid_width` integer DEFAULT 16 NOT NULL/);
   for (const source of [battleMapSource, workshopSource, packageSource, workerSource]) {

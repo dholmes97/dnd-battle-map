@@ -7,7 +7,8 @@
 - Put the server-backed Map presets / Save and load section at the top of Map Workshop's independently scrolling sidebar; do not expose redundant file Export/Import controls. Before changing to a different base map, warn when the current draft has changed since it was last saved or loaded as a preset, because switching maps would discard prepared vision geometry and annotations. Label the shared-fog default-eight-corner action Reset fog and confirm before replacing custom corners.
 - Match Map Workshop undo and redo to the player map: compact icon buttons in the top header plus Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, and Ctrl+Y shortcuts, without intercepting shortcuts while editing fields. Do not duplicate large history buttons in the left controls.
 - Require explicit confirmation before deleting a saved map preset, with a warning that its prepared vision walls, doors, round blockers, labels, and notes will be permanently removed.
-- Scene additions must be generated for and visually matched to their specific base map.
+- Do not restore the retired matched-addition/sticker workflow; cohesive base maps stand on their own.
+- Keep the current base map compact in Map Workshop and reveal the full chooser only after an explicit Change base map action. Keep Label and DM Note as compact top-toolbar tools.
 - Keep the battle map visually dominant: desktop layouts must fit the map within the browser viewport, with controls and sidebars scrolling independently when needed.
 - Keep global map launchers in the compact top toolbar; do not duplicate creature-palette or map-workshop controls in the right sidebar.
 - Keep per-participant undo and redo durable and server-authoritative. Present both as compact top-toolbar icons, with Cmd/Ctrl+Z for undo and Cmd/Ctrl+Shift+Z plus Ctrl+Y for redo; never intercept these shortcuts while editing a field.

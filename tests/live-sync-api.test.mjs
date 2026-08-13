@@ -509,8 +509,7 @@ test("map presets persist privately and applied packages resize the shared autho
     seed: `API-${suffix}`,
     width,
     height,
-    visual: { kind: "generated-scene", assetUrl: "/map-assets/storm-coast-ruins-02.jpg", pixelWidth: 3072, pixelHeight: 2048, sceneKitId: "storm-coast" },
-    sceneObjects: [{ id: `boat-${suffix}`, definitionId: "coast-boat", assetUrl: "/map-assets/scene-kits/coast-boat.png", x: 7, y: 5, width: 6, height: 6, rotation: 0 }],
+    visual: { kind: "generated-scene", assetUrl: "/map-assets/storm-coast-ruins-02.jpg", pixelWidth: 3072, pixelHeight: 2048 },
     walls: [{ id: `wall-${suffix}`, x1: 2, y1: 2, x2: 8, y2: 2, style: "ruined" }],
     portals: [],
     labels: [

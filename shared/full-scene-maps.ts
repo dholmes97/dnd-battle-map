@@ -1,15 +1,6 @@
 import type { MapBiome, MapPackage } from "./map-package.ts";
 import { defaultFogConfig } from "./fog-of-war.mjs";
 
-export type SceneKitDefinition = {
-  id: string;
-  name: string;
-  description: string;
-  assetUrl: string;
-  width: number;
-  height: number;
-};
-
 type FullSceneDefinition = {
   id: string;
   name: string;
@@ -17,7 +8,6 @@ type FullSceneDefinition = {
   biome: MapBiome;
   mood: MapPackage["mood"];
   assetUrl: string;
-  sceneKitId: string;
   width?: number;
   height?: number;
 };
@@ -30,7 +20,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "forest",
     mood: "daylight",
     assetUrl: "/map-assets/grandfather-tree-roots-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "ancient-forest-clearing-v2",
@@ -39,7 +28,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "forest",
     mood: "daylight",
     assetUrl: "/map-assets/ancient-forest-clearing-02.jpg",
-    sceneKitId: "ancient-forest",
   },
   {
     id: "ruined-underground-temple-v2",
@@ -48,7 +36,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "dungeon",
     mood: "torchlight",
     assetUrl: "/map-assets/ruined-underground-temple-02.jpg",
-    sceneKitId: "underground-temple",
   },
   {
     id: "storm-coast-ruins-v2",
@@ -57,7 +44,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "coast",
     mood: "overcast",
     assetUrl: "/map-assets/storm-coast-ruins-02.jpg",
-    sceneKitId: "storm-coast",
   },
   {
     id: "moonlit-fey-glade-v1",
@@ -66,7 +52,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "forest",
     mood: "moonlight",
     assetUrl: "/map-assets/moonlit-fey-glade-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "crystal-cavern-crossing-v1",
@@ -75,7 +60,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "cave",
     mood: "torchlight",
     assetUrl: "/map-assets/crystal-cavern-crossing-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "sunken-swamp-shrine-v1",
@@ -84,7 +68,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "swamp",
     mood: "overcast",
     assetUrl: "/map-assets/sunken-swamp-shrine-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "desert-caravanserai-ruin-v1",
@@ -93,7 +76,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "desert",
     mood: "daylight",
     assetUrl: "/map-assets/desert-caravanserai-ruin-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "frozen-mountain-pass-v1",
@@ -102,7 +84,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "tundra",
     mood: "overcast",
     assetUrl: "/map-assets/frozen-mountain-pass-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "volcanic-forge-caldera-v1",
@@ -111,7 +92,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "volcanic",
     mood: "torchlight",
     assetUrl: "/map-assets/volcanic-forge-caldera-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "abandoned-village-square-v1",
@@ -120,7 +100,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "ruins",
     mood: "overcast",
     assetUrl: "/map-assets/abandoned-village-square-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "goblin-mineworks-v1",
@@ -129,7 +108,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "cave",
     mood: "torchlight",
     assetUrl: "/map-assets/goblin-mineworks-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "river-gorge-bridge-v1",
@@ -138,7 +116,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "forest",
     mood: "daylight",
     assetUrl: "/map-assets/river-gorge-bridge-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "haunted-graveyard-chapel-v1",
@@ -147,7 +124,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "ruins",
     mood: "moonlight",
     assetUrl: "/map-assets/haunted-graveyard-chapel-01.jpg",
-    sceneKitId: "none",
   },
   {
     id: "cliffside-switchbacks-v1",
@@ -156,7 +132,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "tundra",
     mood: "daylight",
     assetUrl: "/map-assets/cliffside-switchbacks-01.jpg",
-    sceneKitId: "none",
     width: 45,
     height: 30,
   },
@@ -167,7 +142,6 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "coast",
     mood: "daylight",
     assetUrl: "/map-assets/underwater-ruins-01.jpg",
-    sceneKitId: "none",
     width: 45,
     height: 30,
   },
@@ -178,25 +152,8 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     biome: "dungeon",
     mood: "torchlight",
     assetUrl: "/map-assets/ravenloft-grand-dining-hall-01.jpg",
-    sceneKitId: "none",
   },
 ];
-
-export const SCENE_KITS: Record<string, SceneKitDefinition[]> = {
-  "ancient-forest": [
-    { id: "forest-log", name: "Mossy fallen log", description: "A forest-floor obstacle matched to this scene.", assetUrl: "/map-assets/scene-kits/forest-log.png", width: 5, height: 5 },
-    { id: "forest-rocks", name: "Fern boulders", description: "Mossy stones and ferns matched to this scene.", assetUrl: "/map-assets/scene-kits/forest-rocks.png", width: 5, height: 5 },
-  ],
-  "underground-temple": [
-    { id: "temple-debris", name: "Carved rubble", description: "Broken temple stone matched to this scene.", assetUrl: "/map-assets/scene-kits/temple-debris.png", width: 5, height: 5 },
-    { id: "temple-table", name: "Overturned ritual table", description: "A damaged furnishing matched to this scene.", assetUrl: "/map-assets/scene-kits/temple-table.png", width: 5, height: 5 },
-  ],
-  "storm-coast": [
-    { id: "coast-boat", name: "Wrecked rowboat", description: "A wet wreck matched to this scene.", assetUrl: "/map-assets/scene-kits/coast-boat.png", width: 6, height: 6 },
-    { id: "coast-barricade", name: "Broken sea wall", description: "Stone and driftwood matched to this scene.", assetUrl: "/map-assets/scene-kits/coast-barricade.png", width: 6, height: 6 },
-  ],
-  none: [],
-};
 
 export function createFullSceneMap(definition: FullSceneDefinition): MapPackage {
   const width = definition.width ?? 24;
@@ -222,9 +179,7 @@ export function createFullSceneMap(definition: FullSceneDefinition): MapPackage 
       assetUrl: definition.assetUrl,
       pixelWidth: 3072,
       pixelHeight: 2048,
-      sceneKitId: definition.sceneKitId,
     },
-    sceneObjects: [],
     source: { kind: "generated-scene" },
     createdAt: Date.now(),
   };

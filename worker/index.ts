@@ -240,13 +240,16 @@ const MAP_ASSET_KEYS = new Set([
   "underwater-ruins-01.jpg",
   "grandfather-tree-roots-01.jpg",
   "ravenloft-grand-dining-hall-01.jpg",
+]);
+
+const RETIRED_SCENE_ASSET_KEYS = [
   "scene-kits/forest-log.png",
   "scene-kits/forest-rocks.png",
   "scene-kits/temple-debris.png",
   "scene-kits/temple-table.png",
   "scene-kits/coast-boat.png",
   "scene-kits/coast-barricade.png",
-]);
+] as const;
 
 async function handleMapAsset(request: Request, env: Env, key: string): Promise<Response> {
   if (!MAP_ASSET_KEYS.has(key)) return new Response("Not found", { status: 404 });
@@ -610,6 +613,10 @@ async function ensureSchema(env: Env): Promise<void> {
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )`),
+        db.prepare(`CREATE TABLE IF NOT EXISTS app_maintenance (
+          id TEXT PRIMARY KEY NOT NULL,
+          completed_at INTEGER NOT NULL
+        )`),
         db.prepare(
           "CREATE INDEX IF NOT EXISTS idx_participants_encounter_id ON participants(encounter_id)",
         ),
@@ -641,6 +648,37 @@ async function ensureSchema(env: Env): Promise<void> {
           "CREATE INDEX IF NOT EXISTS idx_creature_catalog_family_sort_id ON creature_catalog(family, sort_order, id)",
         ),
       ]);
+
+      const retiredSceneCleanupId = "remove-scene-stickers-v1";
+      const retiredSceneCleanup = await db
+        .prepare("SELECT id FROM app_maintenance WHERE id = ?")
+        .bind(retiredSceneCleanupId)
+        .first<{ id: string }>();
+      if (!retiredSceneCleanup) {
+        const now = Date.now();
+        await db.batch([
+          db.prepare(`UPDATE encounters
+            SET map_package_json = json_remove(json_remove(map_package_json, '$.sceneObjects'), '$.visual.sceneKitId'),
+                version = version + 1,
+                updated_at = ?
+            WHERE map_package_json IS NOT NULL
+              AND json_valid(map_package_json) = 1
+              AND (json_type(map_package_json, '$.sceneObjects') IS NOT NULL
+                OR json_type(map_package_json, '$.visual.sceneKitId') IS NOT NULL)`)
+            .bind(now),
+          db.prepare(`UPDATE map_presets
+            SET package_json = json_remove(json_remove(package_json, '$.sceneObjects'), '$.visual.sceneKitId')
+            WHERE json_valid(package_json) = 1
+              AND (json_type(package_json, '$.sceneObjects') IS NOT NULL
+                OR json_type(package_json, '$.visual.sceneKitId') IS NOT NULL)`),
+        ]);
+        if (env.MAP_ASSETS) {
+          await Promise.all(RETIRED_SCENE_ASSET_KEYS.map((key) => env.MAP_ASSETS!.delete(key)));
+        }
+        await db.prepare("INSERT INTO app_maintenance (id, completed_at) VALUES (?, ?)")
+          .bind(retiredSceneCleanupId, now)
+          .run();
+      }
 
       // Preserve local/preview databases created by the earlier POC schema.
       const participantColumns = await db

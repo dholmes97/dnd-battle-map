@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { parseMapPackage } from "../shared/map-package.ts";
-import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap } from "../shared/full-scene-maps.ts";
+import { FULL_SCENE_MAPS, createFullSceneMap } from "../shared/full-scene-maps.ts";
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
@@ -15,7 +15,6 @@ test("full-scene maps are package-safe production assets", async () => {
     assert.equal(parsed?.width, definition.width ?? 24);
     assert.equal(parsed?.height, definition.height ?? 16);
     assert.equal(parsed?.visual.assetUrl, definition.assetUrl);
-    assert.deepEqual(parsed?.sceneObjects, []);
     assert.equal(parsed?.fog.sharedPolygon.length, 8);
     assert.equal("terrain" in map, false);
     assert.equal("stamps" in map, false);
@@ -27,14 +26,6 @@ test("full-scene maps are package-safe production assets", async () => {
     assert.deepEqual([...thumbnail.subarray(0, 3)], [255, 216, 255], `${definition.id} thumbnail JPEG signature`);
     assert.ok(thumbnail.length > 10_000 && thumbnail.length < 100_000, `${definition.id} should use a compact decoded-memory preview`);
     assert.match(workerSource, new RegExp(`"${definition.assetUrl.split("/").pop()}"`), `${definition.id} should be publicly served`);
-    const kit = SCENE_KITS[definition.sceneKitId];
-    assert.ok(kit, `${definition.id} should reference a known scene kit`);
-    assert.equal(kit.length, definition.sceneKitId === "none" ? 0 : 2);
-    for (const item of kit) {
-      const png = await readFile(new URL(`../public/assets/full-map-seeds/${item.assetUrl.replace("/map-assets/", "")}`, import.meta.url));
-      assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${item.id} PNG signature`);
-      assert.equal(png[25], 6, `${item.id} must preserve RGBA transparency`);
-    }
   }
   assert.deepEqual(FULL_SCENE_MAPS.filter((definition) => definition.width === 45).map((definition) => [definition.id, definition.width, definition.height]), [
     ["cliffside-switchbacks-v1", 45, 30],
@@ -42,9 +33,8 @@ test("full-scene maps are package-safe production assets", async () => {
   ]);
 });
 
-test("full-scene packages round-trip with semantic additions", () => {
+test("full-scene packages round-trip with map annotations", () => {
   const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
-  map.sceneObjects.push({ id: "log-1", definitionId: "forest-log", assetUrl: "/map-assets/scene-kits/forest-log.png", x: 4, y: 6, width: 5, height: 5, rotation: 90 });
   map.walls.push({ id: "wall-1", x1: 1, y1: 1, x2: 5, y2: 1, style: "stone" });
   map.portals.push({ id: "door-1", x: 3, y: 1, orientation: "horizontal", kind: "door", open: false });
   map.labels.push({ id: "label-1", x: 8, y: 5, text: "Old trail", visibility: "everyone" });
@@ -58,10 +48,21 @@ test("validation rejects old editor packages, external images, and oversized dat
   assert.equal(parseMapPackage({ ...valid, visual: undefined, terrain: Array(384).fill("grass"), stamps: [] }), null);
   assert.equal(parseMapPackage({ ...valid, visual: { ...valid.visual, assetUrl: "https://example.com/map.jpg" } }), null);
   assert.equal(parseMapPackage({ ...valid, width: 49 }), null);
-  assert.equal(parseMapPackage({ ...valid, sceneObjects: Array(501).fill({ id: "x" }) }), null);
   assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, walls: Array.from({ length: 161 }, (_, index) => ({ id: `w-${index}`, x1: 0, y1: 0, x2: 1, y2: 1 })) } }), null);
   assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, circles: Array.from({ length: 33 }, (_, index) => ({ id: `c-${index}`, x: 1, y: 1, radius: 0.5 })) } }), null);
   assert.equal(parseMapPackage({ ...valid, format: "unknown-map" }), null);
+});
+
+test("legacy sticker fields are accepted but discarded", () => {
+  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const parsed = parseMapPackage({
+    ...map,
+    visual: { ...map.visual, sceneKitId: "forest" },
+    sceneObjects: [{ id: "old-sticker", assetUrl: "/map-assets/scene-kits/forest-log.png" }],
+  });
+  assert.ok(parsed);
+  assert.equal("sceneObjects" in parsed, false);
+  assert.equal("sceneKitId" in parsed.visual, false);
 });
 
 test("map packages preserve deliberately simplified shared-fog polygons", () => {

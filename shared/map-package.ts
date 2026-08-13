@@ -2,25 +2,11 @@ import { defaultSharedFogPolygon } from "./fog-of-war.mjs";
 
 export type MapBiome = "forest" | "dungeon" | "cave" | "ruins" | "swamp" | "desert" | "tundra" | "volcanic" | "coast";
 export type MapMood = "daylight" | "overcast" | "moonlight" | "torchlight";
-export type MapRotation = 0 | 90 | 180 | 270;
-
 export type FullSceneVisual = {
   kind: "generated-scene";
   assetUrl: string;
   pixelWidth: number;
   pixelHeight: number;
-  sceneKitId: string;
-};
-
-export type PlacedSceneObject = {
-  id: string;
-  definitionId: string;
-  assetUrl: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: MapRotation;
 };
 
 export type WallSegment = {
@@ -80,7 +66,6 @@ export type MapPackage = {
   width: number;
   height: number;
   visual: FullSceneVisual;
-  sceneObjects: PlacedSceneObject[];
   walls: WallSegment[];
   portals: Portal[];
   labels: MapLabel[];
@@ -92,7 +77,6 @@ export type MapPackage = {
 
 const BIOMES = new Set<MapBiome>(["forest", "dungeon", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"]);
 const MOODS = new Set<MapMood>(["daylight", "overcast", "moonlight", "torchlight"]);
-const ROTATIONS = new Set<MapRotation>([0, 90, 180, 270]);
 const MAX_PACKAGE_BYTES = 200_000;
 const MAX_ITEMS = 500;
 const MAX_SHARED_FOG_POINTS = 100;
@@ -120,21 +104,6 @@ function mapAssetPath(value: unknown): string | null {
 
 function array(value: unknown): unknown[] | null {
   return Array.isArray(value) && value.length <= MAX_ITEMS ? value : null;
-}
-
-function parseSceneObject(value: unknown, width: number, height: number): PlacedSceneObject | null {
-  const item = record(value);
-  if (!item) return null;
-  const id = text(item.id, 96);
-  const definitionId = text(item.definitionId, 96);
-  const assetUrl = mapAssetPath(item.assetUrl);
-  const x = finite(item.x, 0, width);
-  const y = finite(item.y, 0, height);
-  const itemWidth = finite(item.width, 0.25, width);
-  const itemHeight = finite(item.height, 0.25, height);
-  const rotation = item.rotation as MapRotation;
-  if (!id || !definitionId || !assetUrl || x === null || y === null || itemWidth === null || itemHeight === null || !ROTATIONS.has(rotation)) return null;
-  return { id, definitionId, assetUrl, x, y, width: itemWidth, height: itemHeight, rotation };
 }
 
 function parseWall(value: unknown, width: number, height: number): WallSegment | null {
@@ -224,20 +193,19 @@ export function parseMapPackage(value: unknown): MapPackage | null {
   const createdAt = finite(item.createdAt, 0, Number.MAX_SAFE_INTEGER);
   const visualValue = record(item.visual); const sourceValue = record(item.source);
   if (!id || !name || description === null || seed === null || width === null || height === null || createdAt === null || !BIOMES.has(biome) || !MOODS.has(mood) || !visualValue || visualValue.kind !== "generated-scene" || !sourceValue) return null;
-  const assetUrl = mapAssetPath(visualValue.assetUrl); const pixelWidth = finite(visualValue.pixelWidth, 512, 8192); const pixelHeight = finite(visualValue.pixelHeight, 512, 8192); const sceneKitId = text(visualValue.sceneKitId, 96);
+  const assetUrl = mapAssetPath(visualValue.assetUrl); const pixelWidth = finite(visualValue.pixelWidth, 512, 8192); const pixelHeight = finite(visualValue.pixelHeight, 512, 8192);
   const sourceKind = sourceValue.kind;
-  if (!assetUrl || pixelWidth === null || pixelHeight === null || !sceneKitId || (sourceKind !== "generated-scene" && sourceKind !== "imported")) return null;
-  const sceneObjects = parsedList(item.sceneObjects, (entry) => parseSceneObject(entry, width, height));
+  if (!assetUrl || pixelWidth === null || pixelHeight === null || (sourceKind !== "generated-scene" && sourceKind !== "imported")) return null;
   const walls = parsedList(item.walls, (entry) => parseWall(entry, width, height));
   const portals = parsedList(item.portals, (entry) => parsePortal(entry, width, height));
   const labels = parsedList(item.labels, (entry) => parseLabel(entry, width, height));
   const notes = parsedList(item.notes, (entry) => parseNote(entry, width, height));
   const fog = parseFog(item.fog, width, height);
-  if (!sceneObjects || !walls || !portals || !labels || !notes || !fog) return null;
+  if (!walls || !portals || !labels || !notes || !fog) return null;
   return {
     format: "dnd-battle-map", version: 1, id, name, description, biome, mood, seed, width, height,
-    visual: { kind: "generated-scene", assetUrl, pixelWidth, pixelHeight, sceneKitId },
-    sceneObjects, walls, portals, labels, notes, fog, source: { kind: sourceKind }, createdAt,
+    visual: { kind: "generated-scene", assetUrl, pixelWidth, pixelHeight },
+    walls, portals, labels, notes, fog, source: { kind: sourceKind }, createdAt,
   };
 }
 
