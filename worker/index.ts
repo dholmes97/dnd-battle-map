@@ -6,13 +6,11 @@ import {
 import handler from "vinext/server/app-router-entry";
 import {
   CHARACTER_ART_ASSETS,
-  CREATURE_CATALOG_SEED,
   type CreatureSize,
   isCreatureSize,
   tokenRadiusCells,
 } from "../shared/creature-library";
 import { parseMapPackage, type MapPackage } from "../shared/map-package";
-import { FULL_SCENE_MAPS, createFullSceneMap } from "../shared/full-scene-maps";
 import {
   baseTokenControllerName,
   identityControlsToken,
@@ -22,7 +20,7 @@ import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action
 import { healthBand } from "../shared/health.ts";
 import { movementPolicyDenial } from "../shared/battle-map-policies.ts";
 import { calculateDirectDistance } from "../shared/battle-map-geometry.ts";
-import { ensureSharedFogPolygon, pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.ts";
+import { pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.ts";
 import {
   historyConflictMessage,
   mapPackageForViewer,
@@ -30,9 +28,7 @@ import {
 } from "../shared/encounter-domain.ts";
 import { nextInitiativeTurn, orderedInitiativeGroups } from "../shared/initiative-domain.ts";
 import {
-  CHAT_MESSAGE_MAX_LENGTH,
   chatMessageVisibleToViewer,
-  resolveChatRecipient,
 } from "../shared/chat-domain.ts";
 import {
   HANDOUT_DISPLAY_MAX_BYTES,
@@ -53,177 +49,41 @@ import {
   isCommandName,
   type CommandRequest,
   type EncounterState,
-  type EncounterStatus,
   type SharedToken,
-  type SharedAnnotation,
 } from "../shared/contracts";
+import {
+  deleteHandout,
+  sendChatMessage,
+  type ChatHandoutCommandContext,
+} from "./commands/chat-handout-commands";
+import type { CommandOutcome } from "./commands/types";
+import { createD1ChatHandoutRepository, createR2HandoutObjectStorage } from "./adapters/d1-chat-handout-repository";
+import {
+  addAnnotation,
+  clearAnnotations,
+  removeAnnotation,
+  setFogMode,
+  setStrictMovement,
+  setVisionDoorOpen,
+  updateSharedFog,
+  type AnnotationFogCommandContext,
+} from "./commands/annotation-fog-commands";
+import { createD1AnnotationFogRepository } from "./adapters/d1-annotation-fog-repository";
+import type {
+  ActionRow,
+  AnnotationRow,
+  ChatMessageRow,
+  CreatureCatalogRow,
+  EffectRow,
+  EncounterRow,
+  Env,
+  HandoutRow,
+  MapPresetRow,
+  ParticipantRow,
+  TokenRow,
+  WorkerExecutionContext,
+} from "./types";
 
-interface Env {
-  ASSETS: Fetcher;
-  DB: D1Database;
-  MAP_ASSETS?: R2Bucket;
-  CATALOG_IMPORT_TOKEN?: string;
-  PRODUCTION_BACKUP_TOKEN?: string;
-  IMAGES?: {
-    input(stream: ReadableStream): {
-      transform(options: Record<string, unknown>): {
-        output(options: {
-          format: string;
-          quality: number;
-        }): Promise<{ response(): Response }>;
-      };
-    };
-  };
-}
-
-interface ExecutionContext {
-  waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
-}
-
-type EncounterRow = {
-  id: string;
-  code: string;
-  name: string;
-  version: number;
-  status: EncounterStatus;
-  map_asset: string;
-  map_package_json: string | null;
-  active_map_preset_id: string | null;
-  grid_width: number;
-  grid_height: number;
-  current_round: number;
-  active_initiative_order: number | null;
-  strict_movement: number;
-  updated_at: number;
-};
-
-type TokenRow = {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  art_asset: string | null;
-  kind: string;
-  size: CreatureSize;
-  speed: number;
-  hp: number | null;
-  max_hp: number | null;
-  is_hidden: number;
-  summoner_token_id: string | null;
-  initiative: number | null;
-  initiative_group_id: string | null;
-  initiative_order: number | null;
-  turn_complete: number;
-  movement_used: number;
-  movement_origin_x?: number | null;
-  movement_origin_y?: number | null;
-  owner_participant_id: string | null;
-  owner_name: string | null;
-};
-
-type ParticipantRow = {
-  id: string;
-  name: string;
-  role: "dm" | "player";
-};
-
-type EffectRow = {
-  id: string;
-  token_id: string;
-  name: string;
-  effect_type: string;
-  duration_rounds: number | null;
-  expires_round: number | null;
-  reminder_timing: string;
-};
-
-type AnnotationRow = {
-  id: string;
-  annotation_type: SharedAnnotation["type"];
-  x: number;
-  y: number;
-  x2: number | null;
-  y2: number | null;
-  color: string;
-  label: string | null;
-  created_by: string;
-  expires_at: number | null;
-};
-
-type ActionRow = {
-  id: string;
-  action_type: string;
-  payload_json: string;
-  created_at: number;
-};
-
-type ChatMessageRow = {
-  id: string;
-  sender_name: string;
-  sender_role: "dm" | "player";
-  recipient_name: string | null;
-  body: string;
-  handout_id: string | null;
-  handout_title: string | null;
-  handout_width: number | null;
-  handout_height: number | null;
-  handout_updated_at: number | null;
-  handout_deleted_at: number | null;
-  show_immediately: number;
-  created_at: number;
-};
-
-type HandoutRow = {
-  id: string;
-  title: string;
-  display_key: string;
-  thumbnail_key: string;
-  mime_type: string;
-  width: number;
-  height: number;
-  display_bytes: number;
-  thumbnail_bytes: number;
-  created_by: string;
-  created_at: number;
-  updated_at: number;
-  deleted_at: number | null;
-  message_count?: number;
-};
-
-type MapPresetRow = {
-  id: string;
-  name: string;
-  description: string;
-  source_prompt: string | null;
-  package_json: string;
-  created_at: number;
-  updated_at: number;
-};
-
-type CreatureCatalogRow = {
-  id: string;
-  name: string;
-  family: string;
-  creature_type: string;
-  size: CreatureSize;
-  default_hp: number;
-  hit_dice: string | null;
-  armor_class: number;
-  challenge_rating: string | null;
-  default_speed: number;
-  walk_speed: number;
-  fly_speed: number | null;
-  swim_speed: number | null;
-  climb_speed: number | null;
-  burrow_speed: number | null;
-  token_asset: string;
-  thumbnail_asset: string;
-  sort_order: number;
-};
-
-const PING_TTL_MS = 2_000;
-const SPOTLIGHT_TTL_MS = 6_500;
 const API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/(join|state|events|heartbeat|move|command)$/;
 const HANDOUT_API_ROUTE =
@@ -253,15 +113,6 @@ const MAP_ASSET_KEYS = new Set([
   "grandfather-tree-roots-01.jpg",
   "ravenloft-grand-dining-hall-01.jpg",
 ]);
-
-const RETIRED_SCENE_ASSET_KEYS = [
-  "scene-kits/forest-log.png",
-  "scene-kits/forest-rocks.png",
-  "scene-kits/temple-debris.png",
-  "scene-kits/temple-table.png",
-  "scene-kits/coast-boat.png",
-  "scene-kits/coast-barricade.png",
-] as const;
 
 async function handleMapAsset(request: Request, env: Env, key: string): Promise<Response> {
   if (!MAP_ASSET_KEYS.has(key)) return new Response("Not found", { status: 404 });
@@ -380,6 +231,10 @@ function json(data: unknown, init: ResponseInit = {}): Response {
   headers.set("content-type", "application/json; charset=utf-8");
   headers.set("cache-control", "no-store");
   return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+function commandOutcomeResponse(outcome: CommandOutcome): Response {
+  return json(outcome.payload, { status: outcome.status ?? 200 });
 }
 
 function bearerTokenMatches(request: Request, configured: string): boolean {
@@ -576,16 +431,6 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-function cleanChatBody(value: unknown): string {
-  return typeof value === "string"
-    ? value
-      .replace(/\r\n?/g, "\n")
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
-      .trim()
-      .slice(0, CHAT_MESSAGE_MAX_LENGTH)
-    : "";
-}
-
 function cleanMapPackage(value: unknown): MapPackage | null {
   try {
     const parsed = typeof value === "string" ? JSON.parse(value) : value;
@@ -602,519 +447,30 @@ function clampTokenCoordinate(value: unknown, limit: number, size: CreatureSize)
   return Math.round(Math.min(limit - radius, Math.max(radius, Number.isFinite(numeric) ? numeric : fallback)) * 1_000) / 1_000;
 }
 
+const REQUIRED_SCHEMA_MIGRATION = "0017_blushing_moondragon.sql";
+const REQUIRED_SCHEMA_MARKER = "migration-only-schema-v1";
+
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
-    schemaReady = (async () => {
-      const db = env.DB;
-      await db.batch([
-        db.prepare(`CREATE TABLE IF NOT EXISTS encounters (
-          id TEXT PRIMARY KEY NOT NULL,
-          code TEXT NOT NULL UNIQUE,
-          name TEXT NOT NULL,
-          version INTEGER DEFAULT 1 NOT NULL,
-          status TEXT DEFAULT 'setup' NOT NULL,
-          map_asset TEXT DEFAULT '' NOT NULL,
-          map_package_json TEXT,
-          active_map_preset_id TEXT,
-          grid_width INTEGER DEFAULT 16 NOT NULL,
-          grid_height INTEGER DEFAULT 11 NOT NULL,
-          current_round INTEGER DEFAULT 0 NOT NULL,
-          active_initiative_order INTEGER,
-          strict_movement INTEGER DEFAULT 1 NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS participants (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          role TEXT DEFAULT 'player' NOT NULL,
-          session_secret TEXT NOT NULL,
-          joined_at INTEGER NOT NULL,
-          last_seen_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS tokens (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          x REAL NOT NULL,
-          y REAL NOT NULL,
-          art_asset TEXT,
-          kind TEXT DEFAULT 'character' NOT NULL,
-          size TEXT DEFAULT 'medium' NOT NULL,
-          speed INTEGER DEFAULT 30 NOT NULL,
-          hp INTEGER,
-          max_hp INTEGER,
-          is_hidden INTEGER DEFAULT 0 NOT NULL,
-          summoner_token_id TEXT,
-          initiative INTEGER,
-          initiative_group_id TEXT,
-          initiative_order INTEGER,
-          turn_complete INTEGER DEFAULT 0 NOT NULL,
-          movement_used REAL DEFAULT 0 NOT NULL,
-          movement_origin_x REAL,
-          movement_origin_y REAL,
-          owner_participant_id TEXT REFERENCES participants(id) ON DELETE SET NULL,
-          owner_name TEXT,
-          updated_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS actions (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          participant_id TEXT NOT NULL,
-          action_type TEXT NOT NULL,
-          payload_json TEXT NOT NULL,
-          created_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS effects (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          token_id TEXT NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          effect_type TEXT DEFAULT 'condition' NOT NULL,
-          duration_rounds INTEGER,
-          expires_round INTEGER,
-          reminder_timing TEXT DEFAULT 'end' NOT NULL,
-          created_by TEXT NOT NULL,
-          created_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS annotations (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          annotation_type TEXT NOT NULL,
-          x REAL NOT NULL,
-          y REAL NOT NULL,
-          x2 REAL,
-          y2 REAL,
-          color TEXT DEFAULT '#f5c65c' NOT NULL,
-          label TEXT,
-          created_by TEXT NOT NULL,
-          expires_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS map_presets (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          description TEXT DEFAULT '' NOT NULL,
-          source_prompt TEXT,
-          package_json TEXT NOT NULL,
-          created_by TEXT NOT NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS handouts (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          title TEXT NOT NULL,
-          display_key TEXT NOT NULL,
-          thumbnail_key TEXT NOT NULL,
-          mime_type TEXT NOT NULL,
-          width INTEGER NOT NULL,
-          height INTEGER NOT NULL,
-          display_bytes INTEGER NOT NULL,
-          thumbnail_bytes INTEGER NOT NULL,
-          created_by TEXT NOT NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL,
-          deleted_at INTEGER
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS chat_messages (
-          id TEXT PRIMARY KEY NOT NULL,
-          encounter_id TEXT NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
-          sender_name TEXT NOT NULL,
-          sender_role TEXT NOT NULL,
-          recipient_name TEXT,
-          body TEXT NOT NULL,
-          handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL,
-          show_immediately INTEGER DEFAULT 0 NOT NULL,
-          created_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS creature_catalog (
-          id TEXT PRIMARY KEY NOT NULL,
-          name TEXT NOT NULL,
-          family TEXT NOT NULL,
-          creature_type TEXT NOT NULL,
-          size TEXT NOT NULL,
-          default_hp INTEGER NOT NULL,
-          hit_dice TEXT,
-          armor_class INTEGER NOT NULL,
-          challenge_rating TEXT,
-          default_speed INTEGER NOT NULL,
-          walk_speed INTEGER NOT NULL,
-          fly_speed INTEGER,
-          swim_speed INTEGER,
-          climb_speed INTEGER,
-          burrow_speed INTEGER,
-          source_asset TEXT NOT NULL,
-          token_asset TEXT NOT NULL UNIQUE,
-          thumbnail_asset TEXT NOT NULL,
-          sort_order INTEGER NOT NULL,
-          is_active INTEGER DEFAULT 1 NOT NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        )`),
-        db.prepare(`CREATE TABLE IF NOT EXISTS app_maintenance (
-          id TEXT PRIMARY KEY NOT NULL,
-          completed_at INTEGER NOT NULL
-        )`),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_participants_encounter_id ON participants(encounter_id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_tokens_encounter_id ON tokens(encounter_id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_actions_encounter_created_at ON actions(encounter_id, created_at)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_effects_encounter_token ON effects(encounter_id, token_id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_annotations_encounter_created_at ON annotations(encounter_id, created_at)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_map_presets_encounter_updated ON map_presets(encounter_id, updated_at)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_handouts_encounter_created ON handouts(encounter_id, created_at, id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_chat_messages_encounter_created ON chat_messages(encounter_id, created_at, id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_creature_catalog_active_sort_id ON creature_catalog(is_active, sort_order, id)",
-        ),
-        db.prepare(
-          "CREATE INDEX IF NOT EXISTS idx_creature_catalog_family_sort_id ON creature_catalog(family, sort_order, id)",
-        ),
-      ]);
-
-      const retiredSceneCleanupId = "remove-scene-stickers-v1";
-      const retiredSceneCleanup = await db
-        .prepare("SELECT id FROM app_maintenance WHERE id = ?")
-        .bind(retiredSceneCleanupId)
-        .first<{ id: string }>();
-      if (!retiredSceneCleanup) {
-        const now = Date.now();
-        await db.batch([
-          db.prepare(`UPDATE encounters
-            SET map_package_json = json_remove(json_remove(map_package_json, '$.sceneObjects'), '$.visual.sceneKitId'),
-                version = version + 1,
-                updated_at = ?
-            WHERE map_package_json IS NOT NULL
-              AND json_valid(map_package_json) = 1
-              AND (json_type(map_package_json, '$.sceneObjects') IS NOT NULL
-                OR json_type(map_package_json, '$.visual.sceneKitId') IS NOT NULL)`)
-            .bind(now),
-          db.prepare(`UPDATE map_presets
-            SET package_json = json_remove(json_remove(package_json, '$.sceneObjects'), '$.visual.sceneKitId')
-            WHERE json_valid(package_json) = 1
-              AND (json_type(package_json, '$.sceneObjects') IS NOT NULL
-                OR json_type(package_json, '$.visual.sceneKitId') IS NOT NULL)`),
-        ]);
-        if (env.MAP_ASSETS) {
-          await Promise.all(RETIRED_SCENE_ASSET_KEYS.map((key) => env.MAP_ASSETS!.delete(key)));
+    schemaReady = env.DB.prepare(
+      "SELECT 1 AS ready FROM app_maintenance WHERE id = ? LIMIT 1",
+    )
+      .bind(REQUIRED_SCHEMA_MARKER)
+      .first<{ ready: number }>()
+      .then((row) => {
+        if (!row) {
+          throw new Error(
+            `Database migration ${REQUIRED_SCHEMA_MIGRATION} has not been applied.`,
+          );
         }
-        await db.prepare("INSERT INTO app_maintenance (id, completed_at) VALUES (?, ?)")
-          .bind(retiredSceneCleanupId, now)
-          .run();
-      }
-
-      // Preserve local/preview databases created by the earlier POC schema.
-      const participantColumns = await db
-        .prepare("PRAGMA table_info(participants)")
-        .all<{ name: string }>();
-      if (
-        !participantColumns.results.some(
-          (column) => column.name === "session_secret",
-        )
-      ) {
-        await db
-          .prepare("ALTER TABLE participants ADD COLUMN session_secret TEXT")
-          .run();
-        await db
-          .prepare(
-            `UPDATE participants
-             SET session_secret = lower(hex(randomblob(32)))
-             WHERE session_secret IS NULL`,
-          )
-          .run();
-      }
-      if (!participantColumns.results.some((column) => column.name === "role")) {
-        await db
-          .prepare("ALTER TABLE participants ADD COLUMN role TEXT DEFAULT 'player' NOT NULL")
-          .run();
-      }
-      await db
-        .prepare(
-          "CREATE UNIQUE INDEX IF NOT EXISTS participants_session_secret_unique ON participants(session_secret)",
-        )
-        .run();
-
-      const chatColumns = await db
-        .prepare("PRAGMA table_info(chat_messages)")
-        .all<{ name: string }>();
-      if (!chatColumns.results.some((column) => column.name === "handout_id")) {
-        await db.prepare("ALTER TABLE chat_messages ADD COLUMN handout_id TEXT REFERENCES handouts(id) ON DELETE SET NULL").run();
-      }
-      if (!chatColumns.results.some((column) => column.name === "show_immediately")) {
-        await db.prepare("ALTER TABLE chat_messages ADD COLUMN show_immediately INTEGER DEFAULT 0 NOT NULL").run();
-      }
-
-      const handoutColumns = await db
-        .prepare("PRAGMA table_info(handouts)")
-        .all<{ name: string }>();
-      if (!handoutColumns.results.some((column) => column.name === "updated_at")) {
-        await db.prepare("ALTER TABLE handouts ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0").run();
-        await db.prepare("UPDATE handouts SET updated_at = created_at WHERE updated_at = 0").run();
-      }
-
-      const catalogColumns = await db
-        .prepare("PRAGMA table_info(creature_catalog)")
-        .all<{ name: string }>();
-      const catalogAdditions = [
-        ["creature_type", "ALTER TABLE creature_catalog ADD COLUMN creature_type TEXT DEFAULT 'monstrosity' NOT NULL"],
-        ["default_hp", "ALTER TABLE creature_catalog ADD COLUMN default_hp INTEGER DEFAULT 1 NOT NULL"],
-        ["hit_dice", "ALTER TABLE creature_catalog ADD COLUMN hit_dice TEXT"],
-        ["armor_class", "ALTER TABLE creature_catalog ADD COLUMN armor_class INTEGER DEFAULT 10 NOT NULL"],
-        ["challenge_rating", "ALTER TABLE creature_catalog ADD COLUMN challenge_rating TEXT"],
-        ["walk_speed", "ALTER TABLE creature_catalog ADD COLUMN walk_speed INTEGER DEFAULT 30 NOT NULL"],
-        ["fly_speed", "ALTER TABLE creature_catalog ADD COLUMN fly_speed INTEGER"],
-        ["swim_speed", "ALTER TABLE creature_catalog ADD COLUMN swim_speed INTEGER"],
-        ["climb_speed", "ALTER TABLE creature_catalog ADD COLUMN climb_speed INTEGER"],
-        ["burrow_speed", "ALTER TABLE creature_catalog ADD COLUMN burrow_speed INTEGER"],
-      ] as const;
-      for (const [columnName, statement] of catalogAdditions) {
-        if (!catalogColumns.results.some((column) => column.name === columnName)) {
-          await db.prepare(statement).run();
-        }
-      }
-
-      const tokenColumns = await db
-        .prepare("PRAGMA table_info(tokens)")
-        .all<{ name: string }>();
-      if (
-        !tokenColumns.results.some(
-          (column) => column.name === "owner_participant_id",
-        )
-      ) {
-        await db
-          .prepare("ALTER TABLE tokens ADD COLUMN owner_participant_id TEXT")
-          .run();
-      }
-      if (
-        !tokenColumns.results.some((column) => column.name === "owner_name")
-      ) {
-        await db.prepare("ALTER TABLE tokens ADD COLUMN owner_name TEXT").run();
-      }
-      const tokenAdditions = [
-        ["art_asset", "ALTER TABLE tokens ADD COLUMN art_asset TEXT"],
-        ["kind", "ALTER TABLE tokens ADD COLUMN kind TEXT DEFAULT 'character' NOT NULL"],
-        ["size", "ALTER TABLE tokens ADD COLUMN size TEXT DEFAULT 'medium' NOT NULL"],
-        ["speed", "ALTER TABLE tokens ADD COLUMN speed INTEGER DEFAULT 30 NOT NULL"],
-        ["hp", "ALTER TABLE tokens ADD COLUMN hp INTEGER"],
-        ["max_hp", "ALTER TABLE tokens ADD COLUMN max_hp INTEGER"],
-        ["is_hidden", "ALTER TABLE tokens ADD COLUMN is_hidden INTEGER DEFAULT 0 NOT NULL"],
-        ["summoner_token_id", "ALTER TABLE tokens ADD COLUMN summoner_token_id TEXT"],
-        ["initiative", "ALTER TABLE tokens ADD COLUMN initiative INTEGER"],
-        ["initiative_group_id", "ALTER TABLE tokens ADD COLUMN initiative_group_id TEXT"],
-        ["initiative_order", "ALTER TABLE tokens ADD COLUMN initiative_order INTEGER"],
-        ["turn_complete", "ALTER TABLE tokens ADD COLUMN turn_complete INTEGER DEFAULT 0 NOT NULL"],
-        ["movement_used", "ALTER TABLE tokens ADD COLUMN movement_used REAL DEFAULT 0 NOT NULL"],
-        ["movement_origin_x", "ALTER TABLE tokens ADD COLUMN movement_origin_x REAL"],
-        ["movement_origin_y", "ALTER TABLE tokens ADD COLUMN movement_origin_y REAL"],
-      ] as const;
-      for (const [columnName, statement] of tokenAdditions) {
-        if (!tokenColumns.results.some((column) => column.name === columnName)) {
-          await db.prepare(statement).run();
-        }
-      }
-
-      const encounterColumns = await db
-        .prepare("PRAGMA table_info(encounters)")
-        .all<{ name: string }>();
-      const encounterAdditions = [
-        ["status", "ALTER TABLE encounters ADD COLUMN status TEXT DEFAULT 'setup' NOT NULL"],
-        ["map_asset", "ALTER TABLE encounters ADD COLUMN map_asset TEXT DEFAULT '' NOT NULL"],
-        ["map_package_json", "ALTER TABLE encounters ADD COLUMN map_package_json TEXT"],
-        ["active_map_preset_id", "ALTER TABLE encounters ADD COLUMN active_map_preset_id TEXT"],
-        ["grid_width", "ALTER TABLE encounters ADD COLUMN grid_width INTEGER DEFAULT 16 NOT NULL"],
-        ["grid_height", "ALTER TABLE encounters ADD COLUMN grid_height INTEGER DEFAULT 11 NOT NULL"],
-        ["current_round", "ALTER TABLE encounters ADD COLUMN current_round INTEGER DEFAULT 0 NOT NULL"],
-        ["active_initiative_order", "ALTER TABLE encounters ADD COLUMN active_initiative_order INTEGER"],
-        ["strict_movement", "ALTER TABLE encounters ADD COLUMN strict_movement INTEGER DEFAULT 1 NOT NULL"],
-      ] as const;
-      for (const [columnName, statement] of encounterAdditions) {
-        if (!encounterColumns.results.some((column) => column.name === columnName)) {
-          await db.prepare(statement).run();
-        }
-      }
-      await db
-        .prepare("DROP INDEX IF EXISTS tokens_owner_participant_id_unique")
-        .run();
-      await db
-        .prepare(
-          `CREATE INDEX IF NOT EXISTS idx_tokens_owner_participant_id
-           ON tokens(owner_participant_id)`,
-        )
-        .run();
-
-      const now = Date.now();
-      await db.batch(CREATURE_CATALOG_SEED.map((creature) => db.prepare(
-        `INSERT INTO creature_catalog
-         (id, name, family, creature_type, size, default_hp, hit_dice, armor_class,
-          challenge_rating, default_speed, walk_speed, fly_speed, swim_speed, climb_speed,
-          burrow_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active,
-          created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET name = excluded.name, family = excluded.family,
-          creature_type = excluded.creature_type, size = excluded.size,
-          default_hp = excluded.default_hp, hit_dice = excluded.hit_dice,
-          armor_class = excluded.armor_class, challenge_rating = excluded.challenge_rating,
-          default_speed = excluded.default_speed, walk_speed = excluded.walk_speed,
-          fly_speed = excluded.fly_speed, swim_speed = excluded.swim_speed,
-          climb_speed = excluded.climb_speed, burrow_speed = excluded.burrow_speed,
-          source_asset = excluded.source_asset, token_asset = excluded.token_asset,
-          thumbnail_asset = excluded.thumbnail_asset, sort_order = excluded.sort_order,
-          is_active = 1, updated_at = excluded.updated_at`,
-      ).bind(
-        creature.id,
-        creature.name,
-        creature.family,
-        creature.creatureType,
-        creature.size,
-        creature.defaultHp,
-        creature.hitDice,
-        creature.armorClass,
-        creature.challengeRating,
-        creature.defaultSpeed,
-        creature.speeds.walk,
-        creature.speeds.fly,
-        creature.speeds.swim,
-        creature.speeds.climb,
-        creature.speeds.burrow,
-        creature.sourceAsset,
-        creature.artAsset,
-        creature.thumbnailAsset,
-        creature.sortOrder,
-        now,
-        now,
-      )));
-      await db.batch(CREATURE_CATALOG_SEED.map((creature) => db.prepare(
-        "UPDATE tokens SET art_asset = ? WHERE art_asset = ?",
-      ).bind(creature.artAsset, creature.sourceAsset)));
-      await db.prepare("PRAGMA optimize").run();
-      const seedResults = await db.batch([
-        db.prepare(
-          `INSERT OR IGNORE INTO encounters (id, code, name, version, updated_at)
-           VALUES (?, ?, ?, 1, ?)`,
-        ).bind("encounter-ember-keep", "EMBER-KEEP", "Swamp Battle", now),
-        db.prepare(
-          `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
-        ).bind(
-          "token-bronze-warden",
-          "encounter-ember-keep",
-          "Bronze Warden",
-          7,
-          5,
-          now,
-        ),
-        db.prepare(
-          `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
-        ).bind(
-          "token-ember-scout",
-          "encounter-ember-keep",
-          "Ember Scout",
-          5.5,
-          3.5,
-          now,
-        ),
-        db.prepare(
-          `INSERT OR IGNORE INTO tokens
-            (id, encounter_id, name, x, y, owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
-        ).bind(
-          "token-ash-mystic",
-          "encounter-ember-keep",
-          "Ash Mystic",
-          10.5,
-          7.5,
-          now,
-        ),
-      ]);
-      if (
-        seedResults
-          .slice(1)
-          .some((result) => (result.meta.changes ?? 0) > 0)
-      ) {
-        await db
-          .prepare(
-            "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
-          )
-          .bind(now, "encounter-ember-keep")
-          .run();
-      }
-      const portraitResults = await db.batch([
-        db.prepare(
-          `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
-           WHERE id = ? AND name = ?`,
-        ).bind("Dar'eleth", CHARACTER_ART_ASSETS[0], now, "token-bronze-warden", "Bronze Warden"),
-        db.prepare(
-          `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
-           WHERE id = ? AND name = ?`,
-        ).bind("Malichar", CHARACTER_ART_ASSETS[1], now, "token-ember-scout", "Ember Scout"),
-        db.prepare(
-          `UPDATE tokens SET name = ?, art_asset = ?, kind = 'character', updated_at = ?
-           WHERE id = ? AND name = ?`,
-        ).bind("Jelton", CHARACTER_ART_ASSETS[2], now, "token-ash-mystic", "Ash Mystic"),
-      ]);
-      if (portraitResults.some((result) => (result.meta.changes ?? 0) > 0)) {
-        await db.prepare(
-          "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
-        ).bind(now, "encounter-ember-keep").run();
-      }
-      const legacyHpBackfill = await db.prepare(
-        `UPDATE tokens SET
-          hp = (SELECT default_hp FROM creature_catalog
-                WHERE token_asset = tokens.art_asset AND is_active = 1 LIMIT 1),
-          max_hp = (SELECT default_hp FROM creature_catalog
-                    WHERE token_asset = tokens.art_asset AND is_active = 1 LIMIT 1),
-          updated_at = ?
-         WHERE kind = 'monster' AND hp IS NULL AND max_hp IS NULL
-         AND EXISTS (SELECT 1 FROM creature_catalog
-                     WHERE token_asset = tokens.art_asset AND is_active = 1)`,
-      ).bind(now).run();
-      if ((legacyHpBackfill.meta.changes ?? 0) > 0) {
-        await db.prepare(
-          "UPDATE encounters SET version = version + 1, updated_at = ?",
-        ).bind(now).run();
-      }
-      const defaultScene = createFullSceneMap(FULL_SCENE_MAPS[0]);
-      const migratedScenes = await db.prepare(
-        `UPDATE encounters SET map_package_json = ?, active_map_preset_id = NULL,
-         map_asset = '', grid_width = ?, grid_height = ?, version = version + 1,
-         updated_at = ? WHERE map_package_json IS NULL OR instr(map_package_json, '"visual"') = 0`,
-      ).bind(JSON.stringify(defaultScene), defaultScene.width, defaultScene.height, now).run();
-      if ((migratedScenes.meta.changes ?? 0) > 0) {
-        await db.prepare(
-          `INSERT INTO actions (id, encounter_id, participant_id, action_type, payload_json, created_at)
-           SELECT lower(hex(randomblob(16))), id, 'system', 'map_scene_migrated', ?, ?
-           FROM encounters WHERE map_package_json = ?`,
-        ).bind(JSON.stringify({ mapId: defaultScene.id, reason: "full_scene_only" }), now, JSON.stringify(defaultScene)).run();
-      }
-      await db.prepare(`DELETE FROM map_presets WHERE instr(package_json, '"visual"') = 0`).run();
-    })().catch((error) => {
-      schemaReady = null;
-      throw error;
-    });
+      })
+      .catch((error) => {
+        schemaReady = null;
+        throw error;
+      });
   }
   await schemaReady;
 }
-
 async function handleCreatureCatalog(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") {
     return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
@@ -2011,67 +1367,66 @@ async function handleCommand(
       ? null
       : json({ error: "This action requires the DM role." }, { status: 403 });
 
+  const chatHandoutContext = (): ChatHandoutCommandContext => ({
+    encounter: {
+      id: encounter.id,
+      code: encounter.code,
+      name: encounter.name,
+      status: encounter.status,
+      mapPackageJson: encounter.map_package_json,
+      activeMapPresetId: encounter.active_map_preset_id,
+      gridWidth: encounter.grid_width,
+      gridHeight: encounter.grid_height,
+      currentRound: encounter.current_round,
+      activeInitiativeOrder: encounter.active_initiative_order,
+      strictMovement: Boolean(encounter.strict_movement),
+      updatedAt: encounter.updated_at,
+    },
+    participant,
+    body,
+    now,
+    repository: createD1ChatHandoutRepository(env.DB),
+    objectStorage: createR2HandoutObjectStorage(env.MAP_ASSETS),
+    services: {
+      createId: () => crypto.randomUUID(),
+      loadState: state,
+      bumpEncounter: () => bumpEncounter(env, encounter.id, now),
+      recordAction: (actionType, payload) => recordAction(env, encounter.id, participant.id, actionType, payload, now),
+    },
+  });
   if (command === "send-chat-message") {
-    const messageBody = cleanChatBody(body.message);
-    const handoutId = cleanTokenId(body.handoutId) || null;
-    const showImmediately = Boolean(handoutId && participant.role === "dm" && body.showImmediately === true);
-    if (!messageBody && !handoutId) {
-      return json({ error: "Enter a message or attach a handout before sending." }, { status: 400 });
-    }
-    if (handoutId && participant.role !== "dm") {
-      return json({ error: "Only the DM can share handouts." }, { status: 403 });
-    }
-    if (handoutId) {
-      const handout = await env.DB.prepare(
-        "SELECT id FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL",
-      ).bind(handoutId, encounter.id).first<{ id: string }>();
-      if (!handout) return json({ error: "That handout is no longer available." }, { status: 404 });
-    }
-    const recipient = resolveChatRecipient({
-      senderName: participant.name,
-      senderRole: participant.role,
-      requestedRecipientName: body.recipientName,
-    });
-    if (!recipient.allowed) {
-      return json({ error: recipient.error }, { status: 403 });
-    }
-    const messageId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO chat_messages
-       (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, show_immediately, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(messageId, encounter.id, participant.name, participant.role, recipient.recipientName, messageBody, handoutId, showImmediately ? 1 : 0, now)
-      .run();
-    await bumpEncounter(env, encounter.id, now);
-    return json({ messageId, state: await state() });
+    return commandOutcomeResponse(await sendChatMessage(chatHandoutContext()));
   }
-
   if (command === "delete-handout") {
-    const denied = requireDm();
-    if (denied) return denied;
-    if (!env.MAP_ASSETS) return json({ error: "Handout storage is unavailable." }, { status: 503 });
-    const handoutId = cleanTokenId(body.handoutId);
-    const handout = await env.DB.prepare(
-      `SELECT id, display_key, thumbnail_key
-       FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
-    ).bind(handoutId, encounter.id).first<Pick<HandoutRow, "id" | "display_key" | "thumbnail_key">>();
-    if (!handout) return json({ error: "Handout not found." }, { status: 404 });
-    const references = await env.DB.prepare(
-      "SELECT COUNT(*) AS value FROM chat_messages WHERE encounter_id = ? AND handout_id = ?",
-    ).bind(encounter.id, handout.id).first<{ value: number }>();
-    await Promise.all([
-      env.MAP_ASSETS.delete(handout.display_key),
-      env.MAP_ASSETS.delete(handout.thumbnail_key),
-    ]);
-    await env.DB.prepare(
-      `UPDATE handouts SET display_key = '', thumbnail_key = '', updated_at = ?, deleted_at = ?
-       WHERE id = ? AND encounter_id = ?`,
-    ).bind(now, now, handout.id, encounter.id).run();
-    await bumpEncounter(env, encounter.id, now);
-    return json({ deleted: true, referencedMessages: Number(references?.value) || 0, state: await state() });
+    return commandOutcomeResponse(await deleteHandout(chatHandoutContext()));
   }
 
+  const annotationFogContext = (): AnnotationFogCommandContext => ({
+    encounter: {
+      id: encounter.id,
+      code: encounter.code,
+      name: encounter.name,
+      status: encounter.status,
+      mapPackageJson: encounter.map_package_json,
+      activeMapPresetId: encounter.active_map_preset_id,
+      gridWidth: encounter.grid_width,
+      gridHeight: encounter.grid_height,
+      currentRound: encounter.current_round,
+      activeInitiativeOrder: encounter.active_initiative_order,
+      strictMovement: Boolean(encounter.strict_movement),
+      updatedAt: encounter.updated_at,
+    },
+    participant,
+    body,
+    now,
+    repository: createD1AnnotationFogRepository(env.DB),
+    services: {
+      createId: () => crypto.randomUUID(),
+      loadState: state,
+      bumpEncounter: () => bumpEncounter(env, encounter.id, now),
+      recordAction: (actionType, payload) => recordAction(env, encounter.id, participant.id, actionType, payload, now),
+    },
+  });
   if (command === "undo") {
     const stacks = await historyStacks(env, encounter.id, participant.id);
     const action = stacks.undo[0];
@@ -2811,70 +2166,17 @@ async function handleCommand(
   }
 
   if (command === "set-strict-movement") {
-    const denied = requireDm();
-    if (denied) return denied;
-    if (typeof body.enabled !== "boolean") {
-      return json({ error: "Strict movement must be on or off." }, { status: 400 });
-    }
-    await env.DB.prepare(
-      "UPDATE encounters SET strict_movement = ?, updated_at = ? WHERE id = ?",
-    )
-      .bind(body.enabled ? 1 : 0, now, encounter.id)
-      .run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "strict_movement_changed", {
-      from: Boolean(encounter.strict_movement),
-      to: body.enabled,
-    }, now);
-    return json({ updated: true, state: await state() });
+    return commandOutcomeResponse(await setStrictMovement(annotationFogContext()));
   }
-
   if (command === "set-fog-mode") {
-    const denied = requireDm();
-    if (denied) return denied;
-    const mode = body.mode;
-    if (mode !== "off" && mode !== "shared" && mode !== "dynamic") return json({ error: "Choose no fog, shared fog, or dynamic vision." }, { status: 400 });
-    const mapPackage = cleanMapPackage(encounter.map_package_json);
-    if (!mapPackage) return json({ error: "Apply a map before enabling fog of war." }, { status: 400 });
-    const previousMode = mapPackage.fog.mode;
-    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, mode, sharedPolygon: mode === "shared" ? ensureSharedFogPolygon(mapPackage.fog.sharedPolygon, mapPackage.width, mapPackage.height) : mapPackage.fog.sharedPolygon } };
-    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
-      .bind(JSON.stringify(nextPackage), now, encounter.id).run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "fog_mode_changed", { from: previousMode, to: mode }, now);
-    return json({ updated: true, state: await state() });
+    return commandOutcomeResponse(await setFogMode(annotationFogContext()));
   }
-
   if (command === "set-vision-door-open") {
-    const denied = requireDm();
-    if (denied) return denied;
-    const doorId = cleanTokenId(body.doorId);
-    if (!doorId || typeof body.open !== "boolean") return json({ error: "Choose a vision door and whether it is open." }, { status: 400 });
-    const mapPackage = cleanMapPackage(encounter.map_package_json);
-    if (!mapPackage) return json({ error: "Apply a map before changing vision doors." }, { status: 400 });
-    if (!mapPackage.fog.doors.some((door) => door.id === doorId)) return json({ error: "That vision door no longer exists." }, { status: 404 });
-    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, doors: mapPackage.fog.doors.map((door) => door.id === doorId ? { ...door, open: body.open as boolean } : door) } };
-    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
-      .bind(JSON.stringify(nextPackage), now, encounter.id).run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "vision_door_changed", { doorId, open: body.open }, now);
-    return json({ updated: true, state: await state() });
+    return commandOutcomeResponse(await setVisionDoorOpen(annotationFogContext()));
   }
-
   if (command === "update-shared-fog") {
-    const denied = requireDm();
-    if (denied) return denied;
-    const mapPackage = cleanMapPackage(encounter.map_package_json);
-    if (!mapPackage) return json({ error: "Apply a map before changing shared fog." }, { status: 400 });
-    const candidate = cleanMapPackage(JSON.stringify({ ...mapPackage, fog: { ...mapPackage.fog, sharedPolygon: body.polygon } }));
-    if (!candidate || candidate.fog.sharedPolygon.length < 3) return json({ error: "Shared fog needs at least three valid corners inside the map." }, { status: 400 });
-    await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
-      .bind(JSON.stringify(candidate), now, encounter.id).run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "shared_fog_changed", { cornerCount: candidate.fog.sharedPolygon.length }, now);
-    return json({ updated: true, state: await state() });
+    return commandOutcomeResponse(await updateSharedFog(annotationFogContext()));
   }
-
   if (command === "create-spell-effect") {
     const spell = spellEffectById(body.spellId);
     if (!spell) return json({ error: "That spell effect is not available." }, { status: 400 });
@@ -3235,97 +2537,14 @@ async function handleCommand(
   }
 
   if (command === "add-annotation") {
-    const annotationType = ["ping", "drawing", "spotlight", "neon-spotlight"].includes(String(body.annotationType))
-      ? String(body.annotationType)
-      : "ping";
-    if (["spotlight", "neon-spotlight"].includes(annotationType) && participant.role !== "dm") {
-      return json({ error: "Only the DM can place a spotlight." }, { status: 403 });
-    }
-    const x = Number(body.x);
-    const y = Number(body.y);
-    const x2 = Number.isFinite(Number(body.x2)) ? Number(body.x2) : null;
-    const y2 = Number.isFinite(Number(body.y2)) ? Number(body.y2) : null;
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > encounter.grid_width || y > encounter.grid_height) {
-      return json({ error: "Annotation is outside the map." }, { status: 400 });
-    }
-    const expiresAt = annotationType === "ping"
-      ? now + PING_TTL_MS
-      : annotationType === "spotlight" || annotationType === "neon-spotlight"
-        ? now + SPOTLIGHT_TTL_MS
-        : null;
-    const annotationId = crypto.randomUUID();
-    const color = cleanText(body.color, 16) || "#f5c65c";
-    const label = cleanText(body.label, 48) || null;
-    await env.DB.prepare(
-      `INSERT INTO annotations
-       (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
-        created_by, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(annotationId, encounter.id, annotationType, x, y, x2, y2, color, label, participant.id, expiresAt, now)
-      .run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "annotation_added", {
-      annotationId,
-      annotation: { id: annotationId, annotationType, x, y, x2, y2, color, label, createdBy: participant.id, expiresAt, createdAt: now },
-    }, now);
-    return json({ added: true, annotationId, state: await state() });
+    return commandOutcomeResponse(await addAnnotation(annotationFogContext()));
   }
-
   if (command === "clear-annotations") {
-    const denied = requireDm();
-    if (denied) return denied;
-    await env.DB.prepare("DELETE FROM annotations WHERE encounter_id = ?")
-      .bind(encounter.id)
-      .run();
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "annotations_cleared", {}, now);
-    return json({ cleared: true, state: await state() });
+    return commandOutcomeResponse(await clearAnnotations(annotationFogContext()));
   }
-
   if (command === "remove-annotation") {
-    const annotationId = cleanTokenId(body.annotationId);
-    const annotation = await env.DB.prepare(
-      `SELECT id, annotation_type, x, y, x2, y2, color, label, created_by,
-              expires_at, created_at
-       FROM annotations WHERE id = ? AND encounter_id = ?`,
-    )
-      .bind(annotationId, encounter.id)
-      .first<AnnotationRow & { created_at: number }>();
-    if (!annotation || annotation.annotation_type !== "drawing") {
-      return json({ error: "Drawn line not found." }, { status: 404 });
-    }
-    if (participant.role !== "dm" && annotation.created_by !== participant.id) {
-      return json({ error: "You can only erase lines you drew." }, { status: 403 });
-    }
-    const result = await env.DB.prepare(
-      "DELETE FROM annotations WHERE id = ? AND encounter_id = ?",
-    )
-      .bind(annotationId, encounter.id)
-      .run();
-    if ((result.meta.changes ?? 0) !== 1) {
-      return json({ error: "That line was already removed." }, { status: 409 });
-    }
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participant.id, "annotation_removed", {
-      annotationId,
-      annotation: {
-        id: annotation.id,
-        annotationType: annotation.annotation_type,
-        x: annotation.x,
-        y: annotation.y,
-        x2: annotation.x2,
-        y2: annotation.y2,
-        color: annotation.color,
-        label: annotation.label,
-        createdBy: annotation.created_by,
-        expiresAt: annotation.expires_at,
-        createdAt: annotation.created_at,
-      },
-    }, now);
-    return json({ removed: true, state: await state() });
+    return commandOutcomeResponse(await removeAnnotation(annotationFogContext()));
   }
-
   if (command === "delete-token") {
     const tokenId = cleanTokenId(body.tokenId);
     const token = await env.DB.prepare(
@@ -3540,7 +2759,7 @@ async function handleApi(
 }
 
 const worker = {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: WorkerExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     const productionBackupMatch = url.pathname.match(PRODUCTION_BACKUP_ROUTE);

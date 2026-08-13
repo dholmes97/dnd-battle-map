@@ -6,6 +6,11 @@ import {
   text,
 } from "drizzle-orm/sqlite-core";
 
+export const appMaintenance = sqliteTable("app_maintenance", {
+  id: text("id").primaryKey(),
+  completedAt: integer("completed_at").notNull(),
+});
+
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),

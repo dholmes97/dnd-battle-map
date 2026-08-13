@@ -24,6 +24,14 @@ Domain modules must not import React, DOM APIs, Worker APIs, D1, R2, or networki
 
 Adapters may translate framework-shaped records into domain-shaped data, invoke a domain function, and translate the result back. A decision used by both adapters belongs in `shared/`; it should not be reimplemented in each adapter.
 
+## Persistence evolution
+
+`db/schema.ts` describes the current D1 shape. Numbered SQL files under
+`drizzle/` are the only mechanism that changes deployed or local data. The Sites
+deployment adapter and the explicit local bootstrap command apply those files;
+ordinary Worker requests perform only a small read-only readiness check. See
+`docs/DATABASE-MIGRATIONS.md` for the authoring and release workflow.
+
 ## Testing convention
 
 Every extracted rule gets a direct `node:test` contract in `tests/`. Tests should exercise behavior and edge cases. Source assertions in `rendered-html.test.mjs` are reserved for wiring, accessibility, and structural constraints that cannot be observed through a small domain input/output test.

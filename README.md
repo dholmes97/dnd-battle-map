@@ -19,7 +19,8 @@ Node.js 22.13 or newer is required. Node 24 LTS is recommended.
 
 ```bash
 npm install
-npm run db:generate
+npm run build
+npm run db:bootstrap
 npm run dev
 ```
 
@@ -48,7 +49,7 @@ BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live
 
 Replace port `3000` when the development server selected another port.
 
-The worker creates and seeds the shared prototype encounter if it is absent.
-The same schema is represented in `db/schema.ts` and the checked-in migration
-under `drizzle/`; Sites owns the deployed D1 binding declared as `DB` in
-`.openai/hosting.json`.
+The schema is represented in `db/schema.ts`, while checked-in numbered SQL files
+under `drizzle/` are the sole schema and data-migration path. See
+[`docs/DATABASE-MIGRATIONS.md`](docs/DATABASE-MIGRATIONS.md). Sites owns the
+deployed D1 binding declared as `DB` in `.openai/hosting.json`.

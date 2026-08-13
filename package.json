@@ -14,10 +14,12 @@
     "test:live": "node --test tests/live/*.test.mjs",
     "backup:production": "node scripts/backup-production.mjs",
     "backup:verify": "node scripts/verify-production-backup.mjs",
+    "db:bootstrap": "node scripts/bootstrap-local-database.mjs",
     "catalog:expand": "node scripts/build-creature-expansion.mjs",
     "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:generate-bootstrap": "node scripts/generate-bootstrap-migration.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

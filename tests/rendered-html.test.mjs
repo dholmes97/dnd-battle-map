@@ -99,7 +99,7 @@ test("ships durable public and DM-private encounter chat", async () => {
   assert.match(clientSource, /"send-chat-message"/);
   assert.match(clientSource, /Enter to send · Shift\+Enter for a new line/);
   assert.match(clientSource, /chatPreferencesStorageKey/);
-  assert.match(workerSource, /CREATE TABLE IF NOT EXISTS chat_messages/);
+  assert.doesNotMatch(workerSource, /CREATE TABLE IF NOT EXISTS chat_messages/);
   assert.match(workerSource, /if \(command === "send-chat-message"\)/);
   assert.match(workerSource, /chatMessageVisibleToViewer/);
   assert.doesNotMatch(workerSource, /recordAction\([^)]*chat/i);
@@ -112,9 +112,10 @@ test("ships durable public and DM-private encounter chat", async () => {
 });
 
 test("prepares bounded private image handouts and delivers them through chat", async () => {
-  const [clientSource, workerSource, handoutDomain, styles, migration, immediateMigration] = await Promise.all([
+  const [clientSource, workerSource, handoutAdapter, handoutDomain, styles, migration, immediateMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../worker/adapters/d1-chat-handout-repository.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/handout-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0015_dry_ben_grimm.sql", import.meta.url), "utf8"),
@@ -143,7 +144,7 @@ test("prepares bounded private image handouts and delivers them through chat", a
   assert.match(workerSource, /inspectStoredHandout/);
   assert.match(workerSource, /show_immediately/);
   assert.match(workerSource, /handouts\/\$\{encounter\.id\}\/\$\{handoutId\}/);
-  assert.match(workerSource, /MAP_ASSETS\.delete\(handout\.display_key\)/);
+  assert.match(handoutAdapter, /keys\.map\(\(key\) => bucket\.delete\(key\)\)/);
   assert.match(workerSource, /UPDATE handouts SET title = \?, display_key = \?, thumbnail_key = \?/);
   assert.match(workerSource, /cache-control": "private, no-store"/);
   assert.match(handoutDomain, /HANDOUT_INPUT_MAX_PIXELS = 24_000_000/);
@@ -305,7 +306,7 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(clientSource, /onDrop=\{onMapDrop\}/);
   assert.match(clientSource, /Click to place the selected creature/);
   assert.match(clientSource, /aria-label="Token size"/);
-  assert.match(workerSource, /size TEXT DEFAULT 'medium' NOT NULL/);
+  assert.doesNotMatch(workerSource, /ALTER TABLE tokens ADD COLUMN size|CREATE TABLE IF NOT EXISTS tokens/);
   assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
   assert.match(workerSource, /resolveTokenControllerName\(token, tokenById\)/);
   assert.match(workerSource, /identityControlsToken\(participant, baseTokenControllerName\(current\)\)/);
@@ -320,8 +321,7 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
   assert.match(workerSource, /creature-catalog\/original/);
   assert.match(workerSource, /creature-catalog\/thumbnails/);
-  assert.match(workerSource, /WHERE kind = 'monster' AND hp IS NULL AND max_hp IS NULL/);
-  assert.match(workerSource, /WHERE token_asset = tokens\.art_asset AND is_active = 1/);
+  assert.match(catalogMigration, /`size` text NOT NULL/);
   assert.match(workerSource, /SELECT id, name, family, creature_type, size, default_hp, hit_dice/);
   assert.match(workerSource, /CATALOG_IMPORT_TOKEN/);
   assert.match(workerSource, /entries\.length === 0 \|\| entries\.length > 10/);
@@ -452,23 +452,23 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
 });
 
 test("keeps pings compact, audible, and limited to three pulses", async () => {
-  const [clientSource, workerSource] = await Promise.all([
+  const [clientSource, annotationCommands] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../worker/commands/annotation-fog-commands.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /const PING_PULSE_COUNT = 3;/);
   assert.match(clientSource, /const PING_PULSE_MS = 420;/);
   assert.match(clientSource, /createOscillator\(\)/);
   assert.match(clientSource, /0\.12 \+ pulseProgress \* 0\.2/);
-  assert.match(workerSource, /const PING_TTL_MS = 2_000;/);
-  assert.doesNotMatch(workerSource, /now \+ 10_000/);
+  assert.match(annotationCommands, /const PING_TTL_MS = 2_000;/);
+  assert.doesNotMatch(annotationCommands, /now \+ 10_000/);
 });
 
 test("offers two animated, auto-expiring DM spotlight styles", async () => {
-  const [clientSource, workerSource] = await Promise.all([
+  const [clientSource, annotationCommands] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../worker/commands/annotation-fog-commands.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(clientSource, /const SPOTLIGHT_DURATION_MS = 6_500;/);
@@ -477,8 +477,8 @@ test("offers two animated, auto-expiring DM spotlight styles", async () => {
   assert.match(clientSource, /"LOOK HERE!"/);
   assert.match(clientSource, /toolButton\("spotlight", "spotlight", "Arcane spotlight", "S"\)/);
   assert.match(clientSource, /toolButton\("neon-spotlight", "neon", "Neon arrow", "N"\)/);
-  assert.match(workerSource, /const SPOTLIGHT_TTL_MS = 6_500;/);
-  assert.match(workerSource, /\["spotlight", "neon-spotlight"\]\.includes\(annotationType\)/);
+  assert.match(annotationCommands, /const SPOTLIGHT_TTL_MS = 6_500;/);
+  assert.match(annotationCommands, /annotationType === "spotlight" \|\| annotationType === "neon-spotlight"/);
 });
 
 test("keeps authoritative movement-rule rejections visible on the map", async () => {
@@ -874,9 +874,10 @@ test("zooms at the cursor and pans by dragging empty map space", async () => {
 });
 
 test("offers compact icon tools and precise line erasing", async () => {
-  const [clientSource, workerSource, styles] = await Promise.all([
+  const [clientSource, workerSource, annotationCommands, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../worker/commands/annotation-fog-commands.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -893,8 +894,8 @@ test("offers compact icon tools and precise line erasing", async () => {
   assert.doesNotMatch(clientSource, /aria-hidden="true">✥|aria-hidden="true">◉|aria-hidden="true">⌫/);
   assert.doesNotMatch(clientSource, />Move<\/button>|>Ping<\/button>|>Draw line<\/button>|>Erase<\/button>/);
   assert.match(workerSource, /if \(command === "remove-annotation"\)/);
-  assert.match(workerSource, /You can only erase lines you drew/);
-  assert.match(workerSource, /"annotation_removed"/);
+  assert.match(annotationCommands, /You can only erase lines you drew/);
+  assert.match(annotationCommands, /"annotation_removed"/);
   assert.match(styles, /\.command-bar \.icon-tool/);
   assert.match(styles, /\.command-bar \[data-tooltip\]::after/);
   assert.match(styles, /\.command-bar \.map-tool-group:first-child > \[data-tooltip\]:first-child::after/);
@@ -927,12 +928,13 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
 });
 
 test("includes a durable full-scene workshop with no retired editor path", async () => {
-  const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration, styles] = await Promise.all([
+  const [battleMapSource, workshopSource, packageSource, workerSource, mapMigration, bootstrapMigration, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
     readFile(new URL("../shared/map-package.ts", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0006_panoramic_scalphunter.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0017_blushing_moondragon.sql", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -996,11 +998,12 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(styles, /\.workshop-action-tools/);
   assert.match(styles, /\.workshop-visibility-mode \{ margin: 0; display: block; line-height: 1; \}/);
   assert.doesNotMatch(styles, /\.draft-history-row/);
-  assert.match(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
+  assert.doesNotMatch(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
   assert.match(workerSource, /map_package_applied/);
-  assert.match(workerSource, /map_scene_migrated/);
-  assert.match(workerSource, /remove-scene-stickers-v1/);
-  assert.match(workerSource, /json_remove\(json_remove\(map_package_json, '\$\.sceneObjects'\), '\$\.visual\.sceneKitId'\)/);
+  assert.match(workerSource, /REQUIRED_SCHEMA_MARKER = "migration-only-schema-v1"/);
+  assert.doesNotMatch(workerSource, /CREATE TABLE|ALTER TABLE|PRAGMA table_info|map_scene_migrated|remove-scene-stickers-v1/);
+  assert.match(bootstrapMigration, /migration-only-schema-v1/);
+  assert.match(bootstrapMigration, /json_remove\(json_remove\(`map_package_json`, '\$\.sceneObjects'\), '\$\.visual\.sceneKitId'\)/);
   assert.match(mapMigration, /CREATE TABLE `map_presets`/);
   assert.match(mapMigration, /ADD `grid_width` integer DEFAULT 16 NOT NULL/);
   for (const source of [battleMapSource, workshopSource, packageSource, workerSource]) {

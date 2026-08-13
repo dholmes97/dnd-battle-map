@@ -1,16 +1,16 @@
 # Refactor Plan
 
-Last revalidated against `main` at `fab6fc9` on 2026-08-12.
+Last revalidated against `main` at `146b119` on 2026-08-13.
 
 This plan continues the lightweight ports-and-adapters boundary described in
 `docs/ARCHITECTURE.md`. The framework-free core is real and useful, but most
 feature orchestration still lives in two large adapters.
 
 Nothing here is an emergency. The production build is green, lint is clean, and
-100 unit/source-contract tests plus 8 live integration tests pass. The TypeScript
-compiler is not yet a gate and currently reports 64 errors. This is debt paydown
-intended to keep future feature work from becoming progressively slower. Every
-stage should remain independently shippable and safe to stop after.
+113 local tests plus 8 live integration tests pass. TypeScript is
+now a mandatory test gate with no errors. This is debt paydown intended to keep
+future feature work from becoming progressively slower. Every stage should
+remain independently shippable and safe to stop after.
 
 ## Where the code actually is
 
@@ -18,40 +18,37 @@ Measured on the current tree, not estimated:
 
 | Area | Current size |
 |---|---:|
-| `app/battle-map-prototype.tsx` | 3,790 lines |
+| `app/battle-map-prototype.tsx` | 3,692 lines |
 | `BattleMapPrototype` component body | 2,392 lines |
-| `app/map-workshop.tsx` | 537 lines |
-| `worker/index.ts` | 3,492 lines |
-| Framework-free modules in `shared/` | 15 files / 1,380 lines |
-| Remaining untyped `.mjs` modules in `shared/` | 11 files / 785 lines |
-| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 9,275 lines |
+| `app/map-workshop.tsx` | 528 lines |
+| `worker/index.ts` | 2,874 lines |
+| Framework-free modules in `shared/` | 16 typed files / 1,581 lines |
+| Remaining untyped `.mjs` modules in `shared/` | 0 files |
+| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 9,333 lines |
 
-`battle-map-prototype.tsx` and `worker/index.ts` contain about 79% of that
-runtime code. The shared core has grown from roughly 425 to 1,380 lines, which is
+`battle-map-prototype.tsx` and `worker/index.ts` contain about 70% of that
+runtime code. The shared core has grown from roughly 425 to 1,581 lines, which is
 healthy, but the adapters have grown faster.
 
-- `handleCommand` is 1,351 lines. It has 29 top-level branch blocks covering 31
-  command names and contains 83 direct `.prepare(...)` calls. The worker as a
-  whole contains 187 `.prepare(...)` calls, so business orchestration and D1
-  persistence remain tightly fused.
-- `ensureSchema` is 513 lines and is reached from six request paths. It performs
-  DDL, compatibility alters, data backfills, seed work, and one-time cleanup even
-  though 17 checked-in Drizzle migrations also ship with the application. There
-  are still two schema-evolution mechanisms.
-- The main client component declares 83 `useState` values, 21 `useEffect` hooks,
-  and 25 `useRef` values. It has at least 25 shared optimistic-command call sites
+- `handleCommand` still has 29 top-level branch blocks, but chat/handout and
+  annotation/fog commands now dispatch to extracted handlers with fake-port
+  tests. The Worker still contains 116 direct `.prepare(...)` calls, so most
+  business orchestration and D1 persistence remain tightly fused.
+- Stage 3 moved the 513-line request-time `ensureSchema` body into one
+  checked-in migration. The remaining guard is read-only and small enough to
+  audit directly.
+- The main client component has 87 `useState`, 26 `useEffect`, and 27 `useRef`
+  call sites. It has at least 25 shared optimistic-command call sites
   plus bespoke optimistic flows for token moves, creates, and deletes.
-- `npx tsc --noEmit` reports 64 errors: 61 in `worker/index.ts` and 3 in the app
-  or typed shared modules. Fifty-three are implicit-`any` errors, many cascading
-  from unresolved Cloudflare types. The compiler is not run by `npm test`.
-- `tests/rendered-html.test.mjs` is 1,147 lines with 677 assertions. Of those,
-  637 are `match`/`doesNotMatch` source or CSS assertions rather than behavioral
+- `npm run typecheck` reports no errors and is the first mandatory step in
+  `npm test`.
+- `tests/rendered-html.test.mjs` is 1,176 lines with 692 assertions. Of those,
+  651 are `match`/`doesNotMatch` source or CSS assertions rather than behavioral
   tests.
-- `npm test` still enumerates 14 test files by hand. A new unit test file is
-  silently skipped unless the script is updated.
-- `docs/ARCHITECTURE.md` has one stale example: `map-workshop-domain.mjs` no
-  longer owns rotation, scene-object bounds, or sticker hit-testing after the
-  matched-artwork workflow was retired.
+- `npm test` automatically discovers `tests/*.test.mjs`; live tests are isolated
+  under `tests/live/`.
+- `docs/ARCHITECTURE.md` now describes the typed contracts and current Map
+  Workshop responsibilities.
 
 ## The root problem
 
@@ -78,7 +75,7 @@ recording have materially different side effects. The shared core should own
 deterministic decisions; adapters should continue to own authorization, I/O,
 transactions, and targeted persistence.
 
-## Stage 1 — Make the type checker a gate
+## Stage 1 — Make the type checker a gate (complete)
 
 This remains the smallest and highest-leverage first step.
 
@@ -106,7 +103,7 @@ This remains the smallest and highest-leverage first step.
 Exit criteria: `npm test` fails on a new type error, and a new unit test file is
 run without editing `package.json`.
 
-## Stage 2 — Share and type contracts, then finish typing the core
+## Stage 2 — Share and type contracts, then finish typing the core (complete)
 
 The typed and untyped parts of `shared/` are now mixed. Four TypeScript modules
 already demonstrate that direct Node tests and typed shared code coexist cleanly;
@@ -130,7 +127,7 @@ Exit criteria: neither adapter receives `any` from a shared domain import, and
 the encounter response shape is expressed once and checked on both sides of the
 HTTP boundary.
 
-## Stage 3 — Establish one schema-evolution path
+## Stage 3 — Establish one schema-evolution path (complete)
 
 Separate this from command extraction. Schema behavior is important enough to
 review and deploy on its own.
