@@ -1,8 +1,20 @@
 import assert from "node:assert/strict";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, readFile as readNodeFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const projectRoot = new URL("../", import.meta.url);
+
+async function readFile(file, encoding) {
+  const source = await readNodeFile(file, encoding);
+  if (file instanceof URL && file.pathname.endsWith("/app/battle-map-prototype.tsx")) {
+    const extractedSources = await Promise.all([
+      "../app/battle-map-renderer.ts",
+      "../app/use-encounter-sync.ts",
+    ].map((path) => readNodeFile(new URL(path, import.meta.url), encoding)));
+    return [source, ...extractedSources].join("\n");
+  }
+  return source;
+}
 
 const workerBoundaryFiles = [
   "worker/index.ts",
@@ -561,7 +573,7 @@ test("places and deletes tokens optimistically without freezing the map", async 
 
 test("makes map tools and encounter controls optimistic without a global wait", async () => {
   const clientSource = await readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8");
-  const optimisticFlow = clientSource.match(/const runOptimisticCommand = async[\s\S]+?const runHistoryOptimistically/)?.[0] ?? "";
+  const optimisticFlow = clientSource.match(/const runOptimisticCommand = async[\s\S]+?const clearPendingState/)?.[0] ?? "";
 
   assert.match(clientSource, /pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>/);
   assert.match(clientSource, /turnAdvanceQueueRef = useRef<Promise<void>>\(Promise\.resolve\(\)\)/);
