@@ -68,7 +68,7 @@ function blockerTargets(fog, preferred) {
   return targets;
 }
 
-export function fogBlockerHandleAtPoint(fog, point, tolerance = 0.3, preferred = null) {
+export function fogBlockerHandleAtPoint(fog, point, tolerance = 0.3, preferred = /** @type {{ kind: string, id: string } | null} */ (null)) {
   for (const target of blockerTargets(fog, preferred)) {
     const collection = target.kind === "circle" ? fog.circles : target.kind === "door" ? fog.doors : fog.walls;
     const item = collection.find((candidate) => candidate.id === target.id); if (!item) continue;

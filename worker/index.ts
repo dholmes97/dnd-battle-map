@@ -355,7 +355,7 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
       const transformed = await env.IMAGES.input(input)
         .transform({ width: 144, height: 144, fit: "contain" })
         .output({ format: "image/png", quality: 80 });
-      const thumbnailBytes = await transformed.response().then((response) => response.arrayBuffer());
+      const thumbnailBytes = await transformed.response().arrayBuffer();
       if (env.MAP_ASSETS) {
         await env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
           httpMetadata: { contentType: "image/png", cacheControl: cacheHeaders["cache-control"] },
@@ -485,7 +485,6 @@ async function handleProductionR2Backup(request: Request, env: Env, object = fal
   const cursor = cleanBackupCursor(url.searchParams.get("cursor"));
   const listed = await env.MAP_ASSETS.list({
     limit: PRODUCTION_BACKUP_PAGE_SIZE,
-    include: ["httpMetadata"],
     ...(cursor ? { cursor } : {}),
   });
   return json({
@@ -2673,7 +2672,7 @@ async function handleCommand(
     if (!mapPackage) return json({ error: "That map package is invalid or too large." }, { status: 400 });
     const name = cleanText(body.name, 72) || cleanText(mapPackage.name, 72) || "Untitled map";
     const description = cleanText(body.description, 240) || cleanText(mapPackage.description, 240);
-    const sourcePrompt = cleanText(body.sourcePrompt, 600) || cleanText(mapPackage.source.prompt, 600) || null;
+    const sourcePrompt = cleanText(body.sourcePrompt, 600) || null;
     const requestedId = cleanTokenId(body.presetId);
     const presetId = requestedId || crypto.randomUUID();
     const serialized = JSON.stringify(mapPackage);
@@ -3166,9 +3165,10 @@ async function handleCommand(
         is_hidden: number;
         owner_participant_id: string | null;
         owner_name: string | null;
-        summoner_token_id: string | null;
-        initiative: number | null;
-        initiative_order: number | null;
+      summoner_token_id: string | null;
+      initiative: number | null;
+      initiative_group_id: string | null;
+      initiative_order: number | null;
         turn_complete: number;
         movement_used: number;
       }>();
@@ -3187,6 +3187,7 @@ async function handleCommand(
       is_hidden: effect.is_hidden,
       summoner_token_id: effect.summoner_token_id,
       initiative: effect.initiative,
+      initiative_group_id: effect.initiative_group_id,
       initiative_order: effect.initiative_order,
       turn_complete: effect.turn_complete,
       movement_used: effect.movement_used,
@@ -3612,6 +3613,7 @@ const worker = {
           ? env.ASSETS.fetch(new Request(new URL(path, request.url)))
           : new Response("Invalid image URL", { status: 400 });
       }
+      const images = env.IMAGES;
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(
         request,
@@ -3619,7 +3621,7 @@ const worker = {
           fetchAsset: (path) =>
             env.ASSETS.fetch(new Request(new URL(path, request.url))),
           transformImage: async (body, { width, format, quality }) => {
-            const result = await env.IMAGES.input(body)
+            const result = await images.input(body)
               .transform(width > 0 ? { width } : {})
               .output({ format, quality });
             return result.response();

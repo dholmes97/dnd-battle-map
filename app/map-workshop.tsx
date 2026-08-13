@@ -375,7 +375,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     }
     if (tool === "select" && map.fog.mode === "dynamic") {
       const tolerance = Math.max(0.2, 10 / (event.currentTarget.getBoundingClientRect().width / map.width));
-      const target = fogBlockerHandleAtPoint(map.fog, point, tolerance, selectedFogBlocker) as FogBlockerTarget | null;
+      const target = fogBlockerHandleAtPoint(map.fog, point, tolerance, selectedFogBlocker as { kind: string; id: string } | null) as FogBlockerTarget | null;
       setSelectedFogBlocker(target ? { kind: target.kind, id: target.id } : null);
       if (target) {
         fogBlockerDragRef.current = { pointerId: event.pointerId, target, start: freeFogPoint(point), before: cloneMapPackage(map) };

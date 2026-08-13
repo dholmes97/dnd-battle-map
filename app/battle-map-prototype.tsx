@@ -1652,7 +1652,7 @@ export default function BattleMapPrototype() {
     knownChatMessageIdsRef.current = new Set(incoming.knownMessageIds);
     immediateHandoutsReadyRef.current = true;
     const newHandouts = incoming.handouts
-      .filter((handout): handout is NonNullable<SharedChatMessage["handout"]> => Boolean(handout));
+      .filter((handout: SharedChatMessage["handout"]): handout is NonNullable<SharedChatMessage["handout"]> => Boolean(handout));
     if (newHandouts.length) setForcedHandoutQueue((current) => [...current, ...newHandouts]);
   }, [participant, state]);
 

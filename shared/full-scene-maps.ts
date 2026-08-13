@@ -173,7 +173,7 @@ export function createFullSceneMap(definition: FullSceneDefinition): MapPackage 
     portals: [],
     labels: [],
     notes: [],
-    fog: defaultFogConfig(width, height),
+    fog: defaultFogConfig(width, height) as MapPackage["fog"],
     visual: {
       kind: "generated-scene",
       assetUrl: definition.assetUrl,
