@@ -327,7 +327,7 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(clientSource, /Click to place the selected creature/);
   assert.match(clientSource, /aria-label="Token size"/);
   assert.doesNotMatch(workerSource, /ALTER TABLE tokens ADD COLUMN size|CREATE TABLE IF NOT EXISTS tokens/);
-  assert.match(workerSource, /clampTokenCoordinate\(requestedX, encounter\.grid_width, token\.size\)/);
+  assert.match(workerSource, /transitionTokenMove\(\{/);
   assert.match(workerSource, /resolveTokenControllerName\(token, tokenById\)/);
   assert.match(workerSource, /identityControlsToken\(participant, baseTokenControllerName\(current\)\)/);
   assert.match(clientSource, /controller: summoner\?\.controller \?\? \{ name: participant\.name \}/);
@@ -527,16 +527,15 @@ test("moves immediately on pointer release without token reservations", async ()
     clientSource,
     /void publishMove\(gesture\.tokenId, gesture\.latest\);/,
   );
-  assert.match(clientSource, /pendingMovesRef\.current\.set\(tokenId, \{ \.\.\.destination, sequence, movementUsed, movementOrigin \}\)/);
-  assert.match(clientSource, /tokens: current\.tokens\.map\(\(token\) => token\.id === tokenId \? \{ \.\.\.token, \.\.\.destination, movementUsed, movementOrigin \} : token\)/);
+  assert.match(clientSource, /pendingMovesRef\.current\.set\(tokenId, \{ \.\.\.move\.position, sequence, movementUsed: move\.movementUsed, movementOrigin: move\.movementOrigin \}\)/);
+  assert.match(clientSource, /tokens: current\.tokens\.map\(\(token\) => token\.id === tokenId \? \{ \.\.\.token, \.\.\.move\.position, movementUsed: move\.movementUsed, movementOrigin: move\.movementOrigin \} : token\)/);
   assert.match(clientSource, /if \(pendingMovesRef\.current\.get\(tokenId\)\?\.sequence === sequence\) pendingMovesRef\.current\.delete\(tokenId\)/);
   assert.doesNotMatch(clientSource, /const publishMove[\s\S]{0,220}setBusy\(true\)/);
   assert.doesNotMatch(clientSource, /Movement reserved|Being moved by|\/lock|\/unlock|lockState/);
   assert.doesNotMatch(workerSource, /\(join\|state\|events\|heartbeat\|claim\|relinquish\|lock\|move\|unlock\|command\)/);
   assert.doesNotMatch(workerSource, /action === "lock"|lock_owner_id|lock_expires_at/);
   assert.match(workerSource, /SET x = \?, y = \?, movement_used = \?, movement_origin_x = \?, movement_origin_y = \?, updated_at = \?/);
-  assert.match(workerSource, /const movementOrigin = isSpellEffect \? null : encounter\.status === "active" \? previousMovementOrigin \?\? previous : previousMovementOrigin/);
-  assert.match(workerSource, /const distance = isSpellEffect \? 0 : calculateDirectDistance\(movementOrigin \?\? previous, \{ x, y \}, 5\)/);
+  assert.match(workerSource, /const move = transitionTokenMove\(\{/);
   assert.doesNotMatch(workerSource, /token\.movement_used \+ distance/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_id`/);
   assert.match(retiredLocksMigration, /DROP COLUMN `lock_owner_name`/);
@@ -767,7 +766,7 @@ test("shows a straight movement ruler and never rejects movement overage", async
   assert.match(clientSource, /const label = `\$\{distance\} ft`/);
   assert.match(clientSource, /overMovement \? "#ef6656" : "#f5c65c"/);
   assert.doesNotMatch(clientSource, /gesture\.path|previewPath/);
-  assert.match(workerSource, /const overBudget = !isSpellEffect && encounter\.status === "active" && distance > token\.speed \+ 0\.05/);
+  assert.match(workerSource, /const \{ position: \{ x, y \}, movementOrigin, distance, movementUsed, overBudget \} = move/);
   assert.match(clientSource, /hitToken\.movementOrigin \?\? gesture\.origin/);
   assert.doesNotMatch(workerSource, /body\.path|pathDistance|remains this turn/);
 });

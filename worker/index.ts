@@ -8,7 +8,6 @@ import {
   CHARACTER_ART_ASSETS,
   type CreatureSize,
   isCreatureSize,
-  tokenRadiusCells,
 } from "../shared/creature-library";
 import { parseMapPackage, type MapPackage } from "../shared/map-package";
 import {
@@ -19,7 +18,7 @@ import {
 import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.ts";
 import { healthBand } from "../shared/health.ts";
 import { movementPolicyDenial } from "../shared/battle-map-policies.ts";
-import { calculateDirectDistance } from "../shared/battle-map-geometry.ts";
+import { transitionTokenMove } from "../shared/encounter-transitions.ts";
 import { pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.ts";
 import {
   mapPackageForViewer,
@@ -444,13 +443,6 @@ function cleanText(value: unknown, max = 64): string {
   return typeof value === "string"
     ? value.trim().replace(/\s+/g, " ").slice(0, max)
     : "";
-}
-
-function clampTokenCoordinate(value: unknown, limit: number, size: CreatureSize): number {
-  const radius = tokenRadiusCells(size);
-  const numeric = Number(value);
-  const fallback = limit / 2;
-  return Math.round(Math.min(limit - radius, Math.max(radius, Number.isFinite(numeric) ? numeric : fallback)) * 1_000) / 1_000;
 }
 
 const REQUIRED_SCHEMA_MIGRATION = "0017_blushing_moondragon.sql";
@@ -1510,19 +1502,23 @@ async function handleApi(
     ) {
       return json({ error: "Destination is outside the map." }, { status: 400 });
     }
-    const x = clampTokenCoordinate(requestedX, encounter.grid_width, token.size);
-    const y = clampTokenCoordinate(requestedY, encounter.grid_height, token.size);
     const isSpellEffect = token.kind === SPELL_EFFECT_KIND;
     const previous = { x: token.x, y: token.y };
     const previousMovementOrigin = token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
       ? null
       : { x: token.movement_origin_x, y: token.movement_origin_y };
-    const movementOrigin = isSpellEffect ? null : encounter.status === "active" ? previousMovementOrigin ?? previous : previousMovementOrigin;
-    const distance = isSpellEffect ? 0 : calculateDirectDistance(movementOrigin ?? previous, { x, y }, 5);
-    const overBudget = !isSpellEffect && encounter.status === "active" && distance > token.speed + 0.05;
-    const movementUsed = isSpellEffect ? 0 : encounter.status === "active"
-      ? distance
-      : token.movement_used;
+    const move = transitionTokenMove({
+      previous,
+      destination: { x: requestedX, y: requestedY },
+      previousMovementOrigin,
+      previousMovementUsed: token.movement_used,
+      size: token.size,
+      grid: { width: encounter.grid_width, height: encounter.grid_height, feetPerCell: 5 },
+      speed: token.speed,
+      encounterStatus: encounter.status,
+      isSpellEffect,
+    });
+    const { position: { x, y }, movementOrigin, distance, movementUsed, overBudget } = move;
     const result = await env.DB.prepare(
       `UPDATE tokens
        SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?

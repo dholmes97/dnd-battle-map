@@ -1,4 +1,5 @@
 import { isCreatureSize, tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
+import { transitionHp } from "../../shared/encounter-transitions.ts";
 import { isSpellAreaSize, SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
@@ -156,8 +157,7 @@ export async function applyHp(context: TokenEffectCommandContext): Promise<Comma
   if (!Number.isFinite(delta) || delta === 0) {
     return commandError("Enter non-zero damage or healing.", 400);
   }
-  const from = token.hp ?? token.max_hp;
-  const hp = Math.min(token.max_hp, Math.max(0, from + delta));
+  const { from, hp } = transitionHp(token.hp, token.max_hp, delta);
   const concentrationCheckRequired = delta < 0 && await context.repository.hasConcentration(tokenId);
   await context.repository.updateHp(context.encounter.id, tokenId, hp, context.now);
   await finish(context, "hp_changed", { tokenId, from, to: hp, concentrationCheckRequired });

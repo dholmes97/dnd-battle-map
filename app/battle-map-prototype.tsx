@@ -37,7 +37,8 @@ import type {
   SharedToken,
 } from "@/shared/contracts";
 import { ensureSharedFogPolygon, insertSharedFogPoint } from "@/shared/fog-of-war.ts";
-import { displayHealth, healthBand } from "@/shared/health.ts";
+import { displayHealth } from "@/shared/health.ts";
+import { transitionHp, transitionTokenMove } from "@/shared/encounter-transitions.ts";
 import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.ts";
 import {
   calculateDirectDistance,
@@ -2316,11 +2317,11 @@ export default function BattleMapPrototype() {
 
   const applyHpToToken = async (token: SharedToken, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
-    const hp = Math.min(token.maxHp, Math.max(0, (token.hp ?? token.maxHp) + Math.trunc(delta)));
+    const hpTransition = transitionHp(token.hp, token.maxHp, delta);
     const result = await runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }>(
       "apply-hp",
       { tokenId: token.id, delta },
-      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp, healthState: healthBand(hp, token.maxHp) } : item) }),
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp: hpTransition.hp, healthState: hpTransition.healthState } : item) }),
     );
     if (result) setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.");
   };
@@ -2765,26 +2766,38 @@ export default function BattleMapPrototype() {
     if (!participant || !encounter) return;
     const sequence = ++moveSequenceRef.current;
     const historyMutationId = ++optimisticSequenceRef.current;
-    setState((current) => {
-      if (!current) return current;
-      const movingToken = current.tokens.find((token) => token.id === tokenId);
-      if (!movingToken) return current;
-      const movementOrigin = movingToken.kind === SPELL_EFFECT_KIND ? null : current.encounter.status === "active"
-        ? movingToken.movementOrigin ?? { x: movingToken.x, y: movingToken.y }
-        : movingToken.movementOrigin;
-      const movementUsed = movingToken.kind === SPELL_EFFECT_KIND ? 0 : current.encounter.status === "active" && movementOrigin
-        ? calculateDirectDistance(movementOrigin, destination, current.grid.feetPerCell)
-        : movingToken.movementUsed;
-      pendingMovesRef.current.set(tokenId, { ...destination, sequence, movementUsed, movementOrigin });
-      localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
-      localRedoHistoryRef.current = [];
-      return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...destination, movementUsed, movementOrigin } : token) };
+    let authoritativeDestination = destination;
+    let applied = false;
+    flushSync(() => {
+      setState((current) => {
+        if (!current) return current;
+        const movingToken = current.tokens.find((token) => token.id === tokenId);
+        if (!movingToken) return current;
+        const move = transitionTokenMove({
+          previous: movingToken,
+          destination,
+          previousMovementOrigin: movingToken.movementOrigin,
+          previousMovementUsed: movingToken.movementUsed,
+          size: movingToken.size,
+          grid: current.grid,
+          speed: movingToken.speed,
+          encounterStatus: current.encounter.status,
+          isSpellEffect: movingToken.kind === SPELL_EFFECT_KIND,
+        });
+        authoritativeDestination = move.position;
+        applied = true;
+        pendingMovesRef.current.set(tokenId, { ...move.position, sequence, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin });
+        localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
+        localRedoHistoryRef.current = [];
+        return { ...current, undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 }, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, ...move.position, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin } : token) };
+      });
     });
+    if (!applied) return;
     setPreview(null); setDragOrigin(null); setError("");
     try {
       const result = await api<{ distance: number; overBudget: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(encounter)}/move`,
-        { method: "POST", body: sessionPayload(participant, { tokenId, ...destination }) },
+        { method: "POST", body: sessionPayload(participant, { tokenId, ...authoritativeDestination }) },
       );
       if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
       acceptAuthoritativeState(result.state);
