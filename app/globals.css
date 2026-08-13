@@ -1258,7 +1258,7 @@ input:focus {
 .workshop-action-tools > [data-tooltip]:last-child::after { right: 0; left: auto; transform: translateY(-0.2rem); }
 .workshop-action-tools > [data-tooltip]:last-child:hover::after, .workshop-action-tools > [data-tooltip]:last-child:focus-visible::after { transform: translateY(0); }
 .workshop-visibility-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 0.3rem; padding: 0.18rem; border: 1px solid #302e2a; border-radius: 0.48rem; background: #141412; }
-.workshop-visibility-mode { margin: 0; display: grid; gap: 0.08rem; color: #777168; font-size: 0.5rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+.workshop-visibility-mode { margin: 0; display: block; line-height: 1; }
 .workshop-visibility-mode select { width: 7.8rem; min-height: 1.8rem; padding: 0.2rem 1.4rem 0.2rem 0.42rem; border-radius: 0.38rem; font-size: 0.62rem; text-transform: none; }
 .workshop-visibility-tools { position: relative; display: inline-flex; gap: 0.12rem; padding-left: 0.18rem; border-left: 1px solid #35312d; }
 .workshop-visibility-actions { display: inline-flex; align-items: center; gap: 0.22rem; }

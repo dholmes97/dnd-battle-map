@@ -929,6 +929,7 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workshopSource, /<strong>\{presetName\.trim\(\) \|\| map\.name\}<\/strong><span>Map workshop<\/span>/);
   assert.match(workshopSource, /className="workshop-action-tools" role="group" aria-label="Workshop actions"/);
   assert.match(workshopSource, /aria-label="Discard private changes" data-tooltip="Discard private changes"/);
+  assert.match(workshopSource, /M5 5l10 10M15 5 5 15/);
   assert.match(workshopSource, /aria-label="Apply to players" data-tooltip="Apply this map to players"/);
   assert.match(workshopSource, /aria-label="Return to battle map" data-tooltip="Return to battle map"/);
   assert.doesNotMatch(workshopSource, />Discard<\/button>|>Apply to players<\/button>|>Return<\/button>/);
@@ -942,7 +943,16 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(workshopSource, /save-map-preset/);
   assert.match(workshopSource, /This permanently removes its prepared vision walls, doors, round blockers, labels, and notes/);
   assert.match(workshopSource, /window\.confirm\(warning\)/);
+  assert.match(workshopSource, /Change the base map\? Your current workshop changes have not been saved to a preset and will be lost/);
+  assert.match(workshopSource, /savedDraftRef\.current !== `\$\{presetName\}\\n\$\{JSON\.stringify\(map\)\}`/);
+  assert.match(workshopSource, /if \(result\) savedDraftRef\.current = `\$\{name\}\\n\$\{JSON\.stringify\(map\)\}`/);
   assert.match(workshopSource, /onClick=\{\(\) => void deletePreset\(preset\)\}/);
+  assert.ok(workshopSource.indexOf('className="map-library-panel"') < workshopSource.indexOf('<small>Base map</small>'));
+  assert.match(workshopSource, /<small>Map presets<\/small><strong>Save and load<\/strong>/);
+  assert.doesNotMatch(workshopSource, />Export<\/button>|>Import<\/button>|importRef|exportPackage|importPackage/);
+  assert.match(workshopSource, /Reset shared fog\? This replaces the current fog boundary with the default eight corners/);
+  assert.match(workshopSource, />Reset fog<\/button>/);
+  assert.doesNotMatch(workshopSource, />Cover map<\/button>/);
   assert.match(workshopSource, /mapPackage: map/);
   assert.match(workshopSource, /withCanonicalBaseMapName/);
   assert.doesNotMatch(workshopSource, /<label>Title<input/);
@@ -957,6 +967,7 @@ test("includes a durable full-scene workshop with no retired editor path", async
   assert.match(styles, /\.workshop-history-tools/);
   assert.match(styles, /\.workshop-header \{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\)/);
   assert.match(styles, /\.workshop-action-tools/);
+  assert.match(styles, /\.workshop-visibility-mode \{ margin: 0; display: block; line-height: 1; \}/);
   assert.doesNotMatch(styles, /\.draft-history-row/);
   assert.match(workerSource, /CREATE TABLE IF NOT EXISTS map_presets/);
   assert.match(workerSource, /map_package_applied/);
@@ -1118,6 +1129,9 @@ test("ships all three authoritative fog-of-war modes and private vision guides",
   assert.match(workshopSource, /className="workshop-visibility-toolbar"/);
   assert.match(workshopSource, /aria-label="Visibility mode"/);
   assert.match(workshopSource, /aria-label="Select map elements"/);
+  assert.match(workshopSource, /aria-label="Add fog corner"/);
+  assert.match(workshopSource, /aria-label="Remove selected fog corner" data-tooltip="Remove selected fog corner"/);
+  assert.doesNotMatch(workshopSource, />Remove corner<\/button>/);
   assert.doesNotMatch(workshopSource, /fog-select/);
   assert.doesNotMatch(workshopSource, /fog-workshop-panel/);
   assert.match(workshopSource, /drag either endpoint to reshape it/);
