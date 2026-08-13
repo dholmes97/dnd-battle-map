@@ -22,7 +22,7 @@ import {
   tokenRadiusCells,
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
-import { ensureSharedFogPolygon, insertSharedFogPoint, visibilityPolygon } from "@/shared/fog-of-war.mjs";
+import { ensureSharedFogPolygon, insertSharedFogPoint } from "@/shared/fog-of-war.mjs";
 import { displayHealth, healthBand } from "@/shared/health.mjs";
 import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.mjs";
 import {
@@ -159,6 +159,7 @@ type EncounterState = {
       mode: "off" | "shared" | "dynamic";
       polygons: MapPoint[][];
       hiddenPolygon?: MapPoint[];
+      revealedCircles?: MapPackage["fog"]["circles"];
       geometry?: Pick<MapPackage["fog"], "walls" | "doors" | "circles">;
     };
     updatedAt: number;
@@ -1099,12 +1100,9 @@ function drawMap(
   }
 
   const serverFog = state.encounter.fogVisibility;
-  let fogPolygons = serverFog.polygons;
-  if (participant.role !== "dm" && serverFog.mode === "dynamic" && preview && serverFog.geometry) {
-    const fogGeometry = { mode: "dynamic", sharedPolygon: [], ...serverFog.geometry };
-    const origins = state.tokens.filter((token) => token.controlledByViewer && token.kind !== SPELL_EFFECT_KIND).map((token) => token.id === preview.tokenId ? preview : token);
-    fogPolygons = origins.map((origin) => visibilityPolygon(origin, fogGeometry, state.grid.width, state.grid.height));
-  }
+  // Keep vision on the last server-authoritative geometry while a token is
+  // dragged or has a move pending. Pointer previews must never reveal terrain.
+  const fogPolygons = serverFog.polygons;
   if (serverFog.mode === "shared" || (serverFog.mode === "dynamic" && participant.role !== "dm")) {
     context.save();
     if (serverFog.mode === "shared") {
@@ -1133,6 +1131,7 @@ function drawMap(
         maskContext.clearRect(0, 0, maskWidth, maskHeight); maskContext.fillStyle = "rgb(0, 0, 0)"; maskContext.fillRect(0, 0, maskWidth, maskHeight);
         maskContext.globalCompositeOperation = "destination-out"; maskContext.fillStyle = "black";
         for (const polygon of fogPolygons) if (polygon.length >= 3) { maskContext.beginPath(); polygon.forEach((point, index) => index ? maskContext.lineTo(screenX(point.x), screenY(point.y)) : maskContext.moveTo(screenX(point.x), screenY(point.y))); maskContext.closePath(); maskContext.fill(); }
+        for (const circle of serverFog.revealedCircles ?? []) { maskContext.beginPath(); maskContext.arc(screenX(circle.x), screenY(circle.y), circle.radius * geometry.cellSize + 0.75, 0, Math.PI * 2); maskContext.fill(); }
         maskContext.globalCompositeOperation = "source-over"; context.drawImage(mask, 0, 0, rect.width, rect.height);
       }
     }

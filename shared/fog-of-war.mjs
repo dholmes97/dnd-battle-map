@@ -146,14 +146,29 @@ export function visibilityPolygon(origin, fog, width, height) {
   }).filter(Boolean).sort((a, b) => a.angle - b.angle).map(({ x, y }) => ({ x, y }));
 }
 
+export function revealedRoundBlockers(origins, polygons, circles) {
+  return circles.filter((circle) => origins.some((origin, index) => {
+    const distance = Math.hypot(origin.x - circle.x, origin.y - circle.y);
+    if (distance <= circle.radius) return true;
+    const revealMargin = Math.max(0.001, circle.radius * 0.001);
+    const surface = {
+      x: circle.x + (origin.x - circle.x) / distance * (circle.radius + revealMargin),
+      y: circle.y + (origin.y - circle.y) / distance * (circle.radius + revealMargin),
+    };
+    return pointInPolygon(surface, polygons[index] ?? []);
+  }));
+}
+
 export function visibilityForViewer(mapPackage, tokens, viewer) {
   const fog = mapPackage?.fog;
   if (!fog || fog.mode === "off" || viewer?.role === "dm") return { mode: fog?.mode ?? "off", polygons: [] };
   if (fog.mode === "shared") return { mode: "shared", polygons: [], hiddenPolygon: fog.sharedPolygon };
   const origins = tokens.filter((token) => token.controlledByViewer && token.kind !== "spell-effect").map((token) => ({ x: token.x, y: token.y }));
+  const polygons = origins.map((origin) => visibilityPolygon(origin, fog, mapPackage.width, mapPackage.height));
   return {
     mode: "dynamic",
-    polygons: origins.map((origin) => visibilityPolygon(origin, fog, mapPackage.width, mapPackage.height)),
+    polygons,
+    revealedCircles: revealedRoundBlockers(origins, polygons, fog.circles),
     geometry: { walls: fog.walls, doors: fog.doors, circles: fog.circles },
   };
 }
@@ -161,5 +176,6 @@ export function visibilityForViewer(mapPackage, tokens, viewer) {
 export function pointVisibleToViewer(point, visibility) {
   if (!visibility || visibility.mode === "off") return true;
   if (visibility.mode === "shared") return !pointInPolygon(point, visibility.hiddenPolygon ?? []);
-  return visibility.polygons.some((polygon) => pointInPolygon(point, polygon));
+  return visibility.polygons.some((polygon) => pointInPolygon(point, polygon))
+    || (visibility.revealedCircles ?? []).some((circle) => Math.hypot(point.x - circle.x, point.y - circle.y) <= circle.radius);
 }

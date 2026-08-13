@@ -43,6 +43,17 @@ test("round blockers cast a shadow while leaving sight around both sides", () =>
   assert.equal(pointInPolygon({ x: 10, y: 5 }, polygon), false);
   assert.equal(pointInPolygon({ x: 10, y: 1 }, polygon), true);
   assert.equal(pointInPolygon({ x: 10, y: 9 }, polygon), true);
+  const visibility = visibilityForViewer({ width: 12, height: 10, fog }, [{ x: 2, y: 5, kind: "character", controlledByViewer: true }], { role: "player" });
+  assert.deepEqual(visibility.revealedCircles, fog.circles);
+  assert.equal(pointVisibleToViewer({ x: 6, y: 5 }, visibility), true);
+  assert.equal(pointVisibleToViewer({ x: 10, y: 5 }, visibility), false);
+});
+
+test("round blockers hidden behind other geometry remain concealed", () => {
+  const fog = { ...defaultFogConfig(12, 10), mode: "dynamic", walls: [{ id: "wall", x1: 4, y1: 0, x2: 4, y2: 10 }], circles: [{ id: "hidden-rock", x: 7, y: 5, radius: 1 }] };
+  const visibility = visibilityForViewer({ width: 12, height: 10, fog }, [{ x: 2, y: 5, kind: "character", controlledByViewer: true }], { role: "player" });
+  assert.deepEqual(visibility.revealedCircles, []);
+  assert.equal(pointVisibleToViewer({ x: 7, y: 5 }, visibility), false);
 });
 
 test("dynamic viewer visibility unions every controlled creature origin", () => {

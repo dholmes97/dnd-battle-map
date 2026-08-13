@@ -1080,6 +1080,10 @@ test("ships all three authoritative fog-of-war modes and private vision guides",
   assert.match(clientSource, /aria-label="Edit shared fog"/);
   assert.match(clientSource, /Remove selected/);
   assert.ok([...clientSource.matchAll(/fillStyle = (?:participant\.role[^\n]+: )?"rgb\(0, 0, 0\)"/g)].length >= 2);
+  assert.match(clientSource, /Pointer previews must never reveal terrain/);
+  assert.match(clientSource, /const fogPolygons = serverFog\.polygons/);
+  assert.match(clientSource, /serverFog\.revealedCircles/);
+  assert.doesNotMatch(clientSource, /token\.id === preview\.tokenId \? preview : token/);
   assert.match(workshopSource, /Vision wall/);
   assert.match(workshopSource, /Vision door/);
   assert.match(workshopSource, /Round blocker/);
