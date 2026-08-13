@@ -10,6 +10,9 @@ async function readFile(file, encoding) {
     const extractedSources = await Promise.all([
       "../app/battle-map-renderer.ts",
       "../app/use-encounter-sync.ts",
+      "../app/handout-images.tsx",
+      "../app/chat-handouts-ui.tsx",
+      "../app/use-chat-handouts.ts",
     ].map((path) => readNodeFile(new URL(path, import.meta.url), encoding)));
     return [source, ...extractedSources].join("\n");
   }
@@ -122,12 +125,12 @@ test("ships durable public and DM-private encounter chat", async () => {
   ]);
 
   assert.match(clientSource, /aria-label=\{chatUnreadTotal > 0 \? `Chat, \$\{chatUnreadTotal\} unread messages` : "Chat"\}/);
-  assert.match(clientSource, /className=\{`chat-panel is-\$\{chatDock\}/);
+  assert.match(clientSource, /className=\{`chat-panel is-\$\{(?:chatDock|dock)\}/);
   assert.match(clientSource, /Drag to dock chat on the other side/);
   assert.match(clientSource, /className="chat-panel-unread-badge"/);
   assert.doesNotMatch(clientSource, />\{chatUnreadTotal\} unread<\/em>/);
   assert.match(clientSource, /CHAT_PLAYER_NAMES\.map/);
-  assert.match(clientSource, /Private with \$\{activeChatChannel\}/);
+  assert.match(clientSource, /Private with \$\{(?:activeChatChannel|activeChannel)\}/);
   assert.match(clientSource, /"send-chat-message"/);
   assert.match(clientSource, /Enter to send · Shift\+Enter for a new line/);
   assert.match(clientSource, /chatPreferencesStorageKey/);
