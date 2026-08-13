@@ -4,6 +4,26 @@ import test from "node:test";
 
 const projectRoot = new URL("../", import.meta.url);
 
+const workerBoundaryFiles = [
+  "worker/index.ts",
+  "worker/commands/scenario-map-commands.ts",
+  "worker/commands/chat-handout-commands.ts",
+  "worker/commands/token-effect-commands.ts",
+  "worker/commands/annotation-fog-commands.ts",
+  "worker/commands/initiative-combat-commands.ts",
+  "worker/commands/history-commands.ts",
+  "worker/adapters/d1-scenario-map-repository.ts",
+  "worker/adapters/d1-chat-handout-repository.ts",
+  "worker/adapters/d1-token-effect-repository.ts",
+  "worker/adapters/d1-annotation-fog-repository.ts",
+  "worker/adapters/d1-initiative-combat-repository.ts",
+  "worker/adapters/d1-history-repository.ts",
+];
+
+async function readWorkerBoundarySources() {
+  return (await Promise.all(workerBoundaryFiles.map((path) => readFile(new URL(`../${path}`, import.meta.url), "utf8")))).join("\n");
+}
+
 async function render() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
@@ -51,7 +71,7 @@ test("server-renders the finished encounter join surface", async () => {
 test("gives the DM a durable scenario creation and rename workflow", async () => {
   const [clientSource, workerSource, styles, renameMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0013_rename-ember-keep.sql", import.meta.url), "utf8"),
   ]);
@@ -66,24 +86,24 @@ test("gives the DM a durable scenario creation and rename workflow", async () =>
   assert.match(clientSource, /command: "create-scenario", name, mode: scenarioMode/);
   assert.match(clientSource, /setParticipant\(joined\);\s+setState\(result\.state\);\s+setEncounterCode\(result\.scenario\.code\)/);
   assert.match(clientSource, /next\.encounter\.code !== current\.encounter\.code/);
-  assert.match(workerSource, /if \(command === "create-scenario"\)/);
-  assert.match(workerSource, /if \(command === "rename-scenario"\)/);
+  assert.match(workerSource, /"create-scenario": \(\) => createScenario/);
+  assert.match(workerSource, /"rename-scenario": \(\) => renameScenario/);
   assert.match(workerSource, /UPDATE encounters SET name = \?, version = version \+ 1, updated_at = \?/);
   assert.match(workerSource, /"scenario_renamed"/);
   assert.match(renameMigration, /SET `name` = 'Swamp Battle'/);
   assert.match(renameMigration, /WHERE `code` = 'EMBER-KEEP'/);
-  assert.match(workerSource, /const denied = requireDm\(\)/);
+  assert.match(workerSource, /const denied = requireDm\(context\)/);
   assert.match(workerSource, /async function uniqueScenarioCode/);
   assert.match(workerSource, /baseTokenControllerName\(token\) !== "Kevin"/);
-  assert.match(workerSource, /duplicateMap \? encounter\.map_package_json : null/);
-  assert.match(workerSource, /role: "dm",\s+scenario: \{ code, name, status: "setup", updatedAt: now \}/);
+  assert.match(workerSource, /duplicate \? context\.encounter\.mapPackageJson : null/);
+  assert.match(workerSource, /role: "dm",\s+scenario: \{ code, name, status: "setup", updatedAt: context\.now \}/);
   assert.match(styles, /\.scenario-dialog label/);
 });
 
 test("ships durable public and DM-private encounter chat", async () => {
   const [clientSource, workerSource, chatDomain, styles, migration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/chat-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0014_perpetual_steel_serpent.sql", import.meta.url), "utf8"),
@@ -100,7 +120,7 @@ test("ships durable public and DM-private encounter chat", async () => {
   assert.match(clientSource, /Enter to send · Shift\+Enter for a new line/);
   assert.match(clientSource, /chatPreferencesStorageKey/);
   assert.doesNotMatch(workerSource, /CREATE TABLE IF NOT EXISTS chat_messages/);
-  assert.match(workerSource, /if \(command === "send-chat-message"\)/);
+  assert.match(workerSource, /"send-chat-message": \(\) => sendChatMessage/);
   assert.match(workerSource, /chatMessageVisibleToViewer/);
   assert.doesNotMatch(workerSource, /recordAction\([^)]*chat/i);
   assert.match(chatDomain, /Players can privately message the DM/);
@@ -114,7 +134,7 @@ test("ships durable public and DM-private encounter chat", async () => {
 test("prepares bounded private image handouts and delivers them through chat", async () => {
   const [clientSource, workerSource, handoutAdapter, handoutDomain, styles, migration, immediateMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../worker/adapters/d1-chat-handout-repository.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/handout-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -164,7 +184,7 @@ test("keeps DM notes private while making map labels and notes directly manageab
   const [clientSource, workshopSource, workerSource, encounterDomain, workshopDomain, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/encounter-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/map-workshop-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -294,7 +314,7 @@ test("packages the transparent tactical token library", async () => {
 test("ships the lazy storage-backed creature palette with durable size controls", async () => {
   const [clientSource, workerSource, catalogSource, schemaSource, sizeMigration, catalogMigration, catalogIndexMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/creature-library.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0004_unique_smasher.sql", import.meta.url), "utf8"),
@@ -313,9 +333,9 @@ test("ships the lazy storage-backed creature palette with durable size controls"
   assert.match(clientSource, /controller: summoner\?\.controller \?\? \{ name: participant\.name \}/);
   assert.match(clientSource, /Anything you place is summoned by/);
   assert.match(clientSource, /const effectivePlacementSummonerId = participant\?\.role === "player"/);
-  assert.match(workerSource, /const kind = participant\.role === "player" \? "summon" : requestedKind/);
+  assert.match(workerSource, /kind: context\.participant\.role === "player" \? "summon" : requestedKind/);
   assert.match(workerSource, /Player-created creatures must be summons of your character/);
-  assert.match(workerSource, /!await canControlToken\(env, encounter\.id, summoner, participant\)/);
+  assert.match(workerSource, /token\.kind === "character" && !token\.summoner_token_id &&\s+await context\.canControl\(token\)/);
   assert.match(clientSource, /api<CreatureCatalogPage>\(`\/api\/creatures/);
   assert.match(clientSource, /loading="lazy" unoptimized/);
   assert.doesNotMatch(clientSource, /CREATURE_CATALOG_SEED|CREATURE_LIBRARY/);
@@ -372,7 +392,7 @@ test("uses one aligned icon-action system for close, discard, remove, and delete
 test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell entities", async () => {
   const [clientSource, workerSource, spellSource, moonbeam, flamingSphere, magicCircle] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/spell-effects.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/assets/spells/moonbeam-vfx-source.png", import.meta.url)),
     readFile(new URL("../public/assets/spells/flaming-sphere-vfx-source.png", import.meta.url)),
@@ -434,11 +454,11 @@ test("ships persistent animated Moonbeam, Flaming Sphere, and Magic Circle spell
   assert.match(clientSource, /const hasAttachedVfx = state\?\.tokens\.some/);
   assert.match(clientSource, /hasPersistentSpell \|\| hasAttachedVfx/);
   assert.match(clientSource, /drawHasteEffect\(context, token, x, y, radius, animationNow\)/);
-  assert.match(workerSource, /command === "create-spell-effect"/);
-  assert.match(workerSource, /command === "resize-spell-effect"/);
+  assert.match(workerSource, /"create-spell-effect": \(\) => createSpellEffect/);
+  assert.match(workerSource, /"resize-spell-effect": \(\) => resizeSpellEffect/);
   assert.match(workerSource, /You cannot resize this spell effect/);
   assert.match(workerSource, /Player spell effects must belong to your character/);
-  assert.match(workerSource, /token\.kind !== SPELL_EFFECT_KIND \|\| !\(await canControlToken/);
+  assert.match(workerSource, /token\.kind !== SPELL_EFFECT_KIND \|\| !await context\.canControl/);
   for (const [name, asset] of [["moonbeam", moonbeam], ["flaming sphere", flamingSphere]]) {
     assert.deepEqual([...asset.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${name} PNG signature`);
     assert.equal(asset.readUInt32BE(16), 768, `${name} width`);
@@ -484,7 +504,7 @@ test("offers two animated, auto-expiring DM spotlight styles", async () => {
 test("keeps authoritative movement-rule rejections visible on the map", async () => {
   const [clientSource, workerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
   ]);
 
   assert.match(clientSource, /className="map-message is-error" role="alert"/);
@@ -618,7 +638,7 @@ test("selects inspectable map entities and honors the scenario movement policy",
   assert.match(clientSource, /data-tooltip="With strict movement on, players can move only their own character and related summons\./);
   assert.match(clientSource, /checked=\{state\.encounter\.strictMovement\}/);
   assert.match(clientSource, /setStrictMovementOptimistically\(event\.target\.checked\)/);
-  assert.match(workerSource, /command === "set-strict-movement"/);
+  assert.match(workerSource, /"set-strict-movement": \(\) => setStrictMovement/);
   assert.match(workerSource, /const policyDenial = movementPolicyDenial\(\{/);
   assert.match(workerSource, /controlledByViewer = participant\.role === "dm" \|\| !strictMovement \|\| await canControlToken/);
   const moveHandler = workerSource.slice(workerSource.indexOf('if (action === "move")'), workerSource.indexOf('return json({ error: "Method not allowed."'));
@@ -738,7 +758,7 @@ test("keeps selected-token ring spacing independent of creature size", async () 
 test("shows a straight movement ruler and never rejects movement overage", async () => {
   const [clientSource, workerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
   ]);
 
   assert.match(clientSource, /context\.setLineDash\(\[3, 7\]\)/);
@@ -893,7 +913,7 @@ test("offers compact icon tools and precise line erasing", async () => {
   assert.match(clientSource, /const ICON_PATHS = \{/);
   assert.doesNotMatch(clientSource, /aria-hidden="true">✥|aria-hidden="true">◉|aria-hidden="true">⌫/);
   assert.doesNotMatch(clientSource, />Move<\/button>|>Ping<\/button>|>Draw line<\/button>|>Erase<\/button>/);
-  assert.match(workerSource, /if \(command === "remove-annotation"\)/);
+  assert.match(workerSource, /"remove-annotation": \(\) => removeAnnotation/);
   assert.match(annotationCommands, /You can only erase lines you drew/);
   assert.match(annotationCommands, /"annotation_removed"/);
   assert.match(styles, /\.command-bar \.icon-tool/);
@@ -905,7 +925,7 @@ test("offers compact icon tools and precise line erasing", async () => {
 test("offers durable undo and redo from the toolbar and standard shortcuts", async () => {
   const [clientSource, workerSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -922,9 +942,9 @@ test("offers durable undo and redo from the toolbar and standard shortcuts", asy
   assert.doesNotMatch(clientSource, /className="undo-button"/);
   assert.doesNotMatch(styles, /\.undo-button/);
   assert.match(workerSource, /redoAvailable: availableHistory\.redo\.length/);
-  assert.match(workerSource, /if \(command === "redo"\)/);
+  assert.match(workerSource, /redo: \(\) => redo/);
   assert.match(workerSource, /"action_redone"/);
-  assert.match(workerSource, /historyConflictMessage\("redone", action\.action_type\)/);
+  assert.match(workerSource, /historyConflictMessage\(direction === "undo" \? "undone" : "redone", action\.action_type\)/);
 });
 
 test("includes a durable full-scene workshop with no retired editor path", async () => {
@@ -932,7 +952,7 @@ test("includes a durable full-scene workshop with no retired editor path", async
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
     readFile(new URL("../shared/map-package.ts", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../drizzle/0006_panoramic_scalphunter.sql", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0017_blushing_moondragon.sql", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -1050,7 +1070,7 @@ test("collapses the sidebar and presents the map full bleed", async () => {
 test("shows one roster that folds identical mobs and orders combat by initiative", async () => {
   const [clientSource, workerSource, initiativeSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/initiative-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
@@ -1076,7 +1096,7 @@ test("shows one roster that folds identical mobs and orders combat by initiative
   assert.match(clientSource, /activeOwnTurnIsGroup \? "End Group Turn" : "End Turn"/);
   assert.match(clientSource, /const activeOwnTurnIsGroup = activeTurnMembers\.length > 1;/);
   assert.match(workerSource, /initiative_group_id/);
-  assert.match(workerSource, /async function rebuildInitiativeOrders\(/);
+  assert.match(workerSource, /async rebuildInitiativeOrders\(/);
   assert.match(styles, /\.roster-initiative \{ grid-column: 6; width: 100%;/);
   assert.match(workerSource, /WHERE encounter_id = \? AND initiative_order = \?/);
   // Render must not read the pending-create ref.
@@ -1086,7 +1106,7 @@ test("shows one roster that folds identical mobs and orders combat by initiative
 test("hides exact hit points from players and snaps their rings to bands", async () => {
   const [clientSource, workerSource, healthSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readWorkerBoundarySources(),
     readFile(new URL("../shared/health.ts", import.meta.url), "utf8"),
   ]);
 
@@ -1169,7 +1189,7 @@ test("ships all three authoritative fog-of-war modes and private vision guides",
   assert.match(workshopSource, /drag either endpoint to reshape it/);
   assert.match(workshopSource, /dragFogBlocker/);
   assert.match(workshopSource, /freeFogPoint/);
-  assert.match(workerSource, /command === "update-shared-fog"/);
+  assert.match(workerSource, /"update-shared-fog": \(\) => updateSharedFog/);
   assert.match(workerSource, /pointVisibleToViewer\(token, fogVisibility\)/);
   assert.match(workerSource, /if \(encounter\.version === lastVersion\)[\s\S]*status: 204[\s\S]*const state = await encounterState/);
   assert.match(packageSource, /export type FogConfig/);

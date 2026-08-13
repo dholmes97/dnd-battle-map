@@ -6,6 +6,7 @@ export type CommandEncounter = {
   code: string;
   name: string;
   status: "setup" | "active" | "paused";
+  mapAsset: string;
   mapPackageJson: string | null;
   activeMapPresetId: string | null;
   gridWidth: number;
