@@ -10,29 +10,36 @@ export const HANDOUT_THUMBNAIL_MAX_BYTES = 120_000;
 export const HANDOUT_MAX_PER_SCENARIO = 50;
 export const HANDOUT_TITLE_MAX_LENGTH = 80;
 
-export function cleanHandoutTitle(value) {
+import type { Role } from "./contracts";
+
+type ImageDimensions = { width: number; height: number };
+type ImageVariant = "display" | "thumbnail";
+type PreparedImage = { contentType: string; byteLength: number; width: number | null | undefined; height: number | null | undefined };
+
+export function cleanHandoutTitle(value: unknown): string {
   return typeof value === "string"
     ? value.trim().replace(/\s+/g, " ").slice(0, HANDOUT_TITLE_MAX_LENGTH)
     : "";
 }
 
-export function handoutUploadInputError({ contentType, byteLength, width, height }) {
+export function handoutUploadInputError({ contentType, byteLength, width, height }: PreparedImage): string | null {
   if (!HANDOUT_INPUT_MIME_TYPES.includes(contentType)) return "Choose a JPEG, PNG, or WebP image.";
   if (!Number.isFinite(byteLength) || byteLength < 1 || byteLength > HANDOUT_INPUT_MAX_BYTES) {
     return "Choose an image smaller than 12 MB.";
   }
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+  if (typeof width !== "number" || typeof height !== "number" || !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     return "That image's dimensions could not be read.";
   }
-  if (width * height > HANDOUT_INPUT_MAX_PIXELS) {
+  const validWidth = width as number; const validHeight = height as number;
+  if (validWidth * validHeight > HANDOUT_INPUT_MAX_PIXELS) {
     return "Choose an image smaller than 24 megapixels.";
   }
   return null;
 }
 
-export function inspectWebp(bytes) {
+export function inspectWebp(bytes: Uint8Array): ImageDimensions | null {
   if (!(bytes instanceof Uint8Array) || bytes.length < 30) return null;
-  const text = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));
+  const text = (offset: number, length: number) => String.fromCharCode(...bytes.subarray(offset, offset + length));
   if (text(0, 4) !== "RIFF" || text(8, 4) !== "WEBP") return null;
   let offset = 12;
   while (offset + 8 <= bytes.length) {
@@ -63,7 +70,7 @@ export function inspectWebp(bytes) {
   return null;
 }
 
-export function inspectJpeg(bytes) {
+export function inspectJpeg(bytes: Uint8Array): ImageDimensions | null {
   if (!(bytes instanceof Uint8Array) || bytes.length < 11 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
   const startOfFrameMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
   let offset = 2;
@@ -88,28 +95,29 @@ export function inspectJpeg(bytes) {
   return null;
 }
 
-export function inspectStoredHandout(bytes, contentType) {
+export function inspectStoredHandout(bytes: Uint8Array, contentType: string): ImageDimensions | null {
   if (contentType === "image/webp") return inspectWebp(bytes);
   if (contentType === "image/jpeg") return inspectJpeg(bytes);
   return null;
 }
 
-export function storedHandoutVariantError({ variant, contentType, byteLength, width, height }) {
+export function storedHandoutVariantError({ variant, contentType, byteLength, width, height }: PreparedImage & { variant: ImageVariant }): string | null {
   if (!HANDOUT_STORED_MIME_TYPES.includes(contentType)) return "Prepared handouts must be WebP or JPEG images.";
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+  if (typeof width !== "number" || typeof height !== "number" || !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     return "The prepared handout dimensions are invalid.";
   }
+  const validWidth = width as number; const validHeight = height as number;
   if (variant === "thumbnail") {
     if (byteLength > HANDOUT_THUMBNAIL_MAX_BYTES) return "The handout thumbnail is too large.";
-    if (width > HANDOUT_THUMBNAIL_MAX_WIDTH || height > HANDOUT_THUMBNAIL_MAX_HEIGHT) return "The handout thumbnail dimensions are too large.";
+    if (validWidth > HANDOUT_THUMBNAIL_MAX_WIDTH || validHeight > HANDOUT_THUMBNAIL_MAX_HEIGHT) return "The handout thumbnail dimensions are too large.";
     return null;
   }
   if (byteLength > HANDOUT_DISPLAY_MAX_BYTES) return "The handout display image is too large.";
-  if (width > HANDOUT_DISPLAY_MAX_EDGE || height > HANDOUT_DISPLAY_MAX_EDGE) return "The handout display dimensions are too large.";
+  if (validWidth > HANDOUT_DISPLAY_MAX_EDGE || validHeight > HANDOUT_DISPLAY_MAX_EDGE) return "The handout display dimensions are too large.";
   return null;
 }
 
-export function handoutVisibleToViewer({ senderName, recipientName }, viewer) {
+export function handoutVisibleToViewer({ senderName, recipientName }: { senderName: string; recipientName: string | null }, viewer: { name: string; role: Role } | null): boolean {
   if (!viewer) return false;
   if (viewer.role === "dm" || recipientName === null) return true;
   return senderName === viewer.name || recipientName === viewer.name;

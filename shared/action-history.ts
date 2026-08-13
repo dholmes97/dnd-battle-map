@@ -1,4 +1,6 @@
-export function isReversibleHistoryRow(row, reversibleActionTypes) {
+export type HistoryRow = { id: string; action_type: string; payload_json: string };
+
+export function isReversibleHistoryRow(row: HistoryRow, reversibleActionTypes: ReadonlySet<string>): boolean {
   if (row.action_type === "action_undone" || row.action_type === "action_redone") return true;
   if (!reversibleActionTypes.has(row.action_type)) return false;
   if (row.action_type !== "annotation_added" && row.action_type !== "annotation_removed") return true;
@@ -13,10 +15,10 @@ export function isReversibleHistoryRow(row, reversibleActionTypes) {
   }
 }
 
-export function deriveHistoryActionIds(chronologicalRows, reversibleActionTypes) {
-  const knownIds = new Set();
-  const undoIds = [];
-  const redoIds = [];
+export function deriveHistoryActionIds(chronologicalRows: HistoryRow[], reversibleActionTypes: ReadonlySet<string>): { undoIds: string[]; redoIds: string[] } {
+  const knownIds = new Set<string>();
+  const undoIds: string[] = [];
+  const redoIds: string[] = [];
   for (const row of chronologicalRows) {
     if (reversibleActionTypes.has(row.action_type)) {
       knownIds.add(row.id);

@@ -8,7 +8,7 @@ import {
   tokenArtScale,
   viewportGeometry,
   zoomViewportAt,
-} from "../shared/battle-map-geometry.mjs";
+} from "../shared/battle-map-geometry.ts";
 
 test("fit geometry keeps grid cells square in wide and tall containers", () => {
   assert.deepEqual(fitGridGeometry(24, 16, 1600, 700), {

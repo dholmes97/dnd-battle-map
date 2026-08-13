@@ -1,31 +1,31 @@
 export const ROSTER_GROUP_THRESHOLD = 3;
 
-export function rosterBaseName(name) {
+export function rosterBaseName(name: string): string {
   return name.replace(/\s+\d+$/, "").trim() || name;
 }
 
-export function rosterGroupKey(token) {
+export function rosterGroupKey(token: InitiativeToken): string {
   return `${rosterBaseName(token.name)}|${token.artAsset ?? ""}`;
 }
 
-export function initiativePackMembers(token, tokens) {
+export function initiativePackMembers<T extends InitiativeToken>(token: T, tokens: T[]): T[] {
   if (token.kind !== "monster" || token.summonerTokenId) return [token];
   const key = rosterGroupKey(token);
   return tokens.filter((candidate) =>
     candidate.kind === "monster" && !candidate.summonerTokenId && rosterGroupKey(candidate) === key);
 }
 
-export function compareTokenNames(a, b) {
+export function compareTokenNames(a: InitiativeToken, b: InitiativeToken): number {
   return a.name.localeCompare(b.name, undefined, { numeric: true });
 }
 
-export function buildRosterRows(tokens, inCombat, filter, expandedGroups) {
+export function buildRosterRows<T extends InitiativeToken>(tokens: T[], inCombat: boolean, filter: string, expandedGroups: ReadonlySet<string>): RosterRow<T>[] {
   const needle = filter.trim().toLocaleLowerCase();
   const rosterTokens = tokens.filter((token) => token.kind !== "spell-effect");
   const visible = needle ? rosterTokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : rosterTokens;
   if (inCombat) {
-    const rows = [];
-    const groups = new Map();
+    const rows: RosterRow<T>[] = [];
+    const groups = new Map<string, T[]>();
     for (const token of [...visible].sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || compareTokenNames(a, b))) {
       const key = token.initiativeOrder === null ? `untracked:${token.id}` : `initiative:${token.initiativeOrder}`;
       const members = groups.get(key);
@@ -46,12 +46,12 @@ export function buildRosterRows(tokens, inCombat, filter, expandedGroups) {
   }
   if (needle) return [...visible].sort(compareTokenNames).map((token) => ({ type: "token", token, grouped: false }));
 
-  const priority = (token) => token.kind === "character" ? (token.controlledByViewer ? 0 : 1) : token.summonerTokenId ? 2 : 3;
-  const rows = visible
+  const priority = (token: T): number => token.kind === "character" ? (token.controlledByViewer ? 0 : 1) : token.summonerTokenId ? 2 : 3;
+  const rows: RosterRow<T>[] = visible
     .filter((token) => priority(token) < 3)
     .sort((a, b) => priority(a) - priority(b) || compareTokenNames(a, b))
     .map((token) => ({ type: "token", token, grouped: false }));
-  const groups = new Map();
+  const groups = new Map<string, T[]>();
   for (const token of visible.filter((token) => priority(token) === 3).sort(compareTokenNames)) {
     const key = rosterGroupKey(token);
     const bucket = groups.get(key);
@@ -69,8 +69,8 @@ export function buildRosterRows(tokens, inCombat, filter, expandedGroups) {
   return rows;
 }
 
-export function orderedInitiativeGroups(leaders) {
-  const groups = new Map();
+export function orderedInitiativeGroups<T extends InitiativeToken>(leaders: T[]): T[][] {
+  const groups = new Map<string, T[]>();
   for (const leader of leaders
     .filter((token) => !token.summonerTokenId && token.initiative !== null)
     .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name))) {
@@ -82,10 +82,10 @@ export function orderedInitiativeGroups(leaders) {
     (b[0].initiative ?? 0) - (a[0].initiative ?? 0) || a[0].name.localeCompare(b[0].name));
 }
 
-export function nextInitiativeTurn(orders, activeOrder, currentRound) {
-  const sortedOrders = [...new Set(orders.filter((order) => order !== null))].sort((a, b) => a - b);
+export function nextInitiativeTurn(orders: Array<number | null>, activeOrder: number | null, currentRound: number): { round: number; activeOrder: number | null; wrapped: boolean } {
+  const sortedOrders = [...new Set(orders.filter((order): order is number => order !== null))].sort((a, b) => a - b);
   if (sortedOrders.length === 0) return { round: 0, activeOrder: null, wrapped: false };
-  const currentIndex = sortedOrders.indexOf(activeOrder);
+  const currentIndex = activeOrder === null ? -1 : sortedOrders.indexOf(activeOrder);
   const wrapped = currentIndex < 0 || currentIndex === sortedOrders.length - 1;
   return {
     round: wrapped ? Math.max(1, currentRound + 1) : currentRound,
@@ -94,7 +94,7 @@ export function nextInitiativeTurn(orders, activeOrder, currentRound) {
   };
 }
 
-export function advanceEncounterTurn(current, completeCurrentGroup) {
+export function advanceEncounterTurn(current: EncounterState, completeCurrentGroup: boolean): EncounterState {
   const transition = nextInitiativeTurn(
     current.tokens.map((token) => token.initiativeOrder),
     current.encounter.activeInitiativeOrder,
@@ -110,3 +110,7 @@ export function advanceEncounterTurn(current, completeCurrentGroup) {
       : completeCurrentGroup && token.initiativeOrder === active ? { ...token, turnComplete: true } : token),
   };
 }
+import type { EncounterState, SharedToken } from "./contracts";
+
+type InitiativeToken = Pick<SharedToken, "id" | "name" | "kind" | "artAsset" | "summonerTokenId" | "initiative" | "initiativeGroupId" | "initiativeOrder" | "controlledByViewer">;
+export type RosterRow<T extends InitiativeToken = InitiativeToken> = { type: "token"; token: T; grouped: boolean } | { type: "group"; key: string; label: string; tokens: T[]; expanded: boolean };

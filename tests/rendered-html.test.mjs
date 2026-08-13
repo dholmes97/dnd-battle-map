@@ -84,7 +84,7 @@ test("ships durable public and DM-private encounter chat", async () => {
   const [clientSource, workerSource, chatDomain, styles, migration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/chat-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/chat-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0014_perpetual_steel_serpent.sql", import.meta.url), "utf8"),
   ]);
@@ -115,7 +115,7 @@ test("prepares bounded private image handouts and delivers them through chat", a
   const [clientSource, workerSource, handoutDomain, styles, migration, immediateMigration] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/handout-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/handout-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0015_dry_ben_grimm.sql", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0016_tiny_miek.sql", import.meta.url), "utf8"),
@@ -164,8 +164,8 @@ test("keeps DM notes private while making map labels and notes directly manageab
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/encounter-domain.mjs", import.meta.url), "utf8"),
-    readFile(new URL("../shared/map-workshop-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/encounter-domain.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/map-workshop-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -550,9 +550,9 @@ test("makes map tools and encounter controls optimistic without a global wait", 
   assert.match(clientSource, /import \{ flushSync \} from "react-dom"/);
   assert.match(optimisticFlow, /flushSync\(\(\) => \{\s+setState\(\(current\) =>/);
   assert.match(optimisticFlow, /setState\(\(current\) =>/);
-  assert.match(optimisticFlow, /const send = \(\) => command<T>\(name, extra\)/);
-  assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("const send = () => command<T>(name, extra)"));
-  assert.ok(optimisticFlow.indexOf("flushSync(() =>") < optimisticFlow.indexOf("const send = () => command<T>(name, extra)"));
+  assert.match(optimisticFlow, /const send = \(\) => command<T, Name>\(name, extra\)/);
+  assert.ok(optimisticFlow.indexOf("setState((current) =>") < optimisticFlow.indexOf("const send = () => command<T, Name>(name, extra)"));
+  assert.ok(optimisticFlow.indexOf("flushSync(() =>") < optimisticFlow.indexOf("const send = () => command<T, Name>(name, extra)"));
   assert.doesNotMatch(optimisticFlow, /setBusy\(/);
   assert.match(clientSource, /pending-annotation-/);
   assert.match(clientSource, /annotations: \[\.\.\.current\.annotations, annotation\]/);
@@ -806,7 +806,7 @@ test("assigns every token to a fixed identity without claim state", async () => 
   const [clientSource, workerSource, controllerSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/token-control.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/token-control.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(controllerSource, /"token-bronze-warden": "Dan"/);
@@ -850,7 +850,7 @@ test("normalizes Safari form controls and fills the desktop map stage", async ()
 test("zooms at the cursor and pans by dragging empty map space", async () => {
   const [clientSource, geometrySource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../shared/battle-map-geometry.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/battle-map-geometry.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -1048,7 +1048,7 @@ test("shows one roster that folds identical mobs and orders combat by initiative
   const [clientSource, workerSource, initiativeSource, styles] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/initiative-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/initiative-domain.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -1084,7 +1084,7 @@ test("hides exact hit points from players and snaps their rings to bands", async
   const [clientSource, workerSource, healthSource] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../shared/health.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/health.ts", import.meta.url), "utf8"),
   ]);
 
   // The server is what actually withholds the numbers.
@@ -1107,7 +1107,7 @@ test("bounds client map media and transient ping memory", async () => {
   const [clientSource, workshopSource, workshopDomain] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/map-workshop.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../shared/map-workshop-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/map-workshop-domain.ts", import.meta.url), "utf8"),
   ]);
 
   // The workshop must not decode every 3072x2048 scene just to show its picker.
@@ -1122,8 +1122,8 @@ test("bounds client map media and transient ping memory", async () => {
 
 test("keeps temporary annotations out of undo and explains history conflicts", async () => {
   const [historySource, encounterDomain] = await Promise.all([
-    readFile(new URL("../shared/action-history.mjs", import.meta.url), "utf8"),
-    readFile(new URL("../shared/encounter-domain.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/action-history.ts", import.meta.url), "utf8"),
+    readFile(new URL("../shared/encounter-domain.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(historySource, /return annotation\?\.annotationType === "drawing";/);

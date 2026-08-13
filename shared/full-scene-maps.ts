@@ -1,5 +1,5 @@
 import type { MapBiome, MapPackage } from "./map-package.ts";
-import { defaultFogConfig } from "./fog-of-war.mjs";
+import { defaultFogConfig } from "./fog-of-war.ts";
 
 type FullSceneDefinition = {
   id: string;

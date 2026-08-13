@@ -10,31 +10,22 @@ import {
   useRef,
   useState,
 } from "react";
-import { fitGridGeometry } from "@/shared/battle-map-geometry.mjs";
-import { distanceToSegment, dragFogBlocker, ensureSharedFogPolygon, fogBlockerHandleAtPoint } from "@/shared/fog-of-war.mjs";
+import { fitGridGeometry } from "@/shared/battle-map-geometry.ts";
+import { distanceToSegment, dragFogBlocker, ensureSharedFogPolygon, fogBlockerHandleAtPoint } from "@/shared/fog-of-war.ts";
 import { FULL_SCENE_MAPS, createFullSceneMap } from "@/shared/full-scene-maps";
 import { cloneMapPackage, type MapPackage } from "@/shared/map-package";
+import type { CommandName, CommandPayload, CommandResponse, SavedMapPreset } from "@/shared/contracts";
 import {
   mapNoteAt,
   mapThumbnailUrl,
   snapMapPoint,
-} from "@/shared/map-workshop-domain.mjs";
-
-type SavedMapPreset = {
-  id: string;
-  name: string;
-  description: string;
-  sourcePrompt: string | null;
-  mapPackage: MapPackage;
-  createdAt: number;
-  updatedAt: number;
-};
+} from "@/shared/map-workshop-domain.ts";
 
 type Props = {
   activeMapPackage: MapPackage | null;
   activeMapPresetId: string | null;
   savedPresets: SavedMapPreset[];
-  onCommand: (name: string, extra: Record<string, unknown>) => Promise<{ state: unknown; presetId?: string }>;
+  onCommand: <Name extends CommandName>(name: Name, extra: CommandPayload<Name>) => Promise<CommandResponse & { presetId?: string }>;
   onClose: () => void;
 };
 
@@ -339,7 +330,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     return () => window.removeEventListener("keydown", onHistoryShortcut);
   }, [historyCounts.redo, historyCounts.undo, redo, undo]);
 
-  const runCommand = async (name: string, extra: Record<string, unknown>, success: string) => {
+  const runCommand = async <Name extends CommandName>(name: Name, extra: CommandPayload<Name>, success: string) => {
     setBusy(true); setMessage("");
     try { const result = await onCommand(name, extra); setMessage(success); return result; }
     catch (error) { setMessage(error instanceof Error ? error.message : "The map action was rejected."); return null; }
@@ -375,7 +366,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     }
     if (tool === "select" && map.fog.mode === "dynamic") {
       const tolerance = Math.max(0.2, 10 / (event.currentTarget.getBoundingClientRect().width / map.width));
-      const target = fogBlockerHandleAtPoint(map.fog, point, tolerance, selectedFogBlocker as { kind: string; id: string } | null) as FogBlockerTarget | null;
+      const target = fogBlockerHandleAtPoint(map.fog, point, tolerance, selectedFogBlocker) as FogBlockerTarget | null;
       setSelectedFogBlocker(target ? { kind: target.kind, id: target.id } : null);
       if (target) {
         fogBlockerDragRef.current = { pointerId: event.pointerId, target, start: freeFogPoint(point), before: cloneMapPackage(map) };

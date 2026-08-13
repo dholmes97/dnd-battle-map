@@ -11,7 +11,7 @@ import {
   pointVisibleToViewer,
   visibilityForViewer,
   visibilityPolygon,
-} from "../shared/fog-of-war.mjs";
+} from "../shared/fog-of-war.ts";
 
 test("shared fog starts with corners and side midpoints and upgrades the old rectangle", () => {
   const expected = defaultSharedFogPolygon(24, 16);

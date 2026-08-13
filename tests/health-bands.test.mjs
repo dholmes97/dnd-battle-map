@@ -5,7 +5,7 @@ import {
   displayHealth,
   healthBand,
   healthBandRatio,
-} from "../shared/health.mjs";
+} from "../shared/health.ts";
 
 test("classifies health into the five play-facing bands", () => {
   assert.equal(healthBand(20, 20), "unharmed");

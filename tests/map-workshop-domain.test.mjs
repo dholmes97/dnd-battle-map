@@ -4,7 +4,7 @@ import {
   mapNoteAt,
   mapThumbnailUrl,
   snapMapPoint,
-} from "../shared/map-workshop-domain.mjs";
+} from "../shared/map-workshop-domain.ts";
 
 test("workshop path and snap rules are framework independent", () => {
   assert.equal(mapThumbnailUrl("/maps/forest.jpg"), "/assets/full-map-thumbnails/forest.jpg");

@@ -4,7 +4,7 @@ import {
   historyConflictMessage,
   mapPackageForViewer,
   scenarioCodeFromName,
-} from "../shared/encounter-domain.mjs";
+} from "../shared/encounter-domain.ts";
 
 test("scenario codes normalize accents, punctuation, length, and blanks", () => {
   assert.equal(scenarioCodeFromName("  Château of Doom!  "), "CHATEAU-OF-DOOM");

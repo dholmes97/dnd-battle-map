@@ -22,9 +22,23 @@ import {
   tokenRadiusCells,
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
-import { ensureSharedFogPolygon, insertSharedFogPoint } from "@/shared/fog-of-war.mjs";
-import { displayHealth, healthBand } from "@/shared/health.mjs";
-import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.mjs";
+import type {
+  CommandName,
+  CommandPayload,
+  CommandResponse,
+  EncounterState,
+  MapPoint,
+  ParticipantSession as Participant,
+  Role,
+  SharedAnnotation,
+  SharedChatMessage,
+  SharedEffect,
+  SharedHandout,
+  SharedToken,
+} from "@/shared/contracts";
+import { ensureSharedFogPolygon, insertSharedFogPoint } from "@/shared/fog-of-war.ts";
+import { displayHealth, healthBand } from "@/shared/health.ts";
+import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.ts";
 import {
   calculateDirectDistance,
   clampMapPoint,
@@ -33,20 +47,20 @@ import {
   tokenArtScale,
   viewportGeometry,
   zoomViewportAt,
-} from "@/shared/battle-map-geometry.mjs";
+} from "@/shared/battle-map-geometry.ts";
 import {
   advanceEncounterTurn,
   buildRosterRows,
   initiativePackMembers,
   rosterBaseName,
-} from "@/shared/initiative-domain.mjs";
+} from "@/shared/initiative-domain.ts";
 import {
   CHAT_DM_NAME,
   CHAT_MESSAGE_MAX_LENGTH,
   CHAT_PLAYER_NAMES,
   chatChannelKeyForMessage,
   incomingImmediateHandouts,
-} from "@/shared/chat-domain.mjs";
+} from "@/shared/chat-domain.ts";
 import {
   HANDOUT_DISPLAY_MAX_BYTES,
   HANDOUT_DISPLAY_MAX_EDGE,
@@ -56,7 +70,7 @@ import {
   HANDOUT_THUMBNAIL_MAX_WIDTH,
   cleanHandoutTitle,
   handoutUploadInputError,
-} from "@/shared/handout-domain.mjs";
+} from "@/shared/handout-domain.ts";
 import {
   isSpellShapeArt,
   SPELL_AREA_SIZES,
@@ -70,119 +84,7 @@ import {
 } from "@/shared/spell-effects";
 
 type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
-type Role = "player" | "dm";
 type JoinIdentity = { label: string; participantName: string; role: Role };
-type MapPoint = { x: number; y: number };
-type SharedEffect = {
-  id: string;
-  name: string;
-  type: string;
-  durationRounds: number | null;
-  expiresRound: number | null;
-  reminderTiming: string;
-  due: boolean;
-};
-type SharedToken = MapPoint & {
-  id: string;
-  name: string;
-  artAsset: string | null;
-  kind: string;
-  size: CreatureSize;
-  speed: number;
-  hp: number | null;
-  maxHp: number | null;
-  healthState: string | null;
-  hidden: boolean;
-  summonerTokenId: string | null;
-  initiative: number | null;
-  initiativeGroupId: string | null;
-  initiativeOrder: number | null;
-  turnComplete: boolean;
-  movementUsed: number;
-  movementOrigin: MapPoint | null;
-  effects: SharedEffect[];
-  controller: { name: string };
-  controlledByViewer: boolean;
-};
-type SharedAnnotation = {
-  id: string;
-  type: "ping" | "drawing" | "spotlight" | "neon-spotlight";
-  x: number;
-  y: number;
-  x2: number | null;
-  y2: number | null;
-  color: string;
-  label: string | null;
-  createdBy: string;
-  expiresAt: number | null;
-};
-type SharedChatMessage = {
-  id: string;
-  senderName: string;
-  senderRole: Role;
-  recipientName: string | null;
-  body: string;
-  showImmediately: boolean;
-  handout: null | {
-    id: string;
-    title: string;
-    width: number | null;
-    height: number | null;
-    updatedAt: number | null;
-    available: boolean;
-  };
-  createdAt: number;
-};
-type SharedHandout = {
-  id: string;
-  title: string;
-  width: number;
-  height: number;
-  displayBytes: number;
-  thumbnailBytes: number;
-  messageCount: number;
-  createdAt: number;
-  updatedAt: number;
-};
-type EncounterState = {
-  encounter: {
-    code: string;
-    name: string;
-    version: number;
-    status: "setup" | "active" | "paused";
-    mapPackage: MapPackage | null;
-    activeMapPresetId: string | null;
-    currentRound: number;
-    activeInitiativeOrder: number | null;
-    strictMovement: boolean;
-    fogVisibility: {
-      mode: "off" | "shared" | "dynamic";
-      polygons: MapPoint[][];
-      hiddenPolygon?: MapPoint[];
-      revealedCircles?: MapPackage["fog"]["circles"];
-      geometry?: Pick<MapPackage["fog"], "walls" | "doors" | "circles">;
-    };
-    updatedAt: number;
-  };
-  grid: { width: number; height: number; feetPerCell: number };
-  viewer: null | { id: string; role: Role };
-  undo: { available: number; redoAvailable: number; lastAction: string | null; nextRedoAction: string | null };
-  tokens: SharedToken[];
-  annotations: SharedAnnotation[];
-  chatMessages: SharedChatMessage[];
-  handouts: SharedHandout[];
-  savedMapPresets: Array<{
-    id: string;
-    name: string;
-    description: string;
-    sourcePrompt: string | null;
-    mapPackage: MapPackage;
-    createdAt: number;
-    updatedAt: number;
-  }>;
-  availableArt: string[];
-};
-type Participant = { id: string; name: string; role: Role; sessionSecret: string };
 type TokenPreview = MapPoint & { tokenId: string };
 type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 type SpellPlacementPreview = MapPoint & { spell: SpellEffectDefinition };
@@ -1996,9 +1898,9 @@ export default function BattleMapPrototype() {
     if (fresh) acceptAuthoritativeState(fresh);
   };
 
-  const command = async <T extends { state: EncounterState }>(
-    name: string,
-    extra: Record<string, unknown> = {},
+  const command = async <T extends CommandResponse = CommandResponse, Name extends CommandName = CommandName>(
+    name: Name,
+    extra: CommandPayload<Name> = {} as CommandPayload<Name>,
     beforeAccept?: (result: T) => void,
   ) => {
     if (!participant || !state) throw new Error("Join the encounter first.");
@@ -2009,15 +1911,15 @@ export default function BattleMapPrototype() {
     acceptAuthoritativeState(result.state); return result;
   };
 
-  const runCommand = async (name: string, extra: Record<string, unknown> = {}, success?: string) => {
+  const runCommand = async <Name extends CommandName>(name: Name, extra: CommandPayload<Name> = {} as CommandPayload<Name>, success?: string) => {
     setError("");
     try { await command(name, extra); if (success) setNotice(success); return true; }
     catch (commandError) { setError(commandError instanceof Error ? commandError.message : "Action rejected."); await refreshAfterError(); return false; }
   };
 
-  const runOptimisticCommand = async <T extends { state: EncounterState }>(
-    name: string,
-    extra: Record<string, unknown>,
+  const runOptimisticCommand = async <T extends CommandResponse, Name extends CommandName = CommandName>(
+    name: Name,
+    extra: CommandPayload<Name>,
     apply: (current: EncounterState) => EncounterState,
     success?: string,
     beforeAccept?: (result: T) => void,
@@ -2045,7 +1947,7 @@ export default function BattleMapPrototype() {
     });
     setError("");
     try {
-      const send = () => command<T>(name, extra);
+      const send = () => command<T, Name>(name, extra);
       let result: T;
       if (serializeTurnAdvance) {
         const queued = turnAdvanceQueueRef.current.then(send);

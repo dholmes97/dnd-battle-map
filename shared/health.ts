@@ -7,9 +7,10 @@ export const HEALTH_BANDS = Object.freeze([
   "bloodied",
   "near-death",
   "down",
-]);
+] as const);
+export type HealthBand = typeof HEALTH_BANDS[number];
 
-export function healthBand(hp, maxHp) {
+export function healthBand(hp: number | null | undefined, maxHp: number | null | undefined): HealthBand | null {
   if (hp === null || hp === undefined) return null;
   if (maxHp === null || maxHp === undefined || maxHp <= 0) return null;
   if (hp <= 0) return "down";
@@ -45,21 +46,21 @@ export const HEALTH_BAND_COLOR = Object.freeze({
   down: "#6f6862",
 });
 
-export function healthBandRatio(band) {
+export function healthBandRatio(band: HealthBand): number | null {
   return HEALTH_BAND_RATIO[band] ?? null;
 }
 
-export function healthBandLabel(band) {
+export function healthBandLabel(band: HealthBand): string | null {
   return HEALTH_BAND_LABEL[band] ?? null;
 }
 
-export function healthBandColor(band) {
+export function healthBandColor(band: HealthBand): string {
   return HEALTH_BAND_COLOR[band] ?? "#6f6862";
 }
 
 // What the viewer should actually see: the exact ratio when the server trusted
 // them with numbers, otherwise the band's stepped ratio.
-export function displayHealth(hp, maxHp, band) {
+export function displayHealth(hp: number | null | undefined, maxHp: number | null | undefined, band: HealthBand | null | undefined) {
   const exact = hp !== null && hp !== undefined && maxHp !== null && maxHp !== undefined && maxHp > 0;
   const resolvedBand = exact ? healthBand(hp, maxHp) : band ?? null;
   if (!resolvedBand) return null;

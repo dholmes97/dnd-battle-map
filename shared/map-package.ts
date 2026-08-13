@@ -1,4 +1,4 @@
-import { defaultSharedFogPolygon } from "./fog-of-war.mjs";
+import { defaultSharedFogPolygon } from "./fog-of-war.ts";
 
 export type MapBiome = "forest" | "dungeon" | "cave" | "ruins" | "swamp" | "desert" | "tundra" | "volcanic" | "coast";
 export type MapMood = "daylight" | "overcast" | "moonlight" | "torchlight";

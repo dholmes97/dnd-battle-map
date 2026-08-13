@@ -4,7 +4,7 @@ import {
   baseTokenControllerName,
   identityControlsToken,
   resolveTokenControllerName,
-} from "../shared/token-control.mjs";
+} from "../shared/token-control.ts";
 
 test("assigns fixed characters and all other base tokens deterministically", () => {
   assert.equal(baseTokenControllerName({ id: "token-bronze-warden", name: "Renamed hero" }), "Dan");

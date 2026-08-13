@@ -1,4 +1,7 @@
-export function scenarioCodeFromName(name) {
+import type { Role } from "./contracts";
+import type { MapPackage } from "./map-package";
+
+export function scenarioCodeFromName(name: string): string {
   return name
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -8,18 +11,18 @@ export function scenarioCodeFromName(name) {
     .slice(0, 20) || "NEW-SCENARIO";
 }
 
-export function mapPackageForViewer(mapPackage, viewer) {
+export function mapPackageForViewer(mapPackage: MapPackage | null, viewer: { role: Role } | null): MapPackage | null {
   if (!mapPackage || viewer?.role === "dm") return mapPackage;
   return {
     ...mapPackage,
     labels: mapPackage.labels.filter((label) => label.visibility === "everyone"),
     notes: [],
-    fog: mapPackage.fog ? { mode: mapPackage.fog.mode, sharedPolygon: [], walls: [], doors: [], circles: [] } : undefined,
-  };
+    ...(mapPackage.fog ? { fog: { mode: mapPackage.fog.mode, sharedPolygon: [], walls: [], doors: [], circles: [] } } : {}),
+  } as MapPackage;
 }
 
-export function historyConflictMessage(direction, actionType) {
-  const messages = {
+export function historyConflictMessage(direction: string, actionType: string): string {
+  const messages: Record<string, string> = {
     token_moved: `This move cannot be ${direction} because the token moved again.`,
     hp_changed: `This HP change cannot be ${direction} because the token's HP changed again.`,
     initiative_set: `This initiative change cannot be ${direction} because the token's initiative or group changed again.`,

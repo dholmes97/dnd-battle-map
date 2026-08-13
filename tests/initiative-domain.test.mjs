@@ -6,7 +6,7 @@ import {
   initiativePackMembers,
   nextInitiativeTurn,
   orderedInitiativeGroups,
-} from "../shared/initiative-domain.mjs";
+} from "../shared/initiative-domain.ts";
 
 function token(id, name, extra = {}) {
   return {

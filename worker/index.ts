@@ -17,23 +17,23 @@ import {
   baseTokenControllerName,
   identityControlsToken,
   resolveTokenControllerName,
-} from "../shared/token-control.mjs";
-import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
-import { healthBand } from "../shared/health.mjs";
-import { movementPolicyDenial } from "../shared/battle-map-policies.mjs";
-import { calculateDirectDistance } from "../shared/battle-map-geometry.mjs";
-import { ensureSharedFogPolygon, pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.mjs";
+} from "../shared/token-control.ts";
+import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.ts";
+import { healthBand } from "../shared/health.ts";
+import { movementPolicyDenial } from "../shared/battle-map-policies.ts";
+import { calculateDirectDistance } from "../shared/battle-map-geometry.ts";
+import { ensureSharedFogPolygon, pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.ts";
 import {
   historyConflictMessage,
   mapPackageForViewer,
   scenarioCodeFromName,
-} from "../shared/encounter-domain.mjs";
-import { nextInitiativeTurn, orderedInitiativeGroups } from "../shared/initiative-domain.mjs";
+} from "../shared/encounter-domain.ts";
+import { nextInitiativeTurn, orderedInitiativeGroups } from "../shared/initiative-domain.ts";
 import {
   CHAT_MESSAGE_MAX_LENGTH,
   chatMessageVisibleToViewer,
   resolveChatRecipient,
-} from "../shared/chat-domain.mjs";
+} from "../shared/chat-domain.ts";
 import {
   HANDOUT_DISPLAY_MAX_BYTES,
   HANDOUT_MAX_PER_SCENARIO,
@@ -42,13 +42,21 @@ import {
   handoutVisibleToViewer,
   inspectStoredHandout,
   storedHandoutVariantError,
-} from "../shared/handout-domain.mjs";
+} from "../shared/handout-domain.ts";
 import {
   isSpellAreaSize,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
   spellEffectById,
 } from "../shared/spell-effects";
+import {
+  isCommandName,
+  type CommandRequest,
+  type EncounterState,
+  type EncounterStatus,
+  type SharedToken,
+  type SharedAnnotation,
+} from "../shared/contracts";
 
 interface Env {
   ASSETS: Fetcher;
@@ -78,7 +86,7 @@ type EncounterRow = {
   code: string;
   name: string;
   version: number;
-  status: string;
+  status: EncounterStatus;
   map_asset: string;
   map_package_json: string | null;
   active_map_preset_id: string | null;
@@ -132,7 +140,7 @@ type EffectRow = {
 
 type AnnotationRow = {
   id: string;
-  annotation_type: string;
+  annotation_type: SharedAnnotation["type"];
   x: number;
   y: number;
   x2: number | null;
@@ -1550,7 +1558,7 @@ async function expireAnnotations(
   }
 }
 
-function coarseHealth(hp: number | null, maxHp: number | null): string | null {
+function coarseHealth(hp: number | null, maxHp: number | null): SharedToken["healthState"] {
   return healthBand(hp, maxHp);
 }
 
@@ -1558,7 +1566,7 @@ async function encounterState(
   env: Env,
   code: string,
   viewer: ParticipantRow | null = null,
-) {
+): Promise<EncounterState | null> {
   let encounter = await findEncounter(env, code);
   if (!encounter) return null;
   await expireAnnotations(env, encounter);
@@ -1646,13 +1654,13 @@ async function encounterState(
   const visibilityTokens = tokens.results.map((token) => ({
     x: token.x, y: token.y, kind: token.kind, controlledByViewer: viewerControls(token),
   }));
-  const fogVisibility = visibilityForViewer(activeMapPackage, visibilityTokens, viewer);
+  const fogVisibility = visibilityForViewer(activeMapPackage, visibilityTokens, viewer) as EncounterState["encounter"]["fogVisibility"];
   const visibleTokens = tokens.results.filter(
     (token) =>
       ((!token.is_hidden || viewer?.role === "dm" || viewerControls(token)) &&
       (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
-  return {
+  const projectedState: EncounterState = {
     encounter: {
       code: encounter!.code,
       name: encounter!.name,
@@ -1781,6 +1789,7 @@ async function encounterState(
       ...visibleTokens.flatMap((token) => token.art_asset ? [token.art_asset] : []),
     ])],
   };
+  return projectedState;
 }
 
 async function recordAction(
@@ -1895,6 +1904,8 @@ type InitiativeLeader = {
   initiative: number | null;
   initiative_group_id: string | null;
   summoner_token_id: string | null;
+  initiativeGroupId: string | null;
+  summonerTokenId: string | null;
 };
 
 async function activeInitiativeLeaderIds(env: Env, encounter: EncounterRow) {
@@ -1919,9 +1930,13 @@ async function rebuildInitiativeOrders(
   ).bind(encounter.id).all<InitiativeLeader>();
   const groups = orderedInitiativeGroups(tokens.results.map((token) => ({
     ...token,
+    kind: "monster",
+    artAsset: null,
+    initiativeOrder: null,
+    controlledByViewer: false,
     initiativeGroupId: token.initiative_group_id,
     summonerTokenId: token.summoner_token_id,
-  }))) as InitiativeLeader[][];
+  }))) as Array<Array<InitiativeLeader & { kind: string; artAsset: null; initiativeOrder: null; controlledByViewer: false }>>;
   const activeOrder = Math.max(0, groups.findIndex((members) =>
     members.some((member) => activeLeaderIds.includes(member.id))));
   const statements = [env.DB.prepare(
@@ -1987,7 +2002,9 @@ async function handleCommand(
   body: Record<string, unknown>,
   now: number,
 ): Promise<Response> {
-  const command = cleanText(body.command, 40);
+  const rawCommand = cleanText(body.command, 40);
+  if (!isCommandName(rawCommand)) return json({ error: "Unknown command." }, { status: 400 });
+  const command: CommandRequest["command"] = rawCommand;
   const state = () => encounterState(env, code, participant);
   const requireDm = () =>
     participant.role === "dm"

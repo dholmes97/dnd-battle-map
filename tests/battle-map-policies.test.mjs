@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mapSceneContentKey, movementPolicyDenial } from "../shared/battle-map-policies.mjs";
+import { mapSceneContentKey, movementPolicyDenial } from "../shared/battle-map-policies.ts";
 
 test("strict movement off permits a non-active foreign token during combat", () => {
   assert.equal(movementPolicyDenial({

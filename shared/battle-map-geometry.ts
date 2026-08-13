@@ -1,8 +1,15 @@
-export function roundCoordinate(value) {
+import type { CreatureSize } from "./creature-library";
+import type { EncounterState, MapPoint, SharedAnnotation } from "./contracts";
+
+type MapGrid = { width: number; height: number };
+export type MapViewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
+type GeometryState = Pick<EncounterState, "encounter" | "grid">;
+
+export function roundCoordinate(value: number): number {
   return Math.round(value * 1_000) / 1_000;
 }
 
-export function distanceToSegment(point, start, end) {
+export function distanceToSegment(point: MapPoint, start: MapPoint, end: MapPoint): number {
   const deltaX = end.x - start.x;
   const deltaY = end.y - start.y;
   const lengthSquared = deltaX * deltaX + deltaY * deltaY;
@@ -11,31 +18,31 @@ export function distanceToSegment(point, start, end) {
   return Math.hypot(point.x - (start.x + projection * deltaX), point.y - (start.y + projection * deltaY));
 }
 
-export function drawingAtPoint(annotations, point, tolerance) {
+export function drawingAtPoint(annotations: SharedAnnotation[], point: MapPoint, tolerance: number): SharedAnnotation | null {
   return annotations
-    .filter((annotation) => annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null)
+    .filter((annotation): annotation is SharedAnnotation & { x2: number; y2: number } => annotation.type === "drawing" && annotation.x2 !== null && annotation.y2 !== null)
     .map((annotation) => ({ annotation, distance: distanceToSegment(point, annotation, { x: annotation.x2, y: annotation.y2 }) }))
     .filter(({ distance }) => distance <= tolerance)
     .sort((a, b) => a.distance - b.distance)[0]?.annotation ?? null;
 }
 
-export function clampMapPoint(grid, point, radius = 0.5) {
+export function clampMapPoint(grid: MapGrid, point: MapPoint, radius = 0.5): MapPoint {
   return {
     x: roundCoordinate(Math.min(grid.width - radius, Math.max(radius, point.x))),
     y: roundCoordinate(Math.min(grid.height - radius, Math.max(radius, point.y))),
   };
 }
 
-export function calculateDirectDistance(from, to, feetPerCell = 5) {
+export function calculateDirectDistance(from: MapPoint, to: MapPoint, feetPerCell = 5): number {
   const squares = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
   return Math.round(squares * feetPerCell * 10) / 10;
 }
 
-export function tokenArtScale(size) {
+export function tokenArtScale(size: CreatureSize): number {
   return size === "small" ? 0.75 : 1;
 }
 
-export function fitGridGeometry(gridWidth, gridHeight, width, height) {
+export function fitGridGeometry(gridWidth: number, gridHeight: number, width: number, height: number) {
   const cellSize = Math.max(1, Math.min(width / gridWidth, height / gridHeight));
   return {
     cellSize,
@@ -48,7 +55,7 @@ export function fitGridGeometry(gridWidth, gridHeight, width, height) {
   };
 }
 
-export function viewportGeometry(viewport, state, width, height) {
+export function viewportGeometry(viewport: MapViewport, state: GeometryState, width: number, height: number) {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const matchesMap = viewport.mapKey === mapKey;
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
@@ -80,12 +87,12 @@ export function viewportGeometry(viewport, state, width, height) {
   };
 }
 
-export function clampViewport(viewport, state, width, height) {
+export function clampViewport(viewport: MapViewport, state: GeometryState, width: number, height: number): MapViewport {
   const geometry = viewportGeometry(viewport, state, width, height);
   return { zoom: geometry.fit ? 1 : geometry.zoom, centerX: geometry.centerX, centerY: geometry.centerY, mapKey: geometry.mapKey, fit: geometry.fit };
 }
 
-export function zoomViewportAt(viewport, state, width, height, zoom, focusX = 0.5, focusY = 0.5) {
+export function zoomViewportAt(viewport: MapViewport, state: GeometryState, width: number, height: number, zoom: number, focusX = 0.5, focusY = 0.5): MapViewport {
   const current = viewportGeometry(viewport, state, width, height);
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
   const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;

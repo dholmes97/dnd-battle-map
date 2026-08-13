@@ -7,7 +7,7 @@ import {
   incomingImmediateHandouts,
   resolveChatRecipient,
   shouldShowHandoutImmediately,
-} from "../shared/chat-domain.mjs";
+} from "../shared/chat-domain.ts";
 
 const dm = { name: CHAT_DM_NAME, role: "dm" };
 const dan = { name: "Dan", role: "player" };

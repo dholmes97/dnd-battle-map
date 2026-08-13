@@ -4,13 +4,15 @@ The application uses a lightweight ports-and-adapters (hexagonal) boundary. The 
 
 ## Domain core
 
-Framework-free modules live in `shared/`. They accept plain data, return plain data, and have direct Node unit tests.
+Framework-free, strictly typed modules live in `shared/`. They accept plain data,
+return plain data, and have direct Node unit tests.
 
-- `battle-map-policies.mjs`: movement authorization and stable map-scene identity.
-- `battle-map-geometry.mjs`: token bounds, distance, drawing hit-testing, and viewport navigation.
-- `initiative-domain.mjs`: roster grouping, initiative groups, and turn transitions.
-- `map-workshop-domain.mjs`: snapping, rotation, bounds, and map-object hit-testing.
-- `encounter-domain.mjs`: scenario codes, viewer-safe map projection, and history conflict messages.
+- `contracts.ts`: the one transport shape for encounter state and the typed command registry shared by both adapters.
+- `battle-map-policies.ts`: movement authorization and stable map-scene identity.
+- `battle-map-geometry.ts`: token bounds, distance, drawing hit-testing, and viewport navigation.
+- `initiative-domain.ts`: roster grouping, initiative groups, and turn transitions.
+- `map-workshop-domain.ts`: map-thumbnail paths, grid snapping, and note hit-testing.
+- `encounter-domain.ts`: scenario codes, viewer-safe map projection, and history conflict messages.
 - Existing health, token-control, action-history, map-package, spell-effect, creature, and full-scene modules follow the same boundary.
 
 Domain modules must not import React, DOM APIs, Worker APIs, D1, R2, or networking code. If a rule needs the current time, randomness, persistence, or identity, pass that information in as data.
@@ -28,6 +30,8 @@ Every extracted rule gets a direct `node:test` contract in `tests/`. Tests shoul
 
 The validation order is:
 
-1. `npm test` for the production build and all direct/unit/source contracts.
+1. `npm test` for mandatory typechecking, the production build, and every
+   automatically discovered direct/unit/source contract in `tests/*.test.mjs`.
 2. `npm run lint` for adapter and test hygiene.
-3. `BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live` for Worker/D1 and multi-client integration.
+3. `BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live` for the isolated
+   `tests/live/` Worker/D1 and multi-client integration suite.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.mjs";
+import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.ts";
 
 const reversible = new Set(["token_moved"]);
 const action = (id) => ({ id, action_type: "token_moved", payload_json: "{}" });

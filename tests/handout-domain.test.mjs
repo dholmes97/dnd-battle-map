@@ -9,7 +9,7 @@ import {
   inspectStoredHandout,
   inspectWebp,
   storedHandoutVariantError,
-} from "../shared/handout-domain.mjs";
+} from "../shared/handout-domain.ts";
 
 function vp8x(width, height) {
   const bytes = new Uint8Array(30);
