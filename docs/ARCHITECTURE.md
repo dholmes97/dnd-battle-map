@@ -22,6 +22,13 @@ Domain modules must not import React, DOM APIs, Worker APIs, D1, R2, or networki
 - `app/` is the React/browser adapter. It owns rendering, pointer events, canvas drawing, audio, local storage, and optimistic UI orchestration.
 - `worker/` is the HTTP/persistence adapter. It owns request parsing, authorization lookup, D1/R2 queries, transactions, and response projection.
 
+The React adapter is split by cohesive feature boundaries: one owner each for
+live synchronization, canvas rendering, chat/handouts, token controls,
+scenario controls, catalog paging, map assets, personal settings, history
+shortcuts, toolbar/palettes, dialogs, and encounter sidebar composition. The
+Worker dispatches typed command families through narrow repository ports whose
+production adapters live under `worker/adapters/`.
+
 Adapters may translate framework-shaped records into domain-shaped data, invoke a domain function, and translate the result back. A decision used by both adapters belongs in `shared/`; it should not be reimplemented in each adapter.
 
 ## Persistence evolution
@@ -34,12 +41,19 @@ ordinary Worker requests perform only a small read-only readiness check. See
 
 ## Testing convention
 
-Every extracted rule gets a direct `node:test` contract in `tests/`. Tests should exercise behavior and edge cases. Source assertions in `rendered-html.test.mjs` are reserved for wiring, accessibility, and structural constraints that cannot be observed through a small domain input/output test.
+Every extracted rule gets a direct `node:test` contract in `tests/`. Extracted
+React behavior gets Vitest and Testing Library contracts under
+`tests/components/`. Source assertions in `rendered-html.test.mjs` are reserved
+for packaged assets, adapter wiring, retired-path absence, and other structural
+constraints that cannot be observed through a focused behavior test.
 
 The validation order is:
 
-1. `npm test` for mandatory typechecking, the production build, and every
-   automatically discovered direct/unit/source contract in `tests/*.test.mjs`.
+1. `npm test` for mandatory typechecking, the production build, every
+   automatically discovered direct/unit/source contract in `tests/*.test.mjs`,
+   and all Vitest component contracts.
 2. `npm run lint` for adapter and test hygiene.
 3. `BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live` for the isolated
    `tests/live/` Worker/D1 and multi-client integration suite.
+4. Use a real browser for release-level canvas pointer, drag/drop, and responsive
+   viewport checks that jsdom cannot model credibly.

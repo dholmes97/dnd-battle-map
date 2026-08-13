@@ -227,3 +227,5 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect,
   };
 }
+
+export type TokenControls = ReturnType<typeof useTokenControls>;

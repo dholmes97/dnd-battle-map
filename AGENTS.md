@@ -1,6 +1,7 @@
 # Project direction
 
 - Prefer a lightweight hexagonal boundary: keep battle-map rules and deterministic decisions in framework-free shared modules with direct unit tests, while React, Worker/D1, and browser APIs remain adapters around that core.
+- Keep React behavior split into cohesive feature hooks/components with Vitest and Testing Library contracts; reserve source-pattern assertions for structural wiring that cannot be observed behaviorally.
 - Treat cohesive, high-resolution full-scene maps as the only map-authoring workflow. Do not restore the retired generic terrain or fragment-based editor.
 - Keep a built-in base map's canonical name separate from the DM's reusable preset name. Map Workshop exposes only Preset name and Description when saving; saving or loading a preset must never overwrite the base map name.
 - Keep Map Workshop's base-map chooser in a compact independently scrolling list so preparation tools stay nearby. Do not offer separate structural wall, door, or window annotations; use vision walls and vision doors for sight, and represent a window by leaving a gap between vision-wall segments.

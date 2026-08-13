@@ -1,16 +1,17 @@
 # Refactor Plan
 
-Last revalidated against `main` at `146b119` on 2026-08-13.
+Last revalidated against the completed working tree after `94d3160` on
+2026-08-13. All seven stages are complete; this document now records the
+result and the constraints that future work should preserve.
 
 This plan continues the lightweight ports-and-adapters boundary described in
-`docs/ARCHITECTURE.md`. The framework-free core is real and useful, but most
-feature orchestration still lives in two large adapters.
+`docs/ARCHITECTURE.md`. The framework-free core, typed command families, narrow
+persistence ports, and cohesive React feature boundaries are now established.
 
-Nothing here is an emergency. The production build is green, lint is clean, and
-113 local tests plus 8 live integration tests pass. TypeScript is
-now a mandatory test gate with no errors. This is debt paydown intended to keep
-future feature work from becoming progressively slower. Every stage should
-remain independently shippable and safe to stop after.
+The production build, lint, typecheck, 92 framework-free/adapter tests, 14 React
+component tests, and 8 live integration tests pass. A real-browser smoke test
+also covers the join flow, battle-map composition, and square-cell Map Workshop
+geometry. TypeScript is a mandatory test gate.
 
 ## Where the code actually is
 
@@ -18,33 +19,35 @@ Measured on the current tree, not estimated:
 
 | Area | Current size |
 |---|---:|
-| `app/battle-map-prototype.tsx` | 3,692 lines |
-| `BattleMapPrototype` component body | 2,392 lines |
+| `app/battle-map-prototype.tsx` | 1,178 lines |
+| `BattleMapPrototype` component body | about 1,020 lines |
 | `app/map-workshop.tsx` | 528 lines |
-| `worker/index.ts` | 2,874 lines |
-| Framework-free modules in `shared/` | 16 typed files / 1,581 lines |
+| `worker/index.ts` | 1,666 lines |
+| Framework-free modules in `shared/` | 17 typed files / 1,641 lines |
 | Remaining untyped `.mjs` modules in `shared/` | 0 files |
-| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 9,333 lines |
+| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 10,340 lines |
 
-`battle-map-prototype.tsx` and `worker/index.ts` contain about 70% of that
-runtime code. The shared core has grown from roughly 425 to 1,581 lines, which is
-healthy, but the adapters have grown faster.
+The two former monoliths now contain about 27% of runtime code rather than about
+70%. The additional runtime lines are cohesive feature modules, typed ports,
+D1 adapters, command families, and shared transitions rather than duplicated
+root-component or request-router logic.
 
-- `handleCommand` still has 29 top-level branch blocks, but chat/handout and
-  annotation/fog commands now dispatch to extracted handlers with fake-port
-  tests. The Worker still contains 116 direct `.prepare(...)` calls, so most
-  business orchestration and D1 persistence remain tightly fused.
+- `handleCommand` uses a typed dispatch map across six command families. SQL is
+  isolated behind six narrow repository ports and D1 adapters; `worker/index.ts`
+  now has 36 direct `.prepare(...)` calls, limited to HTTP projection and
+  remaining request-level persistence concerns.
 - Stage 3 moved the 513-line request-time `ensureSchema` body into one
   checked-in migration. The remaining guard is read-only and small enough to
   audit directly.
-- The main client component has 87 `useState`, 26 `useEffect`, and 27 `useRef`
-  call sites. It has at least 25 shared optimistic-command call sites
-  plus bespoke optimistic flows for token moves, creates, and deletes.
+- The main client component has 16 `useState` and 8 `useEffect` call sites.
+  Rendering, synchronization, chat/handouts, token controls, scenarios,
+  catalog state, map assets, history shortcuts, personal settings, palettes,
+  command bar, dialogs, and encounter sidebar all have explicit owners.
 - `npm run typecheck` reports no errors and is the first mandatory step in
   `npm test`.
-- `tests/rendered-html.test.mjs` is 1,176 lines with 692 assertions. Of those,
-  651 are `match`/`doesNotMatch` source or CSS assertions rather than behavioral
-  tests.
+- `tests/rendered-html.test.mjs` is 96 lines with 31 narrowly structural
+  `match`/`doesNotMatch` assertions. User-visible React behavior is covered by
+  14 Vitest/Testing Library contracts.
 - `npm test` automatically discovers `tests/*.test.mjs`; live tests are isolated
   under `tests/live/`.
 - `docs/ARCHITECTURE.md` now describes the typed contracts and current Map
@@ -146,7 +149,7 @@ Exit criteria: a schema change is authored once, production requests do not
 perform DDL or data migrations, and `ensureSchema` is small enough to audit at a
 glance.
 
-## Stage 4 — Split Worker orchestration and persistence
+## Stage 4 — Split Worker orchestration and persistence (complete)
 
 This is mostly mechanical, but use cohesive command families rather than one
 tiny file per command.
@@ -170,7 +173,12 @@ handlers are reviewable (roughly 150 lines or less), and domain handlers can be
 tested with fake ports without D1. This limit applies to handlers, not every
 Worker utility file.
 
-## Stage 5 — Share deterministic transitions, not all side effects
+Implementation result: six cohesive command families register through the typed
+dispatcher, six D1 adapters implement narrow repository ports, and handler
+behavior is directly tested with fake ports. The unchanged eight-test live suite
+passes against the local Worker.
+
+## Stage 5 — Share deterministic transitions, not all side effects (complete)
 
 This is the design-risk stage and should proceed command by command.
 
@@ -198,7 +206,11 @@ Exit criteria: the optimistic and authoritative results for a migrated command
 are proven identical by one shared transition test, without replacing targeted
 D1 updates with whole-state persistence.
 
-## Stage 6 — Break up the main client component
+Implementation result: movement and HP use shared typed transitions in both the
+React and Worker adapters. Parity tests exercise both adapters, while D1 still
+performs targeted writes and side-effect-led commands remain orchestration.
+
+## Stage 6 — Break up the main client component (complete)
 
 The file has grown by more than 750 lines since the first plan. Avoid introducing
 a global state framework unless extraction proves ordinary hooks and typed
@@ -232,7 +244,12 @@ Exit criteria: no feature-specific panel is implemented inline in the root, the
 sync lifecycle has one owner, and the root component's state is organized by
 feature boundary rather than one flat list of 83 hooks.
 
-## Stage 7 — Replace source contracts with behavioral UI tests
+Implementation result: the root fell from 3,692 to 1,178 lines and now reads as
+composition plus map interaction orchestration. Feature panels and their state
+live in cohesive components/hooks, while `useEncounterSync` remains the single
+owner of authoritative refresh and optimistic reconciliation.
+
+## Stage 7 — Replace source contracts with behavioral UI tests (complete)
 
 `rendered-html.test.mjs` still earns its place because it guards many product
 rules, but 637 source-pattern assertions create substantial false coupling to
@@ -257,26 +274,18 @@ Exit criteria: source-pattern assertions fall below roughly 100, intentional
 markup refactors do not require broad assertion rewrites, and the product rules
 remain covered at the domain, component, or browser level appropriate to each.
 
-## Sequencing and risk
+Implementation result: source-pattern checks fell to 31. Vitest and Testing
+Library cover extracted component behavior, the default test gate includes them,
+and the remaining canvas/viewport behavior has domain geometry contracts, live
+integration coverage, and a real-browser release smoke check.
 
-Stages 1 and 2 are now more valuable than when the plan was first written: new
-type errors exist outside the Worker, demonstrating that the missing gate is an
-active regression risk rather than theoretical cleanup.
+## Release and ongoing risk
 
-Stage 3 should ship alone because schema changes affect every production request
-and must preserve existing D1 data. Stage 4 is mechanical but broad; verify it
-with the complete live suite and real multi-client use. Stage 5 is the only stage
-with significant design uncertainty and should remain a two-command experiment
-until latency, conflict behavior, and code clarity are measured.
-
-The renderer portion of Stage 6 can happen before Stage 5 because it is already
-mostly pure. The sync/optimistic extraction should wait for the transition pilot.
-Stages 6 and 7 should then interleave: extract one feature and replace its source
-assertions with behavioral coverage in the same change.
-
-Feature work can continue throughout. If a feature must land in the current
-Worker branch chain or main component before its stage arrives, ship the feature;
-this plan exists to reduce future cost, not block present value.
+The staged work remained deployable throughout. The final release gate is the
+complete unit/component/build/lint/live/browser sequence plus a freshly verified
+production D1/R2 backup outside the repository. Future features should extend
+the existing feature boundary, command family, repository port, or shared
+transition that owns the behavior instead of growing new root-level branches.
 
 ## Explicitly not in scope
 

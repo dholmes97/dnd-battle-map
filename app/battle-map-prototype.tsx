@@ -1,25 +1,19 @@
 "use client";
 
 import {
-  type CSSProperties,
   type DragEvent as ReactDragEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
-  useEffectEvent,
   useRef,
   useState,
 } from "react";
 import { flushSync } from "react-dom";
-import NextImage from "next/image";
-import IconActionButton from "@/app/icon-action-button";
-import MapWorkshop, { renderMapPackageToCanvas } from "@/app/map-workshop";
+import MapWorkshop from "@/app/map-workshop";
 import {
-  drawMap,
   PING_DURATION_MS,
   SPOTLIGHT_DURATION_MS,
-  tokenHasEffect,
   type BattleMapViewport as Viewport,
   type PlacementPreview,
   type SpellPlacementPreview,
@@ -32,31 +26,34 @@ import {
 } from "@/app/use-encounter-sync";
 import {
   ChatPanel,
-  HandoutLightbox,
-  ScenarioHandouts,
-  type ChatDock,
 } from "@/app/chat-handouts-ui";
 import { useChatHandouts } from "@/app/use-chat-handouts";
 import { useTokenControls } from "@/app/use-token-controls";
+import { useScenarioControls, type EncounterSummary } from "@/app/use-scenario-controls";
+import { useCreatureCatalog } from "@/app/use-creature-catalog";
+import { useEncounterActions } from "@/app/use-encounter-actions";
+import { useMapAssets } from "@/app/use-map-assets";
+import { BattleMapCommandBar, type AnnotationMode } from "@/app/battle-map-command-bar";
+import { EncounterDialogs } from "@/app/encounter-dialogs";
+import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
+import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
+import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
+import { CreaturePalette, SpellPalette } from "@/app/battle-map-palettes";
+import { EncounterSidebar, type RosterRow } from "@/app/encounter-sidebar";
 import {
-  CREATURE_SIZES,
-  type CreatureSize,
   type CreatureTemplate,
   tokenRadiusCells,
 } from "@/shared/creature-library";
-import { type MapPackage } from "@/shared/map-package";
 import type {
   EncounterState,
   MapPoint,
-  ParticipantSession as Participant,
   Role,
   SharedAnnotation,
   SharedToken,
 } from "@/shared/contracts";
-import { ensureSharedFogPolygon, insertSharedFogPoint } from "@/shared/fog-of-war.ts";
-import { displayHealth } from "@/shared/health.ts";
+import { insertSharedFogPoint } from "@/shared/fog-of-war.ts";
 import { transitionTokenMove } from "@/shared/encounter-transitions.ts";
-import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.ts";
+import { movementPolicyDenial } from "@/shared/battle-map-policies.ts";
 import {
   calculateDirectDistance,
   clampMapPoint,
@@ -65,24 +62,14 @@ import {
   viewportGeometry,
   zoomViewportAt,
 } from "@/shared/battle-map-geometry.ts";
+import { buildRosterRows } from "@/shared/initiative-domain.ts";
 import {
-  advanceEncounterTurn,
-  buildRosterRows,
-  initiativePackMembers,
-} from "@/shared/initiative-domain.ts";
-import {
-  isSpellShapeArt,
-  SPELL_AREA_SIZES,
   SPELL_EFFECT_KIND,
-  SPELL_EFFECTS,
-  spellAreaDiameter,
   spellEffectByArt,
   spellEffectById,
-  type SpellAreaSize,
   type SpellEffectDefinition,
 } from "@/shared/spell-effects";
 
-type JoinIdentity = { label: string; participantName: string; role: Role };
 type DragGesture = {
   pointerId: number;
   tokenId: string;
@@ -97,19 +84,6 @@ type PanGesture = {
   viewport: Viewport;
 };
 type FogVertexGesture = { pointerId: number; vertexIndex: number; polygon: MapPoint[] };
-type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight" | "neon-spotlight";
-type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
-type CreatureCatalogPage = {
-  items: CreatureTemplate[];
-  families: string[];
-  nextCursor: string | null;
-};
-type EncounterSummary = {
-  code: string;
-  name: string;
-  status: "setup" | "active" | "paused";
-  updatedAt: number;
-};
 
 const DEFAULT_CODE = "EMBER-KEEP";
 const DEFAULT_ENCOUNTER: EncounterSummary = { code: DEFAULT_CODE, name: "Swamp Battle", status: "setup", updatedAt: 0 };
@@ -120,118 +94,6 @@ const JOIN_IDENTITIES: JoinIdentity[] = [
   { label: "Join as Kevin (DM)", participantName: "Kevin", role: "dm" },
 ];
 const JOIN_TIMEOUT_MS = 12_000;
-const DEFAULT_GRID_OPACITY = 0.17;
-const UI_SETTINGS_STORAGE_PREFIX = "dnd-battle-map:ui:v1";
-
-function releaseRenderedMapScene(scene: RenderedMapScene | null): void {
-  if (!scene) return;
-  // Explicitly release the GPU/backing store. WebKit can otherwise retain a
-  // discarded 3072x2048 canvas until a later garbage-collection cycle.
-  scene.canvas.width = 1;
-  scene.canvas.height = 1;
-}
-
-// Stroked 20x20 paths so every tool reads at the same weight. The glyph
-// characters they replace rendered inconsistently across fonts.
-const ICON_PATHS = {
-  move: "M10 3v14M3 10h14M10 3 7.6 5.4M10 3l2.4 2.4M10 17l-2.4-2.4M10 17l2.4-2.4M3 10l2.4-2.4M3 10l2.4 2.4M17 10l-2.4-2.4M17 10l-2.4 2.4",
-  ping: "M10 10h.01M6.1 13.9a5.5 5.5 0 0 1 0-7.8M13.9 6.1a5.5 5.5 0 0 1 0 7.8M3.6 16.4a9 9 0 0 1 0-12.8M16.4 3.6a9 9 0 0 1 0 12.8",
-  line: "M5 15 15 5M5 15h.01M15 5h.01",
-  erase: "m4 13 6.5-6.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 16H7zM4 16h12",
-  spotlight: "M10 3v2M10 15v2M3 10h2M15 10h2M5.2 5.2l1.4 1.4M13.4 13.4l1.4 1.4M14.8 5.2l-1.4 1.4M6.6 13.4l-1.4 1.4M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
-  neon: "M3 5h9v-2l5 5-5 5v-2H7v5H3z",
-  clear: "M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14M5 5l10 10",
-  creatures: "M7 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M13 4.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2M4 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M16 9.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M10 9.5c2 0 3.6 1.7 3.9 3.3.3 1.6-.8 3.2-2.5 3.2h-2.8c-1.7 0-2.8-1.6-2.5-3.2C6.4 11.2 8 9.5 10 9.5",
-  spells: "M10 2.8 11.6 7l4.4-1.4-2.5 3.8 3.7 2.7-4.6.2.2 4.7-2.8-3.7L7.2 17l.2-4.7-4.6-.2 3.7-2.7L4 5.6 8.4 7zM15.5 3.5h.01M3.8 15.8h.01",
-  workshop: "M3 5.6 7.6 3.5l4.8 2.1L17 3.5v10.9l-4.6 2.1-4.8-2.1L3 16.5zM7.6 3.5v10.9M12.4 5.6v10.9",
-  scenarios: "M3 5h5l1.7 2H17v9H3zM6 10h8M6 13h5",
-  chat: "M4 4h12v8H9l-3.5 3V12H4zM7 7h6M7 9.5h4",
-  undo: "M7 5 3.5 8.5 7 12M3.5 8.5H12a4.5 4.5 0 0 1 0 9h-3",
-  redo: "M13 5l3.5 3.5L13 12M16.5 8.5H8a4.5 4.5 0 0 0 0 9h3",
-  fit: "M3.5 7.5v-4h4M16.5 7.5v-4h-4M3.5 12.5v4h4M16.5 12.5v4h-4",
-  zoomOut: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5M6.8 9h4.4",
-  zoomIn: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5M6.8 9h4.4M9 6.8v4.4",
-  sidebar: "M3 4.5h14v11H3zM12.5 4.5v11",
-  present: "M3 7.5v-3h3M17 7.5v-3h-3M3 12.5v3h3M17 12.5v3h-3",
-  settings: "M4 5.5h12M7 3.5v4M4 10h12M13 8v4M4 14.5h12M8.5 12.5v4",
-  fog: "M2.8 10s2.6-4.6 7.2-4.6 7.2 4.6 7.2 4.6-2.6 4.6-7.2 4.6S2.8 10 2.8 10M7.7 10a2.3 2.3 0 1 0 4.6 0 2.3 2.3 0 0 0-4.6 0",
-  search: "M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M13 13l3.5 3.5",
-  check: "M4.5 10.2 8.2 14l7.3-8",
-} as const;
-
-type IconName = keyof typeof ICON_PATHS;
-
-type PersonalUiSettings = { gridOpacity: number; showColoredTokenCenters: boolean; showHealthRings: boolean };
-
-function uiSettingsStorageKey(name: string, role: Role) {
-  return `${UI_SETTINGS_STORAGE_PREFIX}:${role}:${encodeURIComponent(name.trim().toLocaleLowerCase())}`;
-}
-
-function loadPersonalUiSettings(name: string, role: Role): PersonalUiSettings {
-  const defaults = { gridOpacity: DEFAULT_GRID_OPACITY, showColoredTokenCenters: true, showHealthRings: true };
-  try {
-    const stored = window.localStorage.getItem(uiSettingsStorageKey(name, role));
-    if (!stored) return defaults;
-    const parsed = JSON.parse(stored) as Partial<PersonalUiSettings> & { transparentTokenBackgrounds?: boolean };
-    return {
-      gridOpacity: typeof parsed.gridOpacity === "number" && Number.isFinite(parsed.gridOpacity)
-        ? Math.min(1, Math.max(0, parsed.gridOpacity))
-        : defaults.gridOpacity,
-      showColoredTokenCenters: typeof parsed.showColoredTokenCenters === "boolean"
-        ? parsed.showColoredTokenCenters
-        : typeof parsed.transparentTokenBackgrounds === "boolean"
-          ? !parsed.transparentTokenBackgrounds
-          : defaults.showColoredTokenCenters,
-      showHealthRings: typeof parsed.showHealthRings === "boolean"
-        ? parsed.showHealthRings
-        : defaults.showHealthRings,
-    };
-  } catch {
-    return defaults;
-  }
-}
-
-function Icon({ name }: { name: IconName }) {
-  return (
-    <svg className="ui-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <path d={ICON_PATHS[name]} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SpellShapeMark({ shape, className = "" }: { shape: "circle" | "square"; className?: string }) {
-  return <span className={`${className}${className ? " " : ""}spell-shape-mark is-${shape}`} aria-hidden="true"><i /></span>;
-}
-
-function spellFootprintLabel(spell: SpellEffectDefinition, size: CreatureSize) {
-  const diameter = spellAreaDiameter(size);
-  if (spell.shape === "square") return `${diameter}-ft square`;
-  if (spell.id === "magic-circle") return `${diameter}-ft diameter · ${diameter / 2}-ft radius`;
-  return `${diameter}-ft diameter`;
-}
-
-function formatPosition(point: MapPoint) {
-  return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
-}
-
-function tokenInitial(token: SharedToken) {
-  return token.name.split(/\s+/).at(-1)?.charAt(0).toUpperCase() || "T";
-}
-
-function artLabel(path: string) {
-  return path.split("/").at(-1)?.replace(/-01\.png$/, "").replaceAll("-", " ") ?? "Artwork";
-}
-
-type RosterRow =
-  | { type: "token"; token: SharedToken; grouped: boolean }
-  | { type: "group"; key: string; label: string; tokens: SharedToken[]; expanded: boolean };
-
-// Optimistic tokens carry this id prefix until the server confirms them, which
-// lets render read pending state without touching a ref.
-function isPendingCreate(token: SharedToken) {
-  return token.id.startsWith("pending-create-");
-}
-
 function pointerToMap(
   canvas: HTMLCanvasElement,
   state: EncounterState,
@@ -310,9 +172,7 @@ export default function BattleMapPrototype() {
     acceptAuthoritativeState,
     refreshAfterError,
     command,
-    runCommand,
     runOptimisticCommand,
-    clearPendingState,
     pendingMovesRef,
     pendingCreatesRef,
     pendingDeletesRef,
@@ -322,6 +182,20 @@ export default function BattleMapPrototype() {
     tokenMutationSequenceRef,
     optimisticSequenceRef,
   } = encounterSync;
+  const tokenControls = useTokenControls({ participant, state, sync: encounterSync, setError, setNotice });
+  const encounterActions = useEncounterActions(encounterSync);
+  const {
+    pendingAction: encounterAction,
+    startCombat: startCombatOptimistically,
+    endTurn: endTurnOptimistically,
+    advanceTurn: advanceTurnOptimistically,
+    correctTurn: correctTurnOptimistically,
+    configure: configureEncounterOptimistically,
+    setStrictMovement: setStrictMovementOptimistically,
+    setFogMode: setFogModeOptimistically,
+    setVisionDoorOpen: setVisionDoorOpenOptimistically,
+    updateSharedFog: updateSharedFogOptimistically,
+  } = encounterActions;
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [selectedMapNoteId, setSelectedMapNoteId] = useState<string | null>(null);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
@@ -332,29 +206,12 @@ export default function BattleMapPrototype() {
   const [sharedFogPreview, setSharedFogPreview] = useState<MapPoint[] | null>(null);
   const [selectedSharedFogVertex, setSelectedSharedFogVertex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [renderedMapScene, setRenderedMapScene] = useState<RenderedMapScene | null>(null);
-  const [tokenArt, setTokenArt] = useState<Map<string, HTMLImageElement>>(new Map());
+  const history = useHistoryShortcuts({ sync: encounterSync, busy, setNotice });
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const [scenarioCreatorOpen, setScenarioCreatorOpen] = useState(false);
-  const [scenarioRenameName, setScenarioRenameName] = useState("");
-  const [scenarioRenaming, setScenarioRenaming] = useState(false);
-  const [scenarioRenameError, setScenarioRenameError] = useState("");
-  const [scenarioName, setScenarioName] = useState("");
-  const [scenarioMode, setScenarioMode] = useState<"party" | "duplicate">("party");
-  const [scenarioCreating, setScenarioCreating] = useState(false);
-  const [scenarioError, setScenarioError] = useState("");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
-  const [encounterAction, setEncounterAction] = useState<"pause" | "resume" | "reset" | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [spellPaletteOpen, setSpellPaletteOpen] = useState(false);
-  const [creatures, setCreatures] = useState<CreatureTemplate[]>([]);
-  const [creatureFamilies, setCreatureFamilies] = useState<string[]>([]);
-  const [creatureQuery, setCreatureQuery] = useState("");
-  const [creatureFamily, setCreatureFamily] = useState("");
-  const [creatureCursor, setCreatureCursor] = useState<string | null>(null);
-  const [creatureCatalogLoading, setCreatureCatalogLoading] = useState(false);
-  const [creatureCatalogError, setCreatureCatalogError] = useState("");
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [armedSpellId, setArmedSpellId] = useState<string | null>(null);
@@ -365,9 +222,8 @@ export default function BattleMapPrototype() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [presenting, setPresenting] = useState(false);
   const [rosterFilter, setRosterFilter] = useState("");
-  const [gridOpacity, setGridOpacity] = useState(DEFAULT_GRID_OPACITY);
-  const [showColoredTokenCenters, setShowColoredTokenCenters] = useState(true);
-  const [showHealthRings, setShowHealthRings] = useState(true);
+  const personalUiSettings = usePersonalUiSettings(participant);
+  const { gridOpacity, setGridOpacity, showColoredTokenCenters, setShowColoredTokenCenters, showHealthRings, setShowHealthRings } = personalUiSettings;
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
@@ -398,7 +254,6 @@ export default function BattleMapPrototype() {
     handoutDeletingId,
     handoutPickerOpen,
     setHandoutPickerOpen,
-    selectedHandoutId: selectedChatHandoutId,
     setSelectedHandoutId: setSelectedChatHandoutId,
     selectedHandout: selectedChatHandout,
     showImmediately: showHandoutImmediately,
@@ -413,15 +268,14 @@ export default function BattleMapPrototype() {
     onDockPointerMove: onChatDockPointerMove,
     onDockPointerEnd: onChatDockPointerEnd,
   } = useChatHandouts({ participant, state, sync: encounterSync, canvasRef, setNotice });
+  const scenarioControls = useScenarioControls({
+    participant, state, sync: encounterSync, resetChatForParticipant,
+    setEncounterCode, setEncounters, setSelectedTokenId, setNotice,
+  });
   const {
-    initiativeDrafts, setInitiativeDrafts, initiativeStatuses, setInitiativeStatuses,
-    tokenDrafts, setTokenDrafts, hpAmount, setHpAmount,
-    effectName, setEffectName, effectType, setEffectType, effectDuration, setEffectDuration,
-    effectReminder, setEffectReminder, effectEditorTokenId, setEffectEditorTokenId,
-    tokenEditorTokenId, setTokenEditorTokenId, pendingDeleteTokenId, setPendingDeleteTokenId,
-    saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect,
-  } = useTokenControls({ participant, state, sync: encounterSync, setError, setNotice });
+    open: scenarioCreatorOpen, setOpen: setScenarioCreatorOpen,
+    renaming: scenarioRenaming, creating: scenarioCreating,
+  } = scenarioControls;
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
@@ -429,9 +283,12 @@ export default function BattleMapPrototype() {
   const fogVertexGestureRef = useRef<FogVertexGesture | null>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
-  const creatureCatalogRequestRef = useRef(0);
-  const personalUiSettingsKey = participant ? uiSettingsStorageKey(participant.name, participant.role) : null;
-  const mapSceneKey = mapSceneContentKey(state?.encounter.mapPackage ?? null);
+  const creatureCatalog = useCreatureCatalog({ open: paletteOpen, role: participant?.role });
+  const {
+    creatures, families: creatureFamilies, query: creatureQuery, setQuery: setCreatureQuery,
+    family: creatureFamily, setFamily: setCreatureFamily, cursor: creatureCursor,
+    loading: creatureCatalogLoading, error: creatureCatalogError, loadMore: loadMoreCreatures,
+  } = creatureCatalog;
 
   useEffect(() => {
     const closeUiSettingsOutside = (event: PointerEvent) => {
@@ -452,18 +309,9 @@ export default function BattleMapPrototype() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!personalUiSettingsKey) return;
-    try {
-      window.localStorage.setItem(personalUiSettingsKey, JSON.stringify({ gridOpacity, showColoredTokenCenters, showHealthRings }));
-    } catch {
-      // Browser privacy modes can disable storage; cosmetic settings still work for this session.
-    }
-  }, [gridOpacity, personalUiSettingsKey, showColoredTokenCenters, showHealthRings]);
 
   const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
   const selectedEncounter = encounters.find((encounter) => encounter.code === normalizedCode) ?? encounters[0] ?? DEFAULT_ENCOUNTER;
-  const joinedCode = state?.encounter.code;
   const controlledTokens = state?.tokens.filter((token) => token.controlledByViewer) ?? [];
   const playerCharacter = participant?.role === "player"
     ? controlledTokens.find((token) => token.kind === "character" && !token.summonerTokenId) ?? null
@@ -491,8 +339,12 @@ export default function BattleMapPrototype() {
     : 0;
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
   const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
-  const placementArtCandidate = placementPreview?.creature.artAsset ?? spellPlacementPreview?.spell.artAsset ?? null;
-  const placementArtAsset = isSpellShapeArt(placementArtCandidate) ? null : placementArtCandidate;
+  useMapAssets({
+    state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport,
+    selectedTokenId: effectiveSelectedTokenId, selectedMapNoteId, gridOpacity,
+    showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex,
+    pingStartedAtRef, canvasRef,
+  });
   const enablePingAudio = () => {
     if (typeof AudioContext === "undefined") return;
     if (!pingAudioContextRef.current || pingAudioContextRef.current.state === "closed") {
@@ -525,10 +377,7 @@ export default function BattleMapPrototype() {
         { method: "POST", signal: controller.signal, body: JSON.stringify({ participantName: name, role: identity.role }) },
       );
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
-      const personalSettings = loadPersonalUiSettings(name, result.role);
-      setGridOpacity(personalSettings.gridOpacity);
-      setShowColoredTokenCenters(personalSettings.showColoredTokenCenters);
-      setShowHealthRings(personalSettings.showHealthRings);
+      personalUiSettings.loadForIdentity(name, result.role);
       resetChatForParticipant(name, result.role, result.state.encounter.code);
       setParticipant(joined); setState(result.state); setEncounterCode(result.state.encounter.code); setConnection("connecting");
     } catch (joinError) {
@@ -542,46 +391,6 @@ export default function BattleMapPrototype() {
     }
   };
 
-  const createScenario = async () => {
-    if (!participant || participant.role !== "dm" || !state || scenarioCreating) return;
-    const name = scenarioName.trim();
-    if (name.length < 3) {
-      setScenarioError("Enter a scenario name of at least three characters.");
-      return;
-    }
-    setScenarioCreating(true);
-    setScenarioError("");
-    try {
-      const result = await api<{
-        participantId: string;
-        sessionSecret: string;
-        role: Role;
-        scenario: EncounterSummary;
-        state: EncounterState;
-      }>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
-        method: "POST",
-        body: sessionPayload(participant, { command: "create-scenario", name, mode: scenarioMode }),
-      });
-      clearPendingState();
-      const joined = { id: result.participantId, name: "Kevin", role: result.role, sessionSecret: result.sessionSecret };
-      resetChatForParticipant(joined.name, joined.role, result.scenario.code);
-      setParticipant(joined);
-      setState(result.state);
-      setEncounterCode(result.scenario.code);
-      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
-      setSelectedTokenId(null);
-      setScenarioCreatorOpen(false);
-      setScenarioName("");
-      setScenarioMode("party");
-      setConnection("connecting");
-      setNotice(`${result.scenario.name} created.`);
-    } catch (scenarioCreateError) {
-      setScenarioError(scenarioCreateError instanceof Error ? scenarioCreateError.message : "The scenario could not be created.");
-    } finally {
-      setScenarioCreating(false);
-    }
-  };
-
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4_200);
@@ -589,7 +398,6 @@ export default function BattleMapPrototype() {
   }, [notice]);
 
   useEffect(() => {
-    const receivedAt = Date.now();
     const annotations = state?.annotations ?? [];
     const activePingIds = new Set(
       annotations
@@ -601,7 +409,7 @@ export default function BattleMapPrototype() {
     }
     for (const annotation of annotations) {
       if (annotation.type !== "ping" || pingStartedAtRef.current.has(annotation.id)) continue;
-      pingStartedAtRef.current.set(annotation.id, receivedAt);
+      pingStartedAtRef.current.set(annotation.id, (annotation.expiresAt ?? PING_DURATION_MS) - PING_DURATION_MS);
       if (pingAudioContextRef.current) playPingSound(pingAudioContextRef.current);
     }
   }, [state?.annotations]);
@@ -610,344 +418,8 @@ export default function BattleMapPrototype() {
     if (pingAudioContextRef.current?.state !== "closed") void pingAudioContextRef.current?.close();
   }, []);
 
-  useEffect(() => {
-    if (!paletteOpen || !participant?.role) return;
-    const requestId = ++creatureCatalogRequestRef.current;
-    const timer = window.setTimeout(() => {
-      setCreatureCatalogLoading(true);
-      setCreatureCatalogError("");
-      const params = new URLSearchParams({ limit: "24" });
-      if (creatureQuery.trim()) params.set("q", creatureQuery.trim());
-      if (creatureFamily) params.set("family", creatureFamily);
-      void api<CreatureCatalogPage>(`/api/creatures?${params}`).then((catalog) => {
-        if (creatureCatalogRequestRef.current !== requestId) return;
-        setCreatures(catalog.items);
-        setCreatureFamilies(catalog.families);
-        setCreatureCursor(catalog.nextCursor);
-      }).catch((catalogError) => {
-        if (creatureCatalogRequestRef.current !== requestId) return;
-        setCreatures([]);
-        setCreatureCursor(null);
-        setCreatureCatalogError(catalogError instanceof Error ? catalogError.message : "Unable to load creatures.");
-      }).finally(() => {
-        if (creatureCatalogRequestRef.current === requestId) setCreatureCatalogLoading(false);
-      });
-    }, 180);
-    return () => {
-      window.clearTimeout(timer);
-      if (creatureCatalogRequestRef.current === requestId) creatureCatalogRequestRef.current += 1;
-    };
-  }, [creatureFamily, creatureQuery, paletteOpen, participant?.role]);
 
-  useEffect(() => {
-    const mapPackage = state?.encounter.mapPackage;
-    if (!mapPackage) {
-      const timer = window.setTimeout(() => setRenderedMapScene((current) => {
-        releaseRenderedMapScene(current);
-        return null;
-      }), 0);
-      return () => window.clearTimeout(timer);
-    }
-    const assets = [mapPackage.visual.assetUrl];
-    let disposed = false;
-    let builtScene: HTMLCanvasElement | null = null;
-    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement] | null>((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve([path, image]);
-      image.onerror = () => resolve(null);
-      image.src = path;
-    }))).then((entries) => {
-      if (disposed) return;
-      const scene = document.createElement("canvas");
-      scene.width = mapPackage.visual.pixelWidth;
-      scene.height = mapPackage.visual.pixelHeight;
-      renderMapPackageToCanvas(scene, mapPackage, new Map(entries.filter((entry): entry is [string, HTMLImageElement] => entry !== null)), participant?.role === "dm");
-      builtScene = scene;
-      setRenderedMapScene((current) => {
-        releaseRenderedMapScene(current);
-        return { mapId: mapPackage.id, canvas: scene };
-      });
-    });
-    return () => {
-      disposed = true;
-      if (builtScene) {
-        builtScene.width = 1;
-        builtScene.height = 1;
-      }
-    };
-  // mapSceneKey is a content fingerprint; depending on the cloned package
-  // object itself would rebuild the large canvas on every state poll.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapSceneKey, participant?.role]);
 
-  useEffect(() => {
-    const assets = [...new Set([
-      ...(state?.tokens.flatMap((token) => token.artAsset && !isSpellShapeArt(token.artAsset) ? [token.artAsset] : []) ?? []),
-      ...(placementArtAsset ? [placementArtAsset] : []),
-    ])];
-    if (assets.length === 0) {
-      const timer = window.setTimeout(() => setTokenArt(new Map()), 0);
-      return () => window.clearTimeout(timer);
-    }
-    let disposed = false;
-    void Promise.all(assets.map((path) => new Promise<[string, HTMLImageElement]>((resolve) => {
-      const image = new Image(); image.onload = () => resolve([path, image]); image.onerror = () => resolve([path, image]); image.src = path;
-    }))).then((entries) => { if (!disposed) setTokenArt(new Map(entries)); });
-    return () => { disposed = true; };
-  }, [placementArtAsset, state?.tokens]);
-
-  const redraw = useCallback((animationNow = Date.now()) => {
-    const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex);
-  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
-  useEffect(() => {
-    redraw(); const canvas = canvasRef.current; if (!canvas) return;
-    const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
-  }, [redraw]);
-
-  useEffect(() => {
-    const hasAnimatingPing = () => state?.annotations.some((annotation) => {
-      const startedAt = pingStartedAtRef.current.get(annotation.id);
-      return annotation.type === "ping" && startedAt !== undefined && Date.now() - startedAt < PING_DURATION_MS;
-    });
-    const hasAnimatingSpotlight = () => state?.annotations.some((annotation) =>
-      (annotation.type === "spotlight" || annotation.type === "neon-spotlight") &&
-      annotation.expiresAt !== null && annotation.expiresAt > Date.now());
-    const hasPersistentSpell = state?.tokens.some((token) => token.kind === SPELL_EFFECT_KIND) || Boolean(spellPlacementPreview);
-    const hasAttachedVfx = state?.tokens.some((token) => tokenHasEffect(token, "Bless") || tokenHasEffect(token, "Haste"));
-    if (!hasAnimatingPing() && !hasAnimatingSpotlight() && !hasPersistentSpell && !hasAttachedVfx) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { redraw(); return; }
-    let frameId = 0;
-    let lastPaint = 0;
-    const animate = (now: number) => {
-      if (now - lastPaint >= 1000 / 24) { redraw(Date.now()); lastPaint = now; }
-      if (hasAnimatingPing() || hasAnimatingSpotlight() || hasPersistentSpell || hasAttachedVfx) frameId = requestAnimationFrame(animate);
-    };
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, [redraw, spellPlacementPreview, state?.annotations, state?.tokens]);
-
-  const renameScenario = async () => {
-    if (!participant || participant.role !== "dm" || !state || scenarioRenaming || scenarioCreating) return;
-    const name = scenarioRenameName.trim();
-    if (name.length < 3) {
-      setScenarioRenameError("Enter a scenario name of at least three characters.");
-      return;
-    }
-    if (name === state.encounter.name) {
-      setScenarioRenameError("");
-      setScenarioCreatorOpen(false);
-      setNotice(`This scenario is already named ${name}.`);
-      return;
-    }
-    setScenarioRenaming(true);
-    setScenarioRenameError("");
-    const result = await runOptimisticCommand<{
-      renamed: boolean;
-      scenario: EncounterSummary;
-      state: EncounterState;
-    }>(
-      "rename-scenario",
-      { name },
-      (current) => ({
-        ...current,
-        encounter: { ...current.encounter, name, updatedAt: Date.now() },
-      }),
-      `${name} saved.`,
-      (response) => setEncounters((current) => [
-        response.scenario,
-        ...current.filter((item) => item.code !== response.scenario.code),
-      ]),
-      false,
-    );
-    if (result) {
-      setScenarioRenameName(result.scenario.name);
-      setScenarioCreatorOpen(false);
-    } else {
-      setScenarioRenameError("The scenario name could not be saved. Try again.");
-    }
-    setScenarioRenaming(false);
-  };
-
-  const runHistoryOptimistically = async (direction: "undo" | "redo") => {
-    const historyNotice = direction === "undo" ? "Last action undone." : "Last action redone.";
-    setNotice(historyNotice);
-    const entry = (direction === "undo" ? localUndoHistoryRef.current : localRedoHistoryRef.current).at(-1);
-    if (!entry || !state) {
-      const confirmed = await runCommand(direction);
-      if (!confirmed) setNotice("");
-      return;
-    }
-    if (direction === "undo") localUndoHistoryRef.current = localUndoHistoryRef.current.slice(0, -1);
-    else localRedoHistoryRef.current = localRedoHistoryRef.current.slice(0, -1);
-    const inverseEntry = { mutationId: ++optimisticSequenceRef.current, state };
-    if (direction === "undo") localRedoHistoryRef.current = [...localRedoHistoryRef.current.slice(-9), inverseEntry];
-    else localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), inverseEntry];
-    const result = await runOptimisticCommand(
-      direction,
-      {},
-      () => ({
-        ...entry.state,
-        undo: {
-          ...entry.state.undo,
-          available: direction === "undo" ? Math.max(0, state.undo.available - 1) : Math.min(10, state.undo.available + 1),
-          redoAvailable: direction === "undo" ? Math.min(10, state.undo.redoAvailable + 1) : Math.max(0, state.undo.redoAvailable - 1),
-        },
-      }),
-      undefined,
-      undefined,
-      false,
-    );
-    if (!result) {
-      setNotice("");
-      if (direction === "undo") {
-        localRedoHistoryRef.current = localRedoHistoryRef.current.filter((item) => item.mutationId !== inverseEntry.mutationId);
-        localUndoHistoryRef.current = [...localUndoHistoryRef.current, entry];
-      } else {
-        localUndoHistoryRef.current = localUndoHistoryRef.current.filter((item) => item.mutationId !== inverseEntry.mutationId);
-        localRedoHistoryRef.current = [...localRedoHistoryRef.current, entry];
-      }
-    }
-  };
-
-  const runHistoryFromShortcut = useEffectEvent((direction: "undo" | "redo") => {
-    void runHistoryOptimistically(direction);
-  });
-
-  useEffect(() => {
-    if (!participant || !state) return;
-    const onHistoryShortcut = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.isContentEditable || target?.closest("input, textarea, select")) return;
-      const key = event.key.toLocaleLowerCase();
-      const modifier = event.metaKey || event.ctrlKey;
-      const wantsUndo = modifier && key === "z" && !event.shiftKey;
-      const wantsRedo = (modifier && key === "z" && event.shiftKey) || (event.ctrlKey && !event.metaKey && key === "y");
-      if (busy || (!wantsUndo && !wantsRedo)) return;
-      if (wantsUndo && state.undo.available > 0) {
-        event.preventDefault();
-        runHistoryFromShortcut("undo");
-      } else if (wantsRedo && state.undo.redoAvailable > 0) {
-        event.preventDefault();
-        runHistoryFromShortcut("redo");
-      }
-    };
-    window.addEventListener("keydown", onHistoryShortcut);
-    return () => window.removeEventListener("keydown", onHistoryShortcut);
-  }, [busy, participant, state]);
-
-  const startCombatOptimistically = () => {
-    void runOptimisticCommand(
-      "start-combat",
-      {},
-      (current) => {
-        const leaders = current.tokens
-          .filter((token) => !token.summonerTokenId && token.initiative !== null)
-          .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0) || a.name.localeCompare(b.name));
-        const groupKeys = [...new Set(leaders.map((leader) => leader.initiativeGroupId || leader.id))];
-        const groupOrders = new Map(groupKeys.map((key, order) => [key, order]));
-        const orders = new Map(leaders.map((leader) => [leader.id, groupOrders.get(leader.initiativeGroupId || leader.id)!]));
-        return {
-          ...current,
-          encounter: { ...current.encounter, status: "active", currentRound: 1, activeInitiativeOrder: 0 },
-          tokens: current.tokens.map((token) => {
-            const leaderId = token.summonerTokenId ?? token.id;
-            return orders.has(leaderId)
-              ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0, movementOrigin: null }
-              : { ...token, initiativeOrder: null, turnComplete: false, movementUsed: 0, movementOrigin: null };
-          }),
-        };
-      },
-      "Combat started.",
-    );
-  };
-
-  const endTurnOptimistically = (token: SharedToken) => {
-    void runOptimisticCommand(
-      "end-turn",
-      { tokenId: token.id },
-      (current) => advanceEncounterTurn(current, true),
-      "Group turn ended.",
-      undefined,
-      undefined,
-      true,
-    );
-  };
-
-  const advanceTurnOptimistically = () => {
-    void runOptimisticCommand(
-      "advance-turn",
-      {},
-      (current) => advanceEncounterTurn(current, true),
-      "Turn advanced.",
-      undefined,
-      undefined,
-      true,
-    );
-  };
-
-  const correctTurnOptimistically = (round: number, activeOrder: number) => {
-    void runOptimisticCommand(
-      "correct-turn",
-      { round, activeOrder },
-      (current) => ({
-        ...current,
-        encounter: { ...current.encounter, status: "active", currentRound: round, activeInitiativeOrder: activeOrder },
-        tokens: current.tokens.map((token) => token.initiativeOrder === activeOrder ? { ...token, turnComplete: false, movementUsed: 0, movementOrigin: null } : token),
-      }),
-      "Turn corrected.",
-    );
-  };
-
-  const configureEncounterOptimistically = async (status: "setup" | "active" | "paused", notice: string) => {
-    const action = status === "setup" ? "reset" : status === "paused" ? "pause" : "resume";
-    setEncounterAction(action);
-    try {
-      return await runOptimisticCommand("configure-encounter", { status }, (current) => ({ ...current, encounter: { ...current.encounter, status } }), notice);
-    } finally {
-      setEncounterAction(null);
-    }
-  };
-
-  const setStrictMovementOptimistically = (enabled: boolean) => {
-    void runOptimisticCommand(
-      "set-strict-movement",
-      { enabled },
-      (current) => ({ ...current, encounter: { ...current.encounter, strictMovement: enabled } }),
-      enabled ? "Strict movement enabled." : "Open movement enabled.",
-    );
-  };
-
-  const setFogModeOptimistically = (mode: MapPackage["fog"]["mode"]) => {
-    void runOptimisticCommand(
-      "set-fog-mode",
-      { mode },
-      (current) => {
-        const mapPackage = current.encounter.mapPackage;
-        const sharedPolygon = mapPackage && mode === "shared" ? ensureSharedFogPolygon(mapPackage.fog.sharedPolygon, mapPackage.width, mapPackage.height) : mapPackage?.fog.sharedPolygon;
-        return { ...current, encounter: { ...current.encounter, mapPackage: mapPackage ? { ...mapPackage, fog: { ...mapPackage.fog, mode, sharedPolygon: sharedPolygon! } } : null, fogVisibility: { ...current.encounter.fogVisibility, mode } } };
-      },
-      mode === "off" ? "Fog of war disabled." : mode === "shared" ? "Shared fog enabled." : "Dynamic character vision enabled.",
-    );
-  };
-
-  const setVisionDoorOpenOptimistically = (doorId: string, open: boolean) => {
-    void runOptimisticCommand(
-      "set-vision-door-open",
-      { doorId, open },
-      (current) => ({ ...current, encounter: { ...current.encounter, mapPackage: current.encounter.mapPackage ? { ...current.encounter.mapPackage, fog: { ...current.encounter.mapPackage.fog, doors: current.encounter.mapPackage.fog.doors.map((door) => door.id === doorId ? { ...door, open } : door) } } : null } }),
-      open ? "Vision door opened." : "Vision door closed.",
-    );
-  };
-
-  const updateSharedFogOptimistically = (polygon: MapPoint[]) => {
-    void runOptimisticCommand(
-      "update-shared-fog",
-      { polygon },
-      (current) => ({ ...current, encounter: { ...current.encounter, mapPackage: current.encounter.mapPackage ? { ...current.encounter.mapPackage, fog: { ...current.encounter.mapPackage.fog, sharedPolygon: polygon } } : null } }),
-      "Shared fog updated.",
-    );
-  };
 
   const addLiveSharedFogPoint = () => {
     const polygon = sharedFogPreview ?? state?.encounter.mapPackage?.fog.sharedPolygon;
@@ -975,33 +447,8 @@ export default function BattleMapPrototype() {
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming]);
+  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming, setLightboxHandout, setScenarioCreatorOpen]);
 
-  const loadMoreCreatures = async () => {
-    if (!creatureCursor || creatureCatalogLoading) return;
-    const requestId = ++creatureCatalogRequestRef.current;
-    setCreatureCatalogLoading(true);
-    setCreatureCatalogError("");
-    const params = new URLSearchParams({ limit: "24", cursor: creatureCursor });
-    if (creatureQuery.trim()) params.set("q", creatureQuery.trim());
-    if (creatureFamily) params.set("family", creatureFamily);
-    try {
-      const catalog = await api<CreatureCatalogPage>(`/api/creatures?${params}`);
-      if (creatureCatalogRequestRef.current !== requestId) return;
-      setCreatures((current) => {
-        const known = new Set(current.map((creature) => creature.id));
-        return [...current, ...catalog.items.filter((creature) => !known.has(creature.id))];
-      });
-      setCreatureFamilies(catalog.families);
-      setCreatureCursor(catalog.nextCursor);
-    } catch (catalogError) {
-      if (creatureCatalogRequestRef.current === requestId) {
-        setCreatureCatalogError(catalogError instanceof Error ? catalogError.message : "Unable to load more creatures.");
-      }
-    } finally {
-      if (creatureCatalogRequestRef.current === requestId) setCreatureCatalogLoading(false);
-    }
-  };
 
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
     if (!participant || !state || !movementEnabled) return;
@@ -1572,26 +1019,7 @@ export default function BattleMapPrototype() {
   }, [participant?.role, presenting, togglePresenting, state]);
 
   if (!participant || !state) {
-    return (
-      <main className="join-shell"><section className="join-card" aria-labelledby="join-title">
-        <div className="eyebrow">Living encounter · Tactical companion</div>
-        <h1 id="join-title">Choose a scenario</h1>
-        <p>Select the prepared encounter, then choose your seat.</p>
-        <label className="scenario-picker">Scenario
-          <select value={selectedEncounter.code} onChange={(event) => setEncounterCode(event.target.value)} disabled={busy}>
-            {encounters.map((encounter) => <option key={encounter.code} value={encounter.code}>{encounter.name}</option>)}
-          </select>
-        </label>
-        {error ? <div className="form-error" role="alert">{error}</div> : null}
-        <div className="join-options" role="group" aria-label="Choose participant">
-          {JOIN_IDENTITIES.map((identity, index) => (
-            <button key={identity.label} className="join-option-button" onClick={() => void join(identity)} disabled={busy} autoFocus={index === 0}>
-              {joiningIdentity === identity.label ? "Joining…" : identity.label}
-            </button>
-          ))}
-        </div>
-      </section></main>
-    );
+    return <JoinScreen encounters={encounters} selectedCode={selectedEncounter.code} joiningIdentity={joiningIdentity} busy={busy} error={error} identities={JOIN_IDENTITIES} onEncounterChange={setEncounterCode} onJoin={(identity) => void join(identity)} />;
   }
 
   const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
@@ -1615,179 +1043,35 @@ export default function BattleMapPrototype() {
   const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const inCombat = state.encounter.status === "active";
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups) as RosterRow[];
-  const selectedHealth = selectedToken && !selectedSpell ? displayHealth(selectedToken.hp, selectedToken.maxHp, selectedToken.healthState) : null;
-  const hpStep = Math.max(1, Math.trunc(Number(hpAmount)) || 1);
   const activeTurnMembers = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND &&
     token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder);
   const activeOwnTurnToken = activeTurnMembers.find((token) =>
     token.controlledByViewer && !token.turnComplete) ?? null;
   const activeOwnTurnIsGroup = activeTurnMembers.length > 1;
 
-  const toolButton = (mode: AnnotationMode, icon: IconName, label: string, shortcut: string) => (
-    <button
-      className={`icon-tool${annotationMode === mode ? " tool-active" : ""}`}
-      aria-label={label}
-      data-tooltip={`${label} — ${shortcut}`}
-      aria-pressed={annotationMode === mode}
-      onClick={() => { if (mode === "ping") enablePingAudio(); setAnnotationMode(mode); }}
-    ><Icon name={icon} /></button>
-  );
-
-  const healthBar = (token: SharedToken) => {
-    const health = displayHealth(token.hp, token.maxHp, token.healthState);
-    if (!health) return <span className="roster-health is-unknown" aria-hidden="true" />;
-    return (
-      <span className={`roster-health is-${health.band}`} title={health.label ?? undefined}>
-        <span className="roster-health-fill" style={{ width: `${Math.round(health.ratio * 100)}%`, background: health.color }} />
-      </span>
-    );
-  };
-
-  const rosterRow = (token: SharedToken, grouped: boolean) => {
-    const selected = token.id === selectedToken?.id;
-    const active = token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder;
-    const pendingCreate = isPendingCreate(token);
-    return (
-      <button
-        key={token.id}
-        type="button"
-        className={`roster-row${selected ? " is-selected" : ""}${active ? " is-active" : ""}${token.turnComplete ? " is-complete" : ""}${grouped ? " is-grouped" : ""}${token.controlledByViewer ? " is-mine" : ""}`}
-        aria-pressed={selected}
-        disabled={pendingCreate}
-        onClick={() => { setSelectedTokenId(token.id); setSelectedMapNoteId(null); }}
-      >
-        {token.artAsset && !isSpellShapeArt(token.artAsset)
-          ? <NextImage className="roster-portrait" src={token.artAsset} alt="" width={44} height={44} unoptimized />
-          : token.kind === SPELL_EFFECT_KIND && spellEffectByArt(token.artAsset)?.shape
-            ? <SpellShapeMark className="roster-portrait roster-spell-shape" shape={spellEffectByArt(token.artAsset)!.shape!} />
-          : <span className="roster-portrait roster-initial">{tokenInitial(token)}</span>}
-        <span className="roster-name">{token.name}{token.hidden ? <em> · hidden</em> : null}</span>
-        {healthBar(token)}
-        <span className="roster-hp">{token.hp !== null && token.maxHp !== null ? `${token.hp}/${token.maxHp}` : ""}</span>
-        {token.effects.length > 0
-          ? <span className={`roster-effects${token.effects.some((effect) => effect.due) ? " is-due" : ""}`}>{token.effects.length}</span>
-          : null}
-        <span className="roster-initiative">{token.initiative ?? "—"}</span>
-      </button>
-    );
-  };
-
   return (
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
-      <div className="command-bar" aria-label="Map tools and encounter status">
-        <div className="map-tool-group" role="group" aria-label="Tactical tools">
-          {toolButton("move", "move", "Move tokens", "V")}
-          {toolButton("ping", "ping", "Ping map", "P")}
-          {toolButton("drawing", "line", "Draw line", "L")}
-          {toolButton("erase", "erase", "Erase line", "E")}
-          {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Arcane spotlight", "S") : null}
-          {participant.role === "dm" ? toolButton("neon-spotlight", "neon", "Neon arrow", "N") : null}
-          {participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared" ? <button className={`icon-tool${editingSharedFog ? " tool-active" : ""}`} aria-label="Edit shared fog" data-tooltip="Edit shared fog corners" aria-pressed={editingSharedFog} onClick={() => { setEditingSharedFog((current) => { const next = !current; setSharedFogPreview(next ? state.encounter.mapPackage?.fog.sharedPolygon ?? null : null); setSelectedSharedFogVertex(null); if (next) fitViewport(); return next; }); setAnnotationMode("move"); }}><Icon name="fog" /></button> : null}
-          {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
-        </div>
-        <div className="map-tool-group" role="group" aria-label="Map content">
-          <button
-            className={`icon-tool chat-launcher${chatOpen ? " tool-active" : ""}`}
-            aria-label={chatUnreadTotal > 0 ? `Chat, ${chatUnreadTotal} unread messages` : "Chat"}
-            data-tooltip="Chat"
-            aria-pressed={chatOpen}
-            onClick={() => {
-              if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; }
-              else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; }
-              else { markChatChannelRead(activeChatChannel); setChatOpen(false); }
-            }}
-          >
-            <Icon name="chat" />
-            {chatUnreadTotal > 0 ? <span className="chat-unread-badge" aria-hidden="true">{Math.min(99, chatUnreadTotal)}</span> : null}
-          </button>
-          <button className={`icon-tool${paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={paletteOpen} onClick={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="creatures" /></button>
-          <button className={`icon-tool${spellPaletteOpen ? " tool-active" : ""}`} aria-label="Spell effects" data-tooltip="Spell effects" aria-pressed={spellPaletteOpen} onClick={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); setAnnotationMode("move"); }}><Icon name="spells" /></button>
-          {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={() => setWorkshopOpen(true)}><Icon name="workshop" /></button> : null}
-          {participant.role === "dm" ? <button className="icon-tool" aria-label="Manage scenarios" data-tooltip="Manage scenarios" onClick={() => { setScenarioError(""); setScenarioRenameError(""); setScenarioRenameName(state.encounter.name); setScenarioCreatorOpen(true); }}><Icon name="scenarios" /></button> : null}
-        </div>
-        <div className="map-tool-group" role="group" aria-label="Action history">
-          <button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => void runHistoryOptimistically("undo")} disabled={busy || state.undo.available === 0}><Icon name="undo" /></button>
-          <button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => void runHistoryOptimistically("redo")} disabled={busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button>
-        </div>
-
-        <div className="encounter-identity">
-          <strong>{state.encounter.name}</strong>
-          <span>{state.encounter.status}</span>
-        </div>
-        <div className="round-counter" aria-label={state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"}>
-          <span>Round</span>
-          <strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong>
-        </div>
-
-        <div className="map-tool-group viewport-tools" role="group" aria-label="Map view">
-          <button className={`icon-tool${viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={viewport.fit} onClick={fitViewport}><Icon name="fit" /></button>
-          <button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => changeZoom(-0.5)}><Icon name="zoomOut" /></button>
-          <button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey, fit: false })}>{viewport.fit ? "Fit" : `${Math.round((viewport.mapKey === mapKey ? viewport.zoom : 1) * 100)}%`}</button>
-          <button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => changeZoom(0.5)}><Icon name="zoomIn" /></button>
-        </div>
-        <div className={`connection-pill connection-${connection}`} aria-label={connectionTooltip} data-tooltip={connectionTooltip} aria-live="polite"><span className="connection-dot" /><em>{connectionLabel}</em></div>
-        <div className="map-tool-group" role="group" aria-label="Layout">
-          <details ref={uiSettingsRef} className="ui-settings-menu">
-            <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
-            <section className="ui-settings-panel" aria-label="UI Settings">
-              <div className="ui-settings-heading"><strong>UI Settings</strong><small>Personal and encounter display controls</small></div>
-              <div className="ui-settings-section-label"><strong>Your display</strong><small>Only changes your view</small></div>
-              <label className="grid-opacity-control">
-                <span>Grid visibility <output>{Math.round(gridOpacity * 100)}%</output></span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={Math.round(gridOpacity * 100)}
-                  style={{ "--grid-level": `${Math.round(gridOpacity * 100)}%` } as CSSProperties}
-                  aria-label="Grid visibility"
-                  onChange={(event) => setGridOpacity(Number(event.target.value) / 100)}
-                />
-              </label>
-              <label className="ui-setting-toggle">
-                <span><strong>Colored token centers</strong><small>Show ownership colors behind token art</small></span>
-                <input
-                  type="checkbox"
-                  checked={showColoredTokenCenters}
-                  aria-label="Colored token centers"
-                  onChange={(event) => setShowColoredTokenCenters(event.target.checked)}
-                />
-              </label>
-              <label className="ui-setting-toggle">
-                <span><strong>Health rings</strong><small>Show current health around tokens</small></span>
-                <input
-                  type="checkbox"
-                  checked={showHealthRings}
-                  aria-label="Health rings"
-                  onChange={(event) => setShowHealthRings(event.target.checked)}
-                />
-              </label>
-              {participant.role === "dm" ? <div className="ui-settings-global">
-                <div className="ui-settings-section-label"><strong>Encounter settings</strong><small>Affects everyone</small></div>
-                <label className="ui-setting-select"><span><strong>Fog of war</strong><small>Choose how the map is revealed</small></span><select aria-label="Fog of war mode" value={state.encounter.mapPackage?.fog.mode ?? "off"} onChange={(event) => setFogModeOptimistically(event.target.value as MapPackage["fog"]["mode"])}><option value="off">No fog</option><option value="shared">DM-controlled shared fog</option><option value="dynamic">Dynamic character vision</option></select></label>
-                {state.encounter.mapPackage?.fog.mode === "dynamic" && state.encounter.mapPackage.fog.doors.length ? <div className="vision-door-controls"><span><strong>Vision doors</strong><small>Open or close line-of-sight blockers</small></span>{state.encounter.mapPackage.fog.doors.map((door, index) => <button type="button" className={door.open ? "is-open" : ""} key={door.id} aria-pressed={door.open} onClick={() => setVisionDoorOpenOptimistically(door.id, !door.open)}>Door {index + 1} · {door.open ? "Open" : "Closed"}</button>)}</div> : null}
-                <label
-                  className="ui-setting-toggle"
-                  data-tooltip="With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token."
-                >
-                  <span><strong>Strict movement</strong><small>Players move only their tokens</small></span>
-                  <input
-                    type="checkbox"
-                    checked={state.encounter.strictMovement}
-                    aria-label="Strict movement"
-                    aria-describedby="strict-movement-help"
-                    onChange={(event) => setStrictMovementOptimistically(event.target.checked)}
-                  />
-                </label>
-                <span id="strict-movement-help" className="visually-hidden">With strict movement on, players can move only their own character and related summons. The DM can always move any token. Turn it off to let anyone move any visible token.</span>
-              </div> : null}
-            </section>
-          </details>
-          <button className={`icon-tool${sidebarOpen ? "" : " tool-active"}`} aria-label={sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="sidebar" /></button>
-          <button className={`icon-tool${presenting ? " tool-active" : ""}`} aria-label="Presentation mode" data-tooltip="Presentation mode — F" aria-pressed={presenting} onClick={togglePresenting}><Icon name="present" /></button>
-        </div>
-      </div>
+      <BattleMapCommandBar
+        participant={participant} state={state} annotationMode={annotationMode} editingSharedFog={editingSharedFog}
+        chatOpen={chatOpen} chatMinimized={chatMinimized} chatUnreadTotal={chatUnreadTotal}
+        paletteOpen={paletteOpen} spellPaletteOpen={spellPaletteOpen} busy={busy} viewport={viewport}
+        mapKey={mapKey} connection={connection} connectionLabel={connectionLabel} connectionTooltip={connectionTooltip}
+        uiSettingsRef={uiSettingsRef} gridOpacity={gridOpacity} showColoredTokenCenters={showColoredTokenCenters}
+        showHealthRings={showHealthRings} sidebarOpen={sidebarOpen} presenting={presenting}
+        onAnnotationMode={(mode) => { if (mode === "ping") enablePingAudio(); setAnnotationMode(mode); }}
+        onToggleFogEditor={() => { setEditingSharedFog((current) => { const next = !current; setSharedFogPreview(next ? state.encounter.mapPackage?.fog.sharedPolygon ?? null : null); setSelectedSharedFogVertex(null); if (next) fitViewport(); return next; }); setAnnotationMode("move"); }}
+        onClearAnnotations={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}
+        onToggleChat={() => { if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; } else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; } else { markChatChannelRead(activeChatChannel); setChatOpen(false); } }}
+        onToggleCreatures={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); setAnnotationMode("move"); }}
+        onToggleSpells={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); setAnnotationMode("move"); }}
+        onOpenWorkshop={() => setWorkshopOpen(true)} onManageScenarios={scenarioControls.show}
+        onHistory={(direction) => void history.run(direction)} onFit={fitViewport} onZoom={changeZoom}
+        onResetZoom={() => setViewport({ zoom: 1, centerX: state.grid.width / 2, centerY: state.grid.height / 2, mapKey, fit: false })}
+        onGridOpacityChange={setGridOpacity} onColoredTokenCentersChange={setShowColoredTokenCenters}
+        onHealthRingsChange={setShowHealthRings} onFogModeChange={setFogModeOptimistically}
+        onVisionDoorChange={setVisionDoorOpenOptimistically} onStrictMovementChange={setStrictMovementOptimistically}
+        onToggleSidebar={() => setSidebarOpen((open) => !open)} onTogglePresenting={togglePresenting}
+      />
 
       <div className="workspace">
         <section className="map-panel" aria-label="Shared battle map">
@@ -1795,42 +1079,24 @@ export default function BattleMapPrototype() {
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
             {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addLiveSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeLiveSharedFogPoint}>Remove selected</button><button type="button" onClick={() => { setEditingSharedFog(false); setSharedFogPreview(null); setSelectedSharedFogVertex(null); }}>Done</button></div> : null}
-            {paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
-              <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><IconActionButton variant="close" label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }} /></div>
-              {participant.role === "dm"
-                ? <label className="palette-controller">Control<select value={placementSummonerId} onChange={(event) => setPlacementSummonerId(event.target.value)}><option value="">DM-controlled creature</option>{state.tokens.filter((token) => token.kind === "character" && !token.summonerTokenId).map((token) => <option value={token.id} key={token.id}>Summoned by {token.name}</option>)}</select></label>
-                : <p className="palette-controller">Anything you place is summoned by {playerCharacter?.name ?? "your character"} and controlled by you.</p>}
-              <div className="palette-search">
-                <label><span>Find</span><input type="search" value={creatureQuery} onChange={(event) => { setCreatureQuery(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }} placeholder="Search creatures" autoComplete="off" /></label>
-                <label><span>Family</span><select value={creatureFamily} onChange={(event) => { setCreatureFamily(event.target.value); setArmedCreatureId(null); setPlacementPreview(null); }}><option value="">All</option>{creatureFamilies.map((family) => <option value={family} key={family}>{family}</option>)}</select></label>
-              </div>
-              <div className="creature-grid">
-                {creatures.map((creature) => <button type="button" draggable className={`creature-tile${armedCreatureId === creature.id ? " is-armed" : ""}`} key={creature.id} onDragStart={(event) => onPaletteDragStart(event, creature)} onDragEnd={() => setPlacementPreview(null)} onClick={() => setArmedCreatureId((current) => current === creature.id ? null : creature.id)} aria-pressed={armedCreatureId === creature.id}>
-                  {/* The catalog thumbnail is intentionally lazy; full token art loads only when map rendering needs it. */}
-                  <NextImage src={creature.thumbnailAsset} alt="" width={72} height={72} loading="lazy" unoptimized />
-                  <span><strong>{creature.name}</strong><small>{creature.size} · AC {creature.armorClass} · HP {creature.defaultHp} · {creature.defaultSpeed} ft</small></span>
-                </button>)}
-              </div>
-              {creatureCatalogLoading && creatures.length === 0 ? <div className="palette-status" role="status">Loading creatures…</div> : null}
-              {!creatureCatalogLoading && !creatureCatalogError && creatures.length === 0 ? <div className="palette-status">No matching creatures.</div> : null}
-              {creatureCatalogError ? <div className="palette-status is-error" role="alert">{creatureCatalogError}</div> : null}
-              {creatureCursor ? <button className="palette-load-more" onClick={() => void loadMoreCreatures()} disabled={creatureCatalogLoading}>{creatureCatalogLoading ? "Loading…" : "Load more creatures"}</button> : null}
-              {armedCreatureId ? <button className="palette-cancel" onClick={() => { setArmedCreatureId(null); setPlacementPreview(null); }}>Cancel placement</button> : null}
-              <p className="palette-hint">Drag a creature onto the map, or select one and click repeatedly to place copies.</p>
-            </section> : null}
-            {spellPaletteOpen ? <section className="spell-palette" aria-label="Spell effects palette">
-              <div className="palette-heading"><div><small>Persistent magic</small><h2>Spell effects</h2></div><IconActionButton variant="close" label="Close spell effects" onClick={() => { setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); }} /></div>
-              <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
-              <div className="spell-grid">
-                {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedSpellId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onSpellDragStart(event, spell)} onDragEnd={() => setSpellPlacementPreview(null)} onClick={() => setArmedSpellId((current) => current === spell.id ? null : spell.id)} aria-pressed={armedSpellId === spell.id}>
-                  <span className={`spell-art${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={240} height={240} draggable={false} unoptimized />}</span>
-                  <span className="spell-copy"><small>{spell.areaLabel}</small><strong>{spell.name}</strong><em>{spell.description}</em></span>
-                </button>)}
-              </div>
-              {participant.role === "player" ? <p className="palette-controller">Your effects are controlled by {playerCharacter?.name ?? "your character"}.</p> : <p className="palette-controller">DM effects are controlled by Kevin.</p>}
-              {armedSpellId ? <button className="palette-cancel" onClick={() => { setArmedSpellId(null); setSpellPlacementPreview(null); }}>Cancel spell placement</button> : null}
-              <p className="palette-hint">Drag onto the map, or select an effect and click to place it.</p>
-            </section> : null}
+            {paletteOpen ? <CreaturePalette
+              participant={participant} tokens={state.tokens} playerCharacter={playerCharacter}
+              creatures={creatures} families={creatureFamilies} query={creatureQuery} family={creatureFamily}
+              cursor={creatureCursor} loading={creatureCatalogLoading} error={creatureCatalogError}
+              armedId={armedCreatureId} summonerId={placementSummonerId}
+              onClose={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }}
+              onSummonerChange={setPlacementSummonerId}
+              onQueryChange={(value) => { setCreatureQuery(value); setArmedCreatureId(null); setPlacementPreview(null); }}
+              onFamilyChange={(value) => { setCreatureFamily(value); setArmedCreatureId(null); setPlacementPreview(null); }}
+              onArm={(id) => { setArmedCreatureId(id); if (!id) setPlacementPreview(null); }}
+              onDragStart={onPaletteDragStart} onDragEnd={() => setPlacementPreview(null)} onLoadMore={() => void loadMoreCreatures()}
+            /> : null}
+            {spellPaletteOpen ? <SpellPalette
+              participant={participant} playerCharacter={playerCharacter} armedId={armedSpellId}
+              onClose={() => { setSpellPaletteOpen(false); setArmedSpellId(null); setSpellPlacementPreview(null); }}
+              onArm={(id) => { setArmedSpellId(id); if (!id) setSpellPlacementPreview(null); }}
+              onDragStart={onSpellDragStart} onDragEnd={() => setSpellPlacementPreview(null)}
+            /> : null}
             {chatOpen && !presenting ? <ChatPanel
               participant={participant}
               state={state}
@@ -1872,228 +1138,41 @@ export default function BattleMapPrototype() {
           </div>
         </section>
 
-        <aside className="control-panel" aria-label="Encounter controls" hidden={!sidebarOpen || presenting}>
-          <div className="panel-head">
-            <div className="participant-row"><span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span><span><small>{participant.role === "dm" ? "Dungeon Master" : "Joined as"}</small><strong>{participant.name}</strong></span></div>
-            <span className="panel-round">{state.tokens.length} tokens</span>
-          </div>
-          <label className="roster-filter">
-            <Icon name="search" />
-            <input type="search" value={rosterFilter} onChange={(event) => setRosterFilter(event.target.value)} placeholder={inCombat ? "Filter turn order" : "Filter tokens"} aria-label="Filter tokens" autoComplete="off" />
-          </label>
+        <EncounterSidebar
+          participant={participant} state={state} hidden={!sidebarOpen || presenting} inCombat={inCombat}
+          rosterFilter={rosterFilter} rosterRows={rosterRows} selectedToken={selectedToken}
+          selectedSpell={selectedSpell} selectedMapNote={selectedMapNote} preview={preview}
+          distance={distance} remainingMovement={remainingMovement} overMovement={overMovement}
+          activeOwnTurnToken={activeOwnTurnToken} activeOwnTurnIsGroup={activeOwnTurnIsGroup}
+          initiativeTokens={initiativeTokens} encounterAction={encounterAction} controls={tokenControls}
+          onRosterFilterChange={setRosterFilter}
+          onToggleGroup={(key) => setExpandedGroups((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; })}
+          onSelectToken={(id) => { setSelectedTokenId(id); setSelectedMapNoteId(null); }}
+          onCloseMapNote={() => setSelectedMapNoteId(null)} onResizeSpell={tokenControls.resizeSpellEffect}
+          onDeleteToken={(token) => void deleteToken(token)} canMoveToken={canMoveToken}
+          onHideToken={(token) => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}
+          onEndTurn={endTurnOptimistically}
+          onStartOrRestart={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}
+          onAdvanceTurn={advanceTurnOptimistically}
+          onPauseOrResume={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
+          onRequestReset={() => setResetConfirmOpen(true)} onCorrectTurn={correctTurnOptimistically}
+        />
 
-          <div className="token-roster" role="list" aria-label={inCombat ? "Turn order" : "Tokens"}>
-            {rosterRows.length === 0 ? <p className="empty-copy">No tokens match “{rosterFilter}”.</p> : null}
-            {rosterRows.map((row) => row.type === "group" ? (
-              <div className={`roster-group${row.tokens[0].initiativeOrder !== null && row.tokens[0].initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}`} key={row.key}>
-                <button
-                  type="button"
-                  className="roster-row is-group"
-                  aria-expanded={row.expanded}
-                  onClick={() => setExpandedGroups((current) => {
-                    const next = new Set(current);
-                    if (next.has(row.key)) next.delete(row.key); else next.add(row.key);
-                    return next;
-                  })}
-                >
-                  {row.tokens[0].artAsset && !isSpellShapeArt(row.tokens[0].artAsset)
-                    ? <NextImage className="roster-portrait" src={row.tokens[0].artAsset} alt="" width={44} height={44} unoptimized />
-                    : row.tokens[0].kind === SPELL_EFFECT_KIND && spellEffectByArt(row.tokens[0].artAsset)?.shape
-                      ? <SpellShapeMark className="roster-portrait roster-spell-shape" shape={spellEffectByArt(row.tokens[0].artAsset)!.shape!} />
-                    : <span className="roster-portrait roster-initial">{tokenInitial(row.tokens[0])}</span>}
-                  <span className="roster-name">{row.label}<em> ×{row.tokens.length}</em></span>
-                  <span className="roster-group-toggle">{row.expanded ? "Hide" : "Show"}</span>
-                  <span className="roster-initiative">{row.tokens[0].initiative ?? "—"}</span>
-                </button>
-                {!inCombat && participant.role === "dm" ? <div className="roster-group-initiative">
-                  <label htmlFor={`initiative-${row.key}`}>All</label>
-                  <input
-                    id={`initiative-${row.key}`}
-                    aria-label={`Initiative for all ${row.label} creatures`}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={2}
-                    placeholder={row.tokens.every((token) => token.initiative === row.tokens[0].initiative) && row.tokens[0].initiative !== null ? String(row.tokens[0].initiative) : "—"}
-                    value={initiativeDrafts[`group:${row.key}`] ?? ""}
-                    onChange={(event) => {
-                      const next = event.target.value.replace(/\D/g, "").slice(0, 2);
-                      setInitiativeDrafts((current) => ({ ...current, [`group:${row.key}`]: next }));
-                      setInitiativeStatuses((current) => ({ ...current, [`group:${row.key}`]: "editing" }));
-                    }}
-                    onBlur={() => void saveInitiativeGroup(row.key, row.tokens)}
-                    onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
-                  />
-                  <span aria-live="polite">{initiativeStatuses[`group:${row.key}`] === "saving" ? "Saving…" : "initiative"}</span>
-                </div> : null}
-              </div>
-            ) : rosterRow(row.token, row.grouped))}
-          </div>
-
-          {selectedMapNote ? <section className="map-note-detail" aria-label={`DM note ${state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}`}>
-            <div className="map-note-heading"><div><small>Private map note</small><h2>Note {state.encounter.mapPackage!.notes.findIndex((note) => note.id === selectedMapNote.id) + 1}</h2></div><IconActionButton variant="close" label="Close DM note" onClick={() => setSelectedMapNoteId(null)} /></div>
-            <p>{selectedMapNote.text}</p>
-          </section> : selectedToken && selectedSpell ? <section className={`spell-detail is-${selectedSpell.id}`} aria-label={`${selectedToken.name} spell effect details`}>
-            <div className={`spell-detail-visual${selectedSpell.shape ? " is-generic-shape" : ""}`}>{selectedSpell.shape ? <SpellShapeMark shape={selectedSpell.shape} /> : <NextImage src={selectedSpell.artAsset} alt="" width={180} height={180} unoptimized />}</div>
-            <div className="spell-detail-copy"><small>Persistent spell · controlled by {selectedToken.controller.name}</small><h2>{selectedToken.name}</h2><p>{selectedSpell.description}</p></div>
-            <div className="spell-detail-meta"><span><small>Area</small><strong>{spellFootprintLabel(selectedSpell, selectedToken.size)}</strong></span><span><small>Movement</small><strong>{canMoveToken(selectedToken) ? "Drag directly" : `Owner only · ${selectedToken.controller.name}`}</strong></span></div>
-            {selectedToken.controlledByViewer ? <label className="spell-size-control">Footprint<select aria-label="Spell footprint size" value={SPELL_AREA_SIZES.includes(selectedToken.size as SpellAreaSize) ? selectedToken.size : "medium"} onChange={(event) => resizeSpellEffect(selectedToken, selectedSpell, event.target.value as SpellAreaSize)}>{SPELL_AREA_SIZES.map((size) => <option value={size} key={size}>{selectedSpell.shape === "square" ? `${spellAreaDiameter(size)}-ft square` : `${spellAreaDiameter(size)}-ft diameter`}</option>)}</select></label> : null}
-            {selectedToken.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => void deleteToken(selectedToken)}>Dismiss {selectedSpell.name}</button> : null}
-          </section> : selectedToken ? <section className="token-detail" aria-label={`${selectedToken.name} details`}>
-            {participant.role === "dm" && tokenEditorTokenId === selectedToken.id ? <div className="token-config">
-              <div className="token-config-toolbar"><small>Edit token details</small><span className="token-config-actions"><IconActionButton variant="discard" label="Discard token detail changes" title="Discard changes" onClick={() => discardTokenDetails(selectedToken.id)} /><button className="token-config-save" aria-label="Save token details" title="Save details" onClick={() => void saveTokenDetails(selectedToken)}><Icon name="check" /></button></span></div>
-              <input aria-label="Token name" value={tokenDrafts[selectedToken.id]?.name ?? selectedToken.name} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], name: event.target.value } }))} />
-              <div className="form-grid">
-                <label>Size<select aria-label="Token size" value={tokenDrafts[selectedToken.id]?.size ?? selectedToken.size} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label>
-                <label>Speed<input aria-label="Token speed" type="number" value={tokenDrafts[selectedToken.id]?.speed ?? selectedToken.speed} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], speed: event.target.value } }))} /></label>
-                <label>Max HP<input aria-label="Token maximum HP" type="number" value={tokenDrafts[selectedToken.id]?.maxHp ?? selectedToken.maxHp ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], maxHp: event.target.value } }))} /></label>
-              </div>
-              <label>Portrait<select aria-label="Token portrait" value={tokenDrafts[selectedToken.id]?.artAsset ?? selectedToken.artAsset ?? ""} onChange={(event) => setTokenDrafts((current) => ({ ...current, [selectedToken.id]: { ...current[selectedToken.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label>
-            </div> : <>
-              <div className="token-heading">
-                {selectedToken.artAsset ? <NextImage className="token-portrait" src={selectedToken.artAsset} alt="" width={48} height={48} unoptimized /> : <span className="token-mini">{tokenInitial(selectedToken)}</span>}
-                <div><small>{`${selectedToken.hidden ? "Hidden · " : ""}${selectedToken.kind} · controlled by ${selectedToken.controller.name}`}</small><h2>{selectedToken.name}</h2></div>
-              </div>
-              <div className="token-meta">
-                <span><small>Size</small><strong>{selectedToken.size.charAt(0).toUpperCase() + selectedToken.size.slice(1)}</strong></span>
-                <span><small>Speed</small><strong>{selectedToken.speed} ft</strong></span>
-                <span><small>HP</small><strong>{selectedHealth?.label ?? "—"}</strong></span>
-              </div>
-            </>}
-            {(() => {
-              const token = selectedToken;
-              const controlled = token.controlledByViewer;
-              const packMembers = initiativePackMembers(token, state.tokens);
-              return <>
-                <div className="initiative-editor"><label>Initiative<input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={initiativeDrafts[token.id] ?? token.initiative ?? ""} onChange={(event) => { const next = event.target.value.replace(/\D/g, "").slice(0, 2); setInitiativeDrafts((current) => ({ ...current, [token.id]: next })); setInitiativeStatuses((current) => ({ ...current, [token.id]: "editing" })); }} onBlur={() => void saveInitiative(token)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!controlled} aria-describedby={`initiative-status-${token.id}`} /></label><span id={`initiative-status-${token.id}`} className={`initiative-save-status is-${initiativeStatuses[token.id] ?? "idle"}`} aria-live="polite">{!controlled ? "Controller only" : initiativeStatuses[token.id] === "saving" ? "Saving…" : initiativeStatuses[token.id] === "saved" ? "Saved" : "Enter or leave to save"}</span></div>
-                {participant.role === "dm" && packMembers.length > 1 ? <div className="initiative-pack-note">
-                  <span>{token.initiativeGroupId ? `Shared with ${packMembers.length - 1} matching ${packMembers.length === 2 ? "creature" : "creatures"}.` : `Changes apply to all ${packMembers.length} matching creatures.`}</span>
-                  {token.initiativeGroupId ? <button className="inline-action" onClick={() => splitInitiativePack(token)}>Split from group</button> : null}
-                </div> : null}
-                {controlled && token.hp !== null && token.maxHp !== null ? <div className="hp-panel">
-                  <div className="hp-readout"><strong>HP {token.hp}/{token.maxHp}</strong><span className={`hp-track is-${selectedHealth?.band ?? "unharmed"}`}><span className="hp-track-fill" style={{ width: `${Math.round((selectedHealth?.ratio ?? 0) * 100)}%`, background: selectedHealth?.color }} /></span></div>
-                  <div className="hp-row">
-                    <button className="hp-step" aria-label="Decrease amount" onClick={() => setHpAmount(String(Math.max(1, hpStep - 1)))}>−</button>
-                    <input aria-label="HP change amount" type="text" inputMode="numeric" pattern="[0-9]*" value={hpAmount} onChange={(event) => setHpAmount(event.target.value.replace(/\D/g, "").slice(0, 3))} onKeyDown={(event) => { if (event.key === "Enter") void applyHpToToken(token, -hpStep); }} />
-                    <button className="hp-step" aria-label="Increase amount" onClick={() => setHpAmount(String(hpStep + 1))}>+</button>
-                    <button className="hp-apply is-damage" onClick={() => void applyHpToToken(token, -hpStep)}>Damage</button>
-                    <button className="hp-apply is-heal" onClick={() => void applyHpToToken(token, hpStep)}>Heal</button>
-                  </div>
-                </div> : null}
-                <div className="effect-list">{token.effects.map((effect) => <span className={effect.due ? "effect-chip is-due" : "effect-chip"} key={effect.id}>{effect.name}{effect.expiresRound ? ` · R${effect.expiresRound}` : ""}{controlled ? <IconActionButton variant="remove" label={`Remove ${effect.name}`} onClick={() => removeEffectFromToken(token.id, effect.id)} /> : null}</span>)}</div>
-                {controlled && effectEditorTokenId !== token.id ? <button className="inline-action effect-editor-toggle" onClick={() => { setEffectEditorTokenId(token.id); setEffectName(""); }}>+ Effect</button> : null}
-                {controlled && effectEditorTokenId === token.id ? <div className="compact-form effect-form"><select aria-label="Effect preset" defaultValue="" onChange={(event) => { const preset = event.target.value; if (preset === "bless") { setEffectName("Bless"); setEffectType("concentration"); setEffectDuration("10"); } else if (preset === "poisoned") { setEffectName("Poisoned"); setEffectType("condition"); setEffectDuration("1"); } else if (preset === "stunned") { setEffectName("Stunned"); setEffectType("condition"); setEffectDuration("1"); } }}><option value="">Preset…</option><option value="bless">Bless</option><option value="poisoned">Poisoned</option><option value="stunned">Stunned</option></select><input aria-label="Effect name" placeholder="Custom effect" value={effectName} onChange={(event) => setEffectName(event.target.value)} /><select aria-label="Effect type" value={effectType} onChange={(event) => setEffectType(event.target.value)}><option value="condition">Condition</option><option value="effect">Effect</option><option value="concentration">Concentration</option></select><select aria-label="Reminder timing" value={effectReminder} onChange={(event) => setEffectReminder(event.target.value)}><option value="start">Start of turn</option><option value="end">End of turn</option></select><input aria-label="Duration rounds" type="number" min="1" max="99" value={effectDuration} onChange={(event) => setEffectDuration(event.target.value)} /><button onClick={() => void addEffectToToken(token.id)} disabled={!effectName.trim()}>Add</button><button className="effect-editor-cancel" onClick={() => { setEffectEditorTokenId(null); setEffectName(""); }}>Cancel</button></div> : null}
-                {controlled ? <div className="movement-summary"><span>Movement</span><strong>{token.movementUsed}/{token.speed} ft</strong></div> : null}
-                {controlled && preview?.tokenId === token.id ? <div className={`move-review${overMovement ? " is-over" : ""}`}><div><small>Destination</small><strong>{formatPosition(preview)}</strong></div><div><small>Direct / remaining</small><strong>{distance} / {remainingMovement} ft</strong></div></div> : null}
-                {participant.role === "dm" ? <div className="token-actions">
-                  {tokenEditorTokenId !== token.id ? <button className="inline-action" onClick={() => setTokenEditorTokenId(token.id)}>Edit details</button> : null}
-                  <button className="inline-action" onClick={() => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}>{token.hidden ? "Reveal" : "Hide"}</button>
-                  {pendingDeleteTokenId === token.id
-                    ? <><button className="inline-action is-danger is-confirming" onClick={() => { setPendingDeleteTokenId(null); void deleteToken(token); }}>Confirm delete</button><button className="inline-action" onClick={() => setPendingDeleteTokenId(null)}>Keep</button></>
-                    : <button className="inline-action is-danger" onClick={() => setPendingDeleteTokenId(token.id)}>Delete</button>}
-                </div> : null}
-              </>;
-            })()}
-          </section> : null}
-
-          <div className="panel-foot">
-            {activeOwnTurnToken && participant.role !== "dm"
-              ? <button className="end-turn-button" onClick={() => endTurnOptimistically(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button>
-              : null}
-            {participant.role === "dm" ? <>
-              <div className="button-row">
-                <button className="primary-button" aria-describedby="restart-combat-help" data-tooltip={inCombat ? "Start again at round 1 using the current initiative. Keeps the map, tokens, HP, effects, and initiative values." : "Begin combat at round 1 using the entered initiative values."} onClick={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}>{inCombat ? "Restart combat" : "Start combat"}</button>
-                <span id="restart-combat-help" className="visually-hidden">Restart begins combat again at round 1 using the current initiative values while preserving the map, tokens, HP, and effects.</span>
-                <button className="secondary-button" onClick={advanceTurnOptimistically} disabled={!inCombat}>Advance</button>
-              </div>
-              <div className="button-row encounter-state-controls">
-                <button
-                  className={`secondary-button${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`}
-                  aria-busy={encounterAction === "pause" || encounterAction === "resume"}
-                  aria-describedby="pause-encounter-help"
-                  data-tooltip="Temporarily freezes movement and turn advancement. The current round and initiative are preserved."
-                  disabled={encounterAction !== null}
-                  onClick={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
-                >{encounterAction === "pause" ? "Pausing…" : encounterAction === "resume" ? "Resuming…" : state.encounter.status === "paused" ? "Resume" : "Pause"}</button>
-                <span id="pause-encounter-help" className="visually-hidden">Temporarily freezes movement and turn advancement while preserving the current round and initiative.</span>
-                <button className={`secondary-button${encounterAction === "reset" ? " is-pending" : ""}`} aria-busy={encounterAction === "reset"} aria-describedby="reset-encounter-help" data-tooltip="Exit combat and return to setup. Clears the round, active turn, and movement tracking; keeps the map, tokens, HP, effects, and initiative values." disabled={encounterAction !== null} onClick={() => setResetConfirmOpen(true)}>{encounterAction === "reset" ? "Resetting…" : "Reset"}</button>
-                <span id="reset-encounter-help" className="visually-hidden">Reset exits combat and returns the encounter to setup while preserving the map, tokens, HP, effects, and initiative values.</span>
-              </div>
-              {initiativeTokens.length ? <details className="turn-correction-details">
-                <summary>Correct turn</summary>
-                <div className="turn-correction"><label>Round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => correctTurnOptimistically(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => correctTurnOptimistically(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div>
-              </details> : null}
-            </> : null}
-          </div>
-        </aside>
       </div>
-      {participant.role === "dm" && resetConfirmOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetConfirmOpen(false); }}>
-        <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-encounter-title" aria-describedby="reset-encounter-description">
-          <div className="eyebrow">Encounter control</div>
-          <h2 id="reset-encounter-title">Reset combat?</h2>
-          <p id="reset-encounter-description">This returns the encounter to setup, clears the current round, active turn, and movement tracking. The map, tokens, HP, effects, and entered initiative numbers stay intact.</p>
-          <div className="button-row">
-            <button className="secondary-button" autoFocus onClick={() => setResetConfirmOpen(false)}>Cancel</button>
-            <button className="danger-button" onClick={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}>Reset combat</button>
-          </div>
-        </section>
-      </div> : null}
-      {participant.role === "dm" && restartConfirmOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRestartConfirmOpen(false); }}>
-        <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="restart-combat-title" aria-describedby="restart-combat-description">
-          <div className="eyebrow">Encounter control</div>
-          <h2 id="restart-combat-title">Restart combat?</h2>
-          <p id="restart-combat-description">This returns combat to round 1 and rebuilds the turn order from the current initiative numbers. Movement and completed-turn tracking reset. The map, tokens, HP, and effects stay intact.</p>
-          <div className="button-row">
-            <button className="secondary-button" autoFocus onClick={() => setRestartConfirmOpen(false)}>Cancel</button>
-            <button className="danger-button" onClick={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}>Restart combat</button>
-          </div>
-        </section>
-      </div> : null}
-      {participant.role === "dm" && scenarioCreatorOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !scenarioCreating && !scenarioRenaming && !handoutUploading) setScenarioCreatorOpen(false); }}>
-        <section className="confirm-dialog scenario-dialog" role="dialog" aria-modal="true" aria-labelledby="manage-scenarios-title" aria-describedby="manage-scenarios-description">
-          <div className="eyebrow">Scenario library</div>
-          <h2 id="manage-scenarios-title">Manage scenarios</h2>
-          <p id="manage-scenarios-description">Rename this scenario without changing its map or history, or prepare another scenario with its own encounter state.</p>
-          <div className="scenario-rename-section">
-            <label>Current scenario name<input autoFocus maxLength={64} value={scenarioRenameName} onChange={(event) => setScenarioRenameName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void renameScenario(); } }} disabled={scenarioCreating || scenarioRenaming} /></label>
-            {scenarioRenameError ? <div className="form-error" role="alert">{scenarioRenameError}</div> : null}
-            <div className="button-row"><button className={`secondary-button${scenarioRenaming ? " is-pending" : ""}`} onClick={() => void renameScenario()} disabled={scenarioCreating || scenarioRenaming || scenarioRenameName.trim().length < 3 || scenarioRenameName.trim() === state.encounter.name}>{scenarioRenaming ? "Saving…" : "Rename current scenario"}</button></div>
-          </div>
-          <ScenarioHandouts
-            participant={participant}
-            encounterCode={state.encounter.code}
-            handouts={state.handouts}
-            title={handoutTitle}
-            uploading={handoutUploading}
-            uploadError={handoutUploadError}
-            deletingId={handoutDeletingId}
-            onTitleChange={setHandoutTitle}
-            onUpload={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId ?? null)}
-            onPreview={(handout) => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }}
-            onDelete={(handout) => void deleteHandout(handout)}
-          />
-          <div className="scenario-create-heading"><strong>Create another scenario</strong><small>The new scenario gets its own map, tokens, combat state, and history.</small></div>
-          <label>New scenario name<input maxLength={64} value={scenarioName} onChange={(event) => setScenarioName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void createScenario(); } }} placeholder="The Sunken Observatory" disabled={scenarioCreating || scenarioRenaming} /></label>
-          <label>Starting point<select value={scenarioMode} onChange={(event) => setScenarioMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenarioCreating || scenarioRenaming}>
-            <option value="party">Fresh scenario — current party only</option>
-            <option value="duplicate">Duplicate current map and tokens</option>
-          </select></label>
-          <p className="scenario-mode-help">{scenarioMode === "duplicate" ? "Copies the map and every token. Combat, initiative, effects, and history start clean." : "Copies Dar'eleth, Jelton, and Malichar at full health. Choose a map and add encounters afterward."}</p>
-          {scenarioError ? <div className="form-error" role="alert">{scenarioError}</div> : null}
-          <div className="button-row">
-            <button className="secondary-button" onClick={() => setScenarioCreatorOpen(false)} disabled={scenarioCreating || scenarioRenaming || handoutUploading}>Close</button>
-            <button className={`primary-button${scenarioCreating ? " is-pending" : ""}`} onClick={() => void createScenario()} disabled={scenarioCreating || scenarioRenaming || handoutUploading || scenarioName.trim().length < 3}>{scenarioCreating ? "Creating…" : "Create and open"}</button>
-          </div>
-        </section>
-      </div> : null}
-      {lightboxHandout?.available ? <HandoutLightbox
-        participant={participant}
-        encounterCode={state.encounter.code}
-        handout={lightboxHandout}
-        fitMode={handoutFitMode}
-        onFitModeChange={setHandoutFitMode}
-        onClose={() => setLightboxHandout(null)}
-      /> : null}
+      <EncounterDialogs
+        participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
+        scenario={scenarioControls} handoutTitle={handoutTitle} handoutUploading={handoutUploading}
+        handoutUploadError={handoutUploadError} handoutDeletingId={handoutDeletingId}
+        lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
+        onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen}
+        onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
+        onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
+        onHandoutTitle={setHandoutTitle}
+        onUploadHandout={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId)}
+        onPreviewHandout={(handout) => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }}
+        onDeleteHandout={(handout) => void deleteHandout(handout)} onHandoutFitMode={setHandoutFitMode}
+        onCloseLightbox={() => setLightboxHandout(null)}
+      />
     </main>
   );
 }
