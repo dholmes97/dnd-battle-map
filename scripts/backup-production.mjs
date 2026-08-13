@@ -80,7 +80,7 @@ try {
   const sqliteImport = join(d1Directory, "restore.sql");
   const restoreSql = await buildRestoreSql(d1Index, d1Checksums, workingDirectory);
   await writeFile(sqliteImport, restoreSql, { encoding: "utf8", mode: 0o600, flag: "wx" });
-  await runCommand("sqlite3", [sqlitePath, ".read " + sqliteImport]);
+  await runCommand("sqlite3", [sqlitePath], restoreSql);
   const integrity = (await runCommand("sqlite3", [sqlitePath, "PRAGMA integrity_check;"])).trim();
   if (integrity !== "ok") throw new Error(`SQLite integrity check failed: ${integrity}`);
   await chmod(sqlitePath, 0o600);
@@ -164,7 +164,7 @@ function validateD1Index(index) {
   if (index?.formatVersion !== 1 || !Array.isArray(index.tables) || !Array.isArray(index.schema)) throw new Error("Invalid D1 backup index.");
   const names = new Set();
   for (const table of index.tables) {
-    if (!/^[a-z][a-z0-9_]*$/.test(table.name) || !Number.isSafeInteger(table.rowCount) || table.rowCount < 0 || names.has(table.name)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table.name) || !Number.isSafeInteger(table.rowCount) || table.rowCount < 0 || names.has(table.name)) {
       throw new Error("Invalid D1 table metadata in backup index.");
     }
     names.add(table.name);
@@ -250,14 +250,15 @@ function posixRelative(from, to) {
   return relative(from, to).split("\\").join("/");
 }
 
-function runCommand(command, arguments_) {
+function runCommand(command, arguments_, input = null) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, arguments_, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, arguments_, { stdio: [input === null ? "ignore" : "pipe", "pipe", "pipe"] });
     const stdout = [];
     const stderr = [];
     child.stdout.on("data", (chunk) => stdout.push(chunk));
     child.stderr.on("data", (chunk) => stderr.push(chunk));
     child.on("error", reject);
+    if (input !== null) child.stdin.end(input);
     child.on("close", (code) => {
       if (code === 0) resolvePromise(Buffer.concat(stdout).toString("utf8"));
       else reject(new Error(`${command} failed (${code}): ${Buffer.concat(stderr).toString("utf8").trim()}`));

@@ -7,6 +7,14 @@ production schema, persistence code, or stored assets:
 PRODUCTION_BACKUP_TOKEN="…" npm run backup:production
 ```
 
+Re-verify the newest completed snapshot independently at any time:
+
+```bash
+npm run backup:verify
+```
+
+Pass an absolute snapshot path after `--` to verify a particular backup.
+
 For convenience, the command also accepts the existing `CATALOG_IMPORT_TOKEN`.
 The production Worker must have the same secret configured as either
 `PRODUCTION_BACKUP_TOKEN` or `CATALOG_IMPORT_TOKEN`. The dedicated variable is
@@ -36,6 +44,10 @@ URLs must use HTTPS; HTTP is accepted only for localhost testing.
 - `r2/objects/**` mirrors every R2 key and preserves its original path.
 - `COMPLETE` exists only after all downloads, row and byte counts, checksums,
   and SQLite integrity validation succeed.
+
+The separate verifier re-hashes the marker and manifest, every D1 artifact and
+R2 object, compares all declared sizes and counts, rejects missing or unexpected
+object files, and re-runs SQLite integrity and per-table count checks.
 
 The command never overwrites an existing snapshot. If it fails, it leaves a
 directory ending in `.incomplete` for diagnosis; that directory is not a valid

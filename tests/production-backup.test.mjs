@@ -15,10 +15,12 @@ test("production backup command creates a verified immutable sibling snapshot", 
   workerUrl.searchParams.set("backup-test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
   const tables = new Map([
+    ["__appgarden_migrations", [{ id: 17, name: "0016_tiny_miek.sql" }]],
     ["encounters", [{ id: "encounter-1", code: "TEST", name: "Test", version: 1, status: "setup", map_asset: "", map_package_json: null, active_map_preset_id: null, grid_width: 24, grid_height: 16, current_round: 0, active_initiative_order: null, strict_movement: 0, updated_at: 1 }]],
     ["app_maintenance", [{ id: "cleanup", completed_at: 1 }]],
   ]);
   const schema = [
+    { type: "table", name: "__appgarden_migrations", tbl_name: "__appgarden_migrations", sql: "CREATE TABLE __appgarden_migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL)" },
     { type: "table", name: "encounters", tbl_name: "encounters", sql: "CREATE TABLE encounters (id TEXT PRIMARY KEY, code TEXT NOT NULL, name TEXT NOT NULL, version INTEGER NOT NULL, status TEXT NOT NULL, map_asset TEXT NOT NULL, map_package_json TEXT, active_map_preset_id TEXT, grid_width INTEGER NOT NULL, grid_height INTEGER NOT NULL, current_round INTEGER NOT NULL, active_initiative_order INTEGER, strict_movement INTEGER NOT NULL, updated_at INTEGER NOT NULL)" },
     { type: "table", name: "app_maintenance", tbl_name: "app_maintenance", sql: "CREATE TABLE app_maintenance (id TEXT PRIMARY KEY, completed_at INTEGER NOT NULL)" },
   ];
@@ -28,7 +30,7 @@ test("production backup command creates a verified immutable sibling snapshot", 
     MAP_ASSETS: fakeR2(objects),
     ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
   };
-  const root = await mkdtemp(join(tmpdir(), "battle-map-backup-test-"));
+  const root = await mkdtemp(join(tmpdir(), "battle map backup test "));
   const originalFetch = globalThis.fetch;
   const originalEnvironment = {
     PRODUCTION_BACKUP_TOKEN: process.env.PRODUCTION_BACKUP_TOKEN,
@@ -47,12 +49,21 @@ test("production backup command creates a verified immutable sibling snapshot", 
     const backup = join(root, backupName);
     const manifest = JSON.parse(await readFile(join(backup, "manifest.json"), "utf8"));
     assert.equal(manifest.d1.integrityCheck, "ok");
-    assert.equal(manifest.d1.rowCount, 2);
+    assert.equal(manifest.d1.rowCount, 3);
     assert.equal(manifest.r2.objectCount, objects.size);
     assert.equal(manifest.r2.byteCount, [...objects.values()].reduce((sum, bytes) => sum + bytes.length, 0));
     await access(join(backup, "COMPLETE"));
     assert.equal((await stat(join(backup, "d1", "production.sqlite3"))).size > 0, true);
     for (const [key, bytes] of objects) assert.deepEqual(await readFile(join(backup, "r2", "objects", key)), bytes);
+    const originalArgv = process.argv;
+    try {
+      process.argv = [process.execPath, "scripts/verify-production-backup.mjs", backup];
+      const verifyScript = new URL("../scripts/verify-production-backup.mjs", import.meta.url);
+      verifyScript.searchParams.set("test", `${process.pid}-${Date.now()}`);
+      await import(verifyScript.href);
+    } finally {
+      process.argv = originalArgv;
+    }
   } finally {
     globalThis.fetch = originalFetch;
     for (const [key, value] of Object.entries(originalEnvironment)) {
@@ -70,7 +81,7 @@ function fakeD1(tables, schema) {
       return {
         bind(...values) { bindings.push(...values); return this; },
         async first() {
-          const countMatch = sql.match(/^SELECT COUNT\(\*\) AS count FROM "([a-z_]+)"$/);
+          const countMatch = sql.match(/^SELECT COUNT\(\*\) AS count FROM "([A-Za-z0-9_]+)"$/);
           if (countMatch) return { count: tables.get(countMatch[1])?.length ?? 0 };
           throw new Error(`Unexpected first query: ${sql}`);
         },
@@ -81,7 +92,7 @@ function fakeD1(tables, schema) {
           if (/SELECT type, name, tbl_name AS tableName, sql FROM sqlite_master/.test(sql)) {
             return { results: schema.map((entry) => ({ type: entry.type, name: entry.name, tableName: entry.tbl_name, sql: entry.sql })) };
           }
-          const rowMatch = sql.match(/^SELECT \* FROM "([a-z_]+)" ORDER BY rowid LIMIT \? OFFSET \?$/);
+          const rowMatch = sql.match(/^SELECT \* FROM "([A-Za-z0-9_]+)" ORDER BY rowid LIMIT \? OFFSET \?$/);
           if (rowMatch) return { results: (tables.get(rowMatch[1]) ?? []).slice(bindings[1], bindings[1] + bindings[0]) };
           throw new Error(`Unexpected all query: ${sql}`);
         },
