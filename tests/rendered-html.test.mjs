@@ -13,6 +13,7 @@ async function readFile(file, encoding) {
       "../app/handout-images.tsx",
       "../app/chat-handouts-ui.tsx",
       "../app/use-chat-handouts.ts",
+      "../app/use-token-controls.ts",
     ].map((path) => readNodeFile(new URL(path, import.meta.url), encoding)));
     return [source, ...extractedSources].join("\n");
   }

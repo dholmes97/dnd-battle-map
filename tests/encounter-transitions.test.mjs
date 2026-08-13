@@ -45,11 +45,13 @@ test("HP transition clamps damage and healing and derives the visible band", () 
 });
 
 test("both adapters invoke the same movement and HP transitions", async () => {
-  const [client, worker, tokenCommands] = await Promise.all([
+  const [clientShell, tokenControls, worker, tokenCommands] = await Promise.all([
     readFile(new URL("../app/battle-map-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/use-token-controls.ts", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../worker/commands/token-effect-commands.ts", import.meta.url), "utf8"),
   ]);
+  const client = `${clientShell}\n${tokenControls}`;
   assert.match(client, /transitionTokenMove\(/);
   assert.match(worker, /transitionTokenMove\(/);
   assert.match(client, /transitionHp\(/);

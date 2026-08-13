@@ -269,6 +269,8 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     localRedoHistoryRef.current = [];
   };
 
+  const nextTokenMutationSequence = () => ++tokenMutationSequenceRef.current;
+
   return {
     participant,
     setParticipant,
@@ -290,5 +292,6 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     moveSequenceRef,
     tokenMutationSequenceRef,
     optimisticSequenceRef,
+    nextTokenMutationSequence,
   };
 }
