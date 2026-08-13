@@ -1,3 +1,5 @@
+import { defaultSharedFogPolygon } from "./fog-of-war.mjs";
+
 export type MapBiome = "forest" | "dungeon" | "cave" | "ruins" | "swamp" | "desert" | "tundra" | "volcanic" | "coast";
 export type MapMood = "daylight" | "overcast" | "moonlight" | "torchlight";
 export type MapRotation = 0 | 90 | 180 | 270;
@@ -192,7 +194,7 @@ function parseFogSegment(value: unknown, width: number, height: number): FogSegm
 
 function parseFog(value: unknown, width: number, height: number): FogConfig | null {
   const item = record(value);
-  if (!item) return { mode: "off", sharedPolygon: [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }], walls: [], doors: [], circles: [] };
+  if (!item) return { mode: "off", sharedPolygon: defaultSharedFogPolygon(width, height), walls: [], doors: [], circles: [] };
   const mode = item.mode;
   if (mode !== "off" && mode !== "shared" && mode !== "dynamic") return null;
   const sharedPolygon = parsedList(item.sharedPolygon, (entry) => parseFogPoint(entry, width, height));

@@ -16,6 +16,7 @@ test("full-scene maps are package-safe production assets", async () => {
     assert.equal(parsed?.height, definition.height ?? 16);
     assert.equal(parsed?.visual.assetUrl, definition.assetUrl);
     assert.deepEqual(parsed?.sceneObjects, []);
+    assert.equal(parsed?.fog.sharedPolygon.length, 8);
     assert.equal("terrain" in map, false);
     assert.equal("stamps" in map, false);
 
@@ -61,4 +62,15 @@ test("validation rejects old editor packages, external images, and oversized dat
   assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, walls: Array.from({ length: 161 }, (_, index) => ({ id: `w-${index}`, x1: 0, y1: 0, x2: 1, y2: 1 })) } }), null);
   assert.equal(parseMapPackage({ ...valid, fog: { ...valid.fog, circles: Array.from({ length: 33 }, (_, index) => ({ id: `c-${index}`, x: 1, y: 1, radius: 0.5 })) } }), null);
   assert.equal(parseMapPackage({ ...valid, format: "unknown-map" }), null);
+});
+
+test("map packages preserve deliberately simplified shared-fog polygons", () => {
+  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  map.fog.sharedPolygon = [
+    { x: 0, y: 0 },
+    { x: map.width, y: 0 },
+    { x: map.width, y: map.height },
+    { x: 0, y: map.height },
+  ];
+  assert.equal(parseMapPackage(JSON.parse(JSON.stringify(map)))?.fog.sharedPolygon.length, 4);
 });

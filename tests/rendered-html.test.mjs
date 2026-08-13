@@ -1078,9 +1078,14 @@ test("ships all three authoritative fog-of-war modes and private vision guides",
   assert.match(clientSource, /DM-controlled shared fog/);
   assert.match(clientSource, /Dynamic character vision/);
   assert.match(clientSource, /aria-label="Edit shared fog"/);
+  assert.match(clientSource, /Remove selected/);
+  assert.ok([...clientSource.matchAll(/fillStyle = (?:participant\.role[^\n]+: )?"rgb\(0, 0, 0\)"/g)].length >= 2);
   assert.match(workshopSource, /Vision wall/);
   assert.match(workshopSource, /Vision door/);
   assert.match(workshopSource, /Round blocker/);
+  assert.match(workshopSource, /drag either endpoint to reshape it/);
+  assert.match(workshopSource, /dragFogBlocker/);
+  assert.match(workshopSource, /freeFogPoint/);
   assert.match(workerSource, /command === "update-shared-fog"/);
   assert.match(workerSource, /pointVisibleToViewer\(token, fogVisibility\)/);
   assert.match(workerSource, /if \(encounter\.version === lastVersion\)[\s\S]*status: 204[\s\S]*const state = await encounterState/);

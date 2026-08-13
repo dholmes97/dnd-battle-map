@@ -3,10 +3,35 @@ const ANGLE_EPSILON = 0.00001;
 // ray casting comfortably below a frame budget on maps with many blockers.
 const CIRCLE_SIDES = 16;
 
+export function defaultSharedFogPolygon(width, height) {
+  return [
+    { x: 0, y: 0 }, { x: width / 2, y: 0 }, { x: width, y: 0 },
+    { x: width, y: height / 2 }, { x: width, y: height }, { x: width / 2, y: height },
+    { x: 0, y: height }, { x: 0, y: height / 2 },
+  ];
+}
+
+export function ensureSharedFogPolygon(polygon, width, height) {
+  const oldDefault = [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }];
+  const isOldDefault = polygon?.length === oldDefault.length && polygon.every((point, index) => point.x === oldDefault[index].x && point.y === oldDefault[index].y);
+  return isOldDefault ? defaultSharedFogPolygon(width, height) : polygon;
+}
+
+export function insertSharedFogPoint(polygon) {
+  if (!Array.isArray(polygon) || polygon.length < 2) return polygon;
+  let edgeIndex = 0; let longest = -1;
+  polygon.forEach((start, index) => {
+    const end = polygon[(index + 1) % polygon.length]; const length = Math.hypot(end.x - start.x, end.y - start.y);
+    if (length > longest) { longest = length; edgeIndex = index; }
+  });
+  const start = polygon[edgeIndex]; const end = polygon[(edgeIndex + 1) % polygon.length];
+  return [...polygon.slice(0, edgeIndex + 1), { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }, ...polygon.slice(edgeIndex + 1)];
+}
+
 export function defaultFogConfig(width, height) {
   return {
     mode: "off",
-    sharedPolygon: [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }],
+    sharedPolygon: defaultSharedFogPolygon(width, height),
     walls: [], doors: [], circles: [],
   };
 }
@@ -29,12 +54,57 @@ export function distanceToSegment(point, start, end) {
 }
 
 export function fogBlockerAtPoint(fog, point, tolerance = 0.3) {
-  const circle = [...fog.circles].reverse().find((item) => Math.abs(Math.hypot(point.x - item.x, point.y - item.y) - item.radius) <= tolerance);
-  if (circle) return { kind: "circle", id: circle.id };
-  const door = [...fog.doors].reverse().find((item) => distanceToSegment(point, item, { x: item.x2, y: item.y2 }) <= tolerance);
-  if (door) return { kind: "door", id: door.id };
-  const wall = [...fog.walls].reverse().find((item) => distanceToSegment(point, item, { x: item.x2, y: item.y2 }) <= tolerance);
-  return wall ? { kind: "wall", id: wall.id } : null;
+  const target = fogBlockerHandleAtPoint(fog, point, tolerance);
+  return target ? { kind: target.kind, id: target.id } : null;
+}
+
+function blockerTargets(fog, preferred) {
+  const targets = [];
+  if (preferred) targets.push(preferred);
+  for (const kind of ["circle", "door", "wall"]) {
+    const collection = kind === "circle" ? fog.circles : kind === "door" ? fog.doors : fog.walls;
+    for (const item of [...collection].reverse()) if (!preferred || preferred.kind !== kind || preferred.id !== item.id) targets.push({ kind, id: item.id });
+  }
+  return targets;
+}
+
+export function fogBlockerHandleAtPoint(fog, point, tolerance = 0.3, preferred = null) {
+  for (const target of blockerTargets(fog, preferred)) {
+    const collection = target.kind === "circle" ? fog.circles : target.kind === "door" ? fog.doors : fog.walls;
+    const item = collection.find((candidate) => candidate.id === target.id); if (!item) continue;
+    if (target.kind === "circle") {
+      const distance = Math.hypot(point.x - item.x, point.y - item.y);
+      if (Math.abs(distance - item.radius) <= tolerance) return { ...target, handle: "radius" };
+      if (distance <= item.radius) return { ...target, handle: "body" };
+      continue;
+    }
+    if (Math.hypot(point.x - item.x1, point.y - item.y1) <= tolerance) return { ...target, handle: "start" };
+    if (Math.hypot(point.x - item.x2, point.y - item.y2) <= tolerance) return { ...target, handle: "end" };
+    if (distanceToSegment(point, item, { x: item.x2, y: item.y2 }) <= tolerance) return { ...target, handle: "body" };
+  }
+  return null;
+}
+
+const rounded = (value) => Math.round(value * 1000) / 1000;
+const bounded = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+
+export function dragFogBlocker(fog, target, start, current, width, height) {
+  const collectionName = target.kind === "circle" ? "circles" : target.kind === "door" ? "doors" : "walls";
+  const item = fog[collectionName].find((candidate) => candidate.id === target.id);
+  if (!item) return fog;
+  let updated;
+  if (target.kind === "circle") {
+    if (target.handle === "radius") updated = { ...item, radius: rounded(bounded(Math.hypot(current.x - item.x, current.y - item.y), 0.1, Math.max(width, height))) };
+    else updated = { ...item, x: rounded(bounded(item.x + current.x - start.x, 0, width)), y: rounded(bounded(item.y + current.y - start.y, 0, height)) };
+  } else if (target.handle === "start") updated = { ...item, x1: rounded(bounded(current.x, 0, width)), y1: rounded(bounded(current.y, 0, height)) };
+  else if (target.handle === "end") updated = { ...item, x2: rounded(bounded(current.x, 0, width)), y2: rounded(bounded(current.y, 0, height)) };
+  else {
+    const requestedX = current.x - start.x; const requestedY = current.y - start.y;
+    const deltaX = bounded(requestedX, -Math.min(item.x1, item.x2), width - Math.max(item.x1, item.x2));
+    const deltaY = bounded(requestedY, -Math.min(item.y1, item.y2), height - Math.max(item.y1, item.y2));
+    updated = { ...item, x1: rounded(item.x1 + deltaX), y1: rounded(item.y1 + deltaY), x2: rounded(item.x2 + deltaX), y2: rounded(item.y2 + deltaY) };
+  }
+  return { ...fog, [collectionName]: fog[collectionName].map((candidate) => candidate.id === target.id ? updated : candidate) };
 }
 
 function blockerSegments(fog, width, height) {

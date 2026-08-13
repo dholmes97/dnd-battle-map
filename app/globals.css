@@ -511,6 +511,29 @@ input:focus {
 .map-canvas.is-dragging, .map-canvas.is-panning { cursor: grabbing; }
 .map-canvas.is-placing { cursor: copy; }
 .map-canvas.is-erasing { cursor: cell; }
+.map-canvas.is-editing-fog { cursor: crosshair; }
+
+.fog-live-controls {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.45rem;
+  border: 1px solid rgba(183, 156, 255, 0.65);
+  border-radius: 0.55rem;
+  background: rgba(17, 14, 22, 0.94);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.48);
+}
+.fog-live-controls span { padding: 0 0.25rem; color: #d6c9e8; font-size: 0.65rem; white-space: nowrap; }
+.fog-live-controls button { min-height: 1.9rem; padding: 0.35rem 0.55rem; border: 1px solid #4d4658; border-radius: 0.35rem; background: #211d27; color: #eee8f5; font-size: 0.62rem; font-weight: 800; white-space: nowrap; }
+.fog-live-controls button:hover:not(:disabled) { border-color: #b79cff; }
+.fog-live-controls button.is-danger { border-color: #70423d; color: #dda098; }
+.fog-live-controls button:disabled { opacity: 0.4; }
 
 .creature-palette, .spell-palette {
   position: absolute;
@@ -1285,6 +1308,7 @@ input:focus {
 .fog-workshop-panel .button-row { grid-template-columns: 1fr 1fr; }
 .selected-fog-blocker { margin-top: 0.5rem; padding: 0.45rem; display: grid; gap: 0.35rem; border: 1px solid #4a4057; border-radius: 0.38rem; background: #17141b; }
 .selected-fog-blocker strong { color: #c7b7dc; font-size: 0.6rem; text-transform: capitalize; }
+.selected-fog-blocker small { color: #92889e; font-size: 0.55rem; line-height: 1.35; }
 .selected-fog-blocker button { min-height: 1.8rem; font-size: 0.58rem; }
 
 .scene-kit-list { display: grid; gap: 0.3rem; }
@@ -1409,6 +1433,8 @@ input:focus {
   .workshop-header p, .draft-status { display: none; }
   .workshop-header-actions { flex: 0 0 auto; }
   .workshop-controls section { padding-inline: 0.2rem; }
+  .fog-live-controls { flex-wrap: wrap; justify-content: center; width: calc(100% - 1rem); bottom: 0.5rem; }
+  .fog-live-controls span { flex-basis: 100%; text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

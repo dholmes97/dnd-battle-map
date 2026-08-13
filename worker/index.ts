@@ -22,7 +22,7 @@ import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action
 import { healthBand } from "../shared/health.mjs";
 import { movementPolicyDenial } from "../shared/battle-map-policies.mjs";
 import { calculateDirectDistance } from "../shared/battle-map-geometry.mjs";
-import { pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.mjs";
+import { ensureSharedFogPolygon, pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.mjs";
 import {
   historyConflictMessage,
   mapPackageForViewer,
@@ -2650,7 +2650,7 @@ async function handleCommand(
     const mapPackage = cleanMapPackage(encounter.map_package_json);
     if (!mapPackage) return json({ error: "Apply a map before enabling fog of war." }, { status: 400 });
     const previousMode = mapPackage.fog.mode;
-    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, mode } };
+    const nextPackage = { ...mapPackage, fog: { ...mapPackage.fog, mode, sharedPolygon: mode === "shared" ? ensureSharedFogPolygon(mapPackage.fog.sharedPolygon, mapPackage.width, mapPackage.height) : mapPackage.fog.sharedPolygon } };
     await env.DB.prepare("UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?")
       .bind(JSON.stringify(nextPackage), now, encounter.id).run();
     await bumpEncounter(env, encounter.id, now);

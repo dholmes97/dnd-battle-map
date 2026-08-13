@@ -22,7 +22,7 @@ import {
   tokenRadiusCells,
 } from "@/shared/creature-library";
 import { type MapPackage } from "@/shared/map-package";
-import { visibilityPolygon } from "@/shared/fog-of-war.mjs";
+import { ensureSharedFogPolygon, insertSharedFogPoint, visibilityPolygon } from "@/shared/fog-of-war.mjs";
 import { displayHealth, healthBand } from "@/shared/health.mjs";
 import { mapSceneContentKey, movementPolicyDenial } from "@/shared/battle-map-policies.mjs";
 import {
@@ -1041,6 +1041,7 @@ function drawMap(
   showColoredTokenCenters: boolean,
   showHealthRings: boolean,
   sharedFogPreview: MapPoint[] | null,
+  selectedSharedFogVertex: number | null,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1110,14 +1111,14 @@ function drawMap(
       const polygon = participant.role === "dm" ? sharedFogPreview ?? mapPackage?.fog.sharedPolygon ?? [] : serverFog.hiddenPolygon ?? [];
       if (polygon.length >= 3) {
         context.beginPath(); polygon.forEach((point, index) => index ? context.lineTo(screenX(point.x), screenY(point.y)) : context.moveTo(screenX(point.x), screenY(point.y))); context.closePath();
-        context.fillStyle = participant.role === "dm" ? "rgba(6, 7, 10, 0.42)" : "rgba(3, 4, 7, 0.96)"; context.fill();
+        context.fillStyle = participant.role === "dm" ? "rgba(6, 7, 10, 0.42)" : "rgb(0, 0, 0)"; context.fill();
         if (participant.role === "dm") {
           context.strokeStyle = "rgba(183, 156, 255, 0.85)"; context.lineWidth = 2; context.setLineDash([8, 6]); context.stroke();
           if (sharedFogPreview) {
             context.setLineDash([]);
-            for (const point of polygon) {
-              context.fillStyle = "#f6e9ff"; context.strokeStyle = "#7d52a8"; context.lineWidth = 2;
-              context.beginPath(); context.arc(screenX(point.x), screenY(point.y), 6, 0, Math.PI * 2); context.fill(); context.stroke();
+            for (const [index, point] of polygon.entries()) {
+              context.fillStyle = index === selectedSharedFogVertex ? "#f5c65c" : "#f6e9ff"; context.strokeStyle = "#7d52a8"; context.lineWidth = 2;
+              context.beginPath(); context.arc(screenX(point.x), screenY(point.y), index === selectedSharedFogVertex ? 8 : 6, 0, Math.PI * 2); context.fill(); context.stroke();
             }
           }
         }
@@ -1129,7 +1130,7 @@ function drawMap(
       if (mask.width !== maskWidth || mask.height !== maskHeight) { mask.width = maskWidth; mask.height = maskHeight; }
       const maskContext = mask.getContext("2d");
       if (maskContext) {
-        maskContext.clearRect(0, 0, maskWidth, maskHeight); maskContext.fillStyle = "rgba(3, 4, 7, 0.96)"; maskContext.fillRect(0, 0, maskWidth, maskHeight);
+        maskContext.clearRect(0, 0, maskWidth, maskHeight); maskContext.fillStyle = "rgb(0, 0, 0)"; maskContext.fillRect(0, 0, maskWidth, maskHeight);
         maskContext.globalCompositeOperation = "destination-out"; maskContext.fillStyle = "black";
         for (const polygon of fogPolygons) if (polygon.length >= 3) { maskContext.beginPath(); polygon.forEach((point, index) => index ? maskContext.lineTo(screenX(point.x), screenY(point.y)) : maskContext.moveTo(screenX(point.x), screenY(point.y))); maskContext.closePath(); maskContext.fill(); }
         maskContext.globalCompositeOperation = "source-over"; context.drawImage(mask, 0, 0, rect.width, rect.height);
@@ -1411,6 +1412,7 @@ export default function BattleMapPrototype() {
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
   const [editingSharedFog, setEditingSharedFog] = useState(false);
   const [sharedFogPreview, setSharedFogPreview] = useState<MapPoint[] | null>(null);
+  const [selectedSharedFogVertex, setSelectedSharedFogVertex] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1960,8 +1962,8 @@ export default function BattleMapPrototype() {
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const mapScene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview);
-  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, mapScene, tokenArt, viewport, pingStartedAtRef.current, animationNow, effectiveSelectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex);
+  }, [dragOrigin, effectiveSelectedTokenId, gridOpacity, participant, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
   useEffect(() => {
     redraw(); const canvas = canvasRef.current; if (!canvas) return;
     const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect();
@@ -2570,7 +2572,11 @@ export default function BattleMapPrototype() {
     void runOptimisticCommand(
       "set-fog-mode",
       { mode },
-      (current) => ({ ...current, encounter: { ...current.encounter, mapPackage: current.encounter.mapPackage ? { ...current.encounter.mapPackage, fog: { ...current.encounter.mapPackage.fog, mode } } : null, fogVisibility: { ...current.encounter.fogVisibility, mode } } }),
+      (current) => {
+        const mapPackage = current.encounter.mapPackage;
+        const sharedPolygon = mapPackage && mode === "shared" ? ensureSharedFogPolygon(mapPackage.fog.sharedPolygon, mapPackage.width, mapPackage.height) : mapPackage?.fog.sharedPolygon;
+        return { ...current, encounter: { ...current.encounter, mapPackage: mapPackage ? { ...mapPackage, fog: { ...mapPackage.fog, mode, sharedPolygon: sharedPolygon! } } : null, fogVisibility: { ...current.encounter.fogVisibility, mode } } };
+      },
       mode === "off" ? "Fog of war disabled." : mode === "shared" ? "Shared fog enabled." : "Dynamic character vision enabled.",
     );
   };
@@ -2591,6 +2597,20 @@ export default function BattleMapPrototype() {
       (current) => ({ ...current, encounter: { ...current.encounter, mapPackage: current.encounter.mapPackage ? { ...current.encounter.mapPackage, fog: { ...current.encounter.mapPackage.fog, sharedPolygon: polygon } } : null } }),
       "Shared fog updated.",
     );
+  };
+
+  const addLiveSharedFogPoint = () => {
+    const polygon = sharedFogPreview ?? state?.encounter.mapPackage?.fog.sharedPolygon;
+    if (!polygon) return;
+    const next = insertSharedFogPoint(polygon);
+    setSharedFogPreview(next); setSelectedSharedFogVertex(null); updateSharedFogOptimistically(next);
+  };
+
+  const removeLiveSharedFogPoint = () => {
+    const polygon = sharedFogPreview ?? state?.encounter.mapPackage?.fog.sharedPolygon;
+    if (!polygon || selectedSharedFogVertex === null || polygon.length <= 3) return;
+    const next = polygon.filter((_, index) => index !== selectedSharedFogVertex);
+    setSharedFogPreview(next); setSelectedSharedFogVertex(null); updateSharedFogOptimistically(next);
   };
 
   useEffect(() => {
@@ -2936,6 +2956,7 @@ export default function BattleMapPrototype() {
       const vertexIndex = polygon.findIndex((vertex) => Math.hypot((fogPoint.x - vertex.x) * geometry.cellSize, (fogPoint.y - vertex.y) * geometry.cellSize) <= 13);
       event.preventDefault();
       if (vertexIndex < 0) { setNotice("Drag one of the shared-fog corner handles."); return; }
+      setSelectedSharedFogVertex(vertexIndex);
       event.currentTarget.setPointerCapture(event.pointerId);
       fogVertexGestureRef.current = { pointerId: event.pointerId, vertexIndex, polygon: polygon.map((vertex) => ({ ...vertex })) };
       setSharedFogPreview(polygon.map((vertex) => ({ ...vertex })));
@@ -3299,7 +3320,7 @@ export default function BattleMapPrototype() {
           {toolButton("erase", "erase", "Erase line", "E")}
           {participant.role === "dm" ? toolButton("spotlight", "spotlight", "Arcane spotlight", "S") : null}
           {participant.role === "dm" ? toolButton("neon-spotlight", "neon", "Neon arrow", "N") : null}
-          {participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared" ? <button className={`icon-tool${editingSharedFog ? " tool-active" : ""}`} aria-label="Edit shared fog" data-tooltip="Edit shared fog corners" aria-pressed={editingSharedFog} onClick={() => { setEditingSharedFog((current) => { const next = !current; setSharedFogPreview(next ? state.encounter.mapPackage?.fog.sharedPolygon ?? null : null); if (next) fitViewport(); return next; }); setAnnotationMode("move"); }}><Icon name="fog" /></button> : null}
+          {participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared" ? <button className={`icon-tool${editingSharedFog ? " tool-active" : ""}`} aria-label="Edit shared fog" data-tooltip="Edit shared fog corners" aria-pressed={editingSharedFog} onClick={() => { setEditingSharedFog((current) => { const next = !current; setSharedFogPreview(next ? state.encounter.mapPackage?.fog.sharedPolygon ?? null : null); setSelectedSharedFogVertex(null); if (next) fitViewport(); return next; }); setAnnotationMode("move"); }}><Icon name="fog" /></button> : null}
           {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}><Icon name="clear" /></button> : null}
         </div>
         <div className="map-tool-group" role="group" aria-label="Map content">
@@ -3410,7 +3431,8 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={() => { setPlacementPreview(null); setSpellPlacementPreview(null); }} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addLiveSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeLiveSharedFogPoint}>Remove selected</button><button type="button" onClick={() => { setEditingSharedFog(false); setSharedFogPreview(null); setSelectedSharedFogVertex(null); }}>Done</button></div> : null}
             {paletteOpen ? <section className="creature-palette" aria-label="Creature palette">
               <div className="palette-heading"><div><small>Quick placement</small><h2>Creature palette</h2></div><IconActionButton variant="close" label="Close creature palette" onClick={() => { setPaletteOpen(false); setArmedCreatureId(null); setPlacementPreview(null); }} /></div>
               {participant.role === "dm"

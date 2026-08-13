@@ -13,7 +13,7 @@ import {
   useState,
 } from "react";
 import { fitGridGeometry } from "@/shared/battle-map-geometry.mjs";
-import { distanceToSegment, fogBlockerAtPoint } from "@/shared/fog-of-war.mjs";
+import { distanceToSegment, dragFogBlocker, ensureSharedFogPolygon, fogBlockerHandleAtPoint } from "@/shared/fog-of-war.mjs";
 import { FULL_SCENE_MAPS, SCENE_KITS, createFullSceneMap, type SceneKitDefinition } from "@/shared/full-scene-maps";
 import { cloneMapPackage, parseMapPackage, type MapPackage, type MapRotation } from "@/shared/map-package";
 import {
@@ -51,6 +51,8 @@ type FogVertexDrag = { pointerId: number; index: number; before: MapPackage };
 type FogCircleDrag = { pointerId: number; center: Point };
 type SelectedAnnotation = { kind: "label" | "note"; id: string };
 type SelectedFogBlocker = { kind: "wall" | "door" | "circle"; id: string };
+type FogBlockerTarget = SelectedFogBlocker & { handle: "start" | "end" | "body" | "radius" };
+type FogBlockerDrag = { pointerId: number; target: FogBlockerTarget; start: Point; before: MapPackage };
 
 const DEFAULT_SCENE = FULL_SCENE_MAPS[0];
 const HISTORY_LIMIT = 50;
@@ -71,6 +73,10 @@ function canvasPoint(canvas: HTMLCanvasElement, map: MapPackage, clientX: number
     x: Math.max(0, Math.min(map.width, (clientX - rect.left - geometry.offsetX) / geometry.cellSize)),
     y: Math.max(0, Math.min(map.height, (clientY - rect.top - geometry.offsetY) / geometry.cellSize)),
   };
+}
+
+function freeFogPoint(point: Point): Point {
+  return { x: Math.round(point.x * 100) / 100, y: Math.round(point.y * 100) / 100 };
 }
 
 function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
@@ -182,6 +188,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const wallDragRef = useRef<WallDrag | null>(null);
   const fogVertexDragRef = useRef<FogVertexDrag | null>(null);
   const fogCircleDragRef = useRef<FogCircleDrag | null>(null);
+  const fogBlockerDragRef = useRef<FogBlockerDrag | null>(null);
   const undoRef = useRef<MapPackage[]>([]);
   const redoRef = useRef<MapPackage[]>([]);
   const [historyCounts, setHistoryCounts] = useState({ undo: 0, redo: 0 });
@@ -239,14 +246,20 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       for (const wall of map.fog.walls) {
         context.strokeStyle = selectedFogBlocker?.kind === "wall" && selectedFogBlocker.id === wall.id ? "#f5c65c" : "#b79cff";
         context.beginPath(); context.moveTo(screenX(wall.x1), screenY(wall.y1)); context.lineTo(screenX(wall.x2), screenY(wall.y2)); context.stroke();
+        if (selectedFogBlocker?.kind === "wall" && selectedFogBlocker.id === wall.id) for (const point of [{ x: wall.x1, y: wall.y1 }, { x: wall.x2, y: wall.y2 }]) { context.fillStyle = "#fff2bd"; context.beginPath(); context.arc(screenX(point.x), screenY(point.y), 6, 0, Math.PI * 2); context.fill(); }
       }
       for (const door of map.fog.doors) {
         context.strokeStyle = selectedFogBlocker?.kind === "door" && selectedFogBlocker.id === door.id ? "#f5c65c" : door.open ? "#70c897" : "#ef9f68";
         context.setLineDash(door.open ? [5, 5] : []); context.beginPath(); context.moveTo(screenX(door.x1), screenY(door.y1)); context.lineTo(screenX(door.x2), screenY(door.y2)); context.stroke(); context.setLineDash([]);
+        if (selectedFogBlocker?.kind === "door" && selectedFogBlocker.id === door.id) for (const point of [{ x: door.x1, y: door.y1 }, { x: door.x2, y: door.y2 }]) { context.fillStyle = "#fff2bd"; context.beginPath(); context.arc(screenX(point.x), screenY(point.y), 6, 0, Math.PI * 2); context.fill(); }
       }
       for (const circle of map.fog.circles) {
         context.strokeStyle = selectedFogBlocker?.kind === "circle" && selectedFogBlocker.id === circle.id ? "#f5c65c" : "#b79cff";
         context.beginPath(); context.ellipse(screenX(circle.x), screenY(circle.y), circle.radius * cellWidth, circle.radius * cellHeight, 0, 0, Math.PI * 2); context.stroke();
+        if (selectedFogBlocker?.kind === "circle" && selectedFogBlocker.id === circle.id) {
+          context.fillStyle = "#fff2bd";
+          for (const point of [{ x: circle.x, y: circle.y }, { x: circle.x + circle.radius, y: circle.y }]) { context.beginPath(); context.arc(screenX(point.x), screenY(point.y), 6, 0, Math.PI * 2); context.fill(); }
+        }
       }
       if (fogCirclePreview) { context.strokeStyle = "#f5c65c"; context.setLineDash([7, 5]); context.beginPath(); context.arc(screenX(fogCirclePreview.center.x), screenY(fogCirclePreview.center.y), fogCirclePreview.radius * cellWidth, 0, Math.PI * 2); context.stroke(); }
       context.restore();
@@ -333,14 +346,20 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       setSelectedFogVertex(insertAfter + 1); setTool("fog-select"); return;
     }
     if (tool === "fog-select" && map.fog.mode === "dynamic") {
-      setSelectedFogBlocker(fogBlockerAtPoint(map.fog, point, Math.max(0.25, 10 / (event.currentTarget.getBoundingClientRect().width / map.width))));
+      const tolerance = Math.max(0.2, 10 / (event.currentTarget.getBoundingClientRect().width / map.width));
+      const target = fogBlockerHandleAtPoint(map.fog, point, tolerance, selectedFogBlocker) as FogBlockerTarget | null;
+      setSelectedFogBlocker(target ? { kind: target.kind, id: target.id } : null);
+      if (target) {
+        fogBlockerDragRef.current = { pointerId: event.pointerId, target, start: freeFogPoint(point), before: cloneMapPackage(map) };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
       return;
     }
     if ((tool === "vision-wall" || tool === "vision-door") && map.fog.mode === "dynamic") {
-      const start = snapMapPoint(point); wallDragRef.current = { pointerId: event.pointerId, start, kind: tool }; setWallPreview({ start, end: start }); event.currentTarget.setPointerCapture(event.pointerId); return;
+      const start = freeFogPoint(point); wallDragRef.current = { pointerId: event.pointerId, start, kind: tool }; setWallPreview({ start, end: start }); event.currentTarget.setPointerCapture(event.pointerId); return;
     }
     if (tool === "vision-circle" && map.fog.mode === "dynamic") {
-      const center = snapMapPoint(point); fogCircleDragRef.current = { pointerId: event.pointerId, center }; setFogCirclePreview({ center, radius: 0.25 }); event.currentTarget.setPointerCapture(event.pointerId); return;
+      const center = freeFogPoint(point); fogCircleDragRef.current = { pointerId: event.pointerId, center }; setFogCirclePreview({ center, radius: 0.25 }); event.currentTarget.setPointerCapture(event.pointerId); return;
     }
     if (tool === "select") {
       const note = mapNoteAt(map, point);
@@ -363,6 +382,8 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
 
   const onPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
     const point = canvasPoint(event.currentTarget, map, event.clientX, event.clientY);
+    const fogBlockerDrag = fogBlockerDragRef.current;
+    if (fogBlockerDrag?.pointerId === event.pointerId) setMap((current) => ({ ...current, fog: dragFogBlocker(fogBlockerDrag.before.fog, fogBlockerDrag.target, fogBlockerDrag.start, freeFogPoint(point), current.width, current.height) }));
     const fogVertexDrag = fogVertexDragRef.current;
     if (fogVertexDrag?.pointerId === event.pointerId) {
       const next = snapMapPoint(point); setMap((current) => ({ ...current, fog: { ...current.fog, sharedPolygon: current.fog.sharedPolygon.map((vertex, index) => index === fogVertexDrag.index ? next : vertex) } }));
@@ -372,22 +393,27 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     const objectDrag = objectDragRef.current;
     if (objectDrag?.pointerId === event.pointerId) setMap((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === objectDrag.objectId ? { ...object, x: Math.max(0, Math.min(current.width - sceneObjectBounds(object).width, Math.round(point.x - objectDrag.offset.x))), y: Math.max(0, Math.min(current.height - sceneObjectBounds(object).height, Math.round(point.y - objectDrag.offset.y))) } : object) }));
     const wallDrag = wallDragRef.current;
-    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: snapMapPoint(point) });
+    if (wallDrag?.pointerId === event.pointerId) setWallPreview({ start: wallDrag.start, end: wallDrag.kind === "wall" ? snapMapPoint(point) : freeFogPoint(point) });
   };
 
   const finishPointer = (event: PointerEvent<HTMLCanvasElement>) => {
+    const fogBlockerDrag = fogBlockerDragRef.current;
+    if (fogBlockerDrag?.pointerId === event.pointerId) {
+      fogBlockerDragRef.current = null;
+      if (JSON.stringify(fogBlockerDrag.before.fog) !== JSON.stringify(map.fog)) { remember(fogBlockerDrag.before); setDirty(true); }
+    }
     const fogVertexDrag = fogVertexDragRef.current;
     if (fogVertexDrag?.pointerId === event.pointerId) { remember(fogVertexDrag.before); setDirty(true); fogVertexDragRef.current = null; }
     const fogCircleDrag = fogCircleDragRef.current;
     if (fogCircleDrag?.pointerId === event.pointerId) {
       const radius = fogCirclePreview?.radius ?? 0; fogCircleDragRef.current = null; setFogCirclePreview(null);
-      if (radius >= 0.25) { const id = crypto.randomUUID(); commit((current) => ({ ...current, fog: { ...current.fog, circles: [...current.fog.circles, { id, x: fogCircleDrag.center.x, y: fogCircleDrag.center.y, radius: Math.round(radius * 2) / 2 }] } })); setSelectedFogBlocker({ kind: "circle", id }); setTool("fog-select"); }
+      if (radius >= 0.25) { const id = crypto.randomUUID(); commit((current) => ({ ...current, fog: { ...current.fog, circles: [...current.fog.circles, { id, x: fogCircleDrag.center.x, y: fogCircleDrag.center.y, radius: Math.round(radius * 20) / 20 }] } })); setSelectedFogBlocker({ kind: "circle", id }); setTool("fog-select"); }
     }
     const objectDrag = objectDragRef.current;
     if (objectDrag?.pointerId === event.pointerId) { remember(objectDrag.before); setDirty(true); objectDragRef.current = null; }
     const wallDrag = wallDragRef.current;
     if (wallDrag?.pointerId === event.pointerId) {
-      const end = snapMapPoint(canvasPoint(event.currentTarget, map, event.clientX, event.clientY)); wallDragRef.current = null; setWallPreview(null);
+      const rawEnd = canvasPoint(event.currentTarget, map, event.clientX, event.clientY); const end = wallDrag.kind === "wall" ? snapMapPoint(rawEnd) : freeFogPoint(rawEnd); wallDragRef.current = null; setWallPreview(null);
       if (end.x !== wallDrag.start.x || end.y !== wallDrag.start.y) {
         const id = crypto.randomUUID();
         if (wallDrag.kind === "wall") commit((current) => ({ ...current, walls: [...current.walls, { id, x1: wallDrag.start.x, y1: wallDrag.start.y, x2: end.x, y2: end.y, style: current.biome === "cave" ? "cave" : current.biome === "ruins" ? "ruined" : "stone" }] }));
@@ -419,11 +445,11 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   };
   const rotateSelected = () => { if (!selectedObjectId) return; commit((current) => ({ ...current, sceneObjects: current.sceneObjects.map((object) => object.id === selectedObjectId ? { ...object, rotation: nextMapRotation(object.rotation) as MapRotation } : object) })); };
   const setFogMode = (mode: MapPackage["fog"]["mode"]) => {
-    commit((current) => ({ ...current, fog: { ...current.fog, mode } }));
+    commit((current) => ({ ...current, fog: { ...current.fog, mode, sharedPolygon: mode === "shared" ? ensureSharedFogPolygon(current.fog.sharedPolygon, current.width, current.height) : current.fog.sharedPolygon } }));
     setSelectedFogVertex(null); setSelectedFogBlocker(null); setTool(mode === "off" ? "select" : "fog-select");
   };
   const resetSharedFog = () => {
-    commit((current) => ({ ...current, fog: { ...current.fog, sharedPolygon: [{ x: 0, y: 0 }, { x: current.width, y: 0 }, { x: current.width, y: current.height }, { x: 0, y: current.height }] } }));
+    commit((current) => ({ ...current, fog: { ...current.fog, sharedPolygon: ensureSharedFogPolygon([{ x: 0, y: 0 }, { x: current.width, y: 0 }, { x: current.width, y: current.height }, { x: 0, y: current.height }], current.width, current.height) } }));
     setSelectedFogVertex(0); setTool("fog-select");
   };
   const deleteSelectedFogItem = () => {
@@ -469,7 +495,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
           <label>Mode<select aria-label="Fog of war mode" value={map.fog.mode} onChange={(event) => setFogMode(event.target.value as MapPackage["fog"]["mode"])}><option value="off">No fog</option><option value="shared">DM-controlled shared fog</option><option value="dynamic">Dynamic character vision</option></select></label>
           {map.fog.mode === "off" ? <p className="workshop-help">The complete map and all normally visible tokens are shown to everyone.</p> : null}
           {map.fog.mode === "shared" ? <><p className="workshop-help">The shaded polygon is hidden from the whole party. Drag its corners inward to reveal the map; add corners for more detailed boundaries.</p><div className="workshop-tool-row"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Move corners</button><button className={tool === "fog-add" ? "is-active" : ""} onClick={() => setTool("fog-add")}>Add corner</button></div><div className="button-row"><button className="secondary-button" onClick={resetSharedFog}>Cover whole map</button><button className="danger-button" disabled={selectedFogVertex === null || map.fog.sharedPolygon.length <= 3} onClick={deleteSelectedFogItem}>Remove corner</button></div></> : null}
-          {map.fog.mode === "dynamic" ? <><p className="workshop-help">Draw invisible sight blockers over walls, doors, rocks, pillars, trees, and statues. Players see their effect, never these guides.</p><div className="workshop-tool-row is-expanded"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Select</button><button className={tool === "vision-wall" ? "is-active" : ""} onClick={() => setTool("vision-wall")}>Vision wall</button><button className={tool === "vision-door" ? "is-active" : ""} onClick={() => setTool("vision-door")}>Vision door</button><button className={tool === "vision-circle" ? "is-active" : ""} onClick={() => setTool("vision-circle")}>Round blocker</button></div>{selectedFogBlocker ? <div className="selected-fog-blocker"><strong>Selected {selectedFogBlocker.kind}</strong>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete blocker</button></div> : null}</> : null}
+          {map.fog.mode === "dynamic" ? <><p className="workshop-help">Draw free-angle sight blockers over walls, doors, rocks, pillars, trees, and statues. With Select, drag a line to move it, drag either endpoint to reshape it, drag inside a circle to move it, or drag its rim to resize.</p><div className="workshop-tool-row is-expanded"><button className={tool === "fog-select" ? "is-active" : ""} onClick={() => setTool("fog-select")}>Select</button><button className={tool === "vision-wall" ? "is-active" : ""} onClick={() => setTool("vision-wall")}>Vision wall</button><button className={tool === "vision-door" ? "is-active" : ""} onClick={() => setTool("vision-door")}>Vision door</button><button className={tool === "vision-circle" ? "is-active" : ""} onClick={() => setTool("vision-circle")}>Round blocker</button></div>{selectedFogBlocker ? <div className="selected-fog-blocker"><strong>Selected {selectedFogBlocker.kind}</strong><small>{selectedFogBlocker.kind === "circle" ? "Drag inside to move · drag rim to resize" : "Drag line to move · drag either endpoint to reshape"}</small>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete blocker</button></div> : null}</> : null}
         </section>
         <section className="scene-kit-panel"><div className="workshop-section-heading"><small>Matched additions</small><strong>Artwork for this scene</strong></div><p className="workshop-help">Drag onto the scene. These pieces share its palette, scale, viewpoint, and lighting.</p><div className="scene-kit-list">{kit.map((item) => <button key={item.id} draggable onDragStart={(event) => onKitDragStart(event, item)} onDragEnd={() => { kitDragRef.current = null; }}><NextImage src={item.assetUrl} alt="" width={64} height={64} unoptimized draggable={false} /><span><strong>{item.name}</strong><small>{item.width} × {item.height} cells</small></span></button>)}</div></section>
         <details className="map-object-list"><summary>Scene details <span>{map.sceneObjects.length + map.walls.length + map.portals.length + map.labels.length + map.notes.length}</span></summary>
