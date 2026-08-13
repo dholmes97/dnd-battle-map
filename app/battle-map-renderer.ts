@@ -1,4 +1,5 @@
 import type { CreatureTemplate } from "@/shared/creature-library";
+import { renderMapPackageOverlayToContext } from "@/app/map-scene-renderer";
 import { tokenRadiusCells } from "@/shared/creature-library";
 import type { EncounterState, MapPoint, ParticipantSession, SharedAnnotation, SharedToken } from "@/shared/contracts";
 import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shared/battle-map-geometry";
@@ -457,7 +458,7 @@ export function drawMap(
   spellPlacementPreview: SpellPlacementPreview | null,
   dragOrigin: MapPoint | null,
   participant: ParticipantSession,
-  mapScene: HTMLCanvasElement | null,
+  mapScene: HTMLImageElement | HTMLCanvasElement | null,
   tokenArt: Map<string, HTMLImageElement>,
   viewport: BattleMapViewport,
   pingStartedAt: ReadonlyMap<string, number>,
@@ -505,6 +506,15 @@ export function drawMap(
       geometry.offsetY,
       geometry.visibleWidth * geometry.cellSize,
       geometry.visibleHeight * geometry.cellSize,
+    );
+    renderMapPackageOverlayToContext(
+      context,
+      mapPackage,
+      geometry.cellSize,
+      geometry.cellSize,
+      geometry.offsetX - geometry.panX * geometry.cellSize,
+      geometry.offsetY - geometry.panY * geometry.cellSize,
+      participant.role === "dm",
     );
   } else {
     context.fillStyle = "#4b4b42";

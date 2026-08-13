@@ -1,6 +1,8 @@
 import type { MapBiome, MapPackage } from "./map-package.ts";
 import { defaultFogConfig } from "./fog-of-war.ts";
 
+export const MAP_SOURCE_PIXELS_PER_CELL = 128;
+
 type FullSceneDefinition = {
   id: string;
   name: string;
@@ -126,22 +128,22 @@ export const FULL_SCENE_MAPS: FullSceneDefinition[] = [
     assetUrl: "/map-assets/haunted-graveyard-chapel-01.jpg",
   },
   {
-    id: "cliffside-switchbacks-v1",
+    id: "cliffside-switchbacks-v2",
     name: "Cliffside Switchbacks",
     description: "A long mountain descent with broad switchbacks, narrow ledges, rocky cover, and staging areas at the summit and valley floor.",
     biome: "tundra",
     mood: "daylight",
-    assetUrl: "/map-assets/cliffside-switchbacks-01.jpg",
+    assetUrl: "/map-assets/cliffside-switchbacks-02.jpg",
     width: 45,
     height: 30,
   },
   {
-    id: "underwater-ruins-v1",
+    id: "underwater-ruins-v2",
     name: "Underwater Ruins",
     description: "A submerged reef basin with sandy channels, coral ridges, ancient ruins, a broken shipwreck, rock arches, and deep trenches.",
     biome: "coast",
     mood: "daylight",
-    assetUrl: "/map-assets/underwater-ruins-01.jpg",
+    assetUrl: "/map-assets/underwater-ruins-02.jpg",
     width: 45,
     height: 30,
   },
@@ -177,8 +179,8 @@ export function createFullSceneMap(definition: FullSceneDefinition): MapPackage 
     visual: {
       kind: "generated-scene",
       assetUrl: definition.assetUrl,
-      pixelWidth: 3072,
-      pixelHeight: 2048,
+      pixelWidth: width * MAP_SOURCE_PIXELS_PER_CELL,
+      pixelHeight: height * MAP_SOURCE_PIXELS_PER_CELL,
     },
     source: { kind: "generated-scene" },
     createdAt: Date.now(),

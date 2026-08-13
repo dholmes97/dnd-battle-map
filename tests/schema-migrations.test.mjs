@@ -32,8 +32,10 @@ test("bootstrap migration preserves customized existing records", async () => {
   const directory = await mkdtemp(join(tmpdir(), "battle-map-migration-upgrade-"));
   const database = join(directory, "existing.sqlite3");
   const migrations = await migrationFiles();
+  const bootstrapIndex = migrations.findIndex((migration) => migration.startsWith("0017_"));
 
-  for (const migration of migrations.slice(0, -1)) {
+  assert.notEqual(bootstrapIndex, -1);
+  for (const migration of migrations.slice(0, bootstrapIndex)) {
     await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
   }
 
@@ -66,7 +68,9 @@ test("bootstrap migration preserves customized existing records", async () => {
     SELECT name || '|' || x || '|' || y || '|' || hp || '|' || max_hp || '|' || updated_at FROM tokens WHERE id = 'custom-token';
     SELECT name || '|' || family || '|' || default_hp || '|' || armor_class || '|' || is_active || '|' || updated_at FROM creature_catalog WHERE id = 'cave-bat';
   `);
-  await sqlite(database, await readFile(new URL(migrations.at(-1), migrationDirectory), "utf8"));
+  for (const migration of migrations.slice(bootstrapIndex)) {
+    await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
+  }
   const after = await query(database, `
     SELECT name || '|' || version || '|' || status || '|' || map_package_json || '|' || updated_at FROM encounters WHERE id = 'custom-encounter';
     SELECT name || '|' || x || '|' || y || '|' || hp || '|' || max_hp || '|' || updated_at FROM tokens WHERE id = 'custom-token';
@@ -77,6 +81,67 @@ test("bootstrap migration preserves customized existing records", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "4");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
+  assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
+});
+
+test("large-map migration upgrades only visual metadata and preserves prepared geometry", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "battle-map-large-map-upgrade-"));
+  const database = join(directory, "existing.sqlite3");
+  const migrations = await migrationFiles();
+
+  for (const migration of migrations.slice(0, -1)) {
+    await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
+  }
+
+  const legacyMap = JSON.stringify({
+    format: "dnd-battle-map",
+    version: 1,
+    id: "cliffside-switchbacks-v1",
+    name: "Cliffside Switchbacks",
+    description: "Prepared large map",
+    biome: "tundra",
+    mood: "daylight",
+    seed: "CLIFFSIDE-SWITCHBACKS-V1",
+    width: 45,
+    height: 30,
+    walls: [],
+    portals: [],
+    labels: [{ id: "label-1", x: 11, y: 7, text: "Upper trail", visibility: "everyone" }],
+    notes: [{ id: "note-1", x: 27, y: 19, text: "Loose rocks" }],
+    fog: {
+      mode: "dynamic",
+      sharedPolygon: [{ x: 0, y: 0 }, { x: 45, y: 0 }, { x: 45, y: 30 }, { x: 0, y: 30 }],
+      walls: [{ id: "wall-1", x1: 1.25, y1: 2.5, x2: 14.75, y2: 9.5 }],
+      doors: [{ id: "door-1", x1: 14.75, y1: 9.5, x2: 16, y2: 10.25, open: false }],
+      circles: [{ id: "circle-1", x: 31.5, y: 22.25, radius: 1.75 }],
+    },
+    visual: { kind: "generated-scene", assetUrl: "/map-assets/cliffside-switchbacks-01.jpg", pixelWidth: 3072, pixelHeight: 2048 },
+    source: { kind: "generated-scene" },
+    createdAt: 123,
+  });
+  const escaped = legacyMap.replaceAll("'", "''");
+  await sqlite(database, `
+    INSERT INTO encounters (id, code, name, version, status, map_asset, map_package_json, grid_width, grid_height, current_round, strict_movement, updated_at)
+    VALUES ('large-encounter', 'LARGE', 'Large Scenario', 9, 'setup', '', '${escaped}', 45, 30, 0, 0, 123);
+    INSERT INTO map_presets (id, encounter_id, name, description, source_prompt, package_json, created_by, created_at, updated_at)
+    VALUES ('large-preset', 'large-encounter', 'Prepared Switchbacks', '', NULL, '${escaped}', 'participant-1', 123, 123);
+  `);
+
+  await sqlite(database, await readFile(new URL(migrations.at(-1), migrationDirectory), "utf8"));
+  const encounterMap = JSON.parse(await query(database, "SELECT map_package_json FROM encounters WHERE id = 'large-encounter';"));
+  const presetMap = JSON.parse(await query(database, "SELECT package_json FROM map_presets WHERE id = 'large-preset';"));
+
+  for (const map of [encounterMap, presetMap]) {
+    assert.equal(map.id, "cliffside-switchbacks-v2");
+    assert.equal(map.seed, "CLIFFSIDE-SWITCHBACKS-V2");
+    assert.equal(map.visual.assetUrl, "/map-assets/cliffside-switchbacks-02.jpg");
+    assert.equal(map.visual.pixelWidth, 5760);
+    assert.equal(map.visual.pixelHeight, 3840);
+    assert.deepEqual(map.fog, JSON.parse(legacyMap).fog);
+    assert.deepEqual(map.labels, JSON.parse(legacyMap).labels);
+    assert.deepEqual(map.notes, JSON.parse(legacyMap).notes);
+  }
+  assert.equal(await query(database, "SELECT version FROM encounters WHERE id = 'large-encounter';"), "10");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { parseMapPackage } from "../shared/map-package.ts";
-import { FULL_SCENE_MAPS, createFullSceneMap } from "../shared/full-scene-maps.ts";
+import { FULL_SCENE_MAPS, MAP_SOURCE_PIXELS_PER_CELL, createFullSceneMap } from "../shared/full-scene-maps.ts";
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
@@ -10,8 +10,8 @@ test("full-scene maps are package-safe production assets", async () => {
   for (const definition of FULL_SCENE_MAPS) {
     const map = createFullSceneMap(definition);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
-    assert.equal(parsed?.visual.pixelWidth, 3072);
-    assert.equal(parsed?.visual.pixelHeight, 2048);
+    assert.equal(parsed?.visual.pixelWidth, parsed?.width * MAP_SOURCE_PIXELS_PER_CELL);
+    assert.equal(parsed?.visual.pixelHeight, parsed?.height * MAP_SOURCE_PIXELS_PER_CELL);
     assert.equal(parsed?.width, definition.width ?? 24);
     assert.equal(parsed?.height, definition.height ?? 16);
     assert.equal(parsed?.visual.assetUrl, definition.assetUrl);
@@ -22,14 +22,15 @@ test("full-scene maps are package-safe production assets", async () => {
     const jpg = await readFile(new URL(`../public/assets/full-map-seeds/${definition.assetUrl.split("/").pop()}`, import.meta.url));
     assert.deepEqual([...jpg.subarray(0, 3)], [255, 216, 255], `${definition.id} JPEG signature`);
     assert.ok(jpg.length > 1_000_000, `${definition.id} should retain production detail`);
+    assert.deepEqual(jpegDimensions(jpg), { width: map.visual.pixelWidth, height: map.visual.pixelHeight }, `${definition.id} source dimensions`);
     const thumbnail = await readFile(new URL(`../public/assets/full-map-thumbnails/${definition.assetUrl.split("/").pop()}`, import.meta.url));
     assert.deepEqual([...thumbnail.subarray(0, 3)], [255, 216, 255], `${definition.id} thumbnail JPEG signature`);
     assert.ok(thumbnail.length > 10_000 && thumbnail.length < 100_000, `${definition.id} should use a compact decoded-memory preview`);
     assert.match(workerSource, new RegExp(`"${definition.assetUrl.split("/").pop()}"`), `${definition.id} should be publicly served`);
   }
-  assert.deepEqual(FULL_SCENE_MAPS.filter((definition) => definition.width === 45).map((definition) => [definition.id, definition.width, definition.height]), [
-    ["cliffside-switchbacks-v1", 45, 30],
-    ["underwater-ruins-v1", 45, 30],
+  assert.deepEqual(FULL_SCENE_MAPS.filter((definition) => definition.width === 45).map((definition) => [definition.id, definition.width, definition.height, createFullSceneMap(definition).visual.pixelWidth, createFullSceneMap(definition).visual.pixelHeight]), [
+    ["cliffside-switchbacks-v2", 45, 30, 5760, 3840],
+    ["underwater-ruins-v2", 45, 30, 5760, 3840],
   ]);
 });
 
@@ -75,3 +76,19 @@ test("map packages preserve deliberately simplified shared-fog polygons", () => 
   ];
   assert.equal(parseMapPackage(JSON.parse(JSON.stringify(map)))?.fog.sharedPolygon.length, 4);
 });
+
+function jpegDimensions(buffer) {
+  let offset = 2;
+  while (offset + 8 < buffer.length) {
+    if (buffer[offset] !== 0xff) throw new Error("Invalid JPEG marker");
+    const marker = buffer[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    const length = buffer.readUInt16BE(offset);
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      return { width: buffer.readUInt16BE(offset + 5), height: buffer.readUInt16BE(offset + 3) };
+    }
+    offset += length;
+  }
+  throw new Error("JPEG dimensions not found");
+}

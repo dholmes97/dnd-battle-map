@@ -2,17 +2,15 @@
 
 import { useCallback, useEffect, useState, type RefObject } from "react";
 import { drawMap, PING_DURATION_MS, tokenHasEffect, type BattleMapViewport, type PlacementPreview, type SpellPlacementPreview, type TokenPreview } from "@/app/battle-map-renderer";
-import { renderMapPackageToCanvas } from "@/app/map-workshop";
 import type { EncounterState, ParticipantSession } from "@/shared/contracts";
 import { mapSceneContentKey } from "@/shared/battle-map-policies";
 import { isSpellShapeArt, SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 
-type RenderedMapScene = { mapId: string; canvas: HTMLCanvasElement };
+type RenderedMapScene = { mapId: string; image: HTMLImageElement };
 
 function release(scene: RenderedMapScene | null): void {
   if (!scene) return;
-  scene.canvas.width = 1;
-  scene.canvas.height = 1;
+  scene.image.src = "";
 }
 
 export function useMapAssets({ state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, pingStartedAtRef, canvasRef }: {
@@ -43,19 +41,18 @@ export function useMapAssets({ state, participant, preview, placementPreview, sp
     const mapPackage = state?.encounter.mapPackage;
     if (!mapPackage) { const timer = window.setTimeout(() => setRenderedMapScene((current) => { release(current); return null; }), 0); return () => window.clearTimeout(timer); }
     let disposed = false;
-    let builtScene: HTMLCanvasElement | null = null;
+    let loadedImage: HTMLImageElement | null = null;
     void new Promise<[string, HTMLImageElement] | null>((resolve) => { const image = new Image(); image.onload = () => resolve([mapPackage.visual.assetUrl, image]); image.onerror = () => resolve(null); image.src = mapPackage.visual.assetUrl; }).then((entry) => {
       if (disposed) return;
-      const scene = document.createElement("canvas"); scene.width = mapPackage.visual.pixelWidth; scene.height = mapPackage.visual.pixelHeight;
-      renderMapPackageToCanvas(scene, mapPackage, new Map(entry ? [entry] : []), participant?.role === "dm");
-      builtScene = scene;
-      setRenderedMapScene((current) => { release(current); return { mapId: mapPackage.id, canvas: scene }; });
+      if (!entry) { setRenderedMapScene((current) => { release(current); return null; }); return; }
+      loadedImage = entry[1];
+      setRenderedMapScene((current) => { release(current); return { mapId: mapPackage.id, image: entry[1] }; });
     });
-    return () => { disposed = true; if (builtScene) { builtScene.width = 1; builtScene.height = 1; } };
+    return () => { disposed = true; if (loadedImage) loadedImage.src = ""; };
     // mapSceneKey is the stable content fingerprint. Encounter response object
-    // identity must not rebuild the full-resolution backing canvas.
+    // identity must not reload the unchanged full-resolution scene asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapSceneKey, participant?.role]);
+  }, [mapSceneKey]);
 
   useEffect(() => {
     const assets = [...new Set([...(state?.tokens.flatMap((token) => token.artAsset && !isSpellShapeArt(token.artAsset) ? [token.artAsset] : []) ?? []), ...(placementArtAsset ? [placementArtAsset] : [])])];
@@ -66,7 +63,7 @@ export function useMapAssets({ state, participant, preview, placementPreview, sp
   }, [placementArtAsset, state?.tokens]);
 
   const redraw = useCallback((animationNow = Date.now()) => {
-    const scene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.canvas : null;
+    const scene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.image : null;
     if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, scene, tokenArt, viewport, pingStartedAtRef.current, animationNow, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex);
   }, [canvasRef, dragOrigin, gridOpacity, participant, pingStartedAtRef, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, selectedTokenId, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
 

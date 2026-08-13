@@ -136,7 +136,9 @@ const MAP_ASSET_KEYS = new Set([
   "river-gorge-bridge-01.jpg",
   "haunted-graveyard-chapel-01.jpg",
   "cliffside-switchbacks-01.jpg",
+  "cliffside-switchbacks-02.jpg",
   "underwater-ruins-01.jpg",
+  "underwater-ruins-02.jpg",
   "grandfather-tree-roots-01.jpg",
   "ravenloft-grand-dining-hall-01.jpg",
 ]);
