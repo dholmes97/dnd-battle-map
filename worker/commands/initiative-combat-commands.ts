@@ -1,16 +1,21 @@
 import { nextInitiativeTurn, orderedInitiativeGroups } from "../../shared/initiative-domain.ts";
 import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
 import type { TokenRow } from "../types.ts";
-import { commandError, type CommandContext, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
-export type InitiativeCombatCommandContext = CommandContext & {
+type InitiativeCombatCommandName =
+  | "set-initiative" | "set-initiative-group" | "start-combat"
+  | "end-turn" | "advance-turn" | "correct-turn";
+type InitiativeCombatDependencies = {
   repository: InitiativeCombatRepository;
   canControl(token: TokenRow): Promise<boolean>;
 };
+export type InitiativeCombatCommandContext<Name extends InitiativeCombatCommandName = InitiativeCombatCommandName> =
+  CommandContextFor<Name, InitiativeCombatDependencies>;
 
-export async function setInitiative(context: InitiativeCombatCommandContext): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
-  const initiative = wholeInitiative(context.body.initiative);
+export async function setInitiative(context: InitiativeCombatCommandContext<"set-initiative">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
+  const initiative = wholeInitiative(context.payload.initiative);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot set initiative for this token.", 403);
@@ -30,15 +35,13 @@ export async function setInitiative(context: InitiativeCombatCommandContext): Pr
   return success(context, { updated: true });
 }
 
-export async function setInitiativeGroup(context: InitiativeCombatCommandContext): Promise<CommandOutcome> {
+export async function setInitiativeGroup(context: InitiativeCombatCommandContext<"set-initiative-group">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const initiative = wholeInitiative(context.body.initiative);
+  const initiative = wholeInitiative(context.payload.initiative);
   if (initiative === null) return commandError("Initiative must be a whole number from 0 to 99.", 400);
   const tokenIds = [...new Set(
-    Array.isArray(context.body.tokenIds)
-      ? context.body.tokenIds.map(cleanId).filter(Boolean)
-      : [],
+    context.payload.tokenIds.map(cleanId).filter(Boolean),
   )].slice(0, 100);
   if (tokenIds.length < 2) {
     return commandError("Choose at least two creatures for a shared initiative group.", 400);
@@ -70,7 +73,7 @@ export async function setInitiativeGroup(context: InitiativeCombatCommandContext
   return success(context, { updated: true, groupId });
 }
 
-export async function startCombat(context: InitiativeCombatCommandContext): Promise<CommandOutcome> {
+export async function startCombat(context: InitiativeCombatCommandContext<"start-combat">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
   const groups = orderedGroups(await context.repository.listInitiativeTokens(context.encounter.id));
@@ -82,11 +85,11 @@ export async function startCombat(context: InitiativeCombatCommandContext): Prom
   return success(context, { started: true });
 }
 
-export async function advanceTurn(
-  context: InitiativeCombatCommandContext,
-  forced: boolean,
+export async function advanceTurn<Name extends "end-turn" | "advance-turn">(
+  context: InitiativeCombatCommandContext<Name>,
+  forced: Name extends "advance-turn" ? true : false,
 ): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
+  const tokenId = "tokenId" in context.payload ? cleanId(context.payload.tokenId) : "";
   if (context.encounter.status !== "active") return commandError("Combat is not active.", 409);
   if (forced && context.participant.role !== "dm") {
     return commandError("Only the DM can force the next turn.", 403);
@@ -113,11 +116,11 @@ export async function advanceTurn(
   return success(context, { advanced: true, ...transition });
 }
 
-export async function correctTurn(context: InitiativeCombatCommandContext): Promise<CommandOutcome> {
+export async function correctTurn(context: InitiativeCombatCommandContext<"correct-turn">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const round = Math.max(1, Math.trunc(Number(context.body.round)) || 1);
-  const activeOrder = Math.trunc(Number(context.body.activeOrder));
+  const round = Math.max(1, Math.trunc(context.payload.round) || 1);
+  const activeOrder = Math.trunc(context.payload.activeOrder);
   if (!await context.repository.orderExists(context.encounter.id, activeOrder)) {
     return commandError("Initiative position not found.", 404);
   }

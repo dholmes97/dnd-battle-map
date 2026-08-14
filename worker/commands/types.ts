@@ -1,5 +1,9 @@
-import type { EncounterState, Role } from "../../shared/contracts.ts";
-import type { CommandName } from "../../shared/contracts.ts";
+import type {
+  CommandName,
+  CommandPayload,
+  EncounterState,
+  Role,
+} from "../../shared/contracts.ts";
 
 export type CommandEncounter = {
   id: string;
@@ -35,19 +39,16 @@ export type CommandServices = {
   recordAction(actionType: string, payload: Record<string, unknown>): Promise<void>;
 };
 
-export type CommandContext = {
+export type CommandContext<Name extends CommandName = CommandName> = {
   encounter: CommandEncounter;
   participant: CommandParticipant;
-  body: Record<string, unknown>;
+  payload: CommandPayload<Name>;
   now: number;
   services: CommandServices;
 };
 
-export type CommandHandler<Context extends CommandContext = CommandContext> =
-  (context: Context) => Promise<CommandOutcome>;
-
-export type CommandHandlerMap<Context extends CommandContext = CommandContext> =
-  Partial<Record<CommandName, CommandHandler<Context>>>;
+export type CommandContextFor<Name extends CommandName, Extra extends object = object> =
+  CommandContext<Name> & Extra;
 
 export function commandError(error: string, status: number): CommandOutcome {
   return { status, payload: { error } };

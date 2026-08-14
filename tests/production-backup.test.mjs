@@ -1,14 +1,70 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { access, mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const token = "test-production-backup-token-000001";
 const objects = new Map([
   ["handouts/encounter-1/example/display.webp", Buffer.from("display bytes")],
   ["creature-catalog/original/tokens/catalog/owlbear.png", Buffer.from([0, 1, 2, 3, 4])],
 ]);
+
+test("production backup endpoints require the dedicated backup token", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("backup-auth-test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const catalogToken = "test-catalog-import-token-00000001";
+  const backupToken = "test-production-backup-token-000001";
+  const request = (path, tokenValue) => new Request(`http://localhost/api/admin/production-backup/${path}`, {
+    headers: { authorization: `Bearer ${tokenValue}` },
+  });
+  const context = { waitUntil() {}, passThroughOnException() {} };
+  const assets = { fetch: async () => new Response("Not found", { status: 404 }) };
+  const mapAssets = fakeR2(new Map());
+
+  for (const path of ["d1", "r2", "r2/object?key=dGVzdA=="]) {
+    const catalogOnlyResponse = await worker.fetch(request(path, catalogToken), {
+      CATALOG_IMPORT_TOKEN: catalogToken,
+      MAP_ASSETS: mapAssets,
+      ASSETS: assets,
+    }, context);
+    assert.equal(catalogOnlyResponse.status, 401);
+  }
+
+  const wrongPrivilegeResponse = await worker.fetch(request("r2", catalogToken), {
+    CATALOG_IMPORT_TOKEN: catalogToken,
+    PRODUCTION_BACKUP_TOKEN: backupToken,
+    MAP_ASSETS: mapAssets,
+    ASSETS: assets,
+  }, context);
+  assert.equal(wrongPrivilegeResponse.status, 401);
+
+  const backupResponse = await worker.fetch(request("r2", backupToken), {
+    CATALOG_IMPORT_TOKEN: catalogToken,
+    PRODUCTION_BACKUP_TOKEN: backupToken,
+    MAP_ASSETS: mapAssets,
+    ASSETS: assets,
+  }, context);
+  assert.equal(backupResponse.status, 200);
+});
+
+test("production backup command does not accept the catalog import token", async () => {
+  const environment = {
+    ...process.env,
+    CATALOG_IMPORT_TOKEN: "test-catalog-import-token-00000001",
+  };
+  delete environment.PRODUCTION_BACKUP_TOKEN;
+  const result = await runNodeScript(
+    fileURLToPath(new URL("../scripts/backup-production.mjs", import.meta.url)),
+    environment,
+  );
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Set PRODUCTION_BACKUP_TOKEN to the production backup secret/);
+  assert.doesNotMatch(result.stderr, /CATALOG_IMPORT_TOKEN/);
+});
 
 test("production backup command creates a verified immutable sibling snapshot", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -115,4 +171,20 @@ function fakeR2(entries) {
       return bytes ? { body: bytes, httpEtag: "\"test\"", httpMetadata: { contentType: "application/octet-stream" } } : null;
     },
   };
+}
+
+function runNodeScript(path, env) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, [path], { env, stdio: ["ignore", "pipe", "pipe"] });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    child.stderr.on("data", (chunk) => stderr.push(chunk));
+    child.on("error", reject);
+    child.on("close", (code) => resolvePromise({
+      code,
+      stdout: Buffer.concat(stdout).toString("utf8"),
+      stderr: Buffer.concat(stderr).toString("utf8"),
+    }));
+  });
 }

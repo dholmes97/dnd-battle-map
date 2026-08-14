@@ -1,8 +1,13 @@
 # Refactor Plan
 
-Last revalidated against the completed working tree after `94d3160` on
-2026-08-13. All seven stages are complete; this document now records the
-result and the constraints that future work should preserve.
+Last revalidated against the completed working tree after `1fffbb7` on
+2026-08-13. All seven stages are complete; this document records the result and
+the constraints that future work should preserve.
+
+An independent follow-up review on 2026-08-13 confirmed every measurement in this
+document against the tree and found six follow-up items, recorded under
+"Follow-up review findings" below. Items 1, 2, 4, and 6 are now complete; items
+3 and 5 remain open. None of them block release.
 
 This plan continues the lightweight ports-and-adapters boundary described in
 `docs/ARCHITECTURE.md`. The framework-free core, typed command families, narrow
@@ -286,6 +291,156 @@ complete unit/component/build/lint/live/browser sequence plus a freshly verified
 production D1/R2 backup outside the repository. Future features should extend
 the existing feature boundary, command family, repository port, or shared
 transition that owns the behavior instead of growing new root-level branches.
+
+## Follow-up review findings
+
+An independent review after `1fffbb7` reproduced every claim above: 36 direct
+`.prepare(...)` calls in `worker/index.ts` and none in `worker/commands/`,
+`handleCommand` at 104 lines, `ensureSchema` at 21, 16 `useState` and 8
+`useEffect` in the root component, zero untyped modules in `shared/`, and a clean
+typecheck, lint, 92/14/8 test run.
+
+It also confirmed the parts worth protecting: zero `as any`, `@ts-ignore`, or
+`as unknown as` across roughly 10,000 lines; a dispatch map guarded by
+`satisfies Record<CommandRequest["command"], …>` so a command name without a
+handler fails to compile; fake-repository unit tests for all six command
+families; constant-time bearer comparison; and handout validation that parses
+magic bytes rather than trusting a declared MIME type.
+
+The six open items below are ordered by value. Each is independent.
+
+### 1. Type the command payloads
+
+**Completed 2026-08-13.** All 31 commands now declare exact payloads in the
+shared contract, the Worker validates unknown input once at its HTTP boundary,
+and command-family handlers receive narrowed payloads. The browser serializer
+retains the existing flat wire format for backward compatibility.
+
+`CommandRequest` in `shared/contracts.ts` is
+`{ command: Name } & Record<string, unknown>`, so `CommandPayload<Name>` carries
+no information. The command *name* is exhaustively typed; the payload is not, and
+every handler still hand-parses fields out of `unknown`. This is the largest
+remaining untyped surface and the most likely source of the next
+`initiative_group_id`-class defect.
+
+Exit criteria: each command declares a typed payload, handlers receive it already
+narrowed, and adding a field to a payload without handling it fails typecheck.
+
+### 2. Pause polling on hidden tabs and back off when idle
+
+**Completed 2026-08-13.** Hidden tabs issue no live-poll or heartbeat requests,
+foreground idle polling backs off from 250 ms to a one-second ceiling, and
+visibility or focus restoration triggers an immediate authoritative refresh.
+
+A measured idle client issues about 1.2 requests per second and never stops. The
+`visibilitychange` listener in `app/use-encounter-sync.ts` only triggers a
+heartbeat; the poll loop itself keeps running on a hidden tab. Four clients across
+a four-hour remote session is roughly 69,000 requests and 138,000 D1 reads
+regardless of whether anything happened.
+
+Related, lower priority: `encounterState` performs a write on every read
+(`expireAnnotations` deletes, then conditionally bumps the version, then the
+encounter is re-read), and issues up to nine sequential D1 round trips that are
+mostly independent and could batch. The 204 fast path already bounds the common
+case, so measure before restructuring.
+
+Exit criteria: a hidden tab stops polling and resumes cleanly on focus, and idle
+request volume falls substantially without delaying a visible client's updates.
+
+### 3. Give token labels collision avoidance
+
+`app/battle-map-renderer.ts` draws a nameplate under every token above the cell
+size threshold with no overlap handling. With tokens adjacent, labels overwrite
+each other and become unreadable — "Ogre Brute" and "Shambling Zombie" currently
+render as one illegible string. Track placed label rectangles per frame and skip
+or offset any that intersect.
+
+Exit criteria: no two nameplates overlap at any zoom level, and a token whose
+label is suppressed is still identifiable by selection or hover.
+
+### 4. Separate the production backup secret from the catalog import secret
+
+**Completed 2026-08-13.** The backup endpoint and local backup command now
+require `PRODUCTION_BACKUP_TOKEN` and fail closed when it is absent. The catalog
+import credential no longer grants backup access.
+
+`authorizedProductionBackup` falls back to `CATALOG_IMPORT_TOKEN` when
+`PRODUCTION_BACKUP_TOKEN` is absent, so the catalog-import secret also grants
+production backup access. These are different privileges and should not share a
+credential.
+
+Exit criteria: production backup requires its own configured secret and fails
+closed when that secret is missing.
+
+### 5. Give `useEncounterSync` a real interface
+
+The hook returns 21 members including eight mutable refs
+(`pendingMovesRef`, `localUndoHistoryRef`, `optimisticSequenceRef`, and others),
+consumed directly by the root component and `use-history-shortcuts`. Those refs
+are internals of the optimistic engine. The component is shorter than before, but
+it is still coupled to how synchronization works rather than to what it does.
+
+Exit criteria: the hook exposes operations rather than storage, and no consumer
+outside `app/use-encounter-sync.ts` touches a pending or sequence ref.
+
+Two smaller cleanups belong with this work: four duplicated local `requireDm`
+helpers across command families, and the roughly 350 lines of canvas gesture
+handling still inline in the root component, which is now the last coherent
+extractable unit there.
+
+### 6. Re-decide the accountless join model
+
+**Reviewed and accepted 2026-08-13.** Keep the public accountless trusted-group
+model as-is. This is an explicit product decision recorded in `AGENTS.md`, not
+an inherited implementation accident.
+
+`cleanRole` returns `"dm"` for any request that asks for it, and there is no rate
+limiting, so anyone who knows the scenario URL can join as the DM. This is the
+documented trusted-group model and was a reasonable trade when the application
+was tokens on a map. The information behind that door has since grown to include
+fog of war, private map notes, DM-only handouts, and private chat.
+
+This is a product decision rather than a defect. Record the outcome either way;
+"reviewed and accepted" is a valid result, but it should be a decision rather
+than an inheritance.
+
+Exit criteria: the chosen model is stated in `AGENTS.md`, and if it changes, the
+join surface enforces it.
+
+### How to sequence these
+
+The six items are independent and none blocks another, so they can land in any
+order. What differs is how much thinking each needs before editing.
+
+**Item 6 needs a decision, not code.** Do not implement anything for it. Surface
+the trade-off, get an answer, and record it. If the answer is "accepted as is",
+that is a completed item.
+
+**Item 1 deserves a proposed shape before any edits.** It is the only one with
+real design latitude, and it touches `shared/contracts.ts`, all six command
+families, and both adapters. There is a genuine choice between a discriminated
+union carrying a typed payload per command, and keeping the envelope loose while
+validating and narrowing at each handler boundary. The first gives compile-time
+coverage but makes the contract file the place every command change goes; the
+second keeps families self-contained but repeats parsing. Weigh both, propose
+one, then migrate command families one at a time rather than in a single sweep —
+each family already has unit tests, so incremental migration stays verifiable.
+
+**Items 3 and 4 are small and self-contained.** Label collision is local to
+`app/battle-map-renderer.ts`; the token split is a few lines in
+`worker/index.ts` plus configuration. Neither needs discussion — implement them
+directly, with a test for each.
+
+**Items 2 and 5 are moderate and benefit from measurement first.** For item 2,
+record the current idle request rate before changing anything so the improvement
+is demonstrable and so a regression is detectable later. For item 5, extract the
+canvas gesture handling before reshaping the hook interface; doing it in that
+order means the hook's remaining consumers are visible rather than inferred.
+
+Whatever is taken on, the existing gate applies unchanged: typecheck, lint, unit,
+component, build, and live suites all pass, and the change extends an existing
+feature boundary, command family, repository port, or shared transition rather
+than adding a new root-level branch.
 
 ## Explicitly not in scope
 

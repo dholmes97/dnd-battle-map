@@ -28,10 +28,13 @@ test("server-renders only the trusted fixed-identity join surface", async () => 
 });
 
 test("keeps one typed transport contract and cohesive adapter boundaries", async () => {
-  const [contracts, worker, architecture] = await Promise.all([source("shared/contracts.ts"), source("worker/index.ts"), source("docs/ARCHITECTURE.md")]);
+  const [contracts, parser, worker, architecture] = await Promise.all([source("shared/contracts.ts"), source("shared/command-parser.ts"), source("worker/index.ts"), source("docs/ARCHITECTURE.md")]);
   assert.match(contracts, /export type EncounterState/);
   assert.match(contracts, /export type CommandName/);
-  assert.match(worker, /const handlers = \{/);
+  assert.match(contracts, /export type CommandPayloadMap/);
+  assert.match(parser, /parseCommandRequest/);
+  assert.match(parser, /satisfies readonly CommandName\[\]/);
+  assert.match(worker, /switch \(request\.command\)/);
   assert.doesNotMatch(worker, /else if \(command ===/);
   assert.match(architecture, /lightweight ports-and-adapters/);
   for (const directory of ["worker/commands/", "worker/adapters/"]) {
@@ -69,6 +72,7 @@ test("packages production backup and storage-preserving release tooling", async 
   assert.match(backup, /R2 object .* changed during backup/);
   assert.match(backupDoc, /sibling/i);
   assert.match(worker, /production-backup/);
+  assert.doesNotMatch(backup, /CATALOG_IMPORT_TOKEN/);
 });
 
 test("does not restore retired fragmented map authoring", async () => {

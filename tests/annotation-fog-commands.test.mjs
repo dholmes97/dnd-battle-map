@@ -32,7 +32,7 @@ function fixture(overrides = {}) {
         updatedAt: 1,
       },
       participant: { id: "dm-1", name: "Kevin", role: "dm" },
-      body: {},
+      payload: {},
       now: 1000,
       repository: {
         updateStrictMovement: async (...args) => calls.push(["strict", ...args]),
@@ -54,7 +54,7 @@ function fixture(overrides = {}) {
 }
 
 test("fog handlers authorize the DM and persist only through their port", async () => {
-  const setup = fixture({ body: { mode: "shared" } });
+  const setup = fixture({ payload: { mode: "shared" } });
   const result = await setFogMode(setup.context);
   assert.equal(result.payload.updated, true);
   assert.equal(setup.calls[0][0], "map");
@@ -67,36 +67,36 @@ test("fog handlers authorize the DM and persist only through their port", async 
 test("strict movement is a validated DM-only setting", async () => {
   const player = fixture({
     participant: { id: "player-1", name: "Dan", role: "player" },
-    body: { enabled: false },
+    payload: { enabled: false },
   });
   assert.equal((await setStrictMovement(player.context)).status, 403);
   assert.deepEqual(player.calls, []);
-  const dm = fixture({ body: { enabled: false } });
+  const dm = fixture({ payload: { enabled: false } });
   assert.equal((await setStrictMovement(dm.context)).payload.updated, true);
   assert.deepEqual(dm.calls[0], ["strict", "encounter-1", false, 1000]);
 });
 
 test("vision doors update one matching geometry entry", async () => {
-  const setup = fixture({ body: { doorId: "door-1", open: true } });
+  const setup = fixture({ payload: { doorId: "door-1", open: true } });
   assert.equal((await setVisionDoorOpen(setup.context)).payload.updated, true);
   const saved = JSON.parse(setup.calls[0][2]);
   assert.equal(saved.fog.doors[0].open, true);
 });
 
 test("transient pings get expiry while durable drawings do not", async () => {
-  const ping = fixture({ body: { annotationType: "ping", x: 2, y: 3 } });
+  const ping = fixture({ payload: { annotationType: "ping", x: 2, y: 3 } });
   await addAnnotation(ping.context);
   assert.equal(ping.calls[0][2].expiresAt, 3000);
-  const drawing = fixture({ body: { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: 5 } });
+  const drawing = fixture({ payload: { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: 5 } });
   await addAnnotation(drawing.context);
   assert.equal(drawing.calls[0][2].expiresAt, null);
 });
 
 test("players can erase only their own durable drawings", async () => {
-  const player = fixture({ participant: { id: "other", name: "Dan", role: "player" }, body: { annotationId: "line-1" } });
+  const player = fixture({ participant: { id: "other", name: "Dan", role: "player" }, payload: { annotationId: "line-1" } });
   assert.equal((await removeAnnotation(player.context)).status, 403);
   assert.equal(player.calls.length, 0);
-  const owner = fixture({ participant: { id: "player-1", name: "Dan", role: "player" }, body: { annotationId: "line-1" } });
+  const owner = fixture({ participant: { id: "player-1", name: "Dan", role: "player" }, payload: { annotationId: "line-1" } });
   assert.equal((await removeAnnotation(owner.context)).payload.removed, true);
   assert.equal(owner.calls[0][0], "remove");
 });

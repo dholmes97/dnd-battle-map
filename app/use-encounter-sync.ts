@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
+import { commandRequest } from "@/shared/command-parser";
+import { scheduleAfterPoll, shouldRunLiveRequests } from "@/shared/live-polling";
 import type {
   CommandName,
   CommandPayload,
@@ -34,7 +36,7 @@ export async function battleMapApi<T>(url: string, options?: RequestInit): Promi
   return data;
 }
 
-export function sessionPayload(participant: ParticipantSession, extra: Record<string, unknown> = {}) {
+export function sessionPayload(participant: ParticipantSession, extra: object = {}) {
   return JSON.stringify({
     participantId: participant.id,
     sessionSecret: participant.sessionSecret,
@@ -100,6 +102,10 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     if (!participant || !joinedCode) return;
     let disposed = false;
     let controller: AbortController | null = null;
+    let delayTimer: ReturnType<typeof setTimeout> | null = null;
+    let wakeDelay: (() => void) | null = null;
+    let wakeVisible: (() => void) | null = null;
+    let refreshOnResume = false;
     let lastVersion = state?.encounter.version ?? 0;
     const headers = viewerHeaders(participant);
     const markLive = () => {
@@ -115,9 +121,46 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
       const fresh = await battleMapApi<EncounterState>(`/api/encounters/${encodeURIComponent(joinedCode)}/state`, { headers });
       if (!disposed) { lastVersion = fresh.encounter.version; acceptAuthoritativeState(fresh); markLive(); }
     };
+    const wait = (milliseconds: number) => new Promise<void>((resolve) => {
+      wakeDelay = () => {
+        if (delayTimer) clearTimeout(delayTimer);
+        delayTimer = null;
+        wakeDelay = null;
+        resolve();
+      };
+      delayTimer = setTimeout(() => wakeDelay?.(), milliseconds);
+    });
+    const waitUntilVisible = () => new Promise<void>((resolve) => {
+      if (shouldRunLiveRequests(document.visibilityState)) { resolve(); return; }
+      wakeVisible = () => { wakeVisible = null; resolve(); };
+    });
+    const wakeForForeground = () => {
+      if (!shouldRunLiveRequests(document.visibilityState)) return;
+      refreshOnResume = true;
+      controller?.abort();
+      wakeDelay?.();
+      wakeVisible?.();
+    };
+    const onVisibilityChange = () => {
+      if (shouldRunLiveRequests(document.visibilityState)) wakeForForeground();
+      else { controller?.abort(); wakeDelay?.(); }
+    };
     const listen = async () => {
-      try { await refresh(); } catch { scheduleLost(); }
+      if (shouldRunLiveRequests(document.visibilityState)) {
+        try { await refresh(); } catch { scheduleLost(); }
+      }
+      let unchangedPolls = 0;
       while (!disposed) {
+        if (!shouldRunLiveRequests(document.visibilityState)) {
+          await waitUntilVisible();
+          if (disposed) return;
+          refreshOnResume = true;
+        }
+        if (refreshOnResume) {
+          refreshOnResume = false;
+          unchangedPolls = 0;
+          try { await refresh(); } catch { scheduleLost(); await wait(750); continue; }
+        }
         controller = new AbortController();
         try {
           const response = await fetch(
@@ -125,24 +168,39 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
             { signal: controller.signal, cache: "no-store", headers },
           );
           if (disposed) return;
-          if (response.status === 204) { markLive(); await new Promise((resolve) => setTimeout(resolve, 250)); continue; }
+          if (response.status === 204) {
+            markLive();
+            const schedule = scheduleAfterPoll(unchangedPolls, false);
+            unchangedPolls = schedule.unchangedPolls;
+            await wait(schedule.delayMs);
+            continue;
+          }
           if (!response.ok) throw new Error("Live updates are unavailable.");
           const next = (await response.json()) as EncounterState;
           lastVersion = next.encounter.version;
           acceptAuthoritativeState(next);
           markLive();
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        } catch (listenError) {
-          if (disposed || (listenError instanceof DOMException && listenError.name === "AbortError")) return;
+          const schedule = scheduleAfterPoll(unchangedPolls, true);
+          unchangedPolls = schedule.unchangedPolls;
+          await wait(schedule.delayMs);
+        } catch {
+          if (disposed) return;
+          if (controller.signal.aborted) continue;
           scheduleLost();
-          await new Promise((resolve) => setTimeout(resolve, 750));
+          await wait(750);
         }
       }
     };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", wakeForForeground);
     void listen();
     return () => {
       disposed = true;
       controller?.abort();
+      wakeDelay?.();
+      wakeVisible?.();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", wakeForForeground);
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
     // The participant identity and encounter code own the long-poll lifecycle.
@@ -151,19 +209,20 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
 
   useEffect(() => {
     if (!participant || !joinedCode) return;
-    const heartbeat = () => battleMapApi<{ present: boolean }>(
-      `/api/encounters/${encodeURIComponent(joinedCode)}/heartbeat`,
-      { method: "POST", body: sessionPayload(participant) },
-    ).catch(() => setConnection((current) => current === "lost" ? "lost" : "reconnecting"));
-    const onVisible = () => { if (document.visibilityState === "visible") void heartbeat(); };
+    const heartbeat = () => {
+      if (!shouldRunLiveRequests(document.visibilityState)) return Promise.resolve();
+      return battleMapApi<{ present: boolean }>(
+        `/api/encounters/${encodeURIComponent(joinedCode)}/heartbeat`,
+        { method: "POST", body: sessionPayload(participant) },
+      ).then(() => undefined).catch(() => setConnection((current) => current === "lost" ? "lost" : "reconnecting"));
+    };
+    const onVisible = () => { if (shouldRunLiveRequests(document.visibilityState)) void heartbeat(); };
     void heartbeat();
     const timer = setInterval(() => void heartbeat(), HEARTBEAT_INTERVAL_MS);
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", heartbeat);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", heartbeat);
     };
   }, [joinedCode, participant]);
 
@@ -183,7 +242,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
   ) => {
     if (!participant || !state) throw new Error("Join the encounter first.");
     const result = await battleMapApi<T>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
-      method: "POST", body: sessionPayload(participant, { command: name, ...extra }),
+      method: "POST", body: sessionPayload(participant, commandRequest(name, extra)),
     });
     beforeAccept?.(result);
     acceptAuthoritativeState(result.state);

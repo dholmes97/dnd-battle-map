@@ -61,7 +61,7 @@ function context(overrides = {}) {
       strictMovement: true, updatedAt: 0,
     },
     participant: { id: "dm", name: "Kevin", role: "dm" },
-    body: {},
+    payload: {},
     now: 10,
     canControl: async () => true,
     isAllowedArt: async () => true,
@@ -79,14 +79,14 @@ test("player-created creatures and spells require the player's root character", 
   const player = { id: "player", name: "Dan", role: "player" };
   const noCaster = context({
     participant: player,
-    body: { name: "Wolf", kind: "monster" },
+    payload: { name: "Wolf", kind: "monster" },
     repository: { findToken: async () => null },
   });
   assert.equal((await createToken(noCaster)).status, 403);
 
   const valid = context({
     participant: player,
-    body: { name: "Wolf", summonerTokenId: "hero", x: 3, y: 3 },
+    payload: { name: "Wolf", summonerTokenId: "hero", x: 3, y: 3 },
   });
   const result = await createToken(valid);
   assert.equal(result.payload.created, true);
@@ -96,7 +96,7 @@ test("player-created creatures and spells require the player's root character", 
 
   const spell = context({
     participant: player,
-    body: { spellId: "moonbeam", summonerTokenId: "hero", x: 5, y: 5 },
+    payload: { spellId: "moonbeam", summonerTokenId: "hero", x: 5, y: 5 },
   });
   assert.equal((await createSpellEffect(spell)).payload.created, true);
   assert.equal(spell.calls.find(([name]) => name === "create")[1].kind, "spell-effect");
@@ -104,7 +104,7 @@ test("player-created creatures and spells require the player's root character", 
 
 test("HP damage reports concentration checks and clamps at zero", async () => {
   const value = context({
-    body: { tokenId: "token", delta: -50 },
+    payload: { tokenId: "token", delta: -50 },
     repository: { hasConcentration: async () => true },
   });
   const result = await applyHp(value);
@@ -114,7 +114,7 @@ test("HP damage reports concentration checks and clamps at zero", async () => {
 
 test("spell resizing clamps the new footprint and records a reversible token update", async () => {
   const value = context({
-    body: { tokenId: "spell", size: "gargantuan" },
+    payload: { tokenId: "spell", size: "gargantuan" },
     repository: { findToken: async () => token({ id: "spell", kind: "spell-effect", x: 0, y: 0 }) },
   });
   assert.equal((await resizeSpellEffect(value)).payload.updated, true);
@@ -126,7 +126,7 @@ test("spell resizing clamps the new footprint and records a reversible token upd
 test("effects and deletion enforce token control", async () => {
   const denied = context({
     participant: { id: "player", name: "Dan", role: "player" },
-    body: { tokenId: "token", name: "Bless" },
+    payload: { tokenId: "token", name: "Bless" },
     canControl: async () => false,
   });
   assert.equal((await addEffect(denied)).status, 403);
@@ -134,7 +134,7 @@ test("effects and deletion enforce token control", async () => {
 
   const allowedSpell = context({
     participant: { id: "player", name: "Dan", role: "player" },
-    body: { tokenId: "spell" },
+    payload: { tokenId: "spell" },
     repository: { findToken: async () => token({ id: "spell", kind: "spell-effect" }) },
   });
   assert.equal((await deleteToken(allowedSpell)).payload.deleted, true);

@@ -45,7 +45,7 @@ function context(overrides = {}) {
       updatedAt: 1,
     },
     participant: { id: "dm-1", name: "Kevin", role: "dm" },
-    body: {},
+    payload: {},
     now: 100,
     loadScenarioState: async (code, participantId) => ({ code, participantId }),
     recordScenarioAction: async (...args) => calls.push(["record-new", ...args]),
@@ -62,12 +62,12 @@ function context(overrides = {}) {
 test("scenario renaming authorizes through the command boundary", async () => {
   const denied = context({
     participant: { id: "player-1", name: "Dan", role: "player" },
-    body: { name: "A new name" },
+    payload: { name: "A new name" },
   });
   assert.equal((await renameScenario(denied)).status, 403);
   assert.deepEqual(denied.calls, []);
 
-  const allowed = context({ body: { name: "A new name" } });
+  const allowed = context({ payload: { name: "A new name" } });
   const result = await renameScenario(allowed);
   assert.equal(result.payload.renamed, true);
   assert.deepEqual(allowed.calls[0], ["rename", "encounter-1", "A new name", 100]);
@@ -96,7 +96,7 @@ test("party scenario creation resets state and records history on the new scenar
     owner_name: null,
   };
   const value = context({
-    body: { name: "Fresh Adventure", mode: "party" },
+    payload: { name: "Fresh Adventure", mode: "party" },
     repository: { listScenarioTokens: async () => [source] },
   });
   const result = await createScenario(value);
@@ -141,12 +141,12 @@ test("map presets and map application stay behind a fakeable repository", async 
     source: { kind: "generated-scene" },
     createdAt: 1,
   };
-  const saved = context({ body: { mapPackage: map, name: "Preset" } });
+  const saved = context({ payload: { mapPackage: map, name: "Preset" } });
   assert.equal((await saveMapPreset(saved)).payload.saved, true);
   assert.equal(saved.calls.find(([name]) => name === "save")[1].name, "Preset");
 
   const applied = context({
-    body: { mapPackage: map },
+    payload: { mapPackage: map },
     repository: {
       listTokenPositions: async () => [{ id: "token", x: -10, y: 99, size: "large" }],
     },

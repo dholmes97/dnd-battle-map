@@ -2,7 +2,7 @@ import { deriveHistoryActionIds, isReversibleHistoryRow } from "../../shared/act
 import { historyConflictMessage } from "../../shared/encounter-domain.ts";
 import type { HistoryDirection, HistoryRepository } from "../ports/history-repository.ts";
 import type { ActionRow } from "../types.ts";
-import { commandError, type CommandContext, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 const REVERSIBLE_ACTION_TYPES = new Set([
   "token_moved",
@@ -17,13 +17,14 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "token_updated",
 ]);
 
-export type HistoryCommandContext = CommandContext & { repository: HistoryRepository };
+export type HistoryCommandContext<Name extends "undo" | "redo" = "undo" | "redo"> =
+  CommandContextFor<Name, { repository: HistoryRepository }>;
 
-export async function undo(context: HistoryCommandContext): Promise<CommandOutcome> {
+export async function undo(context: HistoryCommandContext<"undo">): Promise<CommandOutcome> {
   return applyHistory(context, "undo");
 }
 
-export async function redo(context: HistoryCommandContext): Promise<CommandOutcome> {
+export async function redo(context: HistoryCommandContext<"redo">): Promise<CommandOutcome> {
   return applyHistory(context, "redo");
 }
 

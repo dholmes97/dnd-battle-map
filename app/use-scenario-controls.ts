@@ -2,6 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { battleMapApi as api, sessionPayload, type useEncounterSync } from "@/app/use-encounter-sync";
+import { commandRequest } from "@/shared/command-parser";
 import type { EncounterState, ParticipantSession, Role } from "@/shared/contracts";
 
 export type EncounterSummary = {
@@ -47,7 +48,7 @@ export function useScenarioControls({ participant, state, sync, resetChatForPart
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
         method: "POST",
-        body: sessionPayload(participant, { command: "create-scenario", name: scenarioName, mode }),
+        body: sessionPayload(participant, commandRequest("create-scenario", { name: scenarioName, mode })),
       });
       sync.clearPendingState();
       const joined = { id: result.participantId, name: "Kevin", role: result.role, sessionSecret: result.sessionSecret };

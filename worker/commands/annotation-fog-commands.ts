@@ -2,34 +2,32 @@ import { ensureSharedFogPolygon } from "../../shared/fog-of-war.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import type { SharedAnnotation } from "../../shared/contracts.ts";
 import type { AnnotationFogRepository } from "../ports/annotation-fog-repository.ts";
-import { commandError, type CommandContext, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 const PING_TTL_MS = 2_000;
 const SPOTLIGHT_TTL_MS = 6_500;
 
-export type AnnotationFogCommandContext = CommandContext & {
-  repository: AnnotationFogRepository;
-};
+type AnnotationFogCommandName =
+  | "set-strict-movement" | "set-fog-mode" | "set-vision-door-open"
+  | "update-shared-fog" | "add-annotation" | "clear-annotations" | "remove-annotation";
+export type AnnotationFogCommandContext<Name extends AnnotationFogCommandName = AnnotationFogCommandName> =
+  CommandContextFor<Name, { repository: AnnotationFogRepository }>;
 
-export async function setStrictMovement(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
+export async function setStrictMovement(context: AnnotationFogCommandContext<"set-strict-movement">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  if (typeof context.body.enabled !== "boolean") return commandError("Strict movement must be on or off.", 400);
-  await context.repository.updateStrictMovement(context.encounter.id, context.body.enabled, context.now);
+  await context.repository.updateStrictMovement(context.encounter.id, context.payload.enabled, context.now);
   await finish(context, "strict_movement_changed", {
     from: context.encounter.strictMovement,
-    to: context.body.enabled,
+    to: context.payload.enabled,
   });
   return success(context, { updated: true });
 }
 
-export async function setFogMode(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
+export async function setFogMode(context: AnnotationFogCommandContext<"set-fog-mode">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const mode = context.body.mode;
-  if (mode !== "off" && mode !== "shared" && mode !== "dynamic") {
-    return commandError("Choose no fog, shared fog, or dynamic vision.", 400);
-  }
+  const mode = context.payload.mode;
   const map = mapPackage(context.encounter.mapPackageJson);
   if (!map) return commandError("Apply a map before enabling fog of war.", 400);
   const previousMode = map.fog.mode;
@@ -48,11 +46,11 @@ export async function setFogMode(context: AnnotationFogCommandContext): Promise<
   return success(context, { updated: true });
 }
 
-export async function setVisionDoorOpen(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
+export async function setVisionDoorOpen(context: AnnotationFogCommandContext<"set-vision-door-open">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const doorId = cleanId(context.body.doorId);
-  if (!doorId || typeof context.body.open !== "boolean") return commandError("Choose a vision door and whether it is open.", 400);
+  const doorId = cleanId(context.payload.doorId);
+  if (!doorId) return commandError("Choose a vision door and whether it is open.", 400);
   const map = mapPackage(context.encounter.mapPackageJson);
   if (!map) return commandError("Apply a map before changing vision doors.", 400);
   if (!map.fog.doors.some((door) => door.id === doorId)) return commandError("That vision door no longer exists.", 404);
@@ -60,36 +58,35 @@ export async function setVisionDoorOpen(context: AnnotationFogCommandContext): P
     ...map,
     fog: {
       ...map.fog,
-      doors: map.fog.doors.map((door) => door.id === doorId ? { ...door, open: context.body.open as boolean } : door),
+      doors: map.fog.doors.map((door) => door.id === doorId ? { ...door, open: context.payload.open } : door),
     },
   };
   await context.repository.updateMapPackage(context.encounter.id, JSON.stringify(next), context.now);
-  await finish(context, "vision_door_changed", { doorId, open: context.body.open });
+  await finish(context, "vision_door_changed", { doorId, open: context.payload.open });
   return success(context, { updated: true });
 }
 
-export async function updateSharedFog(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
+export async function updateSharedFog(context: AnnotationFogCommandContext<"update-shared-fog">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
   const map = mapPackage(context.encounter.mapPackageJson);
   if (!map) return commandError("Apply a map before changing shared fog.", 400);
-  const candidate = mapPackage(JSON.stringify({ ...map, fog: { ...map.fog, sharedPolygon: context.body.polygon } }));
+  const candidate = mapPackage(JSON.stringify({ ...map, fog: { ...map.fog, sharedPolygon: context.payload.polygon } }));
   if (!candidate || candidate.fog.sharedPolygon.length < 3) return commandError("Shared fog needs at least three valid corners inside the map.", 400);
   await context.repository.updateMapPackage(context.encounter.id, JSON.stringify(candidate), context.now);
   await finish(context, "shared_fog_changed", { cornerCount: candidate.fog.sharedPolygon.length });
   return success(context, { updated: true });
 }
 
-export async function addAnnotation(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
-  const requestedType = context.body.annotationType;
-  const annotationType: SharedAnnotation["type"] = requestedType === "drawing" || requestedType === "spotlight" || requestedType === "neon-spotlight" ? requestedType : "ping";
+export async function addAnnotation(context: AnnotationFogCommandContext<"add-annotation">): Promise<CommandOutcome> {
+  const annotationType: SharedAnnotation["type"] = context.payload.annotationType;
   if ((annotationType === "spotlight" || annotationType === "neon-spotlight") && context.participant.role !== "dm") {
     return commandError("Only the DM can place a spotlight.", 403);
   }
-  const x = Number(context.body.x);
-  const y = Number(context.body.y);
-  const x2 = Number.isFinite(Number(context.body.x2)) ? Number(context.body.x2) : null;
-  const y2 = Number.isFinite(Number(context.body.y2)) ? Number(context.body.y2) : null;
+  const x = context.payload.x;
+  const y = context.payload.y;
+  const x2 = context.payload.x2 ?? null;
+  const y2 = context.payload.y2 ?? null;
   if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > context.encounter.gridWidth || y > context.encounter.gridHeight) {
     return commandError("Annotation is outside the map.", 400);
   }
@@ -106,8 +103,8 @@ export async function addAnnotation(context: AnnotationFogCommandContext): Promi
     y,
     x2,
     y2,
-    color: cleanText(context.body.color, 16) || "#f5c65c",
-    label: cleanText(context.body.label, 48) || null,
+    color: cleanText(context.payload.color, 16) || "#f5c65c",
+    label: cleanText(context.payload.label, 48) || null,
     createdBy: context.participant.id,
     expiresAt,
     createdAt: context.now,
@@ -117,7 +114,7 @@ export async function addAnnotation(context: AnnotationFogCommandContext): Promi
   return success(context, { added: true, annotationId });
 }
 
-export async function clearAnnotations(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
+export async function clearAnnotations(context: AnnotationFogCommandContext<"clear-annotations">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
   await context.repository.clearAnnotations(context.encounter.id);
@@ -125,8 +122,8 @@ export async function clearAnnotations(context: AnnotationFogCommandContext): Pr
   return success(context, { cleared: true });
 }
 
-export async function removeAnnotation(context: AnnotationFogCommandContext): Promise<CommandOutcome> {
-  const annotationId = cleanId(context.body.annotationId);
+export async function removeAnnotation(context: AnnotationFogCommandContext<"remove-annotation">): Promise<CommandOutcome> {
+  const annotationId = cleanId(context.payload.annotationId);
   const annotation = await context.repository.findAnnotation(context.encounter.id, annotationId);
   if (!annotation || annotation.annotationType !== "drawing") return commandError("Drawn line not found.", 404);
   if (context.participant.role !== "dm" && annotation.createdBy !== context.participant.id) {

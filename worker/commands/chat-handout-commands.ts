@@ -8,27 +8,22 @@ import type {
 } from "../ports/chat-handout-repository.ts";
 import {
   commandError,
-  type CommandEncounter,
+  type CommandContextFor,
   type CommandOutcome,
-  type CommandParticipant,
-  type CommandServices,
 } from "./types.ts";
 
-export type ChatHandoutCommandContext = {
-  encounter: CommandEncounter;
-  participant: CommandParticipant;
-  body: Record<string, unknown>;
-  now: number;
+type ChatHandoutDependencies = {
   repository: ChatHandoutRepository;
   objectStorage: HandoutObjectStorage;
-  services: CommandServices;
 };
+export type ChatHandoutCommandContext<Name extends "send-chat-message" | "delete-handout"> =
+  CommandContextFor<Name, ChatHandoutDependencies>;
 
-export async function sendChatMessage(context: ChatHandoutCommandContext): Promise<CommandOutcome> {
-  const { body, encounter, participant, repository, services, now } = context;
-  const messageBody = cleanChatBody(body.message);
-  const handoutId = cleanEntityId(body.handoutId) || null;
-  const showImmediately = Boolean(handoutId && participant.role === "dm" && body.showImmediately === true);
+export async function sendChatMessage(context: ChatHandoutCommandContext<"send-chat-message">): Promise<CommandOutcome> {
+  const { payload, encounter, participant, repository, services, now } = context;
+  const messageBody = cleanChatBody(payload.message);
+  const handoutId = cleanEntityId(payload.handoutId) || null;
+  const showImmediately = Boolean(handoutId && participant.role === "dm" && payload.showImmediately === true);
   if (!messageBody && !handoutId) {
     return commandError("Enter a message or attach a handout before sending.", 400);
   }
@@ -41,7 +36,7 @@ export async function sendChatMessage(context: ChatHandoutCommandContext): Promi
   const recipient = resolveChatRecipient({
     senderName: participant.name,
     senderRole: participant.role,
-    requestedRecipientName: body.recipientName,
+    requestedRecipientName: payload.recipientName,
   });
   if (!recipient.allowed) return commandError(recipient.error, 403);
 
@@ -61,11 +56,11 @@ export async function sendChatMessage(context: ChatHandoutCommandContext): Promi
   return { payload: { messageId, state: await services.loadState() } };
 }
 
-export async function deleteHandout(context: ChatHandoutCommandContext): Promise<CommandOutcome> {
-  const { body, encounter, participant, repository, objectStorage, services, now } = context;
+export async function deleteHandout(context: ChatHandoutCommandContext<"delete-handout">): Promise<CommandOutcome> {
+  const { payload, encounter, participant, repository, objectStorage, services, now } = context;
   if (participant.role !== "dm") return commandError("This action requires the DM role.", 403);
   if (!objectStorage.available) return commandError("Handout storage is unavailable.", 503);
-  const handoutId = cleanEntityId(body.handoutId);
+  const handoutId = cleanEntityId(payload.handoutId);
   const handout = await repository.findDeletableHandout(encounter.id, handoutId);
   if (!handout) return commandError("Handout not found.", 404);
 

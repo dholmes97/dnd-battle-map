@@ -14,7 +14,7 @@ function context(rows, overrides = {}) {
       activeInitiativeOrder: 0, strictMovement: true, updatedAt: 0,
     },
     participant: { id: "player", name: "Dan", role: "player" },
-    body: {},
+    payload: {},
     now: 10,
     repository: {
       listParticipantActions: async () => rows,

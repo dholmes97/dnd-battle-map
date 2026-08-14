@@ -3,9 +3,12 @@ import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import { baseTokenControllerName } from "../../shared/token-control.ts";
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
-import { commandError, type CommandContext, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
-export type ScenarioMapCommandContext = CommandContext & {
+type ScenarioMapCommandName =
+  | "rename-scenario" | "create-scenario" | "save-map-preset"
+  | "delete-map-preset" | "apply-map-package" | "configure-encounter";
+type ScenarioMapDependencies = {
   repository: ScenarioMapRepository;
   loadScenarioState(code: string, participantId: string): ReturnType<CommandContext["services"]["loadState"]>;
   recordScenarioAction(
@@ -15,11 +18,13 @@ export type ScenarioMapCommandContext = CommandContext & {
     payload: Record<string, unknown>,
   ): Promise<void>;
 };
+export type ScenarioMapCommandContext<Name extends ScenarioMapCommandName = ScenarioMapCommandName> =
+  CommandContextFor<Name, ScenarioMapDependencies>;
 
-export async function renameScenario(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function renameScenario(context: ScenarioMapCommandContext<"rename-scenario">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const name = cleanText(context.body.name, 64);
+  const name = cleanText(context.payload.name, 64);
   if (name.length < 3) return commandError("Scenario name must be at least three characters.", 400);
   const changed = name !== context.encounter.name;
   if (changed) {
@@ -43,11 +48,11 @@ export async function renameScenario(context: ScenarioMapCommandContext): Promis
   };
 }
 
-export async function createScenario(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function createScenario(context: ScenarioMapCommandContext<"create-scenario">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const name = cleanText(context.body.name, 64);
-  const mode = context.body.mode === "duplicate" ? "duplicate" : "party";
+  const name = cleanText(context.payload.name, 64);
+  const mode = context.payload.mode;
   if (name.length < 3) return commandError("Scenario name must be at least three characters.", 400);
   const code = await uniqueScenarioCode(context.repository, name);
   const sourceTokens = await context.repository.listScenarioTokens(context.encounter.id);
@@ -103,20 +108,20 @@ export async function createScenario(context: ScenarioMapCommandContext): Promis
   };
 }
 
-export async function saveMapPreset(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function saveMapPreset(context: ScenarioMapCommandContext<"save-map-preset">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const map = cleanMapPackage(context.body.mapPackage);
+  const map = cleanMapPackage(context.payload.mapPackage);
   if (!map) return commandError("That map package is invalid or too large.", 400);
-  const name = cleanText(context.body.name, 72) || cleanText(map.name, 72) || "Untitled map";
-  const requestedId = cleanId(context.body.presetId);
+  const name = cleanText(context.payload.name, 72) || cleanText(map.name, 72) || "Untitled map";
+  const requestedId = cleanId(context.payload.presetId);
   const presetId = requestedId || context.services.createId();
   const saved = await context.repository.saveMapPreset({
     id: presetId,
     encounterId: context.encounter.id,
     name,
-    description: cleanText(context.body.description, 240) || cleanText(map.description, 240),
-    sourcePrompt: cleanText(context.body.sourcePrompt, 600) || null,
+    description: cleanText(context.payload.description, 240) || cleanText(map.description, 240),
+    sourcePrompt: cleanText(context.payload.sourcePrompt, 600) || null,
     packageJson: JSON.stringify(map),
     participantId: context.participant.id,
     now: context.now,
@@ -126,10 +131,10 @@ export async function saveMapPreset(context: ScenarioMapCommandContext): Promise
   return success(context, { saved: true, presetId });
 }
 
-export async function deleteMapPreset(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function deleteMapPreset(context: ScenarioMapCommandContext<"delete-map-preset">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const presetId = cleanId(context.body.presetId);
+  const presetId = cleanId(context.payload.presetId);
   if (!presetId) return commandError("Saved map preset is required.", 400);
   if (!await context.repository.deleteMapPreset(context.encounter.id, presetId)) {
     return commandError("Saved map preset not found.", 404);
@@ -141,11 +146,11 @@ export async function deleteMapPreset(context: ScenarioMapCommandContext): Promi
   return success(context, { deleted: true });
 }
 
-export async function applyMapPackage(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function applyMapPackage(context: ScenarioMapCommandContext<"apply-map-package">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const presetId = cleanId(context.body.presetId) || null;
-  let map = cleanMapPackage(context.body.mapPackage);
+  const presetId = cleanId(context.payload.presetId) || null;
+  let map = cleanMapPackage(context.payload.mapPackage);
   let appliedPresetId: string | null = null;
   if (presetId) {
     const savedText = await context.repository.loadMapPreset(context.encounter.id, presetId);
@@ -180,13 +185,10 @@ export async function applyMapPackage(context: ScenarioMapCommandContext): Promi
   return success(context, { applied: true });
 }
 
-export async function configureEncounter(context: ScenarioMapCommandContext): Promise<CommandOutcome> {
+export async function configureEncounter(context: ScenarioMapCommandContext<"configure-encounter">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const requested = context.body.status;
-  const status = requested === "setup" || requested === "active" || requested === "paused"
-    ? requested
-    : context.encounter.status;
+  const status = context.payload.status;
   await context.repository.configureEncounter(context.encounter.id, status, context.now);
   await finish(context, "encounter_configured", {
     previous: { status: context.encounter.status },

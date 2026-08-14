@@ -59,7 +59,7 @@ function context(overrides = {}) {
       updatedAt: 0,
     },
     participant: { id: "dm", name: "Kevin", role: "dm" },
-    body: {},
+    payload: {},
     now: 10,
     canControl: async () => true,
     services: {
@@ -75,14 +75,14 @@ function context(overrides = {}) {
 test("initiative changes validate authority and preserve the active group", async () => {
   const denied = context({
     participant: { id: "player", name: "Dan", role: "player" },
-    body: { tokenId: "hero", initiative: 20 },
+    payload: { tokenId: "hero", initiative: 20 },
     canControl: async () => false,
   });
   assert.equal((await setInitiative(denied)).status, 403);
 
   const active = context({
     encounter: { ...context().encounter, status: "active", activeInitiativeOrder: 0 },
-    body: { tokenId: "hero", initiative: 20 },
+    payload: { tokenId: "hero", initiative: 20 },
   });
   assert.equal((await setInitiative(active)).payload.updated, true);
   assert.deepEqual(active.calls.find(([name]) => name === "rebuild")[2], [["hero"], ["goblin"]]);
@@ -91,14 +91,14 @@ test("initiative changes validate authority and preserve the active group", asyn
 
 test("shared initiative groups reject summons and write one durable group", async () => {
   const invalid = context({
-    body: { tokenIds: ["hero", "summon"], initiative: 15 },
+    payload: { tokenIds: ["hero", "summon"], initiative: 15 },
     repository: {
       listInitiativeTokens: async () => [token("hero", 18), token("summon", 18, { summoner_token_id: "hero" })],
     },
   });
   assert.equal((await setInitiativeGroup(invalid)).status, 400);
 
-  const valid = context({ body: { tokenIds: ["hero", "goblin"], initiative: 15 } });
+  const valid = context({ payload: { tokenIds: ["hero", "goblin"], initiative: 15 } });
   assert.equal((await setInitiativeGroup(valid)).payload.groupId, "group-id");
   assert.deepEqual(valid.calls.find(([name]) => name === "group").slice(2, 5), [
     ["hero", "goblin"],
@@ -114,7 +114,7 @@ test("combat start and turn advance use deterministic ordered groups", async () 
 
   const advance = context({
     encounter: { ...context().encounter, status: "active", currentRound: 2, activeInitiativeOrder: 1 },
-    body: { tokenId: "hero" },
+    payload: { tokenId: "hero" },
     repository: {
       findToken: async () => token("hero", 18, { initiative_order: 1 }),
     },

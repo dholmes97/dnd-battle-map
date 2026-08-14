@@ -1,20 +1,25 @@
-import { isCreatureSize, tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
+import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
 import { transitionHp } from "../../shared/encounter-transitions.ts";
-import { isSpellAreaSize, SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
+import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
-import { commandError, type CommandContext, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
-export type TokenEffectCommandContext = CommandContext & {
+type TokenEffectCommandName =
+  | "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token"
+  | "apply-hp" | "add-effect" | "remove-effect" | "delete-token";
+type TokenEffectDependencies = {
   repository: TokenEffectRepository;
   canControl(token: TokenRow): Promise<boolean>;
   isAllowedArt(value: unknown): Promise<boolean>;
 };
+export type TokenEffectCommandContext<Name extends TokenEffectCommandName = TokenEffectCommandName> =
+  CommandContextFor<Name, TokenEffectDependencies>;
 
-export async function createSpellEffect(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const spell = spellEffectById(context.body.spellId);
+export async function createSpellEffect(context: TokenEffectCommandContext<"create-spell-effect">): Promise<CommandOutcome> {
+  const spell = spellEffectById(context.payload.spellId);
   if (!spell) return commandError("That spell effect is not available.", 400);
-  const summonerTokenId = cleanId(context.body.summonerTokenId) || null;
+  const summonerTokenId = cleanId(context.payload.summonerTokenId) || null;
   const summoner = summonerTokenId
     ? await context.repository.findToken(context.encounter.id, summonerTokenId)
     : null;
@@ -26,8 +31,8 @@ export async function createSpellEffect(context: TokenEffectCommandContext): Pro
     name: spell.name,
     kind: SPELL_EFFECT_KIND,
     size: spell.size,
-    x: clamp(context.body.x, context.encounter.gridWidth, spell.size),
-    y: clamp(context.body.y, context.encounter.gridHeight, spell.size),
+    x: clamp(context.payload.x, context.encounter.gridWidth, spell.size),
+    y: clamp(context.payload.y, context.encounter.gridHeight, spell.size),
     speed: 0,
     hp: null,
     maxHp: null,
@@ -39,22 +44,20 @@ export async function createSpellEffect(context: TokenEffectCommandContext): Pro
   });
 }
 
-export async function createToken(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const name = cleanText(context.body.name, 48);
+export async function createToken(context: TokenEffectCommandContext<"create-token">): Promise<CommandOutcome> {
+  const name = cleanText(context.payload.name, 48);
   if (!name) return commandError("Token name is required.", 400);
-  const requestedKind = ["character", "monster", "summon", "familiar"].includes(String(context.body.kind))
-    ? String(context.body.kind)
-    : "monster";
-  const requestedArt = String(context.body.artAsset ?? "");
+  const requestedKind = context.payload.kind;
+  const requestedArt = context.payload.artAsset ?? "";
   const artAsset = await context.isAllowedArt(requestedArt) ? requestedArt : null;
-  const size: CreatureSize = isCreatureSize(context.body.size) ? context.body.size : "medium";
-  const maxHp = Number.isFinite(Number(context.body.maxHp))
-    ? Math.max(1, Math.trunc(Number(context.body.maxHp)))
+  const size: CreatureSize = context.payload.size;
+  const maxHp = Number.isFinite(context.payload.maxHp)
+    ? Math.max(1, Math.trunc(context.payload.maxHp!))
     : null;
   const hp = maxHp === null
     ? null
-    : Math.min(maxHp, Math.max(0, Math.trunc(Number(context.body.hp)) || maxHp));
-  const summonerTokenId = cleanId(context.body.summonerTokenId) || null;
+    : Math.min(maxHp, Math.max(0, Math.trunc(context.payload.hp ?? NaN) || maxHp));
+  const summonerTokenId = cleanId(context.payload.summonerTokenId) || null;
   const summoner = summonerTokenId
     ? await context.repository.findToken(context.encounter.id, summonerTokenId)
     : null;
@@ -66,12 +69,12 @@ export async function createToken(context: TokenEffectCommandContext): Promise<C
     name,
     kind: context.participant.role === "player" ? "summon" : requestedKind,
     size,
-    x: clamp(context.body.x, context.encounter.gridWidth, size),
-    y: clamp(context.body.y, context.encounter.gridHeight, size),
-    speed: Math.min(120, Math.max(0, Math.trunc(Number(context.body.speed)) || 30)),
+    x: clamp(context.payload.x, context.encounter.gridWidth, size),
+    y: clamp(context.payload.y, context.encounter.gridHeight, size),
+    speed: Math.min(120, Math.max(0, Math.trunc(context.payload.speed) || 30)),
     hp,
     maxHp,
-    hidden: context.participant.role === "dm" && Boolean(context.body.hidden),
+    hidden: context.participant.role === "dm" && Boolean(context.payload.hidden),
     summonerTokenId,
     artAsset,
     initiative: summoner?.initiative ?? null,
@@ -79,15 +82,12 @@ export async function createToken(context: TokenEffectCommandContext): Promise<C
   });
 }
 
-export async function resizeSpellEffect(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
+export async function resizeSpellEffect(context: TokenEffectCommandContext<"resize-spell-effect">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token || token.kind !== SPELL_EFFECT_KIND) return commandError("Spell effect not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot resize this spell effect.", 403);
-  if (!isSpellAreaSize(context.body.size)) {
-    return commandError("Choose a spell footprint from 5 to 20 feet.", 400);
-  }
-  const size = context.body.size;
+  const size = context.payload.size;
   const x = clamp(token.x, context.encounter.gridWidth, size);
   const y = clamp(token.y, context.encounter.gridHeight, size);
   await context.repository.resizeToken(context.encounter.id, tokenId, size, x, y, context.now);
@@ -95,31 +95,31 @@ export async function resizeSpellEffect(context: TokenEffectCommandContext): Pro
   return success(context, { updated: true });
 }
 
-export async function updateToken(context: TokenEffectCommandContext): Promise<CommandOutcome> {
+export async function updateToken(context: TokenEffectCommandContext<"update-token">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const tokenId = cleanId(context.body.tokenId);
+  const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
-  const requestedArt = String(context.body.artAsset ?? "");
+  const requestedArt = context.payload.artAsset ?? "";
   const artAsset = await context.isAllowedArt(requestedArt)
     ? requestedArt
-    : context.body.artAsset === "" ? null : token.art_asset;
-  const size: CreatureSize = isCreatureSize(context.body.size) ? context.body.size : token.size;
-  const maxHp = Number.isFinite(Number(context.body.maxHp))
-    ? Math.max(1, Math.trunc(Number(context.body.maxHp)))
+    : context.payload.artAsset === "" ? null : token.art_asset;
+  const size: CreatureSize = context.payload.size ?? token.size;
+  const maxHp = Number.isFinite(context.payload.maxHp)
+    ? Math.max(1, Math.trunc(context.payload.maxHp!))
     : token.max_hp;
   const next: TokenWrite = {
     id: tokenId,
     encounterId: context.encounter.id,
-    name: cleanText(context.body.name, 48) || token.name,
+    name: cleanText(context.payload.name, 48) || token.name,
     size,
-    speed: Number.isFinite(Number(context.body.speed))
-      ? Math.min(120, Math.max(0, Math.trunc(Number(context.body.speed))))
+    speed: Number.isFinite(context.payload.speed)
+      ? Math.min(120, Math.max(0, Math.trunc(context.payload.speed!)))
       : token.speed,
     hp: maxHp === null ? null : Math.min(maxHp, token.hp ?? maxHp),
     maxHp,
-    hidden: typeof context.body.hidden === "boolean" ? context.body.hidden : Boolean(token.is_hidden),
+    hidden: context.payload.hidden ?? Boolean(token.is_hidden),
     artAsset,
     x: clamp(token.x, context.encounter.gridWidth, size),
     y: clamp(token.y, context.encounter.gridHeight, size),
@@ -145,15 +145,15 @@ export async function updateToken(context: TokenEffectCommandContext): Promise<C
   return success(context, { updated: true });
 }
 
-export async function applyHp(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
+export async function applyHp(context: TokenEffectCommandContext<"apply-hp">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot change this token's HP.", 403);
   if (token.max_hp === null) {
     return commandError("Configure maximum HP before applying damage or healing.", 409);
   }
-  const delta = Math.trunc(Number(context.body.delta));
+  const delta = Math.trunc(context.payload.delta);
   if (!Number.isFinite(delta) || delta === 0) {
     return commandError("Enter non-zero damage or healing.", 400);
   }
@@ -164,23 +164,21 @@ export async function applyHp(context: TokenEffectCommandContext): Promise<Comma
   return success(context, { updated: true, concentrationCheckRequired });
 }
 
-export async function addEffect(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
+export async function addEffect(context: TokenEffectCommandContext<"add-effect">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot add an effect to this token.", 403);
-  const name = cleanText(context.body.name, 48);
+  const name = cleanText(context.payload.name, 48);
   if (!name) return commandError("Effect name is required.", 400);
-  const effectType = ["condition", "effect", "concentration"].includes(String(context.body.effectType))
-    ? String(context.body.effectType)
-    : "condition";
-  const durationRounds = Number.isFinite(Number(context.body.durationRounds))
-    ? Math.max(1, Math.min(99, Math.trunc(Number(context.body.durationRounds))))
+  const effectType = context.payload.effectType ?? "condition";
+  const durationRounds = Number.isFinite(context.payload.durationRounds)
+    ? Math.max(1, Math.min(99, Math.trunc(context.payload.durationRounds!)))
     : null;
   const expiresRound = durationRounds === null
     ? null
     : Math.max(1, context.encounter.currentRound || 1) + durationRounds;
-  const reminderTiming = context.body.reminderTiming === "start" ? "start" : "end";
+  const reminderTiming = context.payload.reminderTiming === "start" ? "start" : "end";
   const effectId = context.services.createId();
   const effect = {
     id: effectId, tokenId, name, effectType, durationRounds, expiresRound,
@@ -202,8 +200,8 @@ export async function addEffect(context: TokenEffectCommandContext): Promise<Com
   return success(context, { added: true, effectId });
 }
 
-export async function removeEffect(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const effectId = cleanId(context.body.effectId);
+export async function removeEffect(context: TokenEffectCommandContext<"remove-effect">): Promise<CommandOutcome> {
+  const effectId = cleanId(context.payload.effectId);
   const effect = await context.repository.findEffect(context.encounter.id, effectId);
   if (!effect) return commandError("Effect not found.", 404);
   if (!await context.canControl(effect.token)) return commandError("You cannot remove this effect.", 403);
@@ -221,8 +219,8 @@ export async function removeEffect(context: TokenEffectCommandContext): Promise<
   return success(context, { removed: true });
 }
 
-export async function deleteToken(context: TokenEffectCommandContext): Promise<CommandOutcome> {
-  const tokenId = cleanId(context.body.tokenId);
+export async function deleteToken(context: TokenEffectCommandContext<"delete-token">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (context.participant.role !== "dm" &&

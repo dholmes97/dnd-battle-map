@@ -10,7 +10,7 @@ function context(overrides = {}) {
     value: {
       encounter: { id: "encounter-1", code: "TEST", name: "Test", status: "setup", mapPackageJson: null, activeMapPresetId: null, gridWidth: 24, gridHeight: 16, currentRound: 0, activeInitiativeOrder: null, strictMovement: true, updatedAt: 1 },
       participant: { id: "participant-1", name: "Kevin", role: "dm" },
-      body: {},
+      payload: {},
       now: 1234,
       repository: {
         handoutIsAvailable: async () => true,
@@ -35,7 +35,7 @@ function context(overrides = {}) {
 }
 
 test("chat handler applies recipient policy and writes through a fake port", async () => {
-  const fixture = context({ body: { message: "  Look here  ", recipientName: "Dan" } });
+  const fixture = context({ payload: { message: "  Look here  ", recipientName: "Dan" } });
   const result = await sendChatMessage(fixture.value);
   assert.equal(result.status, undefined);
   assert.equal(result.payload.messageId, "message-1");
@@ -56,7 +56,7 @@ test("chat handler applies recipient policy and writes through a fake port", asy
 test("players cannot send handouts or private messages to another player", async () => {
   const handout = context({
     participant: { id: "dan", name: "Dan", role: "player" },
-    body: { handoutId: "handout-1" },
+    payload: { handoutId: "handout-1" },
   });
   assert.deepEqual(await sendChatMessage(handout.value), {
     status: 403,
@@ -64,13 +64,13 @@ test("players cannot send handouts or private messages to another player", async
   });
   const privateMessage = context({
     participant: { id: "dan", name: "Dan", role: "player" },
-    body: { message: "secret", recipientName: "Barry" },
+    payload: { message: "secret", recipientName: "Barry" },
   });
   assert.equal((await sendChatMessage(privateMessage.value)).status, 403);
 });
 
 test("handout deletion removes both derived objects without reading D1 directly", async () => {
-  const fixture = context({ body: { handoutId: "handout-1" } });
+  const fixture = context({ payload: { handoutId: "handout-1" } });
   const result = await deleteHandout(fixture.value);
   assert.equal(result.payload.deleted, true);
   assert.equal(result.payload.referencedMessages, 3);

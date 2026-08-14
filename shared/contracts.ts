@@ -1,6 +1,7 @@
 import type { CreatureSize } from "./creature-library";
 import type { MapPackage } from "./map-package";
 import type { HealthBand } from "./health";
+import type { SpellAreaSize, SpellEffectDefinition } from "./spell-effects";
 
 export type Role = "player" | "dm";
 export type EncounterStatus = "setup" | "active" | "paused";
@@ -142,8 +143,99 @@ export const COMMAND_NAMES = [
 ] as const;
 
 export type CommandName = typeof COMMAND_NAMES[number];
-export type CommandRequest = { [Name in CommandName]: { command: Name } & Record<string, unknown> }[CommandName];
-export type CommandPayload<Name extends CommandName> = Omit<Extract<CommandRequest, { command: Name }>, "command">;
+type EmptyCommandPayload = Record<string, never>;
+type MapApplicationPayload =
+  | { presetId: string; mapPackage?: MapPackage }
+  | { presetId?: string; mapPackage: MapPackage };
+
+export type CommandPayloadMap = {
+  "send-chat-message": {
+    recipientName?: string | null;
+    message?: string;
+    handoutId?: string | null;
+    showImmediately?: boolean;
+  };
+  "delete-handout": { handoutId: string };
+  undo: EmptyCommandPayload;
+  redo: EmptyCommandPayload;
+  "rename-scenario": { name: string };
+  "create-scenario": { name: string; mode: "party" | "duplicate" };
+  "set-initiative": { tokenId: string; initiative: number };
+  "set-initiative-group": { tokenIds: string[]; initiative: number };
+  "end-turn": { tokenId: string };
+  "advance-turn": EmptyCommandPayload;
+  "start-combat": EmptyCommandPayload;
+  "correct-turn": { round: number; activeOrder: number };
+  "save-map-preset": {
+    presetId?: string;
+    name?: string;
+    description?: string;
+    sourcePrompt?: string;
+    mapPackage: MapPackage;
+  };
+  "delete-map-preset": { presetId: string };
+  "apply-map-package": MapApplicationPayload;
+  "configure-encounter": { status: EncounterStatus };
+  "set-strict-movement": { enabled: boolean };
+  "set-fog-mode": { mode: MapPackage["fog"]["mode"] };
+  "set-vision-door-open": { doorId: string; open: boolean };
+  "update-shared-fog": { polygon: MapPoint[] };
+  "create-spell-effect": {
+    spellId: SpellEffectDefinition["id"];
+    summonerTokenId?: string;
+    x: number;
+    y: number;
+  };
+  "create-token": {
+    name: string;
+    kind: "character" | "monster" | "summon" | "familiar";
+    size: CreatureSize;
+    speed: number;
+    hp?: number;
+    maxHp?: number;
+    hidden?: boolean;
+    artAsset?: string;
+    summonerTokenId?: string;
+    x: number;
+    y: number;
+  };
+  "resize-spell-effect": { tokenId: string; size: SpellAreaSize };
+  "update-token": {
+    tokenId: string;
+    name?: string;
+    size?: CreatureSize;
+    speed?: number;
+    maxHp?: number;
+    hidden?: boolean;
+    artAsset?: string;
+  };
+  "apply-hp": { tokenId: string; delta: number };
+  "add-effect": {
+    tokenId: string;
+    name: string;
+    effectType?: "condition" | "effect" | "concentration";
+    durationRounds?: number;
+    reminderTiming?: "start" | "end";
+  };
+  "remove-effect": { effectId: string };
+  "add-annotation": {
+    annotationType: SharedAnnotation["type"];
+    x: number;
+    y: number;
+    x2?: number;
+    y2?: number;
+    color?: string;
+    label?: string;
+  };
+  "remove-annotation": { annotationId: string };
+  "clear-annotations": EmptyCommandPayload;
+  "delete-token": { tokenId: string };
+};
+
+export type CommandPayload<Name extends CommandName> = CommandPayloadMap[Name];
+export type CommandRequest = {
+  [Name in CommandName]: { command: Name; payload: CommandPayload<Name> }
+}[CommandName];
 export type CommandResponse = { state: EncounterState } & Record<string, unknown>;
 
 const COMMAND_NAME_SET: ReadonlySet<string> = new Set(COMMAND_NAMES);

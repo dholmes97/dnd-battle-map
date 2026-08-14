@@ -40,11 +40,12 @@ import {
   SPELL_EFFECTS,
 } from "../shared/spell-effects";
 import {
-  isCommandName,
-  type CommandRequest,
+  type CommandName,
+  type CommandPayload,
   type EncounterState,
   type SharedToken,
 } from "../shared/contracts";
+import { parseCommandRequest } from "../shared/command-parser.ts";
 import {
   deleteHandout,
   sendChatMessage,
@@ -277,7 +278,7 @@ function bearerTokenMatches(request: Request, configured: string): boolean {
 }
 
 function authorizedProductionBackup(request: Request, env: Env): boolean {
-  return bearerTokenMatches(request, env.PRODUCTION_BACKUP_TOKEN ?? env.CATALOG_IMPORT_TOKEN ?? "");
+  return bearerTokenMatches(request, env.PRODUCTION_BACKUP_TOKEN ?? "");
 }
 
 function cleanBackupCursor(value: string | null): string | null {
@@ -1262,9 +1263,9 @@ async function handleCommand(
   body: Record<string, unknown>,
   now: number,
 ): Promise<Response> {
-  const rawCommand = cleanText(body.command, 40);
-  if (!isCommandName(rawCommand)) return json({ error: "Unknown command." }, { status: 400 });
-  const command: CommandRequest["command"] = rawCommand;
+  const parsed = parseCommandRequest(body);
+  if (!parsed.ok) return json({ error: parsed.error }, { status: 400 });
+  const request = parsed.request;
   const state = () => encounterState(env, code, participant);
   const commandEncounter = {
     id: encounter.id,
@@ -1288,74 +1289,93 @@ async function handleCommand(
     recordAction: (actionType: string, payload: Record<string, unknown>) =>
       recordAction(env, encounter.id, participant.id, actionType, payload, now),
   };
-  const baseContext = { encounter: commandEncounter, participant, body, now, services: commandServices };
-  const chatHandoutContext = (): ChatHandoutCommandContext => ({
-    ...baseContext,
+  const baseContext = <Name extends CommandName>(payload: CommandPayload<Name>) =>
+    ({ encounter: commandEncounter, participant, payload, now, services: commandServices });
+  const chatHandoutContext = <Name extends "send-chat-message" | "delete-handout">(
+    payload: CommandPayload<Name>,
+  ): ChatHandoutCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1ChatHandoutRepository(env.DB),
     objectStorage: createR2HandoutObjectStorage(env.MAP_ASSETS),
   });
-  const annotationFogContext = (): AnnotationFogCommandContext => ({
-    ...baseContext,
+  const annotationFogContext = <Name extends
+    "set-strict-movement" | "set-fog-mode" | "set-vision-door-open" |
+    "update-shared-fog" | "add-annotation" | "clear-annotations" | "remove-annotation"
+  >(payload: CommandPayload<Name>): AnnotationFogCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1AnnotationFogRepository(env.DB),
   });
-  const scenarioMapContext = (): ScenarioMapCommandContext => ({
-    ...baseContext,
+  const scenarioMapContext = <Name extends
+    "rename-scenario" | "create-scenario" | "save-map-preset" |
+    "delete-map-preset" | "apply-map-package" | "configure-encounter"
+  >(payload: CommandPayload<Name>): ScenarioMapCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1ScenarioMapRepository(env.DB),
     loadScenarioState: async (scenarioCode, participantId) =>
       encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }),
     recordScenarioAction: (encounterId, participantId, actionType, payload) =>
       recordAction(env, encounterId, participantId, actionType, payload, now),
   });
-  const initiativeCombatContext = (): InitiativeCombatCommandContext => ({
-    ...baseContext,
+  type InitiativeCommandName =
+    | "set-initiative" | "set-initiative-group" | "start-combat"
+    | "end-turn" | "advance-turn" | "correct-turn";
+  const initiativeCombatContext = <Name extends InitiativeCommandName>(
+    payload: CommandPayload<Name>,
+  ): InitiativeCombatCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1InitiativeCombatRepository(env.DB),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
   });
-  const tokenEffectContext = (): TokenEffectCommandContext => ({
-    ...baseContext,
+  const tokenEffectContext = <Name extends
+    "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token" |
+    "apply-hp" | "add-effect" | "remove-effect" | "delete-token"
+  >(payload: CommandPayload<Name>): TokenEffectCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1TokenEffectRepository(env.DB),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
     isAllowedArt: (value) => isAllowedTokenArt(env, value),
   });
-  const historyContext = (): HistoryCommandContext => ({
-    ...baseContext,
+  const historyContext = <Name extends "undo" | "redo">(
+    payload: CommandPayload<Name>,
+  ): HistoryCommandContext<Name> => ({
+    ...baseContext(payload),
     repository: createD1HistoryRepository(env.DB),
   });
-  const handlers = {
-    "send-chat-message": () => sendChatMessage(chatHandoutContext()),
-    "delete-handout": () => deleteHandout(chatHandoutContext()),
-    undo: () => undo(historyContext()),
-    redo: () => redo(historyContext()),
-    "rename-scenario": () => renameScenario(scenarioMapContext()),
-    "create-scenario": () => createScenario(scenarioMapContext()),
-    "save-map-preset": () => saveMapPreset(scenarioMapContext()),
-    "delete-map-preset": () => deleteMapPreset(scenarioMapContext()),
-    "apply-map-package": () => applyMapPackage(scenarioMapContext()),
-    "configure-encounter": () => configureEncounter(scenarioMapContext()),
-    "set-initiative": () => setInitiative(initiativeCombatContext()),
-    "set-initiative-group": () => setInitiativeGroup(initiativeCombatContext()),
-    "start-combat": () => startCombat(initiativeCombatContext()),
-    "end-turn": () => advanceTurn(initiativeCombatContext(), false),
-    "advance-turn": () => advanceTurn(initiativeCombatContext(), true),
-    "correct-turn": () => correctTurn(initiativeCombatContext()),
-    "create-spell-effect": () => createSpellEffect(tokenEffectContext()),
-    "create-token": () => createToken(tokenEffectContext()),
-    "resize-spell-effect": () => resizeSpellEffect(tokenEffectContext()),
-    "update-token": () => updateToken(tokenEffectContext()),
-    "apply-hp": () => applyHp(tokenEffectContext()),
-    "add-effect": () => addEffect(tokenEffectContext()),
-    "remove-effect": () => removeEffect(tokenEffectContext()),
-    "delete-token": () => deleteToken(tokenEffectContext()),
-    "set-strict-movement": () => setStrictMovement(annotationFogContext()),
-    "set-fog-mode": () => setFogMode(annotationFogContext()),
-    "set-vision-door-open": () => setVisionDoorOpen(annotationFogContext()),
-    "update-shared-fog": () => updateSharedFog(annotationFogContext()),
-    "add-annotation": () => addAnnotation(annotationFogContext()),
-    "clear-annotations": () => clearAnnotations(annotationFogContext()),
-    "remove-annotation": () => removeAnnotation(annotationFogContext()),
-  } satisfies Record<CommandRequest["command"], () => Promise<CommandOutcome>>;
-
-  return commandOutcomeResponse(await handlers[command]());
+  let outcome: CommandOutcome;
+  switch (request.command) {
+    case "send-chat-message": outcome = await sendChatMessage(chatHandoutContext(request.payload)); break;
+    case "delete-handout": outcome = await deleteHandout(chatHandoutContext(request.payload)); break;
+    case "undo": outcome = await undo(historyContext(request.payload)); break;
+    case "redo": outcome = await redo(historyContext(request.payload)); break;
+    case "rename-scenario": outcome = await renameScenario(scenarioMapContext(request.payload)); break;
+    case "create-scenario": outcome = await createScenario(scenarioMapContext(request.payload)); break;
+    case "save-map-preset": outcome = await saveMapPreset(scenarioMapContext(request.payload)); break;
+    case "delete-map-preset": outcome = await deleteMapPreset(scenarioMapContext(request.payload)); break;
+    case "apply-map-package": outcome = await applyMapPackage(scenarioMapContext(request.payload)); break;
+    case "configure-encounter": outcome = await configureEncounter(scenarioMapContext(request.payload)); break;
+    case "set-initiative": outcome = await setInitiative(initiativeCombatContext(request.payload)); break;
+    case "set-initiative-group": outcome = await setInitiativeGroup(initiativeCombatContext(request.payload)); break;
+    case "start-combat": outcome = await startCombat(initiativeCombatContext(request.payload)); break;
+    case "end-turn": outcome = await advanceTurn(initiativeCombatContext<"end-turn">(request.payload), false); break;
+    case "advance-turn": outcome = await advanceTurn(initiativeCombatContext<"advance-turn">(request.payload), true); break;
+    case "correct-turn": outcome = await correctTurn(initiativeCombatContext(request.payload)); break;
+    case "create-spell-effect": outcome = await createSpellEffect(tokenEffectContext(request.payload)); break;
+    case "create-token": outcome = await createToken(tokenEffectContext(request.payload)); break;
+    case "resize-spell-effect": outcome = await resizeSpellEffect(tokenEffectContext(request.payload)); break;
+    case "update-token": outcome = await updateToken(tokenEffectContext(request.payload)); break;
+    case "apply-hp": outcome = await applyHp(tokenEffectContext(request.payload)); break;
+    case "add-effect": outcome = await addEffect(tokenEffectContext(request.payload)); break;
+    case "remove-effect": outcome = await removeEffect(tokenEffectContext(request.payload)); break;
+    case "delete-token": outcome = await deleteToken(tokenEffectContext(request.payload)); break;
+    case "set-strict-movement": outcome = await setStrictMovement(annotationFogContext(request.payload)); break;
+    case "set-fog-mode": outcome = await setFogMode(annotationFogContext(request.payload)); break;
+    case "set-vision-door-open": outcome = await setVisionDoorOpen(annotationFogContext(request.payload)); break;
+    case "update-shared-fog": outcome = await updateSharedFog(annotationFogContext(request.payload)); break;
+    case "add-annotation": outcome = await addAnnotation(annotationFogContext(request.payload)); break;
+    case "clear-annotations": outcome = await clearAnnotations(annotationFogContext(request.payload)); break;
+    case "remove-annotation": outcome = await removeAnnotation(annotationFogContext(request.payload)); break;
+  }
+  return commandOutcomeResponse(outcome);
 }
 
 async function handleApi(

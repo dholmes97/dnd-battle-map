@@ -140,7 +140,13 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     setEffectName(""); setEffectEditorTokenId(null);
     const result = await sync.runOptimisticCommand(
       "add-effect",
-      { tokenId, name, effectType, reminderTiming: effectReminder, durationRounds },
+      {
+        tokenId,
+        name,
+        effectType: effectType === "effect" || effectType === "concentration" ? effectType : "condition",
+        reminderTiming: effectReminder === "start" ? "start" : "end",
+        durationRounds,
+      },
       (current) => ({ ...current, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, effects: [...token.effects, optimisticEffect] } : token) }),
       `${name} added.`,
     );

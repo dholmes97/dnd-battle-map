@@ -15,10 +15,10 @@ npm run backup:verify
 
 Pass an absolute snapshot path after `--` to verify a particular backup.
 
-For convenience, the command also accepts the existing `CATALOG_IMPORT_TOKEN`.
-The production Worker must have the same secret configured as either
-`PRODUCTION_BACKUP_TOKEN` or `CATALOG_IMPORT_TOKEN`. The dedicated variable is
-preferred when rotating secrets.
+The production Worker and the local command must share the dedicated
+`PRODUCTION_BACKUP_TOKEN`. The catalog import secret is a separate credential
+and cannot authorize a production backup. If `PRODUCTION_BACKUP_TOKEN` is
+missing, the backup endpoint fails closed with `401 Unauthorized`.
 
 By default, snapshots are written outside this repository to its sibling
 directory:
@@ -61,8 +61,8 @@ state. The command detects count and size changes, but it cannot detect every
 same-size concurrent edit.
 
 The backup endpoint is read-only, bearer protected, uncached, and deliberately
-separate from participant sessions. Never store either bearer token in the
-repository or in a backup directory.
+separate from participant sessions and catalog import. Never store the backup
+token in the repository or in a backup directory.
 
 Restoration is intentionally not automated. It is destructive and should only
 be performed after identifying the affected production resources and reviewing
