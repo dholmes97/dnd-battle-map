@@ -3,6 +3,7 @@ import {
   SCENARIO_PROVISIONING_MAP_MAX_BYTES,
   isScenarioProvisioningJobStatus,
 } from "../shared/scenario-provisioning.ts";
+import { SCENARIO_MAIL_BODY_MAX_BYTES } from "../shared/scenario-mail-provenance.ts";
 import { bearerSecretMatches, parseEmailAllowlist } from "../shared/secret-auth.ts";
 import { createD1ScenarioProvisioningRepository, createR2ScenarioProvisioningStorage } from "./adapters/d1-scenario-provisioning-repository.ts";
 import { ScenarioProvisioningWriteError } from "./ports/scenario-provisioning-repository.ts";
@@ -10,6 +11,8 @@ import { createScenarioProvisioningService } from "./scenario-provisioning-servi
 import type { Env } from "./types.ts";
 
 const JOB_ROUTE = /^\/api\/scenario-provisioning\/jobs(?:\/([a-zA-Z0-9-]{1,64})(?:\/(assets\/([a-zA-Z0-9._-]{1,96})|finalize))?)?$/;
+const MAIL_REPLY_ROUTE = /^\/api\/scenario-provisioning\/jobs\/([a-zA-Z0-9-]{1,64})\/mail-replies(?:\/([a-zA-Z0-9-]{1,64})\/messages)?$/;
+const MAIL_CLASSIFY_ROUTE = "/api/scenario-provisioning/mail-messages/classify";
 const STATUS_BODY_MAX_BYTES = 4_096;
 const PATCHABLE_STATUSES = new Set([
   "parsing",
@@ -25,9 +28,13 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
   if (!bearerSecretMatches(request.headers.get("authorization"), env.SCENARIO_PROVISIONING_TOKEN)) {
     return json({ error: "Scenario provisioning authorization failed.", code: "unauthorized" }, { status: 401 });
   }
-  const match = new URL(request.url).pathname.match(JOB_ROUTE);
-  if (!match) return json({ error: "Scenario provisioning route not found.", code: "not_found" }, { status: 404 });
-  const [, jobId, child, assetId] = match;
+  const pathname = new URL(request.url).pathname;
+  const match = pathname.match(JOB_ROUTE);
+  const mailReplyMatch = pathname.match(MAIL_REPLY_ROUTE);
+  const isMailClassification = pathname === MAIL_CLASSIFY_ROUTE;
+  if (!match && !mailReplyMatch && !isMailClassification) {
+    return json({ error: "Scenario provisioning route not found.", code: "not_found" }, { status: 404 });
+  }
   const service = createScenarioProvisioningService({
     repository: createD1ScenarioProvisioningRepository(env.DB),
     objectStorage: createR2ScenarioProvisioningStorage(env.MAP_ASSETS),
@@ -38,6 +45,23 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
   });
 
   try {
+    if (isMailClassification) {
+      if (request.method !== "POST") return methodNotAllowed("POST");
+      const body = await readJsonBody(request, SCENARIO_MAIL_BODY_MAX_BYTES);
+      return json({ classification: await service.classifyMailMessage(body) });
+    }
+    if (mailReplyMatch) {
+      if (request.method !== "POST") return methodNotAllowed("POST");
+      const [, mailJobId, replyId] = mailReplyMatch;
+      const body = await readJsonBody(request, SCENARIO_MAIL_BODY_MAX_BYTES);
+      if (!replyId) {
+        const result = await service.reserveMailReply(mailJobId, body);
+        return json(result, { status: result.created ? 201 : 200 });
+      }
+      const result = await service.recordMailReplyMessage(mailJobId, replyId, body);
+      return json(result, { status: result.created ? 201 : 200 });
+    }
+    const [, jobId, child, assetId] = match!;
     if (!jobId) {
       if (request.method !== "POST") return methodNotAllowed("POST");
       const manifest = await readJsonBody(request, SCENARIO_PROVISIONING_MAX_MANIFEST_BYTES);

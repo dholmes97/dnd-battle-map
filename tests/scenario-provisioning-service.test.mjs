@@ -43,6 +43,8 @@ function jpeg(width, height) {
 function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com", "dan@example.com"] } = {}) {
   const jobs = new Map();
   const assets = new Map();
+  const mailReplies = new Map();
+  const mailMessages = new Map();
   const objects = new Map();
   let id = 0;
   const repository = {
@@ -60,6 +62,17 @@ function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com",
     findAsset: async (jobId, assetId) => assets.get(`${jobId}:${assetId}`) ?? null,
     listAssets: async (jobId) => [...assets.values()].filter((asset) => asset.jobId === jobId),
     upsertAsset: async (asset) => { assets.set(`${asset.jobId}:${asset.assetId}`, asset); return true; },
+    findMailReply: async (jobId, replyKind) => [...mailReplies.values()].find((reply) => reply.jobId === jobId && reply.replyKind === replyKind) ?? null,
+    findMailReplyById: async (replyId) => mailReplies.get(replyId) ?? null,
+    findMailReplyByMarker: async (marker) => [...mailReplies.values()].find((reply) => reply.responseMarker === marker) ?? null,
+    createMailReply: async (reply) => mailReplies.set(reply.id, reply),
+    findMailMessage: async (mailboxKey, messageId) => mailMessages.get(`${mailboxKey}:${messageId}`) ?? null,
+    recordMailMessage: async (message) => {
+      const key = `${message.mailboxKey}:${message.providerMessageId}`;
+      if (mailMessages.has(key)) return false;
+      mailMessages.set(key, message);
+      return true;
+    },
     finalize: async ({ job, manifest: value, mapPackage, assets: staged, now }) => {
       const result = {
         jobId: job.id,
@@ -93,7 +106,7 @@ function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com",
     hash: async (value) => `hash-${typeof value === "string" ? value.length : [...value].reduce((sum, byte) => sum + byte, 0)}`,
     authorizedSenders,
   });
-  return { service, jobs, assets, objects };
+  return { service, jobs, assets, mailReplies, mailMessages, objects };
 }
 
 test("job creation is idempotent and rejects key reuse for another manifest", async () => {
@@ -126,6 +139,82 @@ test("job creation accepts every exact address in the configured allowlist", asy
   }));
   assert.equal(kevin.created, true);
   assert.equal(dan.created, true);
+});
+
+test("automation replies are reserved and recorded idempotently before they can become requests", async () => {
+  const { service, mailMessages } = fixture();
+  const created = await service.createJob(manifest());
+  await service.transition(created.job.id, "needs_clarification", "Need one answer.");
+  const reservation = await service.reserveMailReply(created.job.id, { kind: "clarification" });
+  const replay = await service.reserveMailReply(created.job.id, { kind: "clarification" });
+  assert.equal(reservation.created, true);
+  assert.equal(replay.created, false);
+  assert.equal(replay.reply.id, reservation.reply.id);
+  assert.match(reservation.reply.responseMarker, new RegExp(`^DND-SCENARIO-REPLY:${created.job.id}:`));
+  await assert.rejects(
+    service.recordMailReplyMessage(created.job.id, reservation.reply.id, { messageId: "gmail-wrong-thread", threadId: "other-thread" }),
+    (error) => error.code === "mail_reply_thread_mismatch",
+  );
+
+  const recorded = await service.recordMailReplyMessage(created.job.id, reservation.reply.id, { messageId: "gmail-agent-reply-1", threadId: "thread-1" });
+  const recordedReplay = await service.recordMailReplyMessage(created.job.id, reservation.reply.id, { messageId: "gmail-agent-reply-1", threadId: "thread-1" });
+  assert.equal(recorded.created, true);
+  assert.equal(recordedReplay.created, false);
+  assert.equal(mailMessages.size, 1);
+  assert.deepEqual(await service.classifyMailMessage({ mailboxKey: "primary", messageId: "gmail-agent-reply-1", threadId: "thread-1" }), {
+    automationAuthored: true,
+    recovered: false,
+    reply: reservation.reply,
+  });
+  await assert.rejects(
+    service.createJob(manifest({
+      idempotencyKey: "gmail-primary-agent-reply-1-revision-1",
+      source: { provider: "gmail", mailboxKey: "primary", messageId: "gmail-agent-reply-1", threadId: "thread-1", sender: "kevin@example.com" },
+    })),
+    (error) => error.code === "mail_message_automation_authored",
+  );
+});
+
+test("a marker recovers an interrupted message-ID write while a later human self-reply stays eligible", async () => {
+  const { service } = fixture();
+  const created = await service.createJob(manifest({
+    source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-human-1", threadId: "self-thread", sender: "dan@example.com" },
+  }));
+  await service.transition(created.job.id, "needs_clarification", "Need one answer.");
+  const reservation = await service.reserveMailReply(created.job.id, { kind: "clarification" });
+
+  const recovered = await service.classifyMailMessage({
+    mailboxKey: "primary",
+    messageId: "dan-agent-reply-1",
+    threadId: "self-thread",
+    responseMarker: reservation.reply.responseMarker,
+  });
+  assert.equal(recovered.automationAuthored, true);
+  assert.equal(recovered.recovered, true);
+  await assert.rejects(
+    service.createJob(manifest({
+      idempotencyKey: "gmail-primary-dan-agent-reply-1",
+      source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-agent-reply-1", threadId: "self-thread", sender: "dan@example.com" },
+    })),
+    (error) => error.code === "mail_message_automation_authored",
+  );
+
+  const humanIdentity = { mailboxKey: "primary", messageId: "dan-human-2", threadId: "self-thread" };
+  assert.deepEqual(await service.classifyMailMessage(humanIdentity), {
+    automationAuthored: false,
+    recovered: false,
+    reply: null,
+  });
+  const humanRevision = await service.createJob(manifest({
+    idempotencyKey: "gmail-primary-dan-human-2-revision-2",
+    revision: 2,
+    operation: "revise",
+    targetScenarioCode: "SUNKEN-CHAPEL",
+    source: { provider: "gmail", ...humanIdentity, sender: "dan@example.com" },
+    party: { include: false, sourceScenarioCode: "EMBER-KEEP", placements: [] },
+    map: null,
+  }));
+  assert.equal(humanRevision.created, true);
 });
 
 test("new jobs are rate limited at the authenticated application boundary", async () => {

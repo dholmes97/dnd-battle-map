@@ -17,6 +17,8 @@ test("provisioning API accepts only its dedicated bearer secret", async () => {
     new Request(endpoint, { method: "POST", headers: { "x-participant-id": "kevin-dm", "x-session-secret": "selectable-dm-session" }, body: "{}" }),
     request(endpoint, catalogToken, manifest()),
     request(endpoint, "wrong-scenario-provisioning-token-01", manifest()),
+    request("http://localhost/api/scenario-provisioning/jobs/job-1/mail-replies", catalogToken, { kind: "ready" }),
+    request("http://localhost/api/scenario-provisioning/mail-messages/classify", catalogToken, { mailboxKey: "primary", messageId: "message-1", threadId: "thread-1" }),
   ];
   for (const candidate of cases) {
     const response = await handleScenarioProvisioningApi(candidate, environment);

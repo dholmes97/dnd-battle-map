@@ -482,8 +482,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0020_absurd_wallflower.sql";
-const REQUIRED_SCHEMA_MARKER = "scenario-provisioning-revision-guard-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0021_thankful_randall_flagg.sql";
+const REQUIRED_SCHEMA_MARKER = "scenario-mail-provenance-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {

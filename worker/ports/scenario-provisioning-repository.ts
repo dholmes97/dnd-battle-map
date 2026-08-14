@@ -4,6 +4,7 @@ import type {
   ScenarioProvisioningManifest,
 } from "../../shared/scenario-provisioning.ts";
 import type { MapPackage } from "../../shared/map-package.ts";
+import type { ScenarioMailReplyKind } from "../../shared/scenario-mail-provenance.ts";
 
 export type ScenarioProvisioningJobRecord = {
   id: string;
@@ -36,6 +37,25 @@ export type ScenarioProvisioningAssetRecord = {
   sha256: string;
   committedAt: number | null;
   createdAt: number;
+};
+
+export type ScenarioProvisioningMailReplyRecord = {
+  id: string;
+  jobId: string;
+  mailboxKey: string;
+  threadId: string;
+  replyKind: ScenarioMailReplyKind;
+  responseMarker: string;
+  createdAt: number;
+};
+
+export type ScenarioProvisioningMailMessageRecord = {
+  id: string;
+  replyId: string;
+  mailboxKey: string;
+  threadId: string;
+  providerMessageId: string;
+  recordedAt: number;
 };
 
 export type ScenarioProvisioningFinalizeResult = {
@@ -84,6 +104,12 @@ export interface ScenarioProvisioningRepository {
   findAsset(jobId: string, assetId: string): Promise<ScenarioProvisioningAssetRecord | null>;
   listAssets(jobId: string): Promise<ScenarioProvisioningAssetRecord[]>;
   upsertAsset(asset: ScenarioProvisioningAssetRecord): Promise<boolean>;
+  findMailReply(jobId: string, replyKind: ScenarioMailReplyKind): Promise<ScenarioProvisioningMailReplyRecord | null>;
+  findMailReplyById(replyId: string): Promise<ScenarioProvisioningMailReplyRecord | null>;
+  findMailReplyByMarker(responseMarker: string): Promise<ScenarioProvisioningMailReplyRecord | null>;
+  createMailReply(reply: ScenarioProvisioningMailReplyRecord): Promise<void>;
+  findMailMessage(mailboxKey: string, providerMessageId: string): Promise<ScenarioProvisioningMailMessageRecord | null>;
+  recordMailMessage(message: ScenarioProvisioningMailMessageRecord): Promise<boolean>;
   finalize(input: {
     job: ScenarioProvisioningJobRecord;
     manifest: ScenarioProvisioningManifest;

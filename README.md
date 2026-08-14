@@ -68,5 +68,13 @@ private envelope with:
 npm run scenario:provision -- /absolute/path/to/envelope.json
 ```
 
+The bounded mail-provenance client prevents self-addressed automation loops:
+
+```bash
+npm run scenario:mail-reply -- reserve <jobId> <clarification|ready|failed>
+npm run scenario:mail-reply -- record <jobId> <replyId> <gmailMessageId> <gmailThreadId>
+npm run scenario:mail-reply -- classify <mailboxKey> <gmailMessageId> <gmailThreadId> [responseMarker]
+```
+
 See [`docs/DM-EMAIL-SCENARIO-PROVISIONING.md`](docs/DM-EMAIL-SCENARIO-PROVISIONING.md)
 for the trust boundary, rollout status, and remaining mailbox configuration.

@@ -54,6 +54,14 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
     assert.deepEqual(await service.finalize(created.job.id), result);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM encounters WHERE code = ?", result.scenario.code), 1);
 
+    const reply = await service.reserveMailReply(created.job.id, { kind: "ready" });
+    const recorded = await service.recordMailReplyMessage(created.job.id, reply.reply.id, { messageId: "gmail-ready-message-1", threadId: "thread-1" });
+    assert.equal(reply.created, true);
+    assert.equal(recorded.created, true);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_mail_replies", undefined), 1);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_mail_messages", undefined), 1);
+    assert.equal((await service.classifyMailMessage({ mailboxKey: "primary", messageId: "gmail-ready-message-1", threadId: "thread-1" })).automationAuthored, true);
+
     const committed = await createD1ScenarioProvisioningRepository(db).findCommittedMapAsset(created.job.id, "map-main");
     assert.match(committed.r2Key, /^scenario-provisioning\//);
     assert.ok(await bucket.get(committed.r2Key));

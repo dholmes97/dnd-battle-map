@@ -24,21 +24,20 @@ for (const name of await readdir(d1Directory).catch(() => [])) {
   if (!hasMaintenance) {
     continue;
   }
-  const marker = (await capture(
-    "sqlite3",
-    [database, "SELECT 1 FROM app_maintenance WHERE id = 'scenario-provisioning-revision-guard-v1' LIMIT 1;"],
-  )).trim();
-  if (!marker) {
-    const hasProvisioningTable = (await capture(
+  const provisioningUpgrades = [
+    ["scenario-provisioning-v1", "0019_"],
+    ["scenario-provisioning-revision-guard-v1", "0020_"],
+    ["scenario-mail-provenance-v1", "0021_"],
+  ];
+  for (const [marker, migrationPrefix] of provisioningUpgrades) {
+    const applied = (await capture(
       "sqlite3",
-      [database, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scenario_provisioning_jobs';"],
+      [database, `SELECT 1 FROM app_maintenance WHERE id = '${marker}' LIMIT 1;`],
     )).trim();
-    if (!hasProvisioningTable) {
-      const foundation = migrationFiles.find((migration) => migration.startsWith("0019_"));
-      if (!foundation) throw new Error("Scenario provisioning foundation migration is missing.");
-      await capture("sqlite3", [database], await readFile(join(migrationDirectory, foundation), "utf8"));
-    }
-    await capture("sqlite3", [database], await readFile(join(migrationDirectory, migrationFiles.at(-1)), "utf8"));
+    if (applied) continue;
+    const migration = migrationFiles.find((candidate) => candidate.startsWith(migrationPrefix));
+    if (!migration) throw new Error(`Required migration ${migrationPrefix} is missing.`);
+    await capture("sqlite3", [database], await readFile(join(migrationDirectory, migration), "utf8"));
   }
   await capture("sqlite3", [database], `
     CREATE TABLE IF NOT EXISTS d1_migrations (

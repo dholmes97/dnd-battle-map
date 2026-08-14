@@ -8,8 +8,8 @@ content-addressed R2 staging, atomic scenario finalization, a trusted local
 client, DM briefing display, and the `add-dnd-creature` and
 `provision-dnd-scenario-from-email` skills. Mailbox activation, production
 secrets, and recurring processing remain intentionally disabled until the
-Gmail label is configured and unattended operation is
-explicitly approved.
+Gmail label and durable outbound-reply ledger are configured and unattended
+operation is explicitly approved.
 
 ## Product summary
 
@@ -210,6 +210,7 @@ A ready response must summarize:
 1. Gmail messages are candidates only when all of the following are true:
    - They carry the dedicated scenario-request label.
    - Their normalized sender is on the configured allowlist.
+   - Their message ID is not recorded as an automation-authored reply.
    - Their message ID has not already produced the same job revision.
 2. `is:unread` may be used as a convenience filter, but unread state must not be
    the idempotency mechanism.
@@ -225,6 +226,21 @@ A ready response must summarize:
    filesystem paths, environment variables, storage keys, or deployment steps.
 8. Requests for unsupported application behavior become clarification or
    backlog notes. They never trigger autonomous code changes.
+9. A thread is context, not an intake unit. This is essential when an
+   allowlisted mailbox owner sends a request to their own mailbox: the human
+   request, automation reply, and later human follow-up may all share one
+   thread and sender address, but they remain distinct messages.
+10. Every sent automation reply must return a Gmail message ID that is recorded
+    durably before the next intake scan. Intake must reject that ID before
+    parsing its body, creating a revision, or generating assets.
+    Gmail sends must explicitly request both `id` and `thread_id` in the
+    response and verify the returned thread against the reserved thread.
+11. Because Gmail sending and D1 persistence cannot be one transaction, every
+    automation reply must also carry a deterministic, non-secret response
+    marker tied to its existing job. If sending succeeds but recording the
+    returned message ID is interrupted, the adapter must reconcile the marker
+    against the durable job and classify the message as automation-authored.
+    A marker never authorizes a request or creates a job.
 
 ## Scenario manifest
 
@@ -397,10 +413,19 @@ GET  /api/scenario-provisioning/jobs/{jobId}
 PATCH /api/scenario-provisioning/jobs/{jobId}
 PUT   /api/scenario-provisioning/jobs/{jobId}/assets/{assetId}
 POST /api/scenario-provisioning/jobs/{jobId}/finalize
+POST /api/scenario-provisioning/jobs/{jobId}/mail-replies
+POST /api/scenario-provisioning/jobs/{jobId}/mail-replies/{replyId}/messages
+POST /api/scenario-provisioning/mail-messages/classify
 ```
 
 The API must not expose generic SQL, arbitrary D1 table mutation, arbitrary R2
 keys, shell execution, or the application's general command dispatcher.
+
+The mail-reply routes form a narrow two-phase provenance protocol: reserve a
+job-scoped response and marker before sending, record each Gmail message ID
+after sending, and classify every candidate before scenario parsing. The
+classification route may recover a missing ID only when a known marker matches
+the same durable mailbox and thread reservation.
 
 ### Authentication and authorization
 
@@ -492,6 +517,10 @@ Requirements:
    contents.
 4. A failed or timed-out job can be retried without duplicating visible data.
 5. The email reply is sent only after the corresponding durable state is saved.
+6. The Gmail adapter records the returned outbound message ID and its job/thread
+   association immediately after sending. The next intake cycle may not begin
+   until that write succeeds or reconciliation has safely classified the sent
+   reply.
 
 ## Hexagonal architecture
 
@@ -519,6 +548,7 @@ React, browser APIs, ImageGen, Worker APIs, D1, R2, or network clients.
 Narrow ports represent:
 
 - Mail search/read/reply/label operations.
+- Outbound Gmail message identity persistence and reconciliation.
 - Image generation.
 - Creature-stat research.
 - Prepared-asset storage.
@@ -628,6 +658,13 @@ dropping content.
 - Only the dedicated label and authorized sender are processed.
 - Display-name spoofing is rejected.
 - A processed message is not processed twice even if it remains unread.
+- An automation reply from an allowlisted self-sender is ignored by message ID
+  and cannot create a revision or reply loop.
+- A simulated interruption after Gmail send but before outbound-ID persistence
+  is recovered from the deterministic job response marker without creating a
+  revision.
+- A later human-authored message from that same address and thread remains
+  eligible and creates the intended revision.
 - A same-thread reply targets the correct scenario and creates a new revision.
 - An unrelated thread cannot revise a scenario without a stable identifier.
 - Replies go only to the authorized sender in the request thread.

@@ -83,6 +83,44 @@ export const scenarioProvisioningAssets = sqliteTable(
   ],
 );
 
+export const scenarioProvisioningMailReplies = sqliteTable(
+  "scenario_provisioning_mail_replies",
+  {
+    id: text("id").primaryKey(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => scenarioProvisioningJobs.id, { onDelete: "cascade" }),
+    mailboxKey: text("mailbox_key").notNull(),
+    threadId: text("thread_id").notNull(),
+    replyKind: text("reply_kind").notNull(),
+    responseMarker: text("response_marker").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_scenario_provisioning_mail_replies_job_kind").on(table.jobId, table.replyKind),
+    uniqueIndex("idx_scenario_provisioning_mail_replies_marker").on(table.responseMarker),
+    index("idx_scenario_provisioning_mail_replies_thread").on(table.mailboxKey, table.threadId, table.createdAt),
+  ],
+);
+
+export const scenarioProvisioningMailMessages = sqliteTable(
+  "scenario_provisioning_mail_messages",
+  {
+    id: text("id").primaryKey(),
+    replyId: text("reply_id")
+      .notNull()
+      .references(() => scenarioProvisioningMailReplies.id, { onDelete: "cascade" }),
+    mailboxKey: text("mailbox_key").notNull(),
+    threadId: text("thread_id").notNull(),
+    providerMessageId: text("provider_message_id").notNull(),
+    recordedAt: integer("recorded_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_scenario_provisioning_mail_messages_mailbox_message").on(table.mailboxKey, table.providerMessageId),
+    index("idx_scenario_provisioning_mail_messages_reply").on(table.replyId, table.recordedAt),
+  ],
+);
+
 export const mapPresets = sqliteTable(
   "map_presets",
   {

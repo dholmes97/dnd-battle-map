@@ -19,6 +19,7 @@
     "catalog:expand": "node scripts/build-creature-expansion.mjs",
     "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
     "scenario:provision": "node scripts/provision-scenario.mjs",
+    "scenario:mail-reply": "node scripts/scenario-mail-reply.mjs",
     "scenario:prepare-handout": "node scripts/prepare-scenario-handout.mjs",
     "scenario:prepare-creature": "node scripts/prepare-creature-art.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",

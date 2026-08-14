@@ -6,6 +6,8 @@ import type {
   ScenarioProvisioningAssetRecord,
   ScenarioProvisioningFinalizeResult,
   ScenarioProvisioningJobRecord,
+  ScenarioProvisioningMailMessageRecord,
+  ScenarioProvisioningMailReplyRecord,
   ScenarioProvisioningObjectStorage,
   ScenarioProvisioningRepository,
 } from "../ports/scenario-provisioning-repository.ts";
@@ -25,6 +27,17 @@ type AssetRow = {
   sha256: string; committed_at: number | null; created_at: number;
 };
 
+type MailReplyRow = {
+  id: string; job_id: string; mailbox_key: string; thread_id: string;
+  reply_kind: ScenarioProvisioningMailReplyRecord["replyKind"];
+  response_marker: string; created_at: number;
+};
+
+type MailMessageRow = {
+  id: string; reply_id: string; mailbox_key: string; thread_id: string;
+  provider_message_id: string; recorded_at: number;
+};
+
 type CatalogRow = {
   id: string; name: string; size: CreatureSize; default_hp: number; walk_speed: number;
   token_asset: string; thumbnail_asset: string; is_active: number;
@@ -38,6 +51,8 @@ const JOB_COLUMNS = `id, idempotency_key, revision, operation, status, manifest_
   manifest_hash, scenario_id, scenario_code, base_scenario_version, summary, error_code, result_json, created_at, updated_at`;
 const ASSET_COLUMNS = `id, job_id, asset_id, kind, r2_key, content_type, width, height,
   byte_length, sha256, committed_at, created_at`;
+const MAIL_REPLY_COLUMNS = `id, job_id, mailbox_key, thread_id, reply_kind, response_marker, created_at`;
+const MAIL_MESSAGE_COLUMNS = `id, reply_id, mailbox_key, thread_id, provider_message_id, recorded_at`;
 const PARTY_NAMES = ["Dar'eleth", "Jelton", "Malichar"];
 
 export function createD1ScenarioProvisioningRepository(db: D1Database): ScenarioProvisioningRepository {
@@ -113,6 +128,54 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
       ).run();
       return (result.meta.changes ?? 0) === 1;
     },
+    async findMailReply(jobId, replyKind) {
+      const row = await db.prepare(
+        `SELECT ${MAIL_REPLY_COLUMNS} FROM scenario_provisioning_mail_replies
+         WHERE job_id = ? AND reply_kind = ?`,
+      ).bind(jobId, replyKind).first<MailReplyRow>();
+      return row ? mapMailReply(row) : null;
+    },
+    async findMailReplyById(replyId) {
+      const row = await db.prepare(
+        `SELECT ${MAIL_REPLY_COLUMNS} FROM scenario_provisioning_mail_replies WHERE id = ?`,
+      ).bind(replyId).first<MailReplyRow>();
+      return row ? mapMailReply(row) : null;
+    },
+    async findMailReplyByMarker(responseMarker) {
+      const row = await db.prepare(
+        `SELECT ${MAIL_REPLY_COLUMNS} FROM scenario_provisioning_mail_replies WHERE response_marker = ?`,
+      ).bind(responseMarker).first<MailReplyRow>();
+      return row ? mapMailReply(row) : null;
+    },
+    async createMailReply(reply) {
+      await db.prepare(
+        `INSERT INTO scenario_provisioning_mail_replies
+         (id, job_id, mailbox_key, thread_id, reply_kind, response_marker, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        reply.id, reply.jobId, reply.mailboxKey, reply.threadId,
+        reply.replyKind, reply.responseMarker, reply.createdAt,
+      ).run();
+    },
+    async findMailMessage(mailboxKey, providerMessageId) {
+      const row = await db.prepare(
+        `SELECT ${MAIL_MESSAGE_COLUMNS} FROM scenario_provisioning_mail_messages
+         WHERE mailbox_key = ? AND provider_message_id = ?`,
+      ).bind(mailboxKey, providerMessageId).first<MailMessageRow>();
+      return row ? mapMailMessage(row) : null;
+    },
+    async recordMailMessage(message) {
+      const result = await db.prepare(
+        `INSERT INTO scenario_provisioning_mail_messages
+         (id, reply_id, mailbox_key, thread_id, provider_message_id, recorded_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(mailbox_key, provider_message_id) DO NOTHING`,
+      ).bind(
+        message.id, message.replyId, message.mailboxKey, message.threadId,
+        message.providerMessageId, message.recordedAt,
+      ).run();
+      return (result.meta.changes ?? 0) === 1;
+    },
     finalize: (input) => finalizeProvisioning(db, input),
     async findCommittedMapAsset(jobId, assetId) {
       const row = await db.prepare(
@@ -124,6 +187,29 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
       ).bind(jobId, assetId).first<{ r2_key: string; content_type: string }>();
       return row ? { r2Key: row.r2_key, contentType: row.content_type } : null;
     },
+  };
+}
+
+function mapMailReply(row: MailReplyRow): ScenarioProvisioningMailReplyRecord {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    mailboxKey: row.mailbox_key,
+    threadId: row.thread_id,
+    replyKind: row.reply_kind,
+    responseMarker: row.response_marker,
+    createdAt: row.created_at,
+  };
+}
+
+function mapMailMessage(row: MailMessageRow): ScenarioProvisioningMailMessageRecord {
+  return {
+    id: row.id,
+    replyId: row.reply_id,
+    mailboxKey: row.mailbox_key,
+    threadId: row.thread_id,
+    providerMessageId: row.provider_message_id,
+    recordedAt: row.recorded_at,
   };
 }
 

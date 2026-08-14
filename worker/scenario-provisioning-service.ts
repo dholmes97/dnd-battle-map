@@ -10,10 +10,21 @@ import {
 import { inspectStoredHandout, storedHandoutVariantError } from "../shared/handout-domain.ts";
 import { inspectPng } from "../shared/scenario-provisioning.ts";
 import { emailSenderAllowed } from "../shared/secret-auth.ts";
+import {
+  cleanScenarioMailboxKey,
+  cleanScenarioProviderMessageId,
+  cleanScenarioThreadId,
+  parseScenarioMailReplyKind,
+  parseScenarioMailResponseMarker,
+  scenarioMailResponseMarker,
+  type ScenarioMailReplyKind,
+} from "../shared/scenario-mail-provenance.ts";
 import type {
   ScenarioProvisioningAssetRecord,
   ScenarioProvisioningFinalizeResult,
   ScenarioProvisioningJobRecord,
+  ScenarioProvisioningMailMessageRecord,
+  ScenarioProvisioningMailReplyRecord,
   ScenarioProvisioningObjectStorage,
   ScenarioProvisioningRepository,
 } from "./ports/scenario-provisioning-repository.ts";
@@ -40,6 +51,20 @@ export type ScenarioProvisioningPublicJob = {
   result: ScenarioProvisioningFinalizeResult | null;
   createdAt: number;
   updatedAt: number;
+};
+
+export type ScenarioProvisioningPublicMailReply = {
+  id: string;
+  jobId: string;
+  replyKind: ScenarioMailReplyKind;
+  responseMarker: string;
+  createdAt: number;
+};
+
+export type ScenarioMailMessageClassification = {
+  automationAuthored: boolean;
+  recovered: boolean;
+  reply: ScenarioProvisioningPublicMailReply | null;
 };
 
 export function publicScenarioProvisioningJob(job: ScenarioProvisioningJobRecord): ScenarioProvisioningPublicJob {
@@ -70,6 +95,13 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (!parsed.ok) throw new ScenarioProvisioningWriteError("manifest_invalid", parsed.errors.join(" "), 400);
     if (!emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders)) {
       throw new ScenarioProvisioningWriteError("sender_unauthorized", "The manifest sender is not authorized for scenario provisioning.", 403);
+    }
+    if (await repository.findMailMessage(parsed.manifest.source.mailboxKey, parsed.manifest.source.messageId)) {
+      throw new ScenarioProvisioningWriteError(
+        "mail_message_automation_authored",
+        "Automation-authored mail cannot create or revise a scenario.",
+        409,
+      );
     }
     const manifestHash = await dependencies.hash(parsed.canonicalJson);
     const existing = await repository.findJobByIdempotencyKey(parsed.manifest.idempotencyKey);
@@ -119,6 +151,75 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
   async function getJob(jobId: string): Promise<ScenarioProvisioningPublicJob> {
     const job = await requireJob(jobId);
     return publicScenarioProvisioningJob(job);
+  }
+
+  async function reserveMailReply(jobId: string, raw: unknown): Promise<{ created: boolean; reply: ScenarioProvisioningPublicMailReply }> {
+    const replyKind = parseScenarioMailReplyKind(record(raw)?.kind);
+    if (!replyKind) throw new ScenarioProvisioningWriteError("mail_reply_kind_invalid", "Mail reply kind must be clarification, ready, or failed.", 400);
+    const job = await requireJob(jobId);
+    if (job.status !== replyStatus(replyKind)) {
+      throw new ScenarioProvisioningWriteError("mail_reply_status_invalid", `A ${replyKind} reply cannot be reserved while the job is ${job.status}.`);
+    }
+    const existing = await repository.findMailReply(jobId, replyKind);
+    if (existing) return { created: false, reply: publicMailReply(existing) };
+    const parsed = parseStoredManifest(job);
+    const id = dependencies.createId();
+    const reply: ScenarioProvisioningMailReplyRecord = {
+      id,
+      jobId,
+      mailboxKey: parsed.manifest.source.mailboxKey,
+      threadId: parsed.manifest.source.threadId,
+      replyKind,
+      responseMarker: scenarioMailResponseMarker(jobId, id),
+      createdAt: dependencies.now(),
+    };
+    try {
+      await repository.createMailReply(reply);
+      return { created: true, reply: publicMailReply(reply) };
+    } catch (error) {
+      const raced = await repository.findMailReply(jobId, replyKind);
+      if (!raced) throw error;
+      return { created: false, reply: publicMailReply(raced) };
+    }
+  }
+
+  async function recordMailReplyMessage(jobId: string, replyId: string, raw: unknown) {
+    const item = record(raw);
+    const providerMessageId = cleanScenarioProviderMessageId(item?.messageId);
+    const threadId = cleanScenarioThreadId(item?.threadId);
+    if (!providerMessageId || !threadId) throw new ScenarioProvisioningWriteError("mail_message_identity_invalid", "Valid Gmail message and thread IDs are required.", 400);
+    await requireJob(jobId);
+    const reply = await repository.findMailReplyById(replyId);
+    if (!reply || reply.jobId !== jobId) throw new ScenarioProvisioningWriteError("mail_reply_not_found", "Mail reply reservation not found.", 404);
+    if (reply.threadId !== threadId) throw new ScenarioProvisioningWriteError("mail_reply_thread_mismatch", "The sent Gmail reply did not remain in its reserved thread.");
+    const result = await persistMailMessage(reply, providerMessageId);
+    return { created: result.created, message: publicMailMessage(result.message), reply: publicMailReply(reply) };
+  }
+
+  async function classifyMailMessage(raw: unknown): Promise<ScenarioMailMessageClassification> {
+    const item = record(raw);
+    const mailboxKey = cleanScenarioMailboxKey(item?.mailboxKey);
+    const providerMessageId = cleanScenarioProviderMessageId(item?.messageId);
+    const threadId = cleanScenarioThreadId(item?.threadId);
+    if (!mailboxKey || !providerMessageId || !threadId) {
+      throw new ScenarioProvisioningWriteError("mail_identity_invalid", "Mailbox key, Gmail message ID, and Gmail thread ID are required.", 400);
+    }
+    const existing = await repository.findMailMessage(mailboxKey, providerMessageId);
+    if (existing) {
+      const reply = await repository.findMailReplyById(existing.replyId);
+      return { automationAuthored: true, recovered: false, reply: reply ? publicMailReply(reply) : null };
+    }
+    if (item?.responseMarker === undefined || item.responseMarker === null || item.responseMarker === "") {
+      return { automationAuthored: false, recovered: false, reply: null };
+    }
+    const marker = parseScenarioMailResponseMarker(item.responseMarker);
+    if (!marker) throw new ScenarioProvisioningWriteError("mail_response_marker_invalid", "The scenario reply marker is invalid.", 400);
+    const reply = await repository.findMailReplyByMarker(marker.marker);
+    if (!reply || reply.id !== marker.replyId || reply.jobId !== marker.jobId || reply.mailboxKey !== mailboxKey || reply.threadId !== threadId) {
+      return { automationAuthored: false, recovered: false, reply: null };
+    }
+    await persistMailMessage(reply, providerMessageId);
+    return { automationAuthored: true, recovered: true, reply: publicMailReply(reply) };
   }
 
   async function transition(jobId: string, to: ScenarioProvisioningJobStatus, summary: string, errorCode: string | null = null): Promise<ScenarioProvisioningPublicJob> {
@@ -227,7 +328,66 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     return job;
   }
 
-  return { createJob, getJob, transition, stageAsset, finalize };
+  async function persistMailMessage(reply: ScenarioProvisioningMailReplyRecord, providerMessageId: string) {
+    const existing = await repository.findMailMessage(reply.mailboxKey, providerMessageId);
+    if (existing) {
+      if (existing.replyId !== reply.id) throw new ScenarioProvisioningWriteError("mail_message_conflict", "That Gmail message is already associated with another reply.");
+      return { created: false, message: existing };
+    }
+    const message: ScenarioProvisioningMailMessageRecord = {
+      id: dependencies.createId(),
+      replyId: reply.id,
+      mailboxKey: reply.mailboxKey,
+      threadId: reply.threadId,
+      providerMessageId,
+      recordedAt: dependencies.now(),
+    };
+    if (await repository.recordMailMessage(message)) return { created: true, message };
+    const raced = await repository.findMailMessage(reply.mailboxKey, providerMessageId);
+    if (!raced || raced.replyId !== reply.id) throw new ScenarioProvisioningWriteError("mail_message_conflict", "That Gmail message is already associated with another reply.");
+    return { created: false, message: raced };
+  }
+
+  return {
+    createJob,
+    getJob,
+    reserveMailReply,
+    recordMailReplyMessage,
+    classifyMailMessage,
+    transition,
+    stageAsset,
+    finalize,
+  };
+}
+
+function publicMailReply(reply: ScenarioProvisioningMailReplyRecord): ScenarioProvisioningPublicMailReply {
+  return {
+    id: reply.id,
+    jobId: reply.jobId,
+    replyKind: reply.replyKind,
+    responseMarker: reply.responseMarker,
+    createdAt: reply.createdAt,
+  };
+}
+
+function publicMailMessage(message: ScenarioProvisioningMailMessageRecord) {
+  return {
+    id: message.id,
+    replyId: message.replyId,
+    messageId: message.providerMessageId,
+    recordedAt: message.recordedAt,
+  };
+}
+
+function replyStatus(replyKind: ScenarioMailReplyKind): ScenarioProvisioningJobStatus {
+  if (replyKind === "clarification") return "needs_clarification";
+  return replyKind;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
 }
 
 function parseStoredManifest(job: ScenarioProvisioningJobRecord) {
