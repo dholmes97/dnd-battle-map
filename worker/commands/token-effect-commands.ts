@@ -3,7 +3,7 @@ import { transitionHp } from "../../shared/encounter-transitions.ts";
 import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
-import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
+import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 type TokenEffectCommandName =
   | "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token"
@@ -282,10 +282,6 @@ function cleanText(value: unknown, max: number) {
 
 function cleanId(value: unknown) {
   return typeof value === "string" ? value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64) : "";
-}
-
-function requireDm(context: TokenEffectCommandContext) {
-  return context.participant.role === "dm" ? null : commandError("This action requires the DM role.", 403);
 }
 
 async function finish(context: TokenEffectCommandContext, type: string, payload: Record<string, unknown>) {

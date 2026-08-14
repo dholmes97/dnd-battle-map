@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { battleMapApi as api, sessionPayload, type useEncounterSync } from "@/app/use-encounter-sync";
+import { battleMapApi as api, sessionPayload, type EncounterSync } from "@/app/use-encounter-sync";
 import { commandRequest } from "@/shared/command-parser";
 import type { EncounterState, ParticipantSession, Role } from "@/shared/contracts";
 
@@ -11,8 +11,6 @@ export type EncounterSummary = {
   status: "setup" | "active" | "paused";
   updatedAt: number;
 };
-
-type EncounterSync = ReturnType<typeof useEncounterSync>;
 
 export function useScenarioControls({ participant, state, sync, resetChatForParticipant, setEncounterCode, setEncounters, setSelectedTokenId, setNotice }: {
   participant: ParticipantSession | null;
@@ -50,12 +48,11 @@ export function useScenarioControls({ participant, state, sync, resetChatForPart
         method: "POST",
         body: sessionPayload(participant, commandRequest("create-scenario", { name: scenarioName, mode })),
       });
-      sync.clearPendingState();
       const joined = { id: result.participantId, name: "Kevin", role: result.role, sessionSecret: result.sessionSecret };
       resetChatForParticipant(joined.name, joined.role, result.scenario.code);
-      sync.setParticipant(joined); sync.setState(result.state); setEncounterCode(result.scenario.code);
+      sync.startSession(joined, result.state); setEncounterCode(result.scenario.code);
       setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
-      setSelectedTokenId(null); setOpen(false); setName(""); setMode("party"); sync.setConnection("connecting");
+      setSelectedTokenId(null); setOpen(false); setName(""); setMode("party");
       setNotice(`${result.scenario.name} created.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The scenario could not be created.");

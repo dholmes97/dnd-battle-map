@@ -2,7 +2,7 @@ import { ensureSharedFogPolygon } from "../../shared/fog-of-war.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import type { SharedAnnotation } from "../../shared/contracts.ts";
 import type { AnnotationFogRepository } from "../ports/annotation-fog-repository.ts";
-import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
+import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 const PING_TTL_MS = 2_000;
 const SPOTLIGHT_TTL_MS = 6_500;
@@ -134,10 +134,6 @@ export async function removeAnnotation(context: AnnotationFogCommandContext<"rem
   }
   await finish(context, "annotation_removed", { annotationId, annotation });
   return success(context, { removed: true });
-}
-
-function requireDm(context: AnnotationFogCommandContext): CommandOutcome | null {
-  return context.participant.role === "dm" ? null : commandError("This action requires the DM role.", 403);
 }
 
 async function finish(context: AnnotationFogCommandContext, type: string, payload: Record<string, unknown>) {

@@ -51,10 +51,25 @@ test("ships the split browser adapter instead of one monolithic feature componen
     "app/use-chat-handouts.ts", "app/chat-handouts-ui.tsx", "app/use-token-controls.ts",
     "app/use-creature-catalog.ts", "app/battle-map-palettes.tsx", "app/encounter-sidebar.tsx",
     "app/use-scenario-controls.ts", "app/use-encounter-actions.ts", "app/use-personal-ui-settings.ts",
+    "app/use-battle-map-gestures.ts",
   ]) await access(new URL(path, root));
   assert.match(client, /<BattleMapCommandBar/);
   assert.match(client, /<EncounterSidebar/);
   assert.match(client, /<EncounterDialogs/);
+  assert.match(client, /useBattleMapGestures/);
+  assert.doesNotMatch(client, /const onCanvasPointerDown/);
+});
+
+test("encapsulates synchronization storage behind an operations interface", async () => {
+  const [sync, history, client] = await Promise.all([
+    source("app/use-encounter-sync.ts"),
+    source("app/use-history-shortcuts.ts"),
+    source("app/battle-map-prototype.tsx"),
+  ]);
+  assert.match(sync, /export type EncounterSync/);
+  assert.match(sync, /startSession/);
+  assert.match(sync, /runHistory/);
+  assert.doesNotMatch(`${history}\n${client}`, /pendingMovesRef|pendingOptimisticRef|localUndoHistoryRef|optimisticSequenceRef/);
 });
 
 test("keeps numbered migrations as the only schema mutation path", async () => {

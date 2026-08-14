@@ -1,7 +1,7 @@
 import { nextInitiativeTurn, orderedInitiativeGroups } from "../../shared/initiative-domain.ts";
 import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
 import type { TokenRow } from "../types.ts";
-import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
+import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 type InitiativeCombatCommandName =
   | "set-initiative" | "set-initiative-group" | "start-combat"
@@ -185,12 +185,6 @@ function cleanId(value: unknown) {
 function wholeInitiative(value: unknown) {
   const initiative = Math.trunc(Number(value));
   return Number.isInteger(initiative) && initiative >= 0 && initiative <= 99 ? initiative : null;
-}
-
-function requireDm(context: InitiativeCombatCommandContext) {
-  return context.participant.role === "dm"
-    ? null
-    : commandError("This action requires the DM role.", 403);
 }
 
 async function finish(

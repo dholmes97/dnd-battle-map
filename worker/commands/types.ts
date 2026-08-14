@@ -53,3 +53,9 @@ export type CommandContextFor<Name extends CommandName, Extra extends object = o
 export function commandError(error: string, status: number): CommandOutcome {
   return { status, payload: { error } };
 }
+
+export function requireDm(context: { participant: CommandParticipant }): CommandOutcome | null {
+  return context.participant.role === "dm"
+    ? null
+    : commandError("This action requires the DM role.", 403);
+}

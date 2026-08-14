@@ -1,19 +1,19 @@
 # Refactor Plan
 
-Last revalidated against the completed working tree after `1fffbb7` on
-2026-08-13. All seven stages are complete; this document records the result and
-the constraints that future work should preserve.
+Last revalidated against the completed working tree on 2026-08-13. All seven
+stages are complete; this document records the result and the constraints that
+future work should preserve.
 
 An independent follow-up review on 2026-08-13 confirmed every measurement in this
 document against the tree and found six follow-up items, recorded under
-"Follow-up review findings" below. Items 1, 2, 4, and 6 are now complete; items
-3 and 5 remain open. None of them block release.
+"Follow-up review findings" below. Items 1, 2, 4, 5, and 6 are now complete;
+item 3 remains open. None of them block release.
 
 This plan continues the lightweight ports-and-adapters boundary described in
 `docs/ARCHITECTURE.md`. The framework-free core, typed command families, narrow
 persistence ports, and cohesive React feature boundaries are now established.
 
-The production build, lint, typecheck, 92 framework-free/adapter tests, 14 React
+The production build, lint, typecheck, 105 framework-free/adapter tests, 19 React
 component tests, and 8 live integration tests pass. A real-browser smoke test
 also covers the join flow, battle-map composition, and square-cell Map Workshop
 geometry. TypeScript is a mandatory test gate.
@@ -24,13 +24,14 @@ Measured on the current tree, not estimated:
 
 | Area | Current size |
 |---|---:|
-| `app/battle-map-prototype.tsx` | 1,178 lines |
-| `BattleMapPrototype` component body | about 1,020 lines |
-| `app/map-workshop.tsx` | 528 lines |
-| `worker/index.ts` | 1,666 lines |
-| Framework-free modules in `shared/` | 17 typed files / 1,641 lines |
+| `app/battle-map-prototype.tsx` | 744 lines |
+| `app/use-battle-map-gestures.ts` | 564 lines |
+| `app/use-encounter-sync.ts` | 521 lines |
+| `app/map-workshop.tsx` | 472 lines |
+| `worker/index.ts` | 1,688 lines |
+| Framework-free modules in `shared/` | 19 typed files / 2,061 lines |
 | Remaining untyped `.mjs` modules in `shared/` | 0 files |
-| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 10,340 lines |
+| Hand-written runtime code in `app/`, `worker/`, and `shared/` | 11,123 lines |
 
 The two former monoliths now contain about 27% of runtime code rather than about
 70%. The additional runtime lines are cohesive feature modules, typed ports,
@@ -44,15 +45,15 @@ root-component or request-router logic.
 - Stage 3 moved the 513-line request-time `ensureSchema` body into one
   checked-in migration. The remaining guard is read-only and small enough to
   audit directly.
-- The main client component has 16 `useState` and 8 `useEffect` call sites.
+- The main client component has 13 `useState` and 8 `useEffect` call sites.
   Rendering, synchronization, chat/handouts, token controls, scenarios,
   catalog state, map assets, history shortcuts, personal settings, palettes,
   command bar, dialogs, and encounter sidebar all have explicit owners.
 - `npm run typecheck` reports no errors and is the first mandatory step in
   `npm test`.
-- `tests/rendered-html.test.mjs` is 96 lines with 31 narrowly structural
-  `match`/`doesNotMatch` assertions. User-visible React behavior is covered by
-  14 Vitest/Testing Library contracts.
+- `tests/rendered-html.test.mjs` keeps narrowly structural adapter-wiring and
+  retired-path assertions. User-visible React behavior is covered by 19
+  Vitest/Testing Library contracts.
 - `npm test` automatically discovers `tests/*.test.mjs`; live tests are isolated
   under `tests/live/`.
 - `docs/ARCHITECTURE.md` now describes the typed contracts and current Map
@@ -373,6 +374,18 @@ Exit criteria: production backup requires its own configured secret and fails
 closed when that secret is missing.
 
 ### 5. Give `useEncounterSync` a real interface
+
+**Completed 2026-08-13.** `useEncounterSync` now returns an explicit
+operations-focused `EncounterSync` interface. Pending mutations, command
+sequences, movement reconciliation, and local history stacks stay private to
+the hook; consumers call `startSession`, optimistic token operations, and
+`runHistory` instead of reaching into mutable refs.
+
+Canvas drag/drop, pointer selection, token movement, panning, zooming, drawing,
+and shared-fog vertex editing now live in `use-battle-map-gestures.ts`, with
+focused component contracts for the extracted adapter. The root map component
+is 744 lines. The four command families also share one `requireDm` guard from
+`worker/commands/types.ts`.
 
 The hook returns 21 members including eight mutable refs
 (`pendingMovesRef`, `localUndoHistoryRef`, `optimisticSequenceRef`, and others),

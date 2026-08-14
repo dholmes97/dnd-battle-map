@@ -24,6 +24,30 @@ afterEach(() => {
 });
 
 describe("useEncounterSync live lifecycle", () => {
+  it("exposes operations without leaking mutable synchronization storage", () => {
+    const { result } = renderHook(() => useEncounterSync({
+      setError: vi.fn(),
+      setNotice: vi.fn(),
+    }));
+    expect(result.current).toMatchObject({
+      participant: null,
+      state: null,
+      connection: "connecting",
+      startSession: expect.any(Function),
+      acceptState: expect.any(Function),
+      sendCommand: expect.any(Function),
+      runOptimisticCommand: expect.any(Function),
+      createTokenOptimistically: expect.any(Function),
+      removeTokenOptimistically: expect.any(Function),
+      moveTokenOptimistically: expect.any(Function),
+      runHistory: expect.any(Function),
+    });
+    expect(Object.keys(result.current).some((key) => key.endsWith("Ref"))).toBe(false);
+    expect(result.current).not.toHaveProperty("setState");
+    expect(result.current).not.toHaveProperty("setParticipant");
+    expect(result.current).not.toHaveProperty("setConnection");
+  });
+
   it("stops live requests while hidden and refreshes immediately on return", async () => {
     vi.useFakeTimers();
     let visibility: DocumentVisibilityState = "visible";
@@ -45,8 +69,7 @@ describe("useEncounterSync live lifecycle", () => {
       setNotice: vi.fn(),
     }));
     await act(async () => {
-      result.current.setParticipant(participant);
-      result.current.setState(state);
+      result.current.startSession(participant, state);
       await Promise.resolve();
     });
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });

@@ -10,7 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { prepareHandoutImages } from "@/app/handout-images";
-import { viewerHeaders, type useEncounterSync } from "@/app/use-encounter-sync";
+import { viewerHeaders, type EncounterSync } from "@/app/use-encounter-sync";
 import type {
   EncounterState,
   ParticipantSession,
@@ -28,7 +28,6 @@ import {
 import { cleanHandoutTitle } from "@/shared/handout-domain.ts";
 import type { ChatDock } from "@/app/chat-handouts-ui";
 
-type EncounterSync = ReturnType<typeof useEncounterSync>;
 type ChatPreferences = { dock: ChatDock; readAt: Record<string, number> };
 
 const CHAT_UI_STORAGE_PREFIX = "dnd-battle-map:chat:v1";
@@ -240,7 +239,7 @@ export function useChatHandouts({ participant, state, sync, canvasRef, setNotice
       });
       const result = await response.json() as { handoutId?: string; state?: EncounterState; error?: string };
       if (!response.ok || !result.state || !result.handoutId) throw new Error(result.error || "The handout could not be saved.");
-      sync.acceptAuthoritativeState(result.state);
+      sync.acceptState(result.state);
       setHandoutTitle("");
       if (selectForChat) {
         setSelectedHandoutId(result.handoutId);

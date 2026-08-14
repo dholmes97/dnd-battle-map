@@ -1,26 +1,12 @@
 "use client";
 
 import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from "react";
-import type { useEncounterSync } from "@/app/use-encounter-sync";
-
-type EncounterSync = ReturnType<typeof useEncounterSync>;
+import type { EncounterSync } from "@/app/use-encounter-sync";
 
 export function useHistoryShortcuts({ sync, busy, setNotice }: { sync: EncounterSync; busy: boolean; setNotice: Dispatch<SetStateAction<string>> }) {
-  const { localUndoHistoryRef, localRedoHistoryRef, optimisticSequenceRef, runCommand, runOptimisticCommand } = sync;
   const run = async (direction: "undo" | "redo") => {
     setNotice(direction === "undo" ? "Last action undone." : "Last action redone.");
-    const state = sync.state;
-    const entry = (direction === "undo" ? localUndoHistoryRef.current : localRedoHistoryRef.current).at(-1);
-    if (!entry || !state) { const confirmed = await runCommand(direction); if (!confirmed) setNotice(""); return; }
-    if (direction === "undo") localUndoHistoryRef.current = localUndoHistoryRef.current.slice(0, -1); else localRedoHistoryRef.current = localRedoHistoryRef.current.slice(0, -1);
-    const inverseEntry = { mutationId: ++optimisticSequenceRef.current, state };
-    if (direction === "undo") localRedoHistoryRef.current = [...localRedoHistoryRef.current.slice(-9), inverseEntry]; else localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), inverseEntry];
-    const result = await runOptimisticCommand(direction, {}, () => ({ ...entry.state, undo: { ...entry.state.undo, available: direction === "undo" ? Math.max(0, state.undo.available - 1) : Math.min(10, state.undo.available + 1), redoAvailable: direction === "undo" ? Math.min(10, state.undo.redoAvailable + 1) : Math.max(0, state.undo.redoAvailable - 1) } }), undefined, undefined, false);
-    if (!result) {
-      setNotice("");
-      if (direction === "undo") { localRedoHistoryRef.current = localRedoHistoryRef.current.filter((item) => item.mutationId !== inverseEntry.mutationId); localUndoHistoryRef.current = [...localUndoHistoryRef.current, entry]; }
-      else { localUndoHistoryRef.current = localUndoHistoryRef.current.filter((item) => item.mutationId !== inverseEntry.mutationId); localRedoHistoryRef.current = [...localRedoHistoryRef.current, entry]; }
-    }
+    if (!await sync.runHistory(direction)) setNotice("");
   };
   const runFromShortcut = useEffectEvent((direction: "undo" | "redo") => { void run(direction); });
   useEffect(() => {

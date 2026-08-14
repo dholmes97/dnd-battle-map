@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { useEncounterSync } from "@/app/use-encounter-sync";
+import type { EncounterSync } from "@/app/use-encounter-sync";
 import type { MapPoint, SharedToken } from "@/shared/contracts";
 import { ensureSharedFogPolygon } from "@/shared/fog-of-war";
 import { advanceEncounterTurn } from "@/shared/initiative-domain";
 import type { MapPackage } from "@/shared/map-package";
-
-type EncounterSync = ReturnType<typeof useEncounterSync>;
 
 export function useEncounterActions(sync: EncounterSync) {
   const [pendingAction, setPendingAction] = useState<"pause" | "resume" | "reset" | null>(null);

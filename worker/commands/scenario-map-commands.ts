@@ -3,7 +3,7 @@ import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import { baseTokenControllerName } from "../../shared/token-control.ts";
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
-import { commandError, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
+import { commandError, requireDm, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 type ScenarioMapCommandName =
   | "rename-scenario" | "create-scenario" | "save-map-preset"
@@ -230,12 +230,6 @@ function clampCoordinate(
 ) {
   const radius = tokenRadiusCells(size);
   return Math.round(Math.min(limit - radius, Math.max(radius, value)) * 1000) / 1000;
-}
-
-function requireDm(context: ScenarioMapCommandContext) {
-  return context.participant.role === "dm"
-    ? null
-    : commandError("This action requires the DM role.", 403);
 }
 
 async function finish(

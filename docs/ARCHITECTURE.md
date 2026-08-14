@@ -23,11 +23,15 @@ Domain modules must not import React, DOM APIs, Worker APIs, D1, R2, or networki
 - `worker/` is the HTTP/persistence adapter. It owns request parsing, authorization lookup, D1/R2 queries, transactions, and response projection.
 
 The React adapter is split by cohesive feature boundaries: one owner each for
-live synchronization, canvas rendering, chat/handouts, token controls,
+live synchronization, canvas rendering, canvas gesture orchestration, chat/handouts, token controls,
 scenario controls, catalog paging, map assets, personal settings, history
 shortcuts, toolbar/palettes, dialogs, and encounter sidebar composition. The
 Worker dispatches typed command families through narrow repository ports whose
 production adapters live under `worker/adapters/`.
+
+`useEncounterSync` exposes session, command, optimistic token, and history
+operations. Its pending mutation maps, sequence counters, and undo/redo storage
+are adapter internals and are not shared with React consumers.
 
 Adapters may translate framework-shaped records into domain-shaped data, invoke a domain function, and translate the result back. A decision used by both adapters belongs in `shared/`; it should not be reimplemented in each adapter.
 

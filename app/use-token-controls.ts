@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import type { useEncounterSync } from "@/app/use-encounter-sync";
+import type { EncounterSync } from "@/app/use-encounter-sync";
 import { tokenRadiusCells, type CreatureSize } from "@/shared/creature-library";
 import type { EncounterState, ParticipantSession, SharedEffect, SharedToken } from "@/shared/contracts";
 import { transitionHp } from "@/shared/encounter-transitions.ts";
 import { clampMapPoint } from "@/shared/battle-map-geometry.ts";
 import { initiativePackMembers, rosterBaseName } from "@/shared/initiative-domain.ts";
 import { spellAreaDiameter, type SpellAreaSize, type SpellEffectDefinition } from "@/shared/spell-effects";
-
-type EncounterSync = ReturnType<typeof useEncounterSync>;
 
 export function useTokenControls({ participant, state, sync, setError, setNotice }: {
   participant: ParticipantSession | null;
@@ -54,7 +52,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     }
     setInitiativeStatuses((current) => ({ ...current, [token.id]: "saving" }));
     const packIds = new Set(packMembers.map((member) => member.id));
-    const optimisticGroupId = `pending-group-${sync.nextTokenMutationSequence()}`;
+    const optimisticGroupId = `pending-group-${crypto.randomUUID()}`;
     const result = packMembers.length > 1
       ? await sync.runOptimisticCommand(
           "set-initiative-group",
@@ -105,7 +103,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
       return;
     }
     setInitiativeStatuses((current) => ({ ...current, [draftKey]: "saving" }));
-    const optimisticGroupId = `pending-group-${sync.nextTokenMutationSequence()}`;
+    const optimisticGroupId = `pending-group-${crypto.randomUUID()}`;
     const tokenIds = new Set(tokens.map((token) => token.id));
     const result = await sync.runOptimisticCommand(
       "set-initiative-group",
@@ -126,7 +124,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const addEffectToToken = async (tokenId: string) => {
     const name = effectName.trim();
     if (!name) return;
-    const temporaryId = `pending-effect-${Date.now()}-${sync.nextTokenMutationSequence()}`;
+    const temporaryId = `pending-effect-${crypto.randomUUID()}`;
     const durationRounds = Number(effectDuration);
     const optimisticEffect: SharedEffect = {
       id: temporaryId,
