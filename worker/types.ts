@@ -7,6 +7,8 @@ export interface Env {
   MAP_ASSETS?: R2Bucket;
   CATALOG_IMPORT_TOKEN?: string;
   PRODUCTION_BACKUP_TOKEN?: string;
+  SCENARIO_PROVISIONING_TOKEN?: string;
+  SCENARIO_PROVISIONING_SENDERS?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -22,7 +24,7 @@ export interface WorkerExecutionContext {
 }
 
 export type EncounterRow = {
-  id: string; code: string; name: string; version: number; status: EncounterStatus;
+  id: string; code: string; name: string; dm_briefing: string; version: number; status: EncounterStatus;
   map_asset: string; map_package_json: string | null; active_map_preset_id: string | null;
   grid_width: number; grid_height: number; current_round: number;
   active_initiative_order: number | null; strict_movement: number; updated_at: number;

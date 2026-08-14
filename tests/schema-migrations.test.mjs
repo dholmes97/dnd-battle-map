@@ -20,7 +20,12 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "3");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_jobs;"), "0");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_assets;"), "0");
+  assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE code = 'EMBER-KEEP';"), "");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'migration-only-schema-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-provisioning-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-provisioning-revision-guard-v1';"), "1");
   assert.equal(await query(database, "SELECT name FROM encounters WHERE code = 'EMBER-KEEP';"), "Swamp Battle");
   assert.deepEqual(
     (await query(database, "SELECT name FROM tokens ORDER BY name;")).split("\n"),
@@ -81,6 +86,7 @@ test("bootstrap migration preserves customized existing records", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "4");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
+  assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });
 
@@ -88,8 +94,10 @@ test("large-map migration upgrades only visual metadata and preserves prepared g
   const directory = await mkdtemp(join(tmpdir(), "battle-map-large-map-upgrade-"));
   const database = join(directory, "existing.sqlite3");
   const migrations = await migrationFiles();
+  const largeMapIndex = migrations.findIndex((migration) => migration.startsWith("0018_"));
 
-  for (const migration of migrations.slice(0, -1)) {
+  assert.notEqual(largeMapIndex, -1);
+  for (const migration of migrations.slice(0, largeMapIndex)) {
     await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
   }
 
@@ -127,7 +135,7 @@ test("large-map migration upgrades only visual metadata and preserves prepared g
     VALUES ('large-preset', 'large-encounter', 'Prepared Switchbacks', '', NULL, '${escaped}', 'participant-1', 123, 123);
   `);
 
-  await sqlite(database, await readFile(new URL(migrations.at(-1), migrationDirectory), "utf8"));
+  await sqlite(database, await readFile(new URL(migrations[largeMapIndex], migrationDirectory), "utf8"));
   const encounterMap = JSON.parse(await query(database, "SELECT map_package_json FROM encounters WHERE id = 'large-encounter';"));
   const presetMap = JSON.parse(await query(database, "SELECT package_json FROM map_presets WHERE id = 'large-preset';"));
 
@@ -142,6 +150,10 @@ test("large-map migration upgrades only visual metadata and preserves prepared g
     assert.deepEqual(map.notes, JSON.parse(legacyMap).notes);
   }
   assert.equal(await query(database, "SELECT version FROM encounters WHERE id = 'large-encounter';"), "10");
+  for (const migration of migrations.slice(largeMapIndex + 1)) {
+    await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
+  }
+  assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'large-encounter';"), "");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });
 
@@ -149,7 +161,7 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /migration-only-schema-v1/);
+  assert.match(block, /scenario-provisioning-revision-guard-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
 });
 

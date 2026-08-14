@@ -18,6 +18,9 @@
     "db:bootstrap": "node scripts/bootstrap-local-database.mjs",
     "catalog:expand": "node scripts/build-creature-expansion.mjs",
     "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
+    "scenario:provision": "node scripts/provision-scenario.mjs",
+    "scenario:prepare-handout": "node scripts/prepare-scenario-handout.mjs",
+    "scenario:prepare-creature": "node scripts/prepare-creature-art.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:generate-bootstrap": "node scripts/generate-bootstrap-migration.mjs"
@@ -44,6 +47,7 @@
     "eslint-config-next": "16.2.6",
     "jsdom": "^30.0.1",
     "react-server-dom-webpack": "19.2.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",

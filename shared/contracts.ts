@@ -107,6 +107,7 @@ export type EncounterState = {
   encounter: {
     code: string;
     name: string;
+    dmBriefing: string | null;
     version: number;
     status: EncounterStatus;
     mapPackage: MapPackage | null;

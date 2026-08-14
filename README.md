@@ -53,3 +53,20 @@ The schema is represented in `db/schema.ts`, while checked-in numbered SQL files
 under `drizzle/` are the sole schema and data-migration path. See
 [`docs/DATABASE-MIGRATIONS.md`](docs/DATABASE-MIGRATIONS.md). Sites owns the
 deployed D1 binding declared as `DB` in `.openai/hosting.json`.
+
+## DM email scenario provisioning
+
+The project includes a supervised, purpose-specific provisioning API and local
+client for turning a validated DM email request into one atomic scenario job.
+Set `BATTLE_MAP_SITE_URL`, a dedicated `SCENARIO_PROVISIONING_TOKEN` of at least
+32 characters, and the comma-separated normalized
+`SCENARIO_PROVISIONING_SENDERS` allowlist; do not reuse the catalog-import,
+backup, or participant credentials. Then run a prepared
+private envelope with:
+
+```bash
+npm run scenario:provision -- /absolute/path/to/envelope.json
+```
+
+See [`docs/DM-EMAIL-SCENARIO-PROVISIONING.md`](docs/DM-EMAIL-SCENARIO-PROVISIONING.md)
+for the trust boundary, rollout status, and remaining mailbox configuration.

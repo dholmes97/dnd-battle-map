@@ -4,6 +4,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const appMaintenance = sqliteTable("app_maintenance", {
@@ -15,6 +16,7 @@ export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
+  dmBriefing: text("dm_briefing").notNull().default(""),
   version: integer("version").notNull().default(1),
   status: text("status").notNull().default("setup"),
   mapAsset: text("map_asset")
@@ -29,6 +31,57 @@ export const encounters = sqliteTable("encounters", {
   strictMovement: integer("strict_movement", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const scenarioProvisioningJobs = sqliteTable(
+  "scenario_provisioning_jobs",
+  {
+    id: text("id").primaryKey(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    revision: integer("revision").notNull(),
+    operation: text("operation").notNull(),
+    status: text("status").notNull(),
+    manifestJson: text("manifest_json").notNull(),
+    manifestHash: text("manifest_hash").notNull(),
+    scenarioId: text("scenario_id").references(() => encounters.id, { onDelete: "set null" }),
+    scenarioCode: text("scenario_code"),
+    baseScenarioVersion: integer("base_scenario_version"),
+    summary: text("summary").notNull().default(""),
+    errorCode: text("error_code"),
+    resultJson: text("result_json"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_scenario_provisioning_jobs_idempotency").on(table.idempotencyKey),
+    index("idx_scenario_provisioning_jobs_status_updated").on(table.status, table.updatedAt),
+    index("idx_scenario_provisioning_jobs_scenario").on(table.scenarioId, table.updatedAt),
+  ],
+);
+
+export const scenarioProvisioningAssets = sqliteTable(
+  "scenario_provisioning_assets",
+  {
+    id: text("id").primaryKey(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => scenarioProvisioningJobs.id, { onDelete: "cascade" }),
+    assetId: text("asset_id").notNull(),
+    kind: text("kind").notNull(),
+    r2Key: text("r2_key").notNull(),
+    contentType: text("content_type").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    byteLength: integer("byte_length").notNull(),
+    sha256: text("sha256").notNull(),
+    committedAt: integer("committed_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_scenario_provisioning_assets_job_asset").on(table.jobId, table.assetId),
+    uniqueIndex("idx_scenario_provisioning_assets_r2_key").on(table.r2Key),
+    index("idx_scenario_provisioning_assets_uncommitted").on(table.committedAt, table.createdAt),
+  ],
+);
 
 export const mapPresets = sqliteTable(
   "map_presets",

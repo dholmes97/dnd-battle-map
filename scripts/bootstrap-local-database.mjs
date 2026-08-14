@@ -26,9 +26,18 @@ for (const name of await readdir(d1Directory).catch(() => [])) {
   }
   const marker = (await capture(
     "sqlite3",
-    [database, "SELECT 1 FROM app_maintenance WHERE id = 'migration-only-schema-v1' LIMIT 1;"],
+    [database, "SELECT 1 FROM app_maintenance WHERE id = 'scenario-provisioning-revision-guard-v1' LIMIT 1;"],
   )).trim();
   if (!marker) {
+    const hasProvisioningTable = (await capture(
+      "sqlite3",
+      [database, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scenario_provisioning_jobs';"],
+    )).trim();
+    if (!hasProvisioningTable) {
+      const foundation = migrationFiles.find((migration) => migration.startsWith("0019_"));
+      if (!foundation) throw new Error("Scenario provisioning foundation migration is missing.");
+      await capture("sqlite3", [database], await readFile(join(migrationDirectory, foundation), "utf8"));
+    }
     await capture("sqlite3", [database], await readFile(join(migrationDirectory, migrationFiles.at(-1)), "utf8"));
   }
   await capture("sqlite3", [database], `

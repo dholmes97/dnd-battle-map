@@ -46,6 +46,7 @@ import {
   type SharedToken,
 } from "../shared/contracts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
+import { bearerSecretMatches } from "../shared/secret-auth.ts";
 import {
   deleteHandout,
   sendChatMessage,
@@ -97,6 +98,8 @@ import {
 import { createD1TokenEffectRepository } from "./adapters/d1-token-effect-repository";
 import { redo, undo, type HistoryCommandContext } from "./commands/history-commands";
 import { createD1HistoryRepository } from "./adapters/d1-history-repository";
+import { createD1ScenarioProvisioningRepository } from "./adapters/d1-scenario-provisioning-repository.ts";
+import { handleScenarioProvisioningApi } from "./scenario-provisioning-api.ts";
 import type {
   ActionRow,
   AnnotationRow,
@@ -145,6 +148,23 @@ const MAP_ASSET_KEYS = new Set([
 ]);
 
 async function handleMapAsset(request: Request, env: Env, key: string): Promise<Response> {
+  const provisioned = key.match(/^provisioned\/([a-zA-Z0-9-]{1,64})\/([a-zA-Z0-9._-]{1,96})\.jpg$/);
+  if (provisioned) {
+    const asset = await createD1ScenarioProvisioningRepository(env.DB)
+      .findCommittedMapAsset(provisioned[1], provisioned[2]);
+    if (!asset || !env.MAP_ASSETS) return new Response("Not found", { status: 404 });
+    const stored = await env.MAP_ASSETS.get(asset.r2Key);
+    if (!stored) return new Response("Map asset unavailable", { status: 503 });
+    return new Response(stored.body, {
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-type": asset.contentType,
+        "etag": stored.httpEtag,
+        "x-map-asset-source": "provisioned-r2",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  }
   if (!MAP_ASSET_KEYS.has(key)) return new Response("Not found", { status: 404 });
   const headers = new Headers({
     "cache-control": "public, max-age=31536000, immutable",
@@ -213,6 +233,30 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
   const key = cleanCreatureAssetKey(rawKey);
   if (!key) return new Response("Not found", { status: 404 });
   const thumbnail = new URL(request.url).searchParams.get("variant") === "thumbnail";
+  const provisioned = key.match(/^tokens\/provisioned\/([a-zA-Z0-9-]{1,64})\/([a-zA-Z0-9._-]{1,96})\.png$/);
+  if (provisioned) {
+    const committed = await env.DB.prepare(
+      `SELECT a.r2_key
+       FROM scenario_provisioning_assets a
+       JOIN scenario_provisioning_jobs j ON j.id = a.job_id
+       WHERE a.job_id = ? AND a.asset_id = ? AND a.kind = ?
+         AND a.committed_at IS NOT NULL AND j.status = 'ready' LIMIT 1`,
+    ).bind(provisioned[1], provisioned[2], thumbnail ? "creature-thumbnail" : "creature-original")
+      .first<{ r2_key: string }>();
+    if (!committed) return new Response("Not found", { status: 404 });
+    if (!env.MAP_ASSETS) return new Response("Creature asset unavailable", { status: 503 });
+    const stored = await env.MAP_ASSETS.get(committed.r2_key);
+    if (!stored) return new Response("Creature asset unavailable", { status: 503 });
+    return new Response(stored.body, {
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-type": "image/png",
+        "etag": stored.httpEtag,
+        "x-creature-asset-source": thumbnail ? "provisioned-r2-thumbnail" : "provisioned-r2-original",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  }
   const cacheHeaders = { "cache-control": "public, max-age=31536000, immutable" };
   const thumbnailKey = `creature-catalog/thumbnails/${key}`;
   if (thumbnail && env.MAP_ASSETS) {
@@ -267,18 +311,8 @@ function commandOutcomeResponse(outcome: CommandOutcome): Response {
   return json(outcome.payload, { status: outcome.status ?? 200 });
 }
 
-function bearerTokenMatches(request: Request, configured: string): boolean {
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (configured.length < 32 || supplied.length !== configured.length) return false;
-  let difference = 0;
-  for (let index = 0; index < configured.length; index += 1) {
-    difference |= configured.charCodeAt(index) ^ supplied.charCodeAt(index);
-  }
-  return difference === 0;
-}
-
 function authorizedProductionBackup(request: Request, env: Env): boolean {
-  return bearerTokenMatches(request, env.PRODUCTION_BACKUP_TOKEN ?? "");
+  return bearerSecretMatches(request.headers.get("authorization"), env.PRODUCTION_BACKUP_TOKEN);
 }
 
 function cleanBackupCursor(value: string | null): string | null {
@@ -448,8 +482,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0017_blushing_moondragon.sql";
-const REQUIRED_SCHEMA_MARKER = "migration-only-schema-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0020_absurd_wallflower.sql";
+const REQUIRED_SCHEMA_MARKER = "scenario-provisioning-revision-guard-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -535,14 +569,7 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
 }
 
 function authorizedCatalogImport(request: Request, env: Env): boolean {
-  const configured = env.CATALOG_IMPORT_TOKEN ?? "";
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (configured.length < 32 || supplied.length !== configured.length) return false;
-  let difference = 0;
-  for (let index = 0; index < configured.length; index += 1) {
-    difference |= configured.charCodeAt(index) ^ supplied.charCodeAt(index);
-  }
-  return difference === 0;
+  return bearerSecretMatches(request.headers.get("authorization"), env.CATALOG_IMPORT_TOKEN);
 }
 
 function decodeCatalogImage(value: unknown): Uint8Array | null {
@@ -670,7 +697,7 @@ async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
 
 async function findEncounter(env: Env, code: string): Promise<EncounterRow | null> {
   return env.DB.prepare(
-    `SELECT id, code, name, version, status, map_asset, map_package_json,
+    `SELECT id, code, name, dm_briefing, version, status, map_asset, map_package_json,
             active_map_preset_id, grid_width, grid_height, current_round,
             active_initiative_order, strict_movement, updated_at
      FROM encounters WHERE code = ?`,
@@ -1021,6 +1048,7 @@ async function encounterState(
     encounter: {
       code: encounter!.code,
       name: encounter!.name,
+      dmBriefing: viewer?.role === "dm" ? encounter!.dm_briefing : null,
       version: encounter!.version,
       status: encounter!.status,
       mapPackage: mapPackageForViewer(activeMapPackage, viewer),
@@ -1575,6 +1603,10 @@ async function handleApi(
 const worker = {
   async fetch(request: Request, env: Env, ctx: WorkerExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api/scenario-provisioning/")) {
+      return handleScenarioProvisioningApi(request, env);
+    }
 
     const productionBackupMatch = url.pathname.match(PRODUCTION_BACKUP_ROUTE);
     if (productionBackupMatch) {
