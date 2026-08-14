@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const hosting = JSON.parse(await readFile(join(projectRoot, ".openai", "hosting.json"), "utf8"));
 const backupToken = process.env.PRODUCTION_BACKUP_TOKEN ?? "";
-const siteUrl = (process.env.BATTLE_MAP_SITE_URL ?? "https://dnd-battle-map-poc.danholmes346.chatgpt.site").replace(/\/$/, "");
+const siteUrl = (process.env.BATTLE_MAP_SITE_URL ?? "https://dnd.fridaylunchcrew.com").replace(/\/$/, "");
 const backupRoot = resolve(process.env.BATTLE_MAP_BACKUP_ROOT ?? join(dirname(projectRoot), `${basename(projectRoot)} Backups`));
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 const snapshotName = `production-${timestamp}`;

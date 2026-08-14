@@ -3,7 +3,7 @@ import { resolve, dirname } from "node:path";
 
 const [, , manifestArgument] = process.argv;
 const token = process.env.CATALOG_IMPORT_TOKEN;
-const siteUrl = (process.env.BATTLE_MAP_SITE_URL ?? "https://dnd-battle-map-poc.danholmes346.chatgpt.site").replace(/\/$/, "");
+const siteUrl = (process.env.BATTLE_MAP_SITE_URL ?? "https://dnd.fridaylunchcrew.com").replace(/\/$/, "");
 
 if (!manifestArgument || !token) {
   console.error("Usage: CATALOG_IMPORT_TOKEN=… node scripts/import-creature-batch.mjs path/to/batch.json");
