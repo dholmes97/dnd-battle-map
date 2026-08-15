@@ -27,7 +27,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const [effectEditorTokenId, setEffectEditorTokenId] = useState<string | null>(null);
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
-  const [concentrationReminder, setConcentrationReminder] = useState<{ tokenId: string; tokenName: string } | null>(null);
+  const [concentrationReminder, setConcentrationReminder] = useState<{ id: string; tokenId: string; tokenName: string } | null>(null);
 
   const saveInitiative = async (token: SharedToken) => {
     const draft = initiativeDrafts[token.id];
@@ -155,14 +155,22 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const applyHpToToken = async (token: SharedToken, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
     const hpTransition = transitionHp(token.hp, token.maxHp, delta);
+    const reminder = { id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name };
+    const locallyRequiresConcentrationCheck = delta < 0 && token.effects.some((effect) => effect.type === "concentration");
+    if (locallyRequiresConcentrationCheck) setConcentrationReminder(reminder);
     const result = await sync.runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }>(
       "apply-hp",
       { tokenId: token.id, delta },
       (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp: hpTransition.hp, healthState: hpTransition.healthState } : item) }),
     );
-    if (result) {
-      setNotice("HP updated.");
-      if (result.concentrationCheckRequired) setConcentrationReminder({ tokenId: token.id, tokenName: token.name });
+    if (!result) {
+      if (locallyRequiresConcentrationCheck) setConcentrationReminder((current) => current?.id === reminder.id ? null : current);
+      return;
+    }
+    setNotice("HP updated.");
+    if (!locallyRequiresConcentrationCheck && result.concentrationCheckRequired) setConcentrationReminder(reminder);
+    if (locallyRequiresConcentrationCheck && !result.concentrationCheckRequired) {
+      setConcentrationReminder((current) => current?.id === reminder.id ? null : current);
     }
   };
 
