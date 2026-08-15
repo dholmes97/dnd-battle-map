@@ -35,6 +35,16 @@ are adapter internals and are not shared with React consumers.
 
 Adapters may translate framework-shaped records into domain-shaped data, invoke a domain function, and translate the result back. A decision used by both adapters belongs in `shared/`; it should not be reimplemented in each adapter.
 
+Shared transitions do not imply whole-encounter persistence. Worker handlers
+write only the records and fields affected by a command. Side-effect-led
+workflows such as chat and handouts, scenario creation, catalog imports, and
+history persistence remain adapter orchestrations that call shared policies
+where useful rather than being forced through a universal reducer.
+
+New work should extend the existing feature boundary, command family,
+repository port, or shared transition that owns the behavior instead of adding
+new root-component or request-router branches.
+
 ## Persistence evolution
 
 `db/schema.ts` describes the current D1 shape. Numbered SQL files under

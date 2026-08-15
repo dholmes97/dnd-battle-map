@@ -727,12 +727,14 @@ export default function BattleMapPrototype() {
       </div>
       <EncounterDialogs
         participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
+        concentrationReminder={tokenControls.concentrationReminder}
         scenario={scenarioControls} handoutTitle={handoutTitle} handoutUploading={handoutUploading}
         handoutUploadError={handoutUploadError} handoutDeletingId={handoutDeletingId}
         lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
         onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen}
         onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
         onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
+        onDismissConcentrationReminder={tokenControls.dismissConcentrationReminder}
         onHandoutTitle={setHandoutTitle}
         onUploadHandout={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId)}
         onPreviewHandout={(handout) => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }}

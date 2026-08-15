@@ -1176,7 +1176,7 @@ input:focus {
 .scenario-handout-list .icon-action-button { justify-self: center; }
 .scenario-handout-empty { margin-top: 0.55rem; padding: 0.7rem; border: 1px dashed #3c3831; border-radius: 0.45rem; color: #756e64; font-size: 0.62rem; text-align: center; }
 
-.handout-lightbox {
+.modal-shadowbox {
   position: fixed;
   z-index: 90;
   inset: 0;
@@ -1186,6 +1186,20 @@ input:focus {
   background: rgba(4, 4, 4, 0.91);
   backdrop-filter: blur(10px);
 }
+.concentration-reminder-shadowbox { z-index: 95; }
+.concentration-reminder-shadowbox > section { width: min(34rem, 100%); overflow: hidden; border: 1px solid #8a7040; border-radius: 0.78rem; background: #11110f; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.82), 0 0 55px rgba(210, 170, 86, 0.14); }
+.concentration-reminder-shadowbox header { min-height: 3.8rem; padding: 0.75rem 1rem; display: flex; align-items: center; border-bottom: 1px solid #514326; background: linear-gradient(180deg, #31281a, #1d1a15); }
+.concentration-reminder-shadowbox header > span { display: grid; gap: 0.16rem; }
+.concentration-reminder-shadowbox header small { color: #d2aa56; font-size: 0.52rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.concentration-reminder-shadowbox header strong { color: #f3e8d5; font-family: Georgia, "Times New Roman", serif; font-size: 1.32rem; font-weight: 550; }
+.concentration-reminder-content { padding: 1.5rem 1.4rem 1.35rem; display: grid; grid-template-columns: 4rem minmax(0, 1fr); align-items: center; gap: 1.15rem; }
+.concentration-reminder-content p { margin: 0; color: #cfc5b5; font-size: 0.88rem; line-height: 1.6; }
+.concentration-reminder-content p strong { color: #f1d991; }
+.concentration-reminder-sigil { position: relative; width: 4rem; height: 4rem; display: grid; place-items: center; border: 1px solid rgba(210, 170, 86, 0.78); border-radius: 50%; color: #f2cd72; background: radial-gradient(circle, rgba(210, 170, 86, 0.24), rgba(210, 170, 86, 0.04) 60%, transparent 61%); box-shadow: inset 0 0 0 0.35rem rgba(210, 170, 86, 0.06), 0 0 1.4rem rgba(210, 170, 86, 0.18); }
+.concentration-reminder-sigil::before { position: absolute; inset: 0.45rem; border: 1px solid rgba(210, 170, 86, 0.38); border-radius: 50%; content: ""; }
+.concentration-reminder-sigil span { transform: rotate(45deg); font-size: 1.05rem; }
+.concentration-reminder-shadowbox footer { padding: 0 1.4rem 1.25rem; display: flex; justify-content: flex-end; }
+.concentration-reminder-shadowbox footer button { min-width: 10.5rem; }
 .handout-lightbox > section { width: min(72rem, 100%); height: min(90vh, 52rem); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #66573d; border-radius: 0.78rem; background: #11110f; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.78); }
 .handout-lightbox header { min-height: 3.5rem; padding: 0.65rem 0.75rem 0.65rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #39342d; background: linear-gradient(180deg, #29251f, #1d1b18); }
 .handout-lightbox header > span { min-width: 0; display: grid; gap: 0.12rem; }
@@ -1432,6 +1446,10 @@ input:focus {
   .handout-lightbox { padding: 0; }
   .handout-lightbox > section { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
   .handout-lightbox-image { padding: 0.5rem; }
+  .concentration-reminder-shadowbox { padding: 1rem; }
+  .concentration-reminder-content { grid-template-columns: 3.25rem minmax(0, 1fr); padding: 1.15rem 1rem; gap: 0.85rem; }
+  .concentration-reminder-sigil { width: 3.25rem; height: 3.25rem; }
+  .concentration-reminder-shadowbox footer { padding: 0 1rem 1rem; }
   .spell-grid { grid-template-columns: 1fr; }
   .workshop-header { align-items: center; }
   .workshop-header-title span { display: none; }

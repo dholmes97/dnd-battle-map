@@ -6,12 +6,32 @@ import type { useScenarioControls } from "@/app/use-scenario-controls";
 
 type ScenarioControls = ReturnType<typeof useScenarioControls>;
 type LightboxHandout = Parameters<typeof HandoutLightbox>[0]["handout"];
+export type ConcentrationReminder = { tokenId: string; tokenName: string };
 
-export function EncounterDialogs({ participant, state, resetOpen, restartOpen, scenario, handoutTitle, handoutUploading, handoutUploadError, handoutDeletingId, lightboxHandout, handoutFitMode, onResetOpen, onRestartOpen, onReset, onRestart, onHandoutTitle, onUploadHandout, onPreviewHandout, onDeleteHandout, onHandoutFitMode, onCloseLightbox }: {
+export function ConcentrationReminderDialog({ reminder, onDismiss }: {
+  reminder: ConcentrationReminder;
+  onDismiss: () => void;
+}) {
+  return <div className="modal-shadowbox concentration-reminder-shadowbox" role="presentation">
+    <section role="alertdialog" aria-modal="true" aria-labelledby="concentration-reminder-title" aria-describedby="concentration-reminder-description">
+      <header>
+        <span><small>Combat reminder</small><strong id="concentration-reminder-title">Concentration check required</strong></span>
+      </header>
+      <div className="concentration-reminder-content">
+        <div className="concentration-reminder-sigil" aria-hidden="true"><span>◆</span></div>
+        <p id="concentration-reminder-description"><strong>{reminder.tokenName}</strong> took damage while concentrating. Make the required Constitution saving throw now.</p>
+      </div>
+      <footer><button type="button" className="primary-button" autoFocus onClick={onDismiss}>Dismiss reminder</button></footer>
+    </section>
+  </div>;
+}
+
+export function EncounterDialogs({ participant, state, resetOpen, restartOpen, concentrationReminder, scenario, handoutTitle, handoutUploading, handoutUploadError, handoutDeletingId, lightboxHandout, handoutFitMode, onResetOpen, onRestartOpen, onReset, onRestart, onDismissConcentrationReminder, onHandoutTitle, onUploadHandout, onPreviewHandout, onDeleteHandout, onHandoutFitMode, onCloseLightbox }: {
   participant: ParticipantSession;
   state: EncounterState;
   resetOpen: boolean;
   restartOpen: boolean;
+  concentrationReminder: ConcentrationReminder | null;
   scenario: ScenarioControls;
   handoutTitle: string;
   handoutUploading: boolean;
@@ -23,6 +43,7 @@ export function EncounterDialogs({ participant, state, resetOpen, restartOpen, s
   onRestartOpen: (open: boolean) => void;
   onReset: () => void;
   onRestart: () => void;
+  onDismissConcentrationReminder: () => void;
   onHandoutTitle: (title: string) => void;
   onUploadHandout: (file: File, title: string, replaceId: string | null) => void;
   onPreviewHandout: (handout: SharedHandout) => void;
@@ -30,7 +51,10 @@ export function EncounterDialogs({ participant, state, resetOpen, restartOpen, s
   onHandoutFitMode: (fit: boolean) => void;
   onCloseLightbox: () => void;
 }) {
-  if (participant.role !== "dm") return lightboxHandout?.available ? <HandoutLightbox participant={participant} encounterCode={state.encounter.code} handout={lightboxHandout} fitMode={handoutFitMode} onFitModeChange={onHandoutFitMode} onClose={onCloseLightbox} /> : null;
+  if (participant.role !== "dm") return <>
+    {lightboxHandout?.available ? <HandoutLightbox participant={participant} encounterCode={state.encounter.code} handout={lightboxHandout} fitMode={handoutFitMode} onFitModeChange={onHandoutFitMode} onClose={onCloseLightbox} /> : null}
+    {concentrationReminder ? <ConcentrationReminderDialog reminder={concentrationReminder} onDismiss={onDismissConcentrationReminder} /> : null}
+  </>;
   return <>
     {resetOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onResetOpen(false); }}><section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-encounter-title" aria-describedby="reset-encounter-description"><div className="eyebrow">Encounter control</div><h2 id="reset-encounter-title">Reset combat?</h2><p id="reset-encounter-description">This returns the encounter to setup, clears the current round, active turn, and movement tracking. The map, tokens, HP, effects, and entered initiative numbers stay intact.</p><div className="button-row"><button className="secondary-button" autoFocus onClick={() => onResetOpen(false)}>Cancel</button><button className="danger-button" onClick={onReset}>Reset combat</button></div></section></div> : null}
     {restartOpen ? <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onRestartOpen(false); }}><section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="restart-combat-title" aria-describedby="restart-combat-description"><div className="eyebrow">Encounter control</div><h2 id="restart-combat-title">Restart combat?</h2><p id="restart-combat-description">This returns combat to round 1 and rebuilds the turn order from the current initiative numbers. Movement and completed-turn tracking reset. The map, tokens, HP, and effects stay intact.</p><div className="button-row"><button className="secondary-button" autoFocus onClick={() => onRestartOpen(false)}>Cancel</button><button className="danger-button" onClick={onRestart}>Restart combat</button></div></section></div> : null}
@@ -38,5 +62,6 @@ export function EncounterDialogs({ participant, state, resetOpen, restartOpen, s
       <ScenarioHandouts participant={participant} encounterCode={state.encounter.code} handouts={state.handouts} title={handoutTitle} uploading={handoutUploading} uploadError={handoutUploadError} deletingId={handoutDeletingId} onTitleChange={onHandoutTitle} onUpload={(file, title, replaceId) => onUploadHandout(file, title, replaceId ?? null)} onPreview={onPreviewHandout} onDelete={onDeleteHandout} />
       <div className="scenario-create-heading"><strong>Create another scenario</strong><small>The new scenario gets its own map, tokens, combat state, and history.</small></div><label>New scenario name<input maxLength={64} value={scenario.name} onChange={(event) => scenario.setName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void scenario.create(); } }} placeholder="The Sunken Observatory" disabled={scenario.creating || scenario.renaming} /></label><label>Starting point<select value={scenario.mode} onChange={(event) => scenario.setMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={scenario.creating || scenario.renaming}><option value="party">Fresh scenario — current party only</option><option value="duplicate">Duplicate current map and tokens</option></select></label><p className="scenario-mode-help">{scenario.mode === "duplicate" ? "Copies the map and every token. Combat, initiative, effects, and history start clean." : "Copies Dar'eleth, Jelton, and Malichar at full health. Choose a map and add encounters afterward."}</p>{scenario.error ? <div className="form-error" role="alert">{scenario.error}</div> : null}<div className="button-row"><button className="secondary-button" onClick={() => scenario.setOpen(false)} disabled={scenario.creating || scenario.renaming || handoutUploading}>Close</button><button className={`primary-button${scenario.creating ? " is-pending" : ""}`} onClick={() => void scenario.create()} disabled={scenario.creating || scenario.renaming || handoutUploading || scenario.name.trim().length < 3}>{scenario.creating ? "Creating…" : "Create and open"}</button></div></section></div> : null}
     {lightboxHandout?.available ? <HandoutLightbox participant={participant} encounterCode={state.encounter.code} handout={lightboxHandout} fitMode={handoutFitMode} onFitModeChange={onHandoutFitMode} onClose={onCloseLightbox} /> : null}
+    {concentrationReminder ? <ConcentrationReminderDialog reminder={concentrationReminder} onDismiss={onDismissConcentrationReminder} /> : null}
   </>;
 }

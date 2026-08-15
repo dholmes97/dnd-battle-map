@@ -27,6 +27,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const [effectEditorTokenId, setEffectEditorTokenId] = useState<string | null>(null);
   const [tokenEditorTokenId, setTokenEditorTokenId] = useState<string | null>(null);
   const [pendingDeleteTokenId, setPendingDeleteTokenId] = useState<string | null>(null);
+  const [concentrationReminder, setConcentrationReminder] = useState<{ tokenId: string; tokenName: string } | null>(null);
 
   const saveInitiative = async (token: SharedToken) => {
     const draft = initiativeDrafts[token.id];
@@ -159,7 +160,10 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
       { tokenId: token.id, delta },
       (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp: hpTransition.hp, healthState: hpTransition.healthState } : item) }),
     );
-    if (result) setNotice(result.concentrationCheckRequired ? "HP updated — concentration check reminder." : "HP updated.");
+    if (result) {
+      setNotice("HP updated.");
+      if (result.concentrationCheckRequired) setConcentrationReminder({ tokenId: token.id, tokenName: token.name });
+    }
   };
 
   const removeEffectFromToken = (tokenId: string, effectId: string) => {
@@ -227,6 +231,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     effectName, setEffectName, effectType, setEffectType, effectDuration, setEffectDuration,
     effectReminder, setEffectReminder, effectEditorTokenId, setEffectEditorTokenId,
     tokenEditorTokenId, setTokenEditorTokenId, pendingDeleteTokenId, setPendingDeleteTokenId,
+    concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
     applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect,
   };

@@ -221,7 +221,7 @@ export function HandoutLightbox({ participant, encounterCode, handout, fitMode, 
   onFitModeChange: (fit: boolean) => void;
   onClose: () => void;
 }) {
-  return <div className="handout-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className="modal-shadowbox handout-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-labelledby="handout-lightbox-title">
       <header><span><small>Handout</small><strong id="handout-lightbox-title">{handout.title}</strong></span><IconActionButton variant="close" label="Close handout" autoFocus onClick={onClose} /></header>
       <div className={`handout-lightbox-image${fitMode ? " is-fit" : " is-actual"}`}><ProtectedHandoutImage participant={participant} encounterCode={encounterCode} handoutId={handout.id} variant="display" revision={handout.updatedAt} alt={handout.title} /></div>
