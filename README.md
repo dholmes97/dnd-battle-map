@@ -1,17 +1,23 @@
 # D&D Battle Map
 
-This is a desktop-first, accountless tactical companion for a trusted D&D
-group. A vinext Worker owns the authoritative encounter API, D1 stores shared
-state and append-only action history, and React canvas clients converge through
-short conditional requests. Browser state is temporary.
+A desktop-first, accountless tactical companion for a trusted D&D group. A
+vinext Worker owns the authoritative encounter API, D1 stores shared state and
+append-only action history, R2 stores map, handout, and creature art, and React
+clients converge through short conditional requests. Browser state is temporary.
 
-The current local implementation includes free-position last-write-wins token
-movement, multi-token claiming, initiative and rounds, summons, effects, HP,
-visibility, pings, tactical drawings, creature drag/drop, and a DM-only map
-workshop. The workshop generates editable forest, dungeon, cave, and ruins
-starters, supports cohesive-scene additions and annotations, and keeps drafts
-private until the DM applies the complete package. See `BATTLE-MAP-DESIGN.md` for verified
-behavior and `IMPLEMENTATION-PLAN.md` for milestone status.
+The application currently supports:
+
+- four fixed identities: Dan, Barry, Scott, and DM Kevin;
+- durable scenarios with independent maps, tokens, chat, handouts, combat state,
+  and history;
+- initiative groups, summons, movement tracking, HP, effects, and concentration
+  reminders;
+- optimistic shared interactions with server-authoritative reconciliation;
+- reusable high-resolution full-scene maps and Map Workshop presets;
+- off, shared DM-controlled, and dynamic player-vision fog modes;
+- a storage-backed creature palette and persistent spell effects;
+- scenario-scoped public/private chat and image handouts; and
+- bounded email-to-scenario provisioning for trusted senders.
 
 ## Local development
 
@@ -24,57 +30,65 @@ npm run db:bootstrap
 npm run dev
 ```
 
-Open the printed local URL in two browser windows. Join both with code
-`EMBER-KEEP` and different display names.
+Open the printed local URL in multiple browser windows, choose a scenario, and
+join with different fixed identities.
 
 Useful checks:
 
 ```bash
-npm run build
-npm run lint
 npm test
+npm run lint
 ```
 
-Before a production deployment that changes persistence or storage behavior,
-create and verify a local D1/R2 snapshot with `npm run backup:production`. See
-[`docs/PRODUCTION-BACKUPS.md`](docs/PRODUCTION-BACKUPS.md) for setup, contents,
-and recovery precautions.
-
 With the development server running, exercise the authoritative multi-client
-API path against its printed local URL:
+path against its printed URL:
 
 ```bash
 BATTLE_MAP_BASE_URL=http://localhost:3000 npm run test:live
 ```
 
-Replace port `3000` when the development server selected another port.
+Replace port `3000` if the development server selected another port.
 
-The schema is represented in `db/schema.ts`, while checked-in numbered SQL files
-under `drizzle/` are the sole schema and data-migration path. See
-[`docs/DATABASE-MIGRATIONS.md`](docs/DATABASE-MIGRATIONS.md). Sites owns the
-deployed D1 binding declared as `DB` in `.openai/hosting.json`.
+## Production operations
 
-## DM email scenario provisioning
+The public application origin is
+[dnd.fridaylunchcrew.com](https://dnd.fridaylunchcrew.com). Sites owns the
+deployed `DB` and `MAP_ASSETS` bindings declared in `.openai/hosting.json`.
 
-The project includes a supervised, purpose-specific provisioning API and local
-client for turning a validated DM email request into one atomic scenario job.
-Set `BATTLE_MAP_SITE_URL`, a dedicated `SCENARIO_PROVISIONING_TOKEN` of at least
-32 characters, and the comma-separated normalized
-`SCENARIO_PROVISIONING_SENDERS` allowlist; do not reuse the catalog-import,
-backup, or participant credentials. Then run a prepared
-private envelope with:
+Checked-in numbered SQL files under `drizzle/` are the only schema and data
+migration path. See [Database migrations](docs/DATABASE-MIGRATIONS.md).
+
+Run `npm run backup:production` before destructive or non-additive migrations,
+bulk data or asset mutations, or persistence refactors with a credible data-loss
+risk. Ordinary additive changes and bounded APIs do not require a backup. See
+[Production backups](docs/PRODUCTION-BACKUPS.md).
+
+## Scenario provisioning
+
+The trusted email workflow turns a bounded, validated request into one atomic
+scenario job through a dedicated API. It uses a separate
+`SCENARIO_PROVISIONING_TOKEN` and sender allowlist; it cannot execute arbitrary
+commands, SQL, URLs, deployments, or generic production mutations.
+
+The trusted local clients are:
 
 ```bash
 npm run scenario:provision -- /absolute/path/to/envelope.json
-```
-
-The bounded mail-provenance client prevents self-addressed automation loops:
-
-```bash
 npm run scenario:mail-reply -- reserve <jobId> <clarification|ready|failed>
 npm run scenario:mail-reply -- record <jobId> <replyId> <gmailMessageId> <gmailThreadId>
 npm run scenario:mail-reply -- classify <mailboxKey> <gmailMessageId> <gmailThreadId> [responseMarker]
 ```
 
-See [`docs/DM-EMAIL-SCENARIO-PROVISIONING.md`](docs/DM-EMAIL-SCENARIO-PROVISIONING.md)
-for the trust boundary, rollout status, and remaining mailbox configuration.
+See [DM email scenario provisioning](docs/DM-EMAIL-SCENARIO-PROVISIONING.md).
+
+## Durable project guidance
+
+- [AGENTS.md](AGENTS.md): current product decisions and implementation rules.
+- [Architecture](docs/ARCHITECTURE.md): ports-and-adapters boundaries and test
+  conventions.
+- [Feature backlog](docs/FEATURE-BACKLOG.md): unshipped product ideas only.
+- [Creature catalog](docs/CREATURE-CATALOG.md): catalog data and provenance.
+- [Token art provenance](public/assets/tokens/README.md): generated token assets.
+
+Completed plans and superseded design notes are intentionally removed instead
+of retained as active context; Git history remains the archive.

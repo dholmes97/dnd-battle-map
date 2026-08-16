@@ -45,6 +45,36 @@ New work should extend the existing feature boundary, command family,
 repository port, or shared transition that owns the behavior instead of adding
 new root-component or request-router branches.
 
+## Live synchronization
+
+Clients use short conditional requests keyed by encounter version. Unchanged
+responses stop before loading encounter collections or calculating vision. The
+initiating client paints optimistic operations immediately and keeps pending
+reducers across refreshes; the Worker remains authoritative and confirms or
+rolls back only the affected operation.
+
+This polling adapter is deliberate for the current small trusted group. Earlier
+production trials found that the hosting path buffered Server-Sent Events and
+did not make cross-request D1 changes dependable inside a long poll. Do not
+replace the transport with streaming or push merely by assumption: first prove
+cross-client delivery, failure recovery, and request cost on the deployed
+platform. The domain and command contracts must remain transport-independent.
+
+## Scenario provisioning
+
+Email scenario provisioning is another adapter around the shared domain, not a
+second application control plane. The Gmail workflow converts trusted bounded
+intent into the versioned manifest defined by `shared/scenario-provisioning.ts`.
+Only the dedicated provisioning API may stage derived assets and atomically
+create or revise a scenario. Its token and sender allowlist grant no participant,
+backup, catalog-import, deployment, SQL, or arbitrary R2 capability.
+
+Outbound Gmail identity is persisted separately from thread context. Every
+candidate message is classified before its content is parsed, and every reply
+is reserved, marked, sent, and recorded so a self-addressed workflow cannot
+interpret its own response as a new revision. See
+`docs/DM-EMAIL-SCENARIO-PROVISIONING.md` for the operational contract.
+
 ## Persistence evolution
 
 `db/schema.ts` describes the current D1 shape. Numbered SQL files under

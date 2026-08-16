@@ -49,7 +49,8 @@ packager includes that directory, and Sites applies previously unapplied files
 before the new Worker version begins serving. Its migration ledger is included
 in production backups.
 
-Before a persistence-changing production release:
+Before a destructive or non-additive production migration, or another migration
+with a credible risk of corrupting or losing existing records:
 
 1. Run and independently verify `npm run backup:production` as described in
    `docs/PRODUCTION-BACKUPS.md`.
@@ -60,3 +61,7 @@ Before a persistence-changing production release:
 
 Never restore into production as part of a routine release. Recovery is a
 separate, deliberate operation using a disposable rehearsal first.
+
+Ordinary additive migrations that preserve existing rows do not require a
+backup solely because they add schema. Assess backup need by data-loss risk,
+not by the presence of a migration file.

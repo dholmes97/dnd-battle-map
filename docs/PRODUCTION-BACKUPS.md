@@ -1,7 +1,8 @@
 # Production backups
 
-Run a complete, read-only snapshot before any deployment that can affect the
-production schema, persistence code, or stored assets:
+Run a complete, read-only snapshot before destructive or non-additive production
+migrations, bulk data or asset mutations, persistence refactors with a credible
+data-loss risk, and deliberate disaster-recovery checkpoints:
 
 ```bash
 PRODUCTION_BACKUP_TOKEN="…" npm run backup:production
@@ -63,6 +64,11 @@ same-size concurrent edit.
 The backup endpoint is read-only, bearer protected, uncached, and deliberately
 separate from participant sessions and catalog import. Never store the backup
 token in the repository or in a backup directory.
+
+Ordinary additive schema changes, bounded new APIs, UI-only releases, and normal
+scenario-provisioning jobs do not require a backup. Their safety should come from
+validation, idempotency, scoped writes, atomic transactions, and tests rather
+than routine snapshots.
 
 Restoration is intentionally not automated. It is destructive and should only
 be performed after identifying the affected production resources and reviewing
