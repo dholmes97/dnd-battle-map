@@ -1,0 +1,4 @@
+interface:
+  display_name: "Provision D&D Scenario from Email"
+  short_description: "Turn trusted DM email into a ready scenario"
+  default_prompt: "Use $provision-dnd-scenario-from-email to turn an authorized DM email into a validated, ready-to-test battle-map scenario."

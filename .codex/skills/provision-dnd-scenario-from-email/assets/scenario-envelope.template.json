@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "version": 1,
+    "idempotencyKey": "mailbox-message-revision",
+    "revision": 1,
+    "operation": "create",
+    "targetScenarioCode": null,
+    "source": {
+      "provider": "gmail",
+      "mailboxKey": "configured-mailbox",
+      "messageId": "gmail-message-id",
+      "threadId": "gmail-thread-id",
+      "sender": "authorized-sender@example.com"
+    },
+    "scenario": {
+      "name": "Scenario name",
+      "briefing": "DM-only briefing",
+      "presetName": "Scenario name",
+      "presetDescription": "Prepared map and visibility setup"
+    },
+    "settings": {
+      "strictMovement": null
+    },
+    "party": {
+      "include": true,
+      "sourceScenarioCode": "EMBER-KEEP",
+      "placements": []
+    },
+    "map": null,
+    "handouts": [],
+    "creatures": [],
+    "assumptions": [],
+    "reviewWarnings": []
+  },
+  "assets": {}
+}
