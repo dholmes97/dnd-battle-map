@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   type Dispatch,
@@ -60,6 +61,21 @@ type FogVertexGesture = {
   pointerId: number;
   vertexIndex: number;
   polygon: MapPoint[];
+};
+
+type SafariGestureEvent = Event & {
+  scale: number;
+  clientX: number;
+  clientY: number;
+};
+
+type SafariZoomGesture = {
+  viewport: Viewport;
+  zoom: number;
+  width: number;
+  height: number;
+  focusX: number;
+  focusY: number;
 };
 
 type UseBattleMapGesturesInput = {
@@ -164,6 +180,62 @@ export function useBattleMapGestures({
   const panGestureRef = useRef<PanGesture | null>(null);
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
   const fogVertexGestureRef = useRef<FogVertexGesture | null>(null);
+  const safariZoomGestureRef = useRef<SafariZoomGesture | null>(null);
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !state) return;
+
+    const startGesture = (rawEvent: Event) => {
+      const event = rawEvent as SafariGestureEvent;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const geometry = viewportGeometry(viewportRef.current, state, rect.width, rect.height);
+      safariZoomGestureRef.current = {
+        viewport: viewportRef.current,
+        zoom: geometry.fit ? 1 : geometry.zoom,
+        width: rect.width,
+        height: rect.height,
+        focusX: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+        focusY: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
+      };
+    };
+
+    const updateGesture = (rawEvent: Event) => {
+      const event = rawEvent as SafariGestureEvent;
+      const gesture = safariZoomGestureRef.current;
+      if (!gesture || !Number.isFinite(event.scale) || event.scale <= 0) return;
+      event.preventDefault();
+      setViewport(zoomViewportAt(
+        gesture.viewport,
+        state,
+        gesture.width,
+        gesture.height,
+        gesture.zoom * event.scale,
+        gesture.focusX,
+        gesture.focusY,
+      ));
+    };
+
+    const endGesture = (event: Event) => {
+      if (!safariZoomGestureRef.current) return;
+      event.preventDefault();
+      safariZoomGestureRef.current = null;
+    };
+
+    canvas.addEventListener("gesturestart", startGesture, { passive: false });
+    canvas.addEventListener("gesturechange", updateGesture, { passive: false });
+    canvas.addEventListener("gestureend", endGesture, { passive: false });
+    return () => {
+      canvas.removeEventListener("gesturestart", startGesture);
+      canvas.removeEventListener("gesturechange", updateGesture);
+      canvas.removeEventListener("gestureend", endGesture);
+      safariZoomGestureRef.current = null;
+    };
+  }, [canvasRef, state]);
 
   const paletteCreature = (id: string | null) => creatures.find((creature) => creature.id === id) ?? null;
 
@@ -451,6 +523,7 @@ export function useBattleMapGestures({
   const onCanvasWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     if (!state) return;
     event.preventDefault();
+    if (safariZoomGestureRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const focusX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     const focusY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));

@@ -75,6 +75,42 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
 }
 
 describe("useBattleMapGestures", () => {
+  it("zooms from a Safari trackpad pinch without double-applying wheel zoom", () => {
+    const canvas = document.createElement("canvas");
+    const rect = { left: 100, top: 50, width: 1200, height: 800 } as DOMRect;
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue(rect);
+    const canvasRef = { current: canvas };
+    const { result } = renderGestures({ canvasRef });
+    const gestureEvent = (type: string, scale: number) => {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperties(event, {
+        scale: { value: scale },
+        clientX: { value: rect.left + rect.width * 0.25 },
+        clientY: { value: rect.top + rect.height * 0.75 },
+      });
+      return event;
+    };
+
+    act(() => canvas.dispatchEvent(gestureEvent("gesturestart", 1)));
+    act(() => canvas.dispatchEvent(gestureEvent("gesturechange", 2)));
+    expect(result.current.viewport).toMatchObject({ zoom: 2, fit: false });
+
+    const wheelEvent = {
+      currentTarget: canvas,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+      deltaY: -100,
+      preventDefault: vi.fn(),
+    } as unknown as React.WheelEvent<HTMLCanvasElement>;
+    act(() => result.current.onCanvasWheel(wheelEvent));
+    expect(result.current.viewport.zoom).toBe(2);
+    expect(wheelEvent.preventDefault).toHaveBeenCalledOnce();
+
+    act(() => canvas.dispatchEvent(gestureEvent("gestureend", 2)));
+    act(() => result.current.onCanvasWheel(wheelEvent));
+    expect(result.current.viewport.zoom).toBeGreaterThan(2);
+  });
+
   it("owns fit/reset viewport and shared-fog editing state", () => {
     const { result, onUpdateSharedFog } = renderGestures();
     act(() => result.current.fitViewport());
