@@ -20,7 +20,7 @@ type CommandBarProps = {
   spellPaletteOpen: boolean;
   busy: boolean;
   viewport: BattleMapViewport;
-  mapKey: string;
+  effectiveZoom: number;
   connection: "connecting" | "live" | "reconnecting" | "lost";
   connectionLabel: string;
   connectionTooltip: string;
@@ -55,6 +55,7 @@ type CommandBarProps = {
 export function BattleMapCommandBar(props: CommandBarProps) {
   const tool = (mode: AnnotationMode, icon: IconName, label: string, shortcut: string) => <button className={`icon-tool${props.annotationMode === mode ? " tool-active" : ""}`} aria-label={label} data-tooltip={`${label} — ${shortcut}`} aria-pressed={props.annotationMode === mode} onClick={() => props.onAnnotationMode(mode)}><Icon name={icon} /></button>;
   const { participant, state } = props;
+  const zoomPercentage = Math.round(props.effectiveZoom * 100);
   return <div className="command-bar" aria-label="Map tools and encounter status">
     <div className="map-tool-group" role="group" aria-label="Tactical tools">
       {tool("move", "move", "Move tokens", "V")}{tool("ping", "ping", "Ping map", "P")}{tool("drawing", "line", "Draw line", "L")}{tool("erase", "erase", "Erase line", "E")}
@@ -72,7 +73,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
     <div className="map-tool-group" role="group" aria-label="Action history"><button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => props.onHistory("undo")} disabled={props.busy || state.undo.available === 0}><Icon name="undo" /></button><button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => props.onHistory("redo")} disabled={props.busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button></div>
     <div className="encounter-identity"><strong>{state.encounter.name}</strong><span>{state.encounter.status}</span></div>
     <div className="round-counter" aria-label={state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"}><span>Round</span><strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong></div>
-    <div className="map-tool-group viewport-tools" role="group" aria-label="Map view"><button className={`icon-tool${props.viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={props.viewport.fit} onClick={props.onFit}><Icon name="fit" /></button><button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => props.onZoom(-0.5)}><Icon name="zoomOut" /></button><button className="zoom-value" aria-label="Reset zoom" data-tooltip="Reset zoom" onClick={props.onResetZoom}>{props.viewport.fit ? "Fit" : `${Math.round((props.viewport.mapKey === props.mapKey ? props.viewport.zoom : 1) * 100)}%`}</button><button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => props.onZoom(0.5)}><Icon name="zoomIn" /></button></div>
+    <div className="map-tool-group viewport-tools" role="group" aria-label="Map view"><button className={`icon-tool${props.viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={props.viewport.fit} onClick={props.onFit}><Icon name="fit" /></button><button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => props.onZoom(-0.5)}><Icon name="zoomOut" /></button><button className="zoom-value" aria-label={`Reset zoom to 100%, currently ${zoomPercentage}%`} data-tooltip="Reset zoom to 100%" onClick={props.onResetZoom}>{zoomPercentage}%</button><button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => props.onZoom(0.5)}><Icon name="zoomIn" /></button></div>
     <div className={`connection-pill connection-${props.connection}`} aria-label={props.connectionTooltip} data-tooltip={props.connectionTooltip} aria-live="polite"><span className="connection-dot" /><em>{props.connectionLabel}</em></div>
     <div className="map-tool-group" role="group" aria-label="Layout">
       <UiSettingsMenu menuRef={props.uiSettingsRef} participant={participant} state={state} gridOpacity={props.gridOpacity} showColoredTokenCenters={props.showColoredTokenCenters} showHealthRings={props.showHealthRings} onGridOpacityChange={props.onGridOpacityChange} onColoredTokenCentersChange={props.onColoredTokenCentersChange} onHealthRingsChange={props.onHealthRingsChange} onFogModeChange={props.onFogModeChange} onVisionDoorChange={props.onVisionDoorChange} onStrictMovementChange={props.onStrictMovementChange} />

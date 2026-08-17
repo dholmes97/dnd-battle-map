@@ -32,7 +32,7 @@ export type EncounterRow = {
 
 export type TokenRow = {
   id: string; name: string; x: number; y: number; art_asset: string | null; kind: string;
-  size: CreatureSize; speed: number; hp: number | null; max_hp: number | null; is_hidden: number;
+  size: CreatureSize; speed: number; armor_class: number | null; hp: number | null; max_hp: number | null; is_hidden: number;
   summoner_token_id: string | null; initiative: number | null; initiative_group_id: string | null;
   initiative_order: number | null; turn_complete: number; movement_used: number;
   movement_origin_x?: number | null; movement_origin_y?: number | null;

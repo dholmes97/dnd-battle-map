@@ -593,6 +593,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       kind: "character",
       size: "medium",
       speed: 30,
+      armorClass: 18,
       hp: 24,
       maxHp: 24,
       artAsset: "/assets/tokens/characters/dareleth-paladin-01.png",
@@ -608,6 +609,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       kind: "monster",
       size: "large",
       speed: 40,
+      armorClass: 14,
       hp: 20,
       maxHp: 40,
       artAsset: "/creature-assets/tokens/monsters/shadow-dire-warg-01.png",
@@ -674,6 +676,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
       kind: "summon",
       size: "large",
       speed: 35,
+      armorClass: 12,
       hp: 12,
       maxHp: 12,
       artAsset: "/creature-assets/tokens/monsters/hungry-01.png",
@@ -690,6 +693,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     assert.equal(playerHiddenState.body.tokens.some((token) => token.id === monsterId), false);
     const dmHiddenState = await viewerState(dm);
     assert.equal(dmHiddenState.body.tokens.find((token) => token.id === monsterId).hp, 20);
+    assert.equal(dmHiddenState.body.tokens.find((token) => token.id === monsterId).armorClass, 14);
 
     let reveal = await command(dm, "update-token", { tokenId: monsterId, hidden: false, size: "huge" });
     assert.equal(reveal.response.status, 200);
@@ -712,8 +716,13 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     const coarseMonster = playerVisibleState.body.tokens.find((token) => token.id === monsterId);
     assert.equal(coarseMonster.hp, null);
     assert.equal(coarseMonster.maxHp, null);
+    assert.equal(coarseMonster.armorClass, null);
     assert.equal(coarseMonster.healthState, "bloodied");
-    assert.equal(playerVisibleState.body.tokens.find((token) => token.id === characterId).hp, 24);
+    const ownedCharacter = playerVisibleState.body.tokens.find((token) => token.id === characterId);
+    const ownedSummon = playerVisibleState.body.tokens.find((token) => token.id === summonId);
+    assert.equal(ownedCharacter.hp, 24);
+    assert.equal(ownedCharacter.armorClass, 18);
+    assert.equal(ownedSummon.armorClass, 12);
 
     const playerInitiative = await command(player, "set-initiative", { tokenId: characterId, initiative: 99 });
     assert.equal(playerInitiative.response.status, 200);

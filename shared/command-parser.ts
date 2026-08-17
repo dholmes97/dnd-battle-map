@@ -144,7 +144,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     }
     case "create-token": {
       if (!requiredString(body.name) || !tokenKind(body.kind) || !isCreatureSize(body.size) ||
-          !finiteNumber(body.speed) || !optionalNumber(body.hp) || !optionalNumber(body.maxHp) ||
+          !finiteNumber(body.speed) || !optionalNumber(body.armorClass) || !optionalNumber(body.hp) || !optionalNumber(body.maxHp) ||
           !optionalBoolean(body.hidden) || !optionalString(body.artAsset) ||
           !optionalString(body.summonerTokenId) || !finiteNumber(body.x) || !finiteNumber(body.y)) return null;
       return { command, payload: compact<"create-token">({
@@ -152,6 +152,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         kind: body.kind,
         size: body.size,
         speed: body.speed,
+        armorClass: body.armorClass,
         hp: body.hp,
         maxHp: body.maxHp,
         hidden: body.hidden,
@@ -168,12 +169,13 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     case "update-token": {
       if (!requiredString(body.tokenId) || !optionalString(body.name) ||
           (body.size !== undefined && !isCreatureSize(body.size)) || !optionalNumber(body.speed) ||
-          !optionalNumber(body.maxHp) || !optionalBoolean(body.hidden) || !optionalString(body.artAsset)) return null;
+          !optionalNumber(body.armorClass) || !optionalNumber(body.maxHp) || !optionalBoolean(body.hidden) || !optionalString(body.artAsset)) return null;
       return { command, payload: compact<"update-token">({
         tokenId: body.tokenId,
         name: body.name,
         size: body.size,
         speed: body.speed,
+        armorClass: body.armorClass,
         maxHp: body.maxHp,
         hidden: body.hidden,
         artAsset: body.artAsset,

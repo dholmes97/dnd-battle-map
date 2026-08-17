@@ -807,6 +807,7 @@ export function drawMap(
       kind: SPELL_EFFECT_KIND,
       size: spellPlacementPreview.spell.size,
       speed: 0,
+      armorClass: null,
       hp: null,
       maxHp: null,
       healthState: null,

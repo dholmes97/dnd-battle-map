@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -172,6 +173,7 @@ export function useBattleMapGestures({
   const [placementPreview, setPlacementPreview] = useState<PlacementPreview | null>(null);
   const [spellPlacementPreview, setSpellPlacementPreview] = useState<SpellPlacementPreview | null>(null);
   const [viewport, setViewport] = useState<Viewport>({ zoom: 1, centerX: 12, centerY: 8, mapKey: "", fit: false });
+  const [effectiveZoom, setEffectiveZoom] = useState(1);
   const [panning, setPanning] = useState(false);
   const [editingSharedFog, setEditingSharedFog] = useState(false);
   const [sharedFogPreview, setSharedFogPreview] = useState<MapPoint[] | null>(null);
@@ -182,7 +184,31 @@ export function useBattleMapGestures({
   const fogVertexGestureRef = useRef<FogVertexGesture | null>(null);
   const safariZoomGestureRef = useRef<SafariZoomGesture | null>(null);
   const viewportRef = useRef(viewport);
-  viewportRef.current = viewport;
+  const stateRef = useRef(state);
+
+  const updateEffectiveZoom = useCallback(() => {
+    const canvas = canvasRef.current;
+    const currentState = stateRef.current;
+    if (!canvas || !currentState) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const next = viewportGeometry(viewportRef.current, currentState, rect.width, rect.height).zoom;
+    setEffectiveZoom((current) => Math.abs(current - next) < 0.0001 ? current : next);
+  }, [canvasRef]);
+
+  useEffect(() => {
+    viewportRef.current = viewport;
+    stateRef.current = state;
+    updateEffectiveZoom();
+  }, [state, updateEffectiveZoom, viewport]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateEffectiveZoom);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [canvasRef, updateEffectiveZoom]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -610,6 +636,7 @@ export function useBattleMapGestures({
     placementPreview,
     spellPlacementPreview,
     viewport,
+    effectiveZoom,
     panning,
     editingSharedFog,
     sharedFogPreview,

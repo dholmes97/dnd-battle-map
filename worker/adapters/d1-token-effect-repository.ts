@@ -1,7 +1,7 @@
 import type { TokenEffectRepository } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
 
-const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
   summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
@@ -15,10 +15,10 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
     async createToken(input) {
       await db.prepare(
         `INSERT INTO tokens
-         (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp,
+         (id, encounter_id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp,
           is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
           movement_used, owner_participant_id, owner_name, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
       ).bind(
         input.id,
         input.encounterId,
@@ -29,6 +29,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.kind,
         input.size,
         input.speed,
+        input.armorClass,
         input.hp,
         input.maxHp,
         input.hidden ? 1 : 0,
@@ -45,13 +46,14 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
     },
     async updateToken(input) {
       await db.prepare(
-        `UPDATE tokens SET name = ?, size = ?, speed = ?, hp = ?, max_hp = ?,
+        `UPDATE tokens SET name = ?, size = ?, speed = ?, armor_class = ?, hp = ?, max_hp = ?,
          is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ?`,
       ).bind(
         input.name,
         input.size,
         input.speed,
+        input.armorClass,
         input.hp,
         input.maxHp,
         input.hidden ? 1 : 0,
@@ -98,7 +100,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         `SELECT e.id, e.token_id, e.name, e.effect_type, e.duration_rounds,
                 e.expires_round, e.reminder_timing, e.created_by, e.created_at,
                 t.id AS t_id, t.name AS t_name, t.x, t.y, t.art_asset, t.kind, t.size,
-                t.speed, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id,
+                t.speed, t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id,
                 t.initiative, t.initiative_group_id, t.initiative_order,
                 t.turn_complete, t.movement_used, t.movement_origin_x,
                 t.movement_origin_y, t.owner_participant_id, t.owner_name
@@ -109,7 +111,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         duration_rounds: number | null; expires_round: number | null;
         reminder_timing: string; created_by: string; created_at: number;
         t_id: string; t_name: string; x: number; y: number; art_asset: string | null;
-        kind: string; size: TokenRow["size"]; speed: number; hp: number | null;
+        kind: string; size: TokenRow["size"]; speed: number; armor_class: number | null; hp: number | null;
         max_hp: number | null; is_hidden: number; summoner_token_id: string | null;
         initiative: number | null; initiative_group_id: string | null;
         initiative_order: number | null; turn_complete: number; movement_used: number;
@@ -129,7 +131,8 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         created_at: row.created_at,
         token: {
           id: row.t_id, name: row.t_name, x: row.x, y: row.y, art_asset: row.art_asset,
-          kind: row.kind, size: row.size, speed: row.speed, hp: row.hp, max_hp: row.max_hp,
+          kind: row.kind, size: row.size, speed: row.speed, armor_class: row.armor_class,
+          hp: row.hp, max_hp: row.max_hp,
           is_hidden: row.is_hidden, summoner_token_id: row.summoner_token_id,
           initiative: row.initiative, initiative_group_id: row.initiative_group_id,
           initiative_order: row.initiative_order, turn_complete: row.turn_complete,

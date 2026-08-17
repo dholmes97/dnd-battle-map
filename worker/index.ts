@@ -957,7 +957,7 @@ async function encounterState(
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
-            t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
+            t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
             t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used,
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
@@ -1069,7 +1069,7 @@ async function encounterState(
     },
     tokens: visibleTokens.map((token) => {
       const controlledByViewer = viewerControls(token);
-      const canSeeExactHp = viewer?.role === "dm" || controlledByViewer;
+      const canSeePrivateStats = viewer?.role === "dm" || controlledByViewer;
       return {
         id: token.id,
         name: token.name,
@@ -1079,8 +1079,9 @@ async function encounterState(
         kind: token.kind,
         size: token.size,
         speed: token.speed,
-        hp: canSeeExactHp ? token.hp : null,
-        maxHp: canSeeExactHp ? token.max_hp : null,
+        armorClass: canSeePrivateStats ? token.armor_class : null,
+        hp: canSeePrivateStats ? token.hp : null,
+        maxHp: canSeePrivateStats ? token.max_hp : null,
         healthState: coarseHealth(token.hp, token.max_hp),
         hidden: Boolean(token.is_hidden),
         summonerTokenId: token.summoner_token_id,
@@ -1270,7 +1271,7 @@ async function canControlToken(
   while (current.summoner_token_id && !visited.has(current.id)) {
     visited.add(current.id);
     const summoner = await env.DB.prepare(
-      `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+      `SELECT id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, initiative_group_id
        FROM tokens WHERE id = ? AND encounter_id = ?`,
@@ -1514,7 +1515,7 @@ async function handleApi(
     return json({ error: "Token is required." }, { status: 400 });
   }
   const token = await env.DB.prepare(
-    `SELECT id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+    `SELECT id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
             movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,

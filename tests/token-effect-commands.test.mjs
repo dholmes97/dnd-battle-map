@@ -8,6 +8,7 @@ import {
   createToken,
   deleteToken,
   resizeSpellEffect,
+  updateToken,
 } from "../worker/commands/token-effect-commands.ts";
 
 function token(overrides = {}) {
@@ -20,6 +21,7 @@ function token(overrides = {}) {
     kind: "character",
     size: "medium",
     speed: 30,
+    armor_class: 18,
     hp: 20,
     max_hp: 30,
     is_hidden: 0,
@@ -86,12 +88,13 @@ test("player-created creatures and spells require the player's root character", 
 
   const valid = context({
     participant: player,
-    payload: { name: "Wolf", summonerTokenId: "hero", x: 3, y: 3 },
+    payload: { name: "Wolf", armorClass: 13.8, summonerTokenId: "hero", x: 3, y: 3 },
   });
   const result = await createToken(valid);
   assert.equal(result.payload.created, true);
   const created = valid.calls.find(([name]) => name === "create")[1];
   assert.equal(created.kind, "summon");
+  assert.equal(created.armorClass, 13);
   assert.equal(created.summonerTokenId, "hero");
 
   const spell = context({
@@ -110,6 +113,25 @@ test("HP damage reports concentration checks and clamps at zero", async () => {
   const result = await applyHp(value);
   assert.equal(result.payload.concentrationCheckRequired, true);
   assert.deepEqual(value.calls.find(([name]) => name === "hp").slice(2, 4), ["token", 0]);
+});
+
+test("players can edit controlled token details but not another participant's token", async () => {
+  const player = { id: "player", name: "Dan", role: "player" };
+  const allowed = context({
+    participant: player,
+    payload: { tokenId: "token", armorClass: 19, hidden: true },
+  });
+  assert.equal((await updateToken(allowed)).payload.updated, true);
+  const updated = allowed.calls.find(([name]) => name === "update")[1];
+  assert.equal(updated.armorClass, 19);
+  assert.equal(updated.hidden, false);
+
+  const denied = context({
+    participant: player,
+    payload: { tokenId: "token", armorClass: 20 },
+    canControl: async () => false,
+  });
+  assert.equal((await updateToken(denied)).status, 403);
 });
 
 test("spell resizing clamps the new footprint and records a reversible token update", async () => {

@@ -18,7 +18,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
 }) {
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
   const [initiativeStatuses, setInitiativeStatuses] = useState<Record<string, "editing" | "saving" | "saved">>({});
-  const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; maxHp?: string; artAsset?: string }>>({});
+  const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; armorClass?: string; maxHp?: string; artAsset?: string }>>({});
   const [hpAmount, setHpAmount] = useState("5");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
@@ -198,14 +198,18 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     const size = draft.size ?? token.size;
     const requestedSpeed = Number(draft.speed ?? token.speed);
     const speed = Number.isFinite(requestedSpeed) ? requestedSpeed : token.speed;
+    const requestedArmorClass = draft.armorClass === undefined || draft.armorClass === "" ? token.armorClass : Number(draft.armorClass);
+    const armorClass = requestedArmorClass !== null && Number.isFinite(requestedArmorClass)
+      ? Math.min(40, Math.max(1, Math.trunc(requestedArmorClass)))
+      : token.armorClass;
     const requestedMaxHp = draft.maxHp === undefined || draft.maxHp === "" ? token.maxHp : Number(draft.maxHp);
     const maxHp = requestedMaxHp !== null && Number.isFinite(requestedMaxHp) ? Math.max(1, Math.trunc(requestedMaxHp)) : token.maxHp;
     const artAsset = draft.artAsset ?? token.artAsset ?? "";
     setTokenEditorTokenId(null);
     const result = await sync.runOptimisticCommand(
       "update-token",
-      { tokenId: token.id, name, size, speed, maxHp: maxHp ?? undefined, artAsset },
-      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, name, size, speed, maxHp, hp: maxHp === null ? null : Math.min(maxHp, item.hp ?? maxHp), artAsset: artAsset || null } : item) }),
+      { tokenId: token.id, name, size, speed, armorClass: armorClass ?? undefined, maxHp: maxHp ?? undefined, artAsset },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, name, size, speed, armorClass, maxHp, hp: maxHp === null ? null : Math.min(maxHp, item.hp ?? maxHp), artAsset: artAsset || null } : item) }),
       "Token details saved.",
     );
     if (result) {

@@ -1,7 +1,7 @@
 import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
 import type { TokenRow } from "../types.ts";
 
-const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
   summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 

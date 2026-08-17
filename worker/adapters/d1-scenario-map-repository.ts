@@ -1,7 +1,7 @@
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
 import type { TokenRow } from "../types.ts";
 
-const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden,
+const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
   summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
@@ -43,11 +43,11 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         ),
         ...input.tokens.map((token) => db.prepare(
           `INSERT INTO tokens
-           (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp,
+           (id, encounter_id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp,
             is_hidden, summoner_token_id, initiative, initiative_group_id, initiative_order,
             turn_complete, movement_used, movement_origin_x, movement_origin_y,
             owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
         ).bind(
           token.copiedId,
           input.id,
@@ -58,6 +58,7 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
           token.kind,
           token.size,
           token.speed,
+          token.armor_class,
           token.copiedHp,
           token.max_hp,
           token.copiedHidden ? 1 : 0,

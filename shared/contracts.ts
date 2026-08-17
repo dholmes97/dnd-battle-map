@@ -24,6 +24,7 @@ export type SharedToken = MapPoint & {
   kind: string;
   size: CreatureSize;
   speed: number;
+  armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
   healthState: HealthBand | null;
@@ -192,6 +193,7 @@ export type CommandPayloadMap = {
     kind: "character" | "monster" | "summon" | "familiar";
     size: CreatureSize;
     speed: number;
+    armorClass?: number;
     hp?: number;
     maxHp?: number;
     hidden?: boolean;
@@ -206,6 +208,7 @@ export type CommandPayloadMap = {
     name?: string;
     size?: CreatureSize;
     speed?: number;
+    armorClass?: number;
     maxHp?: number;
     hidden?: boolean;
     artAsset?: string;

@@ -16,6 +16,7 @@ export type TokenWrite = {
   kind: string;
   size: TokenRow["size"];
   speed: number;
+  armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
   hidden: boolean;

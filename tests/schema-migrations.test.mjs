@@ -19,6 +19,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "3");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'armor_class';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_jobs;"), "0");
   assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_assets;"), "0");
@@ -74,7 +75,7 @@ test("bootstrap migration preserves customized existing records", async () => {
     INSERT INTO encounters (id, code, name, version, status, map_asset, map_package_json, grid_width, grid_height, current_round, strict_movement, updated_at)
     VALUES ('custom-encounter', 'CUSTOM', 'Keep This Scenario', 42, 'active', '', '${customMap.replaceAll("'", "''")}', 24, 16, 7, 0, 987654321);
     INSERT INTO tokens (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp, is_hidden, turn_complete, movement_used, updated_at)
-    VALUES ('custom-token', 'custom-encounter', 'Keep This Token', 3, 4, '/creature-assets/custom.png', 'monster', 'large', 45, 123, 150, 0, 0, 0, 987654321);
+    VALUES ('custom-token', 'custom-encounter', 'Keep This Token', 3, 4, '/custom/token.png', 'monster', 'large', 45, 123, 150, 0, 0, 0, 987654321);
     INSERT INTO creature_catalog (id, name, family, creature_type, size, default_hp, armor_class, default_speed, walk_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active, created_at, updated_at)
     VALUES ('cave-bat', 'Customized Bat', 'custom', 'beast', 'tiny', 99, 21, 55, 55, '/custom/source.png', '/custom/token.png', '/custom/thumb.png', 999, 0, 1, 2);
   `);
@@ -97,6 +98,7 @@ test("bootstrap migration preserves customized existing records", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "4");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
+  assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });

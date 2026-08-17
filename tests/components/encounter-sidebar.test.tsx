@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EncounterSidebar } from "@/app/encounter-sidebar";
@@ -15,6 +15,7 @@ function tokenWithInitiative(initiative: number | null): SharedToken {
     kind: "character",
     size: "medium",
     speed: 30,
+    armorClass: 18,
     hp: 42,
     maxHp: 42,
     healthState: "unharmed",
@@ -47,8 +48,8 @@ function tokenControls() {
   } as unknown as TokenControls;
 }
 
-function renderSidebar(initiative: number | null) {
-  const token = tokenWithInitiative(initiative);
+function renderSidebar(initiative: number | null, controlledByViewer = true) {
+  const token = { ...tokenWithInitiative(initiative), controlledByViewer };
   const state = {
     encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
     grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: participant.id, role: participant.role }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
@@ -67,6 +68,33 @@ function renderSidebar(initiative: number | null) {
 }
 
 describe("EncounterSidebar initiative disclosure", () => {
+  it("shows the selected owned token's AC in the compact stat row", () => {
+    renderSidebar(17);
+    const detail = screen.getByRole("region", { name: "Dar'eleth details" });
+    expect(within(detail).getByText("AC")).toBeTruthy();
+    expect(within(detail).getByText("18")).toBeTruthy();
+  });
+
+  it("lets a player open details for their own token only", async () => {
+    const owned = renderSidebar(17);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    expect(owned.controls.setTokenEditorTokenId).toHaveBeenCalledWith(owned.token.id);
+
+    cleanup();
+    renderSidebar(17, false);
+    expect(screen.queryByRole("button", { name: "Edit details" })).toBeNull();
+  });
+
+  it("uses one typed HP amount with compact damage and healing actions", async () => {
+    const { controls } = renderSidebar(17);
+    expect(screen.queryByRole("button", { name: "Decrease amount" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Increase amount" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Apply 5 damage to Dar'eleth" }));
+    expect(controls.applyHpToToken).toHaveBeenCalledWith(expect.objectContaining({ id: "token-dar" }), -5);
+    await userEvent.click(screen.getByRole("button", { name: "Heal Dar'eleth for 5" }));
+    expect(controls.applyHpToToken).toHaveBeenCalledWith(expect.objectContaining({ id: "token-dar" }), 5);
+  });
+
   it("keeps a missing initiative editable only from the roster", async () => {
     renderSidebar(null);
     expect(screen.queryByRole("textbox", { name: "Initiative" })).toBeNull();

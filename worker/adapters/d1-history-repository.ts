@@ -236,15 +236,15 @@ async function insertAnnotation(db: D1Database, encounterId: string, annotation:
 async function insertToken(db: D1Database, encounterId: string, tokenId: string, token: Record<string, unknown>, now: number) {
   const result = await db.prepare(
     `INSERT OR IGNORE INTO tokens
-     (id, encounter_id, name, x, y, art_asset, kind, size, speed, hp, max_hp,
+     (id, encounter_id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp,
       is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
       movement_used, owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
   ).bind(
     tokenId, encounterId, cleanText(token.name, 48), Number(token.x), Number(token.y),
     token.artAsset ?? null, cleanText(token.kind, 16) || "monster",
     isCreatureSize(token.size) ? token.size : "medium", Number(token.speed) || 30,
-    token.hp ?? null, token.maxHp ?? null, token.hidden ? 1 : 0,
+    cleanArmorClass(token.armorClass), token.hp ?? null, token.maxHp ?? null, token.hidden ? 1 : 0,
     cleanId(token.summonerTokenId) || null, token.initiative ?? null,
     token.initiativeOrder ?? null, now,
   ).run();
@@ -260,20 +260,26 @@ async function updateToken(
   now: number,
 ) {
   const current = await db.prepare(
-    "SELECT x, y, size FROM tokens WHERE id = ? AND encounter_id = ?",
-  ).bind(tokenId, encounterId).first<{ x: number; y: number; size: CreatureSize }>();
+    "SELECT x, y, size, armor_class FROM tokens WHERE id = ? AND encounter_id = ?",
+  ).bind(tokenId, encounterId).first<{ x: number; y: number; size: CreatureSize; armor_class: number | null }>();
   const result = await db.prepare(
-    `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, hp = ?,
+    `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, armor_class = ?, hp = ?,
      max_hp = ?, is_hidden = ?, art_asset = ?, updated_at = ?
      WHERE id = ? AND encounter_id = ?`,
   ).bind(
     cleanText(value.name, 48), isCreatureSize(value.size) ? value.size : current?.size ?? "medium",
     Number.isFinite(Number(value.x)) ? Number(value.x) : current?.x ?? input.gridWidth / 2,
     Number.isFinite(Number(value.y)) ? Number(value.y) : current?.y ?? input.gridHeight / 2,
-    Number(value.speed), value.hp ?? null, value.maxHp ?? null, value.hidden ? 1 : 0,
+    Number(value.speed), value.armorClass === undefined ? current?.armor_class ?? null : cleanArmorClass(value.armorClass),
+    value.hp ?? null, value.maxHp ?? null, value.hidden ? 1 : 0,
     value.artAsset ?? null, now, tokenId, encounterId,
   ).run();
   return changes(result);
+}
+
+function cleanArmorClass(value: unknown) {
+  const armorClass = Math.trunc(Number(value));
+  return Number.isFinite(armorClass) && armorClass >= 1 && armorClass <= 40 ? armorClass : null;
 }
 
 async function deleteRow(db: D1Database, table: "effects" | "annotations", id: string, encounterId: string) {

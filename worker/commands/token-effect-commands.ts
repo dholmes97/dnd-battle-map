@@ -3,7 +3,7 @@ import { transitionHp } from "../../shared/encounter-transitions.ts";
 import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
-import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
+import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 type TokenEffectCommandName =
   | "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token"
@@ -34,6 +34,7 @@ export async function createSpellEffect(context: TokenEffectCommandContext<"crea
     x: clamp(context.payload.x, context.encounter.gridWidth, spell.size),
     y: clamp(context.payload.y, context.encounter.gridHeight, spell.size),
     speed: 0,
+    armorClass: null,
     hp: null,
     maxHp: null,
     hidden: false,
@@ -72,6 +73,9 @@ export async function createToken(context: TokenEffectCommandContext<"create-tok
     x: clamp(context.payload.x, context.encounter.gridWidth, size),
     y: clamp(context.payload.y, context.encounter.gridHeight, size),
     speed: Math.min(120, Math.max(0, Math.trunc(context.payload.speed) || 30)),
+    armorClass: Number.isFinite(context.payload.armorClass)
+      ? Math.min(40, Math.max(1, Math.trunc(context.payload.armorClass!)))
+      : null,
     hp,
     maxHp,
     hidden: context.participant.role === "dm" && Boolean(context.payload.hidden),
@@ -96,11 +100,10 @@ export async function resizeSpellEffect(context: TokenEffectCommandContext<"resi
 }
 
 export async function updateToken(context: TokenEffectCommandContext<"update-token">): Promise<CommandOutcome> {
-  const denied = requireDm(context);
-  if (denied) return denied;
   const tokenId = cleanId(context.payload.tokenId);
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
+  if (!await context.canControl(token)) return commandError("You cannot edit this token.", 403);
   const requestedArt = context.payload.artAsset ?? "";
   const artAsset = await context.isAllowedArt(requestedArt)
     ? requestedArt
@@ -117,9 +120,14 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     speed: Number.isFinite(context.payload.speed)
       ? Math.min(120, Math.max(0, Math.trunc(context.payload.speed!)))
       : token.speed,
+    armorClass: Number.isFinite(context.payload.armorClass)
+      ? Math.min(40, Math.max(1, Math.trunc(context.payload.armorClass!)))
+      : token.armor_class,
     hp: maxHp === null ? null : Math.min(maxHp, token.hp ?? maxHp),
     maxHp,
-    hidden: context.payload.hidden ?? Boolean(token.is_hidden),
+    hidden: context.participant.role === "dm"
+      ? context.payload.hidden ?? Boolean(token.is_hidden)
+      : Boolean(token.is_hidden),
     artAsset,
     x: clamp(token.x, context.encounter.gridWidth, size),
     y: clamp(token.y, context.encounter.gridHeight, size),
@@ -135,6 +143,7 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     name: next.name,
     size: next.size,
     speed: next.speed,
+    armor_class: next.armorClass,
     hp: next.hp,
     max_hp: next.maxHp,
     is_hidden: next.hidden ? 1 : 0,
@@ -247,7 +256,7 @@ async function createTokenEntity(
     tokenId,
     token: {
       tokenId, name: token.name, kind: token.kind, size: token.size, x: token.x, y: token.y,
-      speed: token.speed, hp: token.hp, maxHp: token.maxHp, hidden: token.hidden,
+      speed: token.speed, armorClass: token.armorClass, hp: token.hp, maxHp: token.maxHp, hidden: token.hidden,
       summonerTokenId: token.summonerTokenId, artAsset: token.artAsset,
       initiative: token.initiative, initiativeGroupId: null,
       initiativeOrder: token.initiativeOrder,
@@ -264,7 +273,8 @@ async function validPlayerSummoner(context: TokenEffectCommandContext, token: To
 function tokenChange(previous: TokenRow, next: TokenRow) {
   const view = (token: TokenRow) => ({
     name: token.name, size: token.size, x: token.x, y: token.y, speed: token.speed,
-    hp: token.hp, maxHp: token.max_hp, hidden: Boolean(token.is_hidden), artAsset: token.art_asset,
+    armorClass: token.armor_class, hp: token.hp, maxHp: token.max_hp,
+    hidden: Boolean(token.is_hidden), artAsset: token.art_asset,
   });
   return { tokenId: previous.id, previous: view(previous), next: view(next) };
 }

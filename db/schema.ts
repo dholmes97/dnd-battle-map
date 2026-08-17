@@ -206,6 +206,7 @@ export const tokens = sqliteTable(
     kind: text("kind").notNull().default("character"),
     size: text("size").notNull().default("medium"),
     speed: integer("speed").notNull().default(30),
+    armorClass: integer("armor_class"),
     hp: integer("hp"),
     maxHp: integer("max_hp"),
     isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),

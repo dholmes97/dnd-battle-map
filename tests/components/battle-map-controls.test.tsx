@@ -13,7 +13,7 @@ const state = { encounter: { name: "Dinner Party", status: "active", currentRoun
 function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]> = {}) {
   const props: Parameters<typeof BattleMapCommandBar>[0] = {
     participant: dm, state, annotationMode: "move", editingSharedFog: false, chatOpen: false, chatMinimized: false, chatUnreadTotal: 3,
-    paletteOpen: false, spellPaletteOpen: false, busy: false, viewport: { zoom: 1, centerX: 12, centerY: 8, mapKey: "map", fit: false }, mapKey: "map",
+    paletteOpen: false, spellPaletteOpen: false, busy: false, viewport: { zoom: 1, centerX: 12, centerY: 8, mapKey: "map", fit: false }, effectiveZoom: 1,
     connection: "live", connectionLabel: "Live", connectionTooltip: "Live connection", uiSettingsRef: { current: null }, gridOpacity: 0.17,
     showColoredTokenCenters: true, showHealthRings: true, sidebarOpen: true, presenting: false,
     onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenWorkshop: vi.fn(), onManageScenarios: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
@@ -34,6 +34,23 @@ describe("BattleMapCommandBar", () => {
     expect((screen.getByRole("button", { name: "Redo last action" }) as HTMLButtonElement).disabled).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: "Undo last action" }));
     expect(props.onHistory).toHaveBeenCalledWith("undo");
+  });
+  it("shows the effective zoom percentage while Fit remains active", async () => {
+    const props = commandBar({
+      viewport: { zoom: 1, centerX: 12, centerY: 8, mapKey: "map", fit: true },
+      effectiveZoom: 0.625,
+    });
+    expect(screen.getByRole("button", { name: "Fit whole map" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Reset zoom to 100%, currently 63%" }).textContent).toBe("63%");
+    await userEvent.click(screen.getByRole("button", { name: "Reset zoom to 100%, currently 63%" }));
+    expect(props.onResetZoom).toHaveBeenCalledOnce();
+  });
+  it("uses a presentation glyph distinct from the Fit glyph", () => {
+    commandBar();
+    const fitPath = screen.getByRole("button", { name: "Fit whole map" }).querySelector("path")?.getAttribute("d");
+    const presentPath = screen.getByRole("button", { name: "Presentation mode" }).querySelector("path")?.getAttribute("d");
+    expect(presentPath).toBeTruthy();
+    expect(presentPath).not.toBe(fitPath);
   });
   it("separates browser-local display settings from DM encounter settings", async () => {
     const props = commandBar();

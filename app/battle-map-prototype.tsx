@@ -342,6 +342,7 @@ export default function BattleMapPrototype() {
         kind: effectivePlacementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
+        armorClass: creature.armorClass,
         maxHp: creature.defaultHp,
         hp: creature.defaultHp,
         artAsset: creature.artAsset,
@@ -356,6 +357,7 @@ export default function BattleMapPrototype() {
         kind: effectivePlacementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
+        armorClass: creature.armorClass,
         hp: creature.defaultHp,
         maxHp: creature.defaultHp,
         healthState: null,
@@ -405,6 +407,7 @@ export default function BattleMapPrototype() {
         kind: SPELL_EFFECT_KIND,
         size: spell.size,
         speed: 0,
+        armorClass: null,
         hp: null,
         maxHp: null,
         healthState: null,
@@ -503,6 +506,7 @@ export default function BattleMapPrototype() {
     placementPreview,
     spellPlacementPreview,
     viewport,
+    effectiveZoom,
     panning,
     editingSharedFog,
     sharedFogPreview,
@@ -606,7 +610,6 @@ export default function BattleMapPrototype() {
     onClose={() => setWorkshopOpen(false)}
   />;
 
-  const mapKey = `${state.encounter.mapPackage?.id ?? "empty"}:${state.grid.width}x${state.grid.height}`;
   const inCombat = state.encounter.status === "active";
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups) as RosterRow[];
   const activeTurnMembers = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND &&
@@ -621,7 +624,7 @@ export default function BattleMapPrototype() {
         participant={participant} state={state} annotationMode={annotationMode} editingSharedFog={editingSharedFog}
         chatOpen={chatOpen} chatMinimized={chatMinimized} chatUnreadTotal={chatUnreadTotal}
         paletteOpen={paletteOpen} spellPaletteOpen={spellPaletteOpen} busy={busy} viewport={viewport}
-        mapKey={mapKey} connection={connection} connectionLabel={connectionLabel} connectionTooltip={connectionTooltip}
+        effectiveZoom={effectiveZoom} connection={connection} connectionLabel={connectionLabel} connectionTooltip={connectionTooltip}
         uiSettingsRef={uiSettingsRef} gridOpacity={gridOpacity} showColoredTokenCenters={showColoredTokenCenters}
         showHealthRings={showHealthRings} sidebarOpen={sidebarOpen} presenting={presenting}
         onAnnotationMode={(mode) => { if (mode === "ping") enablePingAudio(); setAnnotationMode(mode); }}

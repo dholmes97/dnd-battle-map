@@ -24,6 +24,11 @@ for (const name of await readdir(d1Directory).catch(() => [])) {
   if (!hasMaintenance) {
     continue;
   }
+  const hasMigrationLedger = (await capture(
+    "sqlite3",
+    [database, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'd1_migrations';"],
+  )).trim();
+  if (hasMigrationLedger) continue;
   const provisioningUpgrades = [
     ["scenario-provisioning-v1", "0019_"],
     ["scenario-provisioning-revision-guard-v1", "0020_"],
@@ -46,7 +51,10 @@ for (const name of await readdir(d1Directory).catch(() => [])) {
       applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
     BEGIN;
-    ${migrationFiles.map((migration) => `INSERT OR IGNORE INTO d1_migrations (name) VALUES ('${migration}');`).join("\n")}
+    ${migrationFiles
+      .filter((migration) => Number.parseInt(migration.slice(0, 4), 10) <= 21)
+      .map((migration) => `INSERT OR IGNORE INTO d1_migrations (name) VALUES ('${migration}');`)
+      .join("\n")}
     COMMIT;
   `);
   migratedLegacyDatabase = true;
@@ -73,8 +81,8 @@ function capture(command, arguments_, input = null) {
 
 if (migratedLegacyDatabase) {
   console.log("Upgraded the existing project-local database without replacing its data.");
-} else {
-  await run("npx", [
+}
+await run("npx", [
   "wrangler",
   "d1",
   "migrations",
@@ -85,8 +93,7 @@ if (migratedLegacyDatabase) {
   persistenceDirectory,
   "--config",
   join(projectRoot, "dist", "server", "wrangler.json"),
-  ]);
-}
+]);
 
 console.log(`Local database is current through ${migrationFiles.at(-1)}.`);
 
