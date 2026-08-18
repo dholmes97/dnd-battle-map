@@ -95,6 +95,14 @@ describe("EncounterSidebar initiative disclosure", () => {
     expect(controls.applyHpToToken).toHaveBeenCalledWith(expect.objectContaining({ id: "token-dar" }), 5);
   });
 
+  it("selects the complete HP amount whenever the field is entered", async () => {
+    renderSidebar(17);
+    const amount = screen.getByRole("textbox", { name: "HP change amount" }) as HTMLInputElement;
+    await userEvent.click(amount);
+    expect(amount.selectionStart).toBe(0);
+    expect(amount.selectionEnd).toBe(amount.value.length);
+  });
+
   it("keeps a missing initiative editable only from the roster", async () => {
     renderSidebar(null);
     expect(screen.queryByRole("textbox", { name: "Initiative" })).toBeNull();
