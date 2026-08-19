@@ -23,7 +23,7 @@ describe("EncounterDialogs scenario details", () => {
   it("keeps creation on Campaign Home instead of offering it inside a scenario", () => {
     const participant: ParticipantSession = { id: "dm", name: "Kevin", role: "dm", sessionSecret: "secret" };
     const state = { encounter: { code: "EMBER-KEEP", name: "Ember Keep", dmBriefing: "Mind the dragon." }, handouts: [] } as unknown as EncounterState;
-    const scenario = { open: true, setOpen: vi.fn(), renameName: "Ember Keep", setRenameName: vi.fn(), renaming: false, renameError: "", rename: vi.fn() };
+    const scenario = { open: true, setOpen: vi.fn(), show: vi.fn() };
 
     render(<EncounterDialogs
       participant={participant} state={state} resetOpen={false} restartOpen={false}
@@ -35,8 +35,9 @@ describe("EncounterDialogs scenario details", () => {
     />);
 
     expect(screen.getByRole("heading", { name: "Scenario details" })).toBeTruthy();
-    expect(screen.getByText(/Create and duplicate scenarios from Campaign Home/)).toBeTruthy();
+    expect(screen.getByText(/Rename scenarios from Campaign Home/)).toBeTruthy();
     expect(screen.queryByText("Create another scenario")).toBeNull();
     expect(screen.queryByLabelText("New scenario name")).toBeNull();
+    expect(screen.queryByLabelText("Current scenario name")).toBeNull();
   });
 });

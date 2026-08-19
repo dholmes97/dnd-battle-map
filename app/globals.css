@@ -147,10 +147,20 @@ button:disabled { cursor: not-allowed; }
 .scenario-status.is-paused { border-color: rgba(245, 198, 92, 0.4); color: #d9bb75; }
 .scenario-card h3 { margin: 1.35rem 0 0.45rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; font-weight: 500; line-height: 1.15; }
 .scenario-card p { margin: 0; color: #918a80; font-size: 0.76rem; line-height: 1.55; }
-.scenario-card > button { width: 100%; margin-top: auto; padding: 0.72rem 0; display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px solid #3b3731; background: transparent; color: #e2c477; font-size: 0.72rem; font-weight: 800; text-align: left; }
-.scenario-card > button:disabled { opacity: 0.45; }
-.scenario-card > button span { font-size: 1.05rem; transition: transform 120ms ease; }
-.scenario-card > button:hover:not(:disabled) span { transform: translateX(0.2rem); }
+.scenario-card-actions { margin-top: auto; padding-top: 0.55rem; display: flex; align-items: center; gap: 0.7rem; border-top: 1px solid #3b3731; }
+.scenario-card-actions button { min-height: 2.25rem; padding: 0.45rem 0; border: 0; background: transparent; font-size: 0.7rem; font-weight: 800; }
+.scenario-card-actions button:first-child:not(:last-child) { color: #a9a092; }
+.scenario-card-actions button:last-child { flex: 1; display: flex; align-items: center; justify-content: space-between; color: #e2c477; text-align: left; }
+.scenario-card-actions button:disabled { opacity: 0.45; }
+.scenario-card-actions button span { font-size: 1.05rem; transition: transform 120ms ease; }
+.scenario-card-actions button:hover:not(:disabled) span { transform: translateX(0.2rem); }
+.scenario-rename-form { margin: 1rem 0; padding: 0.75rem; border: 1px solid #4b4439; border-radius: 0.55rem; background: #171614; }
+.scenario-rename-form label { margin: 0 0 0.42rem; font-size: 0.68rem; }
+.scenario-rename-form input { padding: 0.65rem 0.72rem; font-size: 0.78rem; }
+.scenario-rename-form > div { margin-top: 0.55rem; display: flex; justify-content: flex-end; gap: 0.45rem; }
+.scenario-rename-form button { min-height: 2rem; padding: 0.35rem 0.62rem; border: 1px solid #4b453c; border-radius: 0.4rem; background: transparent; color: #bcb2a4; font-size: 0.64rem; font-weight: 750; }
+.scenario-rename-form button:last-child { border-color: #8c7343; color: #e2c477; }
+.scenario-rename-form button:disabled { opacity: 0.42; }
 .campaign-empty { padding: 3rem 1rem; border: 1px dashed #3c3832; border-radius: 0.8rem; color: #8e877d; text-align: center; }
 .campaign-notice { margin-top: 1.5rem; padding: 0.75rem 0.85rem; border: 1px solid rgba(126, 188, 138, 0.35); border-radius: 0.55rem; background: rgba(126, 188, 138, 0.08); color: #a8d6b1; font-size: 0.78rem; }
 .campaign-coming-soon { margin-top: 3.5rem; padding: 1.5rem; display: grid; grid-template-columns: minmax(14rem, 0.55fr) 1fr; gap: 2rem; align-items: center; border: 1px dashed #37332e; border-radius: 0.85rem; background: rgba(255, 255, 255, 0.012); }
@@ -1202,9 +1212,6 @@ input:focus {
 .scenario-dialog { width: min(100%, 42rem); max-height: calc(100vh - 2rem); overflow-y: auto; }
 .scenario-dialog label { margin: 0.85rem 0 0; }
 .scenario-dialog .button-row { margin-top: 1rem; }
-.scenario-rename-section { margin-top: 0.9rem; padding: 0.75rem; border: 1px solid #454038; border-radius: 0.5rem; background: #171614; }
-.scenario-rename-section label { margin-top: 0; }
-.scenario-rename-section .button-row { justify-content: flex-end; margin-top: 0.65rem; }
 .scenario-create-heading { display: grid; gap: 0.2rem; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #403b34; }
 .scenario-create-heading strong { color: #d9d0c1; font-size: 0.78rem; }
 .scenario-create-heading small { color: #8f887d; font-size: 0.66rem; line-height: 1.4; }

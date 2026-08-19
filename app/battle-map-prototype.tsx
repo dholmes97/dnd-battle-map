@@ -90,6 +90,7 @@ export default function BattleMapPrototype() {
   const [appView, setAppView] = useState<"login" | "dashboard" | "map">("login");
   const [openingCode, setOpeningCode] = useState<string | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
+  const [renamingScenarioCode, setRenamingScenarioCode] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const encounterSync = useEncounterSync({ setError, setNotice });
@@ -182,12 +183,9 @@ export default function BattleMapPrototype() {
     onDockPointerMove: onChatDockPointerMove,
     onDockPointerEnd: onChatDockPointerEnd,
   } = useChatHandouts({ participant, state, sync: encounterSync, canvasRef, setNotice });
-  const scenarioControls = useScenarioControls({
-    participant, state, sync: encounterSync, setEncounters, setNotice,
-  });
+  const scenarioControls = useScenarioControls();
   const {
     open: scenarioManagerOpen, setOpen: setScenarioManagerOpen,
-    renaming: scenarioRenaming,
   } = scenarioControls;
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
@@ -309,6 +307,27 @@ export default function BattleMapPrototype() {
     } finally { setCreatingScenarioFromHome(false); }
   };
 
+  const renameScenarioFromHome = async (code: string, name: string) => {
+    if (!signedInIdentity || signedInIdentity.role !== "dm" || renamingScenarioCode) return false;
+    setRenamingScenarioCode(code); setError("");
+    try {
+      const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(code)}/join`,
+        { method: "POST", body: JSON.stringify({ participantName: signedInIdentity.participantName, role: signedInIdentity.role }) },
+      );
+      const result = await api<{ renamed: boolean; scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(code)}/command`, {
+        method: "POST",
+        body: JSON.stringify({ participantId: joined.participantId, sessionSecret: joined.sessionSecret, ...commandRequest("rename-scenario", { name }) }),
+      });
+      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
+      setNotice(`${result.scenario.name} saved.`);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The scenario name could not be saved.");
+      return false;
+    } finally { setRenamingScenarioCode(null); }
+  };
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4_200);
@@ -342,12 +361,12 @@ export default function BattleMapPrototype() {
         if (lightboxHandout) { setLightboxHandout(null); return; }
         setResetConfirmOpen(false);
         setRestartConfirmOpen(false);
-        if (!scenarioRenaming && !handoutUploading) setScenarioManagerOpen(false);
+        if (!handoutUploading) setScenarioManagerOpen(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioManagerOpen, scenarioRenaming, setLightboxHandout, setScenarioManagerOpen]);
+  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioManagerOpen, setLightboxHandout, setScenarioManagerOpen]);
 
 
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
@@ -619,9 +638,10 @@ export default function BattleMapPrototype() {
   if (appView === "dashboard") {
     return <CampaignHome
       identity={signedInIdentity} encounters={encounters} loading={encountersLoading}
-      openingCode={openingCode} error={error} notice={notice} creating={creatingScenarioFromHome}
+      openingCode={openingCode} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
       onOpenScenario={(code) => void join(signedInIdentity, code)}
       onCreateScenario={createScenarioFromHome}
+      onRenameScenario={renameScenarioFromHome}
       onSignOut={() => { clearSession(); setSignedInIdentity(null); setError(""); setNotice(""); setAppView("login"); }}
     />;
   }

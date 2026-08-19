@@ -13,8 +13,8 @@ const dm: JoinIdentity = { participantName: "Kevin", label: "Dungeon Master", ro
 
 function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof CampaignHome>[0]> = {}) {
   const props: Parameters<typeof CampaignHome>[0] = {
-    identity, encounters, loading: false, openingCode: null, error: "", notice: "", creating: false,
-    onOpenScenario: vi.fn(), onCreateScenario: vi.fn(async () => true), onSignOut: vi.fn(), ...overrides,
+    identity, encounters, loading: false, openingCode: null, renamingCode: null, error: "", notice: "", creating: false,
+    onOpenScenario: vi.fn(), onCreateScenario: vi.fn(async () => true), onRenameScenario: vi.fn(async () => true), onSignOut: vi.fn(), ...overrides,
   };
   render(<CampaignHome {...props} />); return props;
 }
@@ -47,5 +47,16 @@ describe("CampaignHome", () => {
     await userEvent.selectOptions(screen.getByLabelText("Scenario to duplicate"), "SUNLESS");
     await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
     expect(onCreateScenario).toHaveBeenCalledWith({ name: "Ember Keep II", mode: "duplicate", sourceCode: "SUNLESS" });
+  });
+
+  it("lets the DM rename a scenario without opening the battle map", async () => {
+    const onRenameScenario = vi.fn(async () => true);
+    home(dm, { onRenameScenario });
+    await userEvent.click(screen.getByRole("button", { name: "Rename Ember Keep" }));
+    const input = screen.getByLabelText("Scenario name");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Ember Keep Reforged");
+    await userEvent.click(screen.getByRole("button", { name: "Save name" }));
+    expect(onRenameScenario).toHaveBeenCalledWith("EMBER-KEEP", "Ember Keep Reforged");
   });
 });

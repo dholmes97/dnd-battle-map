@@ -15,22 +15,26 @@ function statusLabel(status: EncounterSummary["status"]) {
   return "Setup";
 }
 
-export function CampaignHome({ identity, encounters, loading, openingCode, error, notice, creating, onOpenScenario, onCreateScenario, onSignOut }: {
+export function CampaignHome({ identity, encounters, loading, openingCode, renamingCode, error, notice, creating, onOpenScenario, onCreateScenario, onRenameScenario, onSignOut }: {
   identity: JoinIdentity;
   encounters: EncounterSummary[];
   loading: boolean;
   openingCode: string | null;
+  renamingCode: string | null;
   error: string;
   notice: string;
   creating: boolean;
   onOpenScenario: (code: string) => void;
   onCreateScenario: (input: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => Promise<boolean>;
+  onRenameScenario: (code: string, name: string) => Promise<boolean>;
   onSignOut: () => void;
 }) {
   const [showCreator, setShowCreator] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"party" | "duplicate">("party");
   const [sourceCode, setSourceCode] = useState(encounters[0]?.code ?? "");
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
   const isDm = identity.role === "dm";
   const submit = async () => {
     const source = sourceCode || encounters[0]?.code || "";
@@ -61,7 +65,16 @@ export function CampaignHome({ identity, encounters, loading, openingCode, error
       {!error && notice ? <div className="campaign-notice" role="status">{notice}</div> : null}
       <section className="campaign-scenarios" aria-labelledby="scenario-list-title">
         <div className="campaign-section-heading"><div><div className="eyebrow">{isDm ? "Adventures you run" : "Adventures you play"}</div><h2 id="scenario-list-title">Scenarios</h2></div><span>{encounters.length} {encounters.length === 1 ? "scenario" : "scenarios"}</span></div>
-        {loading ? <div className="campaign-empty">Gathering your scenarios…</div> : encounters.length === 0 ? <div className="campaign-empty">No scenarios are ready for this seat yet.</div> : <div className="scenario-card-grid">{encounters.map((encounter) => <article className="scenario-card" key={encounter.code}><div className="scenario-card-top"><span className={`scenario-status is-${encounter.status}`}>{statusLabel(encounter.status)}</span><small>{formatUpdatedAt(encounter.updatedAt)}</small></div><div><h3>{encounter.name}</h3><p>{isDm ? "Open the table to prepare the map, creatures, and encounter state." : "Return to the shared map, party roster, chat, and handouts."}</p></div><button type="button" onClick={() => onOpenScenario(encounter.code)} disabled={Boolean(openingCode)}>{openingCode === encounter.code ? "Opening…" : isDm ? "Open scenario" : "Enter scenario"}<span aria-hidden="true">→</span></button></article>)}</div>}
+        {loading ? <div className="campaign-empty">Gathering your scenarios…</div> : encounters.length === 0 ? <div className="campaign-empty">No scenarios are ready for this seat yet.</div> : <div className="scenario-card-grid">{encounters.map((encounter) => {
+          const editing = editingCode === encounter.code;
+          const renaming = renamingCode === encounter.code;
+          const saveRename = async () => {
+            const nextName = renameName.trim();
+            if (nextName.length < 3 || nextName === encounter.name) return;
+            if (await onRenameScenario(encounter.code, nextName)) setEditingCode(null);
+          };
+          return <article className="scenario-card" key={encounter.code}><div className="scenario-card-top"><span className={`scenario-status is-${encounter.status}`}>{statusLabel(encounter.status)}</span><small>{formatUpdatedAt(encounter.updatedAt)}</small></div><div><h3>{encounter.name}</h3><p>{isDm ? "Open the table to prepare the map, creatures, and encounter state." : "Return to the shared map, party roster, chat, and handouts."}</p></div>{isDm && editing ? <div className="scenario-rename-form"><label htmlFor={`rename-${encounter.code}`}>Scenario name</label><input id={`rename-${encounter.code}`} autoFocus maxLength={64} value={renameName} disabled={Boolean(renamingCode)} onChange={(event) => setRenameName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void saveRename(); } else if (event.key === "Escape") setEditingCode(null); }} /><div><button type="button" onClick={() => setEditingCode(null)} disabled={Boolean(renamingCode)}>Cancel</button><button type="button" onClick={() => void saveRename()} disabled={Boolean(renamingCode) || renameName.trim().length < 3 || renameName.trim() === encounter.name}>{renaming ? "Saving…" : "Save name"}</button></div></div> : null}<div className="scenario-card-actions">{isDm && !editing ? <button type="button" onClick={() => { setEditingCode(encounter.code); setRenameName(encounter.name); }} disabled={Boolean(openingCode || renamingCode)} aria-label={`Rename ${encounter.name}`}>Rename</button> : null}<button type="button" onClick={() => onOpenScenario(encounter.code)} disabled={Boolean(openingCode || renamingCode)}>{openingCode === encounter.code ? "Opening…" : isDm ? "Open scenario" : "Enter scenario"}<span aria-hidden="true">→</span></button></div></article>;
+        })}</div>}
       </section>
 
       <section className="campaign-coming-soon" aria-labelledby="campaign-tools-title"><div><div className="eyebrow">Coming next</div><h2 id="campaign-tools-title">Beyond the battle map</h2></div><p>This space is ready for party notes, recaps, character resources, handouts, and other between-session tools as the campaign grows.</p></section>
