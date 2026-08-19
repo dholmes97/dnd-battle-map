@@ -183,12 +183,11 @@ export default function BattleMapPrototype() {
     onDockPointerEnd: onChatDockPointerEnd,
   } = useChatHandouts({ participant, state, sync: encounterSync, canvasRef, setNotice });
   const scenarioControls = useScenarioControls({
-    participant, state, sync: encounterSync, resetChatForParticipant,
-    setEncounterCode, setEncounters, setSelectedTokenId, setNotice,
+    participant, state, sync: encounterSync, setEncounters, setNotice,
   });
   const {
-    open: scenarioCreatorOpen, setOpen: setScenarioCreatorOpen,
-    renaming: scenarioRenaming, creating: scenarioCreating,
+    open: scenarioManagerOpen, setOpen: setScenarioManagerOpen,
+    renaming: scenarioRenaming,
   } = scenarioControls;
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
@@ -337,18 +336,18 @@ export default function BattleMapPrototype() {
     if (pingAudioContextRef.current?.state !== "closed") void pingAudioContextRef.current?.close();
   }, []);
   useEffect(() => {
-    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioCreatorOpen && !lightboxHandout) return;
+    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioManagerOpen && !lightboxHandout) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (lightboxHandout) { setLightboxHandout(null); return; }
         setResetConfirmOpen(false);
         setRestartConfirmOpen(false);
-        if (!scenarioCreating && !scenarioRenaming && !handoutUploading) setScenarioCreatorOpen(false);
+        if (!scenarioRenaming && !handoutUploading) setScenarioManagerOpen(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioCreating, scenarioCreatorOpen, scenarioRenaming, setLightboxHandout, setScenarioCreatorOpen]);
+  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioManagerOpen, scenarioRenaming, setLightboxHandout, setScenarioManagerOpen]);
 
 
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
