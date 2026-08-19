@@ -38,6 +38,7 @@ type CommandBarProps = {
   onToggleSpells: () => void;
   onOpenWorkshop: () => void;
   onManageScenarios: () => void;
+  onOpenDashboard: () => void;
   onHistory: (direction: "undo" | "redo") => void;
   onFit: () => void;
   onZoom: (amount: number) => void;
@@ -76,6 +77,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
     <div className="map-tool-group viewport-tools" role="group" aria-label="Map view"><button className={`icon-tool${props.viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={props.viewport.fit} onClick={props.onFit}><Icon name="fit" /></button><button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => props.onZoom(-0.5)}><Icon name="zoomOut" /></button><button className="zoom-value" aria-label={`Reset zoom to 100%, currently ${zoomPercentage}%`} data-tooltip="Reset zoom to 100%" onClick={props.onResetZoom}>{zoomPercentage}%</button><button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => props.onZoom(0.5)}><Icon name="zoomIn" /></button></div>
     <div className={`connection-pill connection-${props.connection}`} aria-label={props.connectionTooltip} data-tooltip={props.connectionTooltip} aria-live="polite"><span className="connection-dot" /><em>{props.connectionLabel}</em></div>
     <div className="map-tool-group" role="group" aria-label="Layout">
+      <button className="icon-tool" aria-label="Back to campaign home" data-tooltip="Campaign home" onClick={props.onOpenDashboard}><Icon name="home" /></button>
       <UiSettingsMenu menuRef={props.uiSettingsRef} participant={participant} state={state} gridOpacity={props.gridOpacity} showColoredTokenCenters={props.showColoredTokenCenters} showHealthRings={props.showHealthRings} onGridOpacityChange={props.onGridOpacityChange} onColoredTokenCentersChange={props.onColoredTokenCentersChange} onHealthRingsChange={props.onHealthRingsChange} onFogModeChange={props.onFogModeChange} onVisionDoorChange={props.onVisionDoorChange} onStrictMovementChange={props.onStrictMovementChange} />
       <button className={`icon-tool${props.sidebarOpen ? "" : " tool-active"}`} aria-label={props.sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!props.sidebarOpen} onClick={props.onToggleSidebar}><Icon name="sidebar" /></button>
       <button className={`icon-tool${props.presenting ? " tool-active" : ""}`} aria-label="Presentation mode" data-tooltip="Presentation mode — F" aria-pressed={props.presenting} onClick={props.onTogglePresenting}><Icon name="present" /></button>

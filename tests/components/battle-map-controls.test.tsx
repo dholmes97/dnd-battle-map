@@ -16,7 +16,7 @@ function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]
     paletteOpen: false, spellPaletteOpen: false, busy: false, viewport: { zoom: 1, centerX: 12, centerY: 8, mapKey: "map", fit: false }, effectiveZoom: 1,
     connection: "live", connectionLabel: "Live", connectionTooltip: "Live connection", uiSettingsRef: { current: null }, gridOpacity: 0.17,
     showColoredTokenCenters: true, showHealthRings: true, sidebarOpen: true, presenting: false,
-    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenWorkshop: vi.fn(), onManageScenarios: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
+    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenWorkshop: vi.fn(), onManageScenarios: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
   };
   render(<BattleMapCommandBar {...props} />); return props;
 }
@@ -34,6 +34,11 @@ describe("BattleMapCommandBar", () => {
     expect((screen.getByRole("button", { name: "Redo last action" }) as HTMLButtonElement).disabled).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: "Undo last action" }));
     expect(props.onHistory).toHaveBeenCalledWith("undo");
+  });
+  it("returns every participant to campaign home from the map", async () => {
+    const onOpenDashboard = vi.fn(); commandBar({ participant: player, onOpenDashboard });
+    await userEvent.click(screen.getByRole("button", { name: "Back to campaign home" }));
+    expect(onOpenDashboard).toHaveBeenCalledOnce();
   });
   it("shows the effective zoom percentage while Fit remains active", async () => {
     const props = commandBar({

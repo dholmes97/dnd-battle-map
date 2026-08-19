@@ -30,6 +30,7 @@ import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
+import { CampaignHome } from "@/app/campaign-home";
 import { CreaturePalette, SpellPalette } from "@/app/battle-map-palettes";
 import { EncounterSidebar, type RosterRow } from "@/app/encounter-sidebar";
 import {
@@ -43,6 +44,7 @@ import type {
   SharedToken,
 } from "@/shared/contracts";
 import { movementPolicyDenial } from "@/shared/battle-map-policies.ts";
+import { commandRequest } from "@/shared/command-parser.ts";
 import {
   calculateDirectDistance,
 } from "@/shared/battle-map-geometry.ts";
@@ -53,13 +55,11 @@ import {
   type SpellEffectDefinition,
 } from "@/shared/spell-effects";
 
-const DEFAULT_CODE = "EMBER-KEEP";
-const DEFAULT_ENCOUNTER: EncounterSummary = { code: DEFAULT_CODE, name: "Swamp Battle", status: "setup", updatedAt: 0 };
 const JOIN_IDENTITIES: JoinIdentity[] = [
-  { label: "Join as Dan (Dar'eleth)", participantName: "Dan", role: "player" },
-  { label: "Join as Barry (Jelton)", participantName: "Barry", role: "player" },
-  { label: "Join as Scott (Malichar)", participantName: "Scott", role: "player" },
-  { label: "Join as Kevin (DM)", participantName: "Kevin", role: "dm" },
+  { label: "Dar'eleth · Paladin", participantName: "Dan", role: "player" },
+  { label: "Jelton · Druid", participantName: "Barry", role: "player" },
+  { label: "Malichar · Rogue", participantName: "Scott", role: "player" },
+  { label: "Dungeon Master", participantName: "Kevin", role: "dm" },
 ];
 const JOIN_TIMEOUT_MS = 12_000;
 
@@ -83,9 +83,13 @@ function playPingSound(context: AudioContext) {
 }
 
 export default function BattleMapPrototype() {
-  const [encounterCode, setEncounterCode] = useState(DEFAULT_CODE);
-  const [encounters, setEncounters] = useState<EncounterSummary[]>([DEFAULT_ENCOUNTER]);
-  const [joiningIdentity, setJoiningIdentity] = useState<string | null>(null);
+  const [encounterCode, setEncounterCode] = useState("");
+  const [encounters, setEncounters] = useState<EncounterSummary[]>([]);
+  const [encountersLoading, setEncountersLoading] = useState(true);
+  const [signedInIdentity, setSignedInIdentity] = useState<JoinIdentity | null>(null);
+  const [appView, setAppView] = useState<"login" | "dashboard" | "map">("login");
+  const [openingCode, setOpeningCode] = useState<string | null>(null);
+  const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const encounterSync = useEncounterSync({ setError, setNotice });
@@ -94,6 +98,7 @@ export default function BattleMapPrototype() {
     state,
     connection,
     startSession,
+    clearSession,
     sendCommand,
     runOptimisticCommand,
     createTokenOptimistically,
@@ -215,8 +220,6 @@ export default function BattleMapPrototype() {
   }, []);
 
 
-  const normalizedCode = encounterCode.trim().toUpperCase() || DEFAULT_CODE;
-  const selectedEncounter = encounters.find((encounter) => encounter.code === normalizedCode) ?? encounters[0] ?? DEFAULT_ENCOUNTER;
   const controlledTokens = state?.tokens.filter((token) => token.controlledByViewer) ?? [];
   const playerCharacter = participant?.role === "player"
     ? controlledTokens.find((token) => token.kind === "character" && !token.summonerTokenId) ?? null
@@ -251,38 +254,60 @@ export default function BattleMapPrototype() {
     let disposed = false;
     void api<{ items: EncounterSummary[] }>("/api/encounters")
       .then(({ items }) => {
-        if (disposed || items.length === 0) return;
+        if (disposed) return;
         setEncounters(items);
-        setEncounterCode((current) => items.some((encounter) => encounter.code === current) ? current : items[0].code);
+        setEncounterCode((current) => items.some((encounter) => encounter.code === current) ? current : items[0]?.code ?? "");
       })
-      .catch(() => undefined);
+      .catch(() => { if (!disposed) setError("Your scenarios could not be loaded. Please try again."); })
+      .finally(() => { if (!disposed) setEncountersLoading(false); });
     return () => { disposed = true; };
   }, []);
 
-  const join = async (identity: JoinIdentity) => {
+  const join = async (identity: JoinIdentity, code: string) => {
     const name = identity.participantName;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), JOIN_TIMEOUT_MS);
     enablePingAudio();
-    setJoiningIdentity(identity.label); setBusy(true); setError("");
+    setOpeningCode(code); setBusy(true); setError("");
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(normalizedCode)}/join`,
+        `/api/encounters/${encodeURIComponent(code)}/join`,
         { method: "POST", signal: controller.signal, body: JSON.stringify({ participantName: name, role: identity.role }) },
       );
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       personalUiSettings.loadForIdentity(name, result.role);
       resetChatForParticipant(name, result.role, result.state.encounter.code);
-      startSession(joined, result.state); setEncounterCode(result.state.encounter.code);
+      startSession(joined, result.state); setEncounterCode(result.state.encounter.code); setAppView("map");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
         ? "The encounter took too long to respond. Please try again."
         : joinError instanceof Error ? joinError.message : "Unable to join.");
     } finally {
       window.clearTimeout(timeout);
-      setJoiningIdentity(null);
+      setOpeningCode(null);
       setBusy(false);
     }
+  };
+
+  const createScenarioFromHome = async ({ name, mode, sourceCode }: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => {
+    if (!signedInIdentity || signedInIdentity.role !== "dm" || creatingScenarioFromHome) return false;
+    setCreatingScenarioFromHome(true); setError("");
+    try {
+      const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
+        `/api/encounters/${encodeURIComponent(sourceCode)}/join`,
+        { method: "POST", body: JSON.stringify({ participantName: signedInIdentity.participantName, role: signedInIdentity.role }) },
+      );
+      const result = await api<{ scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(sourceCode)}/command`, {
+        method: "POST",
+        body: JSON.stringify({ participantId: joined.participantId, sessionSecret: joined.sessionSecret, ...commandRequest("create-scenario", { name, mode }) }),
+      });
+      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
+      setNotice(`${result.scenario.name} created.`);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The scenario could not be created.");
+      return false;
+    } finally { setCreatingScenarioFromHome(false); }
   };
 
   useEffect(() => {
@@ -588,9 +613,21 @@ export default function BattleMapPrototype() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [participant?.role, presenting, togglePresenting, state]);
 
-  if (!participant || !state) {
-    return <JoinScreen encounters={encounters} selectedCode={selectedEncounter.code} joiningIdentity={joiningIdentity} busy={busy} error={error} identities={JOIN_IDENTITIES} onEncounterChange={setEncounterCode} onJoin={(identity) => void join(identity)} />;
+  if (appView === "login" || !signedInIdentity) {
+    return <JoinScreen error={error} identities={JOIN_IDENTITIES} onLogin={(identity) => { setSignedInIdentity(identity); setError(""); setAppView("dashboard"); }} />;
   }
+
+  if (appView === "dashboard") {
+    return <CampaignHome
+      identity={signedInIdentity} encounters={encounters} loading={encountersLoading}
+      openingCode={openingCode} error={error} notice={notice} creating={creatingScenarioFromHome}
+      onOpenScenario={(code) => void join(signedInIdentity, code)}
+      onCreateScenario={createScenarioFromHome}
+      onSignOut={() => { clearSession(); setSignedInIdentity(null); setError(""); setNotice(""); setAppView("login"); }}
+    />;
+  }
+
+  if (!participant || !state) return null;
 
   const connectionLabel = connection === "live" ? "Live" : connection === "lost" ? "Connection lost" : connection === "reconnecting" ? "Reconnecting" : "Connecting";
   const connectionTooltip = connection === "live"
@@ -634,6 +671,7 @@ export default function BattleMapPrototype() {
         onToggleCreatures={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); clearSpellPlacementPreview(); setAnnotationMode("move"); }}
         onToggleSpells={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); clearCreaturePlacementPreview(); setAnnotationMode("move"); }}
         onOpenWorkshop={() => setWorkshopOpen(true)} onManageScenarios={scenarioControls.show}
+        onOpenDashboard={() => { clearSession(); setError(""); setAppView("dashboard"); }}
         onHistory={(direction) => void history.run(direction)} onFit={fitViewport} onZoom={changeZoom}
         onResetZoom={resetViewport}
         onGridOpacityChange={setGridOpacity} onColoredTokenCentersChange={setShowColoredTokenCenters}

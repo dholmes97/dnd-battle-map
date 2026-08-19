@@ -12,18 +12,22 @@ async function render() {
   return worker.fetch(new Request("http://localhost/", { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-test("server-renders only the trusted fixed-identity join surface", async () => {
+test("server-renders the trusted fixed-identity login without a scenario chooser", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>D&amp;D Battle Map<\/title>/i);
-  assert.match(html, /Choose a scenario/);
-  assert.match(html, /Join as Dan \(Dar&#x27;eleth\)/);
-  assert.match(html, /Join as Barry \(Jelton\)/);
-  assert.match(html, /Join as Scott \(Malichar\)/);
-  assert.match(html, /Join as Kevin \(DM\)/);
-  assert.doesNotMatch(html, /Display name|Encounter code/i);
+  assert.match(html, /Choose your seat/);
+  assert.match(html, />Dan</);
+  assert.match(html, /Dar&#x27;eleth · Paladin/);
+  assert.match(html, />Barry</);
+  assert.match(html, /Jelton · Druid/);
+  assert.match(html, />Scott</);
+  assert.match(html, /Malichar · Rogue/);
+  assert.match(html, />Kevin</);
+  assert.match(html, /Dungeon Master/);
+  assert.doesNotMatch(html, /Choose a scenario|Display name|Encounter code|<select/i);
   assert.doesNotMatch(html, /codex-preview|Building your site/i);
 });
 
@@ -52,6 +56,7 @@ test("ships the split browser adapter instead of one monolithic feature componen
     "app/use-creature-catalog.ts", "app/battle-map-palettes.tsx", "app/encounter-sidebar.tsx",
     "app/use-scenario-controls.ts", "app/use-encounter-actions.ts", "app/use-personal-ui-settings.ts",
     "app/use-battle-map-gestures.ts",
+    "app/campaign-home.tsx",
   ]) await access(new URL(path, root));
   assert.match(client, /<BattleMapCommandBar/);
   assert.match(client, /<EncounterSidebar/);

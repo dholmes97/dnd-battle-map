@@ -64,6 +64,7 @@ export type EncounterSync = {
   state: EncounterState | null;
   connection: ConnectionState;
   startSession: (participant: ParticipantSession, state: EncounterState) => void;
+  clearSession: () => void;
   acceptState: (state: EncounterState) => void;
   sendCommand: SendCommand;
   runCommand: RunCommand;
@@ -384,6 +385,13 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     setConnection("connecting");
   };
 
+  const clearSession = () => {
+    clearPendingState();
+    setParticipant(null);
+    setState(null);
+    setConnection("connecting");
+  };
+
   const createTokenOptimistically: CreateTokenOptimistically = async (name, payload, buildToken, success, beforeAccept) => {
     const temporaryId = `pending-create-${crypto.randomUUID()}`;
     const optimisticToken = buildToken(temporaryId);
@@ -508,6 +516,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     state,
     connection,
     startSession,
+    clearSession,
     acceptState: acceptAuthoritativeState,
     sendCommand,
     runCommand,

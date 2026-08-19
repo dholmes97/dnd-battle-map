@@ -109,6 +109,53 @@ button:disabled { cursor: not-allowed; }
 
 .join-option-button:disabled { opacity: 0.5; }
 
+.join-option-button span, .join-option-button small { display: block; }
+.join-option-button span { font-size: 0.95rem; }
+.join-option-button small { margin-top: 0.2rem; color: #9e9588; font-size: 0.68rem; font-weight: 600; }
+
+.campaign-home-shell { height: 100vh; height: 100dvh; min-height: 100vh; overflow-y: auto; background: radial-gradient(circle at 12% 0%, rgba(202, 117, 70, 0.13), transparent 32rem), #11110f; }
+.campaign-home-header { min-height: 4.6rem; padding: 0.8rem clamp(1rem, 4vw, 3.5rem); display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #302d29; background: rgba(17, 17, 15, 0.86); backdrop-filter: blur(18px); }
+.campaign-home-header > div:first-child > strong { display: block; margin-top: 0.18rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.18rem; font-weight: 500; }
+.campaign-person { display: flex; align-items: center; gap: 1rem; }
+.campaign-person span { display: grid; text-align: right; }
+.campaign-person strong { font-size: 0.78rem; }
+.campaign-person small { margin-top: 0.12rem; color: #938b80; font-size: 0.62rem; }
+.campaign-person button { padding: 0.5rem 0.72rem; border: 1px solid #454039; border-radius: 0.5rem; background: transparent; color: #bdb4a7; font-size: 0.68rem; font-weight: 700; }
+.campaign-person button:hover { border-color: #756a5c; color: #eee4d4; }
+.campaign-home-content { width: min(100% - 2rem, 76rem); margin: 0 auto; padding: clamp(2.4rem, 6vw, 5rem) 0 4rem; }
+.campaign-welcome { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
+.campaign-welcome h1 { max-width: 48rem; margin: 0.55rem 0 0.7rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.4rem, 6vw, 4.7rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.98; }
+.campaign-welcome p { max-width: 44rem; margin: 0; color: #aaa194; font-size: 1rem; line-height: 1.65; }
+.campaign-create-button { width: auto; min-width: 10.5rem; padding: 0.75rem 1.1rem; }
+.campaign-create-panel { margin-top: 2rem; padding: clamp(1.25rem, 3vw, 2rem); display: grid; grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1fr); gap: 1.5rem 2.5rem; border: 1px solid #4d4539; border-radius: 1rem; background: linear-gradient(145deg, rgba(39, 35, 29, 0.98), rgba(25, 23, 20, 0.98)); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22); }
+.campaign-create-panel h2, .campaign-section-heading h2, .campaign-coming-soon h2 { margin: 0.35rem 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.75rem; font-weight: 500; }
+.campaign-create-panel > div:first-child p { color: #9e9589; line-height: 1.55; }
+.campaign-create-fields label { margin: 0 0 0.85rem; }
+.campaign-create-footer { grid-column: 1 / -1; padding-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid #403a32; }
+.campaign-create-footer p { max-width: 43rem; margin: 0; color: #8f877b; font-size: 0.75rem; line-height: 1.55; }
+.campaign-create-footer .primary-button { width: auto; min-width: 10rem; padding: 0.65rem 1rem; }
+.campaign-scenarios { margin-top: clamp(3.2rem, 7vw, 5rem); }
+.campaign-section-heading { margin-bottom: 1.25rem; display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.campaign-section-heading > span { padding: 0.35rem 0.55rem; border: 1px solid #3a3631; border-radius: 999px; color: #91897e; font-size: 0.64rem; font-weight: 700; }
+.scenario-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.scenario-card { min-height: 17rem; padding: 1.2rem; display: flex; flex-direction: column; border: 1px solid #39352f; border-radius: 0.85rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.97), rgba(23, 22, 20, 0.97)); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18); transition: border-color 140ms ease, transform 140ms ease; }
+.scenario-card:hover { border-color: #645948; transform: translateY(-2px); }
+.scenario-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; }
+.scenario-card-top small { color: #777168; font-size: 0.58rem; }
+.scenario-status { padding: 0.3rem 0.48rem; border: 1px solid #514a40; border-radius: 999px; color: #bfb5a7; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.scenario-status.is-active { border-color: rgba(126, 188, 138, 0.45); background: rgba(126, 188, 138, 0.08); color: #9ed2a8; }
+.scenario-status.is-paused { border-color: rgba(245, 198, 92, 0.4); color: #d9bb75; }
+.scenario-card h3 { margin: 1.35rem 0 0.45rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; font-weight: 500; line-height: 1.15; }
+.scenario-card p { margin: 0; color: #918a80; font-size: 0.76rem; line-height: 1.55; }
+.scenario-card > button { width: 100%; margin-top: auto; padding: 0.72rem 0; display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px solid #3b3731; background: transparent; color: #e2c477; font-size: 0.72rem; font-weight: 800; text-align: left; }
+.scenario-card > button:disabled { opacity: 0.45; }
+.scenario-card > button span { font-size: 1.05rem; transition: transform 120ms ease; }
+.scenario-card > button:hover:not(:disabled) span { transform: translateX(0.2rem); }
+.campaign-empty { padding: 3rem 1rem; border: 1px dashed #3c3832; border-radius: 0.8rem; color: #8e877d; text-align: center; }
+.campaign-notice { margin-top: 1.5rem; padding: 0.75rem 0.85rem; border: 1px solid rgba(126, 188, 138, 0.35); border-radius: 0.55rem; background: rgba(126, 188, 138, 0.08); color: #a8d6b1; font-size: 0.78rem; }
+.campaign-coming-soon { margin-top: 3.5rem; padding: 1.5rem; display: grid; grid-template-columns: minmax(14rem, 0.55fr) 1fr; gap: 2rem; align-items: center; border: 1px dashed #37332e; border-radius: 0.85rem; background: rgba(255, 255, 255, 0.012); }
+.campaign-coming-soon p { margin: 0; color: #817a70; font-size: 0.82rem; line-height: 1.65; }
+
 label {
   display: grid;
   gap: 0.5rem;
@@ -1404,6 +1451,7 @@ input:focus {
 .workshop-launch { margin-top: 0.45rem; }
 
 @media (max-width: 850px) {
+  .scenario-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workspace { grid-template-columns: 1fr; }
   .control-panel { display: block; max-height: none; overflow-y: visible; border-top: 1px solid #2f2d29; border-left: 0; }
   .token-roster { overflow-y: visible; }
@@ -1444,6 +1492,19 @@ input:focus {
   .connection-pill { flex: 0 0 auto; }
   .join-shell { padding: 1rem; }
   .join-card { padding: 1.4rem; }
+  .campaign-home-header { align-items: flex-start; }
+  .campaign-home-header > div:first-child .eyebrow { display: none; }
+  .campaign-person { gap: 0.55rem; }
+  .campaign-person span { display: none; }
+  .campaign-home-content { width: min(100% - 1.5rem, 76rem); padding-top: 2.4rem; }
+  .campaign-welcome { align-items: stretch; flex-direction: column; }
+  .campaign-create-button { width: 100%; }
+  .campaign-create-panel { grid-template-columns: 1fr; }
+  .campaign-create-footer { grid-column: auto; align-items: stretch; flex-direction: column; }
+  .campaign-create-footer .primary-button { width: 100%; }
+  .scenario-card-grid { grid-template-columns: 1fr; }
+  .scenario-card { min-height: 14.5rem; }
+  .campaign-coming-soon { grid-template-columns: 1fr; gap: 0.65rem; }
   .creature-grid { grid-template-columns: 1fr; }
   .creature-palette, .spell-palette { max-height: calc(100% - 1rem); top: 0.5rem; left: 0.5rem; width: calc(100% - 1rem); }
   .chat-panel, .chat-panel.is-minimized { right: 0.5rem; bottom: 0.5rem; left: 0.5rem; width: auto; }
