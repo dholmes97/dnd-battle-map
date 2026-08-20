@@ -580,6 +580,7 @@ export default function BattleMapPrototype() {
   const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
   const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
   useMapAssets({
+    active: !workshopOpen,
     state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport,
     selectedTokenId: effectiveSelectedTokenId, selectedMapNoteId, gridOpacity,
     showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex,

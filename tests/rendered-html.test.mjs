@@ -65,6 +65,15 @@ test("ships the split browser adapter instead of one monolithic feature componen
   assert.doesNotMatch(client, /const onCanvasPointerDown/);
 });
 
+test("repaints the cached battle map when returning from Map Workshop", async () => {
+  const [client, assets] = await Promise.all([
+    source("app/battle-map-prototype.tsx"),
+    source("app/use-map-assets.ts"),
+  ]);
+  assert.match(client, /active: !workshopOpen/);
+  assert.match(assets, /if \(!active\) return;\s*redraw\(\)/);
+});
+
 test("encapsulates synchronization storage behind an operations interface", async () => {
   const [sync, history, client] = await Promise.all([
     source("app/use-encounter-sync.ts"),

@@ -24,7 +24,7 @@ describe("CampaignHome", () => {
     const props = home(player);
     expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Scenarios" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Create scenario" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New scenario/ })).toBeNull();
     await userEvent.click(screen.getAllByRole("button", { name: /Enter scenario/ })[0]);
     expect(props.onOpenScenario).toHaveBeenCalledWith("EMBER-KEEP");
   });
@@ -32,7 +32,7 @@ describe("CampaignHome", () => {
   it("lets the DM create a fresh scenario from campaign home", async () => {
     const onCreateScenario = vi.fn(async () => true);
     home(dm, { onCreateScenario });
-    await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
+    await userEvent.click(screen.getByRole("button", { name: /New scenario/ }));
     await userEvent.type(screen.getByLabelText("Scenario name"), "Ashes Below");
     await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
     expect(onCreateScenario).toHaveBeenCalledWith({ name: "Ashes Below", mode: "party", sourceCode: "EMBER-KEEP" });
@@ -41,7 +41,7 @@ describe("CampaignHome", () => {
   it("offers an existing scenario as the source for duplication", async () => {
     const onCreateScenario = vi.fn(async () => true);
     home(dm, { onCreateScenario });
-    await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
+    await userEvent.click(screen.getByRole("button", { name: /New scenario/ }));
     await userEvent.type(screen.getByLabelText("Scenario name"), "Ember Keep II");
     await userEvent.selectOptions(screen.getByLabelText("Starting point"), "duplicate");
     await userEvent.selectOptions(screen.getByLabelText("Scenario to duplicate"), "SUNLESS");

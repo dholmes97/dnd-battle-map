@@ -13,7 +13,8 @@ function release(scene: RenderedMapScene | null): void {
   scene.image.src = "";
 }
 
-export function useMapAssets({ state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, pingStartedAtRef, canvasRef }: {
+export function useMapAssets({ active, state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, pingStartedAtRef, canvasRef }: {
+  active: boolean;
   state: EncounterState | null;
   participant: ParticipantSession | null;
   preview: TokenPreview | null;
@@ -67,7 +68,15 @@ export function useMapAssets({ state, participant, preview, placementPreview, sp
     if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, scene, tokenArt, viewport, pingStartedAtRef.current, animationNow, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex);
   }, [canvasRef, dragOrigin, gridOpacity, participant, pingStartedAtRef, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, selectedTokenId, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
 
-  useEffect(() => { redraw(); const canvas = canvasRef.current; if (!canvas) return; const observer = new ResizeObserver(() => redraw()); observer.observe(canvas); return () => observer.disconnect(); }, [canvasRef, redraw]);
+  useEffect(() => {
+    if (!active) return;
+    redraw();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => redraw());
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [active, canvasRef, redraw]);
   useEffect(() => {
     const hasPing = () => state?.annotations.some((annotation) => annotation.type === "ping" && pingStartedAtRef.current.has(annotation.id) && Date.now() - pingStartedAtRef.current.get(annotation.id)! < PING_DURATION_MS);
     const hasSpotlight = () => state?.annotations.some((annotation) => (annotation.type === "spotlight" || annotation.type === "neon-spotlight") && annotation.expiresAt !== null && annotation.expiresAt > Date.now());
