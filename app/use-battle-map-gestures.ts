@@ -36,6 +36,7 @@ import type {
   SharedToken,
 } from "@/shared/contracts";
 import { insertSharedFogPoint } from "@/shared/fog-of-war";
+import { stepAltitude } from "@/shared/token-altitude";
 import {
   SPELL_EFFECT_KIND,
   spellEffectByArt,
@@ -49,6 +50,8 @@ type DragGesture = {
   origin: MapPoint;
   latest: MapPoint;
   grabOffset: MapPoint;
+  altitude: number;
+  allowAltitude: boolean;
 };
 
 type PanGesture = {
@@ -98,7 +101,7 @@ type UseBattleMapGesturesInput = {
   onArmSpell: (spellId: string) => void;
   onPlaceCreature: (creature: CreatureTemplate, point: MapPoint) => void | Promise<void>;
   onPlaceSpellEffect: (spell: SpellEffectDefinition, point: MapPoint) => void | Promise<void>;
-  onMoveToken: (tokenId: string, point: MapPoint) => void | Promise<void>;
+  onMoveToken: (tokenId: string, point: MapPoint & { altitude: number }) => void | Promise<void>;
   onAddAnnotation: (type: AnnotationMode, start: MapPoint, end?: MapPoint) => void | Promise<void>;
   onRemoveAnnotation: (annotation: SharedAnnotation) => void;
   onUpdateSharedFog: (polygon: MapPoint[]) => void;
@@ -185,6 +188,26 @@ export function useBattleMapGestures({
   const safariZoomGestureRef = useRef<SafariZoomGesture | null>(null);
   const viewportRef = useRef(viewport);
   const stateRef = useRef(state);
+
+  const adjustDragAltitude = useCallback((direction: number) => {
+    const gesture = dragGestureRef.current;
+    if (!gesture?.allowAltitude) return false;
+    gesture.altitude = stepAltitude(gesture.altitude, direction);
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest, altitude: gesture.altitude });
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "PageUp" && event.key !== "PageDown") return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.matches("input, textarea, select")) return;
+      if (!adjustDragAltitude(event.key === "PageUp" ? 1 : -1)) return;
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [adjustDragAltitude]);
 
   const updateEffectiveZoom = useCallback(() => {
     const canvas = canvasRef.current;
@@ -414,10 +437,12 @@ export function useBattleMapGestures({
         origin: { x: hitToken.x, y: hitToken.y },
         latest: { x: hitToken.x, y: hitToken.y },
         grabOffset: { x: point.x - hitToken.x, y: point.y - hitToken.y },
+        altitude: hitToken.altitude,
+        allowAltitude: hitToken.kind !== SPELL_EFFECT_KIND,
       };
       dragGestureRef.current = gesture;
       setDragging(true);
-      setPreview({ tokenId: hitToken.id, x: hitToken.x, y: hitToken.y });
+      setPreview({ tokenId: hitToken.id, x: hitToken.x, y: hitToken.y, altitude: hitToken.altitude });
       setDragOrigin(hitToken.kind === SPELL_EFFECT_KIND
         ? null
         : state.encounter.status === "active" ? hitToken.movementOrigin ?? gesture.origin : gesture.origin);
@@ -475,7 +500,7 @@ export function useBattleMapGestures({
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
     gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest, altitude: gesture.altitude });
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -510,15 +535,16 @@ export function useBattleMapGestures({
     event.preventDefault();
     gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
     dragGestureRef.current = null;
-    setPreview({ tokenId: gesture.tokenId, ...gesture.latest });
+    setPreview({ tokenId: gesture.tokenId, ...gesture.latest, altitude: gesture.altitude });
     setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001) {
+    const token = state?.tokens.find((item) => item.id === gesture.tokenId);
+    if (Math.hypot(gesture.latest.x - gesture.origin.x, gesture.latest.y - gesture.origin.y) < 0.001 && gesture.altitude === token?.altitude) {
       setPreview(null);
       setDragOrigin(null);
       return;
     }
-    void onMoveToken(gesture.tokenId, gesture.latest);
+    void onMoveToken(gesture.tokenId, { ...gesture.latest, altitude: gesture.altitude });
     setPreview(null);
     setDragOrigin(null);
   };
@@ -550,6 +576,10 @@ export function useBattleMapGestures({
     if (!state) return;
     event.preventDefault();
     if (safariZoomGestureRef.current) return;
+    if (dragGestureRef.current) {
+      adjustDragAltitude(-event.deltaY);
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     const focusX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     const focusY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));

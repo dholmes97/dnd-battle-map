@@ -7,6 +7,7 @@ import type { EncounterState, ParticipantSession, SharedEffect, SharedToken } fr
 import { transitionHp } from "@/shared/encounter-transitions.ts";
 import { clampMapPoint } from "@/shared/battle-map-geometry.ts";
 import { initiativePackMembers, rosterBaseName } from "@/shared/initiative-domain.ts";
+import { MAX_ALTITUDE_FEET, normalizeAltitude } from "@/shared/token-altitude.ts";
 import { spellAreaDiameter, type SpellAreaSize, type SpellEffectDefinition } from "@/shared/spell-effects";
 
 export function useTokenControls({ participant, state, sync, setError, setNotice }: {
@@ -19,6 +20,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const [initiativeDrafts, setInitiativeDrafts] = useState<Record<string, string>>({});
   const [initiativeStatuses, setInitiativeStatuses] = useState<Record<string, "editing" | "saving" | "saved">>({});
   const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; armorClass?: string; maxHp?: string; artAsset?: string }>>({});
+  const [altitudeDrafts, setAltitudeDrafts] = useState<Record<string, string>>({});
   const [hpAmount, setHpAmount] = useState("5");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
@@ -154,6 +156,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
 
   const applyHpToToken = async (token: SharedToken, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
+    setHpAmount("");
     const hpTransition = transitionHp(token.hp, token.maxHp, delta);
     const reminder = { id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name };
     const locallyRequiresConcentrationCheck = delta < 0 && token.effects.some((effect) => effect.type === "concentration");
@@ -237,15 +240,37 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     );
   };
 
+  const saveAltitude = async (token: SharedToken) => {
+    const draft = altitudeDrafts[token.id];
+    if (draft === undefined) return;
+    const requested = Number(draft);
+    if (!Number.isInteger(requested) || requested < 0 || requested > MAX_ALTITUDE_FEET) {
+      setError(`Altitude must be a whole number from 0 to ${MAX_ALTITUDE_FEET} feet.`);
+      return;
+    }
+    const altitude = normalizeAltitude(requested);
+    if (altitude === token.altitude) {
+      setAltitudeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+      return;
+    }
+    const result = await sync.runOptimisticCommand(
+      "update-token",
+      { tokenId: token.id, altitude },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, altitude } : item) }),
+      `Altitude set to ${altitude} ft.`,
+    );
+    if (result) setAltitudeDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+  };
+
   return {
     initiativeDrafts, setInitiativeDrafts, initiativeStatuses, setInitiativeStatuses,
-    tokenDrafts, setTokenDrafts, hpAmount, setHpAmount,
+    tokenDrafts, setTokenDrafts, altitudeDrafts, setAltitudeDrafts, hpAmount, setHpAmount,
     effectName, setEffectName, effectType, setEffectType, effectDuration, setEffectDuration,
     effectReminder, setEffectReminder, effectEditorTokenId, setEffectEditorTokenId,
     tokenEditorTokenId, setTokenEditorTokenId, pendingDeleteTokenId, setPendingDeleteTokenId,
     concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect,
+    applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
   };
 }
 

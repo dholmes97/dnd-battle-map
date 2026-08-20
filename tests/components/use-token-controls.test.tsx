@@ -28,6 +28,7 @@ describe("useTokenControls", () => {
     let damageRequest!: Promise<void>;
     act(() => { damageRequest = result.current.applyHpToToken(concentratingToken, -5); });
 
+    expect(result.current.hpAmount).toBe("");
     expect(result.current.concentrationReminder).toMatchObject({ tokenId: "token-1", tokenName: "Dar'eleth" });
 
     await act(async () => {

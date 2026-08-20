@@ -83,6 +83,10 @@ test("party scenario creation resets state and records history on the new scenar
     kind: "character",
     size: "medium",
     speed: 30,
+    fly_speed: null,
+    swim_speed: null,
+    climb_speed: null,
+    burrow_speed: null,
     hp: 20,
     max_hp: 42,
     is_hidden: 1,
@@ -92,6 +96,7 @@ test("party scenario creation resets state and records history on the new scenar
     initiative_order: 0,
     turn_complete: 1,
     movement_used: 10,
+    altitude: 25,
     owner_participant_id: null,
     owner_name: null,
   };
@@ -104,6 +109,7 @@ test("party scenario creation resets state and records history on the new scenar
   assert.equal(write.mapPackageJson, null);
   assert.equal(write.tokens[0].copiedHp, 42);
   assert.equal(write.tokens[0].copiedHidden, false);
+  assert.equal(write.tokens[0].copiedAltitude, 0);
   const recorded = value.calls.find(([name]) => name === "record-new");
   assert.equal(recorded[1], write.id);
   assert.equal(result.payload.state.code, "FRESH-ADVENTURE");

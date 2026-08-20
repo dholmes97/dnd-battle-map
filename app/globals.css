@@ -1019,6 +1019,18 @@ input:focus {
 .roster-row.is-complete + .roster-initiative-trigger, .roster-row.is-complete + .roster-initiative { opacity: 0.5; }
 
 .token-detail { min-height: 0; max-height: 46vh; padding: 0.6rem; overflow-y: auto; border: 1px solid #34302a; border-radius: 0.5rem; background: #1a1917; }
+.player-card-stack { min-height: 0; max-height: 46vh; display: flex; flex-direction: column; gap: 0.45rem; }
+.player-card-stack.has-selection { max-height: min(62vh, 34rem); }
+.player-card-layer { min-height: 0; display: flex; flex: 0 1 auto; }
+.player-card-layer.is-selection { max-height: min(30vh, 17rem); }
+.player-card-layer.is-character { max-height: min(38vh, 21rem); }
+.player-card-stack:not(.has-selection) .player-card-layer.is-character { max-height: 46vh; }
+.player-card-layer > .token-detail,
+.player-card-layer > .spell-detail,
+.player-card-layer > .map-note-detail { width: 100%; min-height: 0; max-height: inherit; margin: 0; overflow-y: auto; }
+.player-card-layer.is-selection { z-index: 1; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.28)); }
+.player-card-layer.is-character { position: relative; }
+.player-card-layer.is-character::before { content: "Your character"; position: absolute; z-index: 2; top: -0.36rem; right: 0.5rem; padding: 0.08rem 0.35rem; border: 1px solid #55482f; border-radius: 999px; background: #211c14; color: #bea267; font-size: 0.48rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; }
 .panel-foot { display: grid; gap: 0.35rem; padding-top: 0.4rem; border-top: 1px solid #2a2824; }
 /* A player with nothing to act on should not get a stray divider. */
 .panel-foot:empty { display: none; }
@@ -1079,17 +1091,9 @@ input:focus {
 .token-meta span { min-width: 0; display: grid; gap: 0.12rem; }
 .token-meta small { overflow: hidden; color: #666158; font-size: 0.52rem; letter-spacing: 0.04em; text-overflow: ellipsis; }
 .token-meta strong { overflow: hidden; color: #bcb4a8; font-family: var(--font-geist-mono), monospace; font-size: 0.62rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.token-meta strong.has-speed-tooltip { width: fit-content; max-width: 100%; overflow: visible; border-bottom: 1px dotted #766d60; outline: none; cursor: help; }
+.token-meta strong.has-speed-tooltip:focus-visible { border-bottom-color: var(--gold); color: #e4d5b9; }
 
-.move-review {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin: 0.85rem 0;
-}
-
-.move-review div { display: grid; gap: 0.18rem; padding: 0.65rem; border-radius: 0.45rem; background: #171614; }
-.move-review.is-over strong { color: #ef6656; }
-.move-review strong { font-family: var(--font-geist-mono), monospace; font-size: 0.82rem; }
 .section-heading, .movement-summary {
   display: flex;
   align-items: center;
@@ -1132,6 +1136,7 @@ input:focus {
 
 .hp-row { display: flex; align-items: center; gap: 0.3rem; margin: 0; }
 .hp-row input { width: 3rem; min-width: 0; padding: 0.3rem 0.2rem; border-radius: 0.36rem; font-family: var(--font-geist-mono), monospace; font-size: 0.72rem; text-align: center; }
+.hp-row input[aria-invalid="true"] { border-color: #a65b50; background: rgba(150, 64, 55, 0.12); color: #efaaa0; }
 .effect-form button { border: 1px solid #4b4640; background: #282520; color: #ddd2c2; }
 
 .effect-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -1143,6 +1148,9 @@ input:focus {
 
 .movement-summary { margin: 0.7rem 0; color: #8f877b; font-size: 0.7rem; }
 .movement-summary strong { color: #ded5c7; }
+.altitude-control { margin: 0 0 0 auto; display: flex; align-items: center; gap: 0.38rem; color: #8f877b; font-size: 0.7rem; }
+.altitude-input { display: flex; align-items: center; gap: 0.22rem; color: #777067; font-size: 0.62rem; }
+.altitude-input input { width: 3.4rem; min-height: 1.7rem; padding: 0.24rem 0.28rem; border-radius: 0.35rem; font-family: var(--font-geist-mono), monospace; font-size: 0.68rem; text-align: right; }
 .end-turn-button, .danger-button, .text-button {
   width: 100%; min-height: 2.45rem; margin-top: 0.55rem; border-radius: 0.55rem; font-weight: 720;
 }
@@ -1464,6 +1472,7 @@ input:focus {
   .control-panel { display: block; max-height: none; overflow-y: visible; border-top: 1px solid #2f2d29; border-left: 0; }
   .token-roster { overflow-y: visible; }
   .token-detail { max-height: none; }
+  .player-card-stack, .player-card-stack.has-selection, .player-card-layer.is-selection, .player-card-layer.is-character { max-height: none; }
   .workshop-layout { grid-template-columns: 1fr; }
   .workshop-header { grid-template-columns: minmax(0, 1fr) auto; }
   .workshop-header-tools { grid-column: 1 / -1; grid-row: 2; width: 100%; overflow-x: auto; }

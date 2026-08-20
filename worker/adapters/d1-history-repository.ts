@@ -78,12 +78,13 @@ async function applyAction(
     const to = point(payload.to)!;
     const origin = point(undo ? payload.previousMovementOrigin : payload.movementOrigin, true);
     const result = await db.prepare(
-      `UPDATE tokens SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?,
+      `UPDATE tokens SET x = ?, y = ?, altitude = ?, movement_used = ?, movement_origin_x = ?,
        movement_origin_y = ?, updated_at = ?
-       WHERE id = ? AND encounter_id = ? AND x = ? AND y = ?`,
+       WHERE id = ? AND encounter_id = ? AND x = ? AND y = ? AND altitude = ?`,
     ).bind(
       undo ? from.x : to.x,
       undo ? from.y : to.y,
+      Number(undo ? payload.previousAltitude : payload.altitude) || 0,
       Number(undo ? payload.previousMovementUsed : payload.movementUsed) || 0,
       origin?.x ?? null,
       origin?.y ?? null,
@@ -92,6 +93,7 @@ async function applyAction(
       encounterId,
       undo ? to.x : from.x,
       undo ? to.y : from.y,
+      Number(undo ? payload.altitude : payload.previousAltitude) || 0,
     ).run();
     return changes(result);
   }
@@ -241,18 +243,21 @@ async function insertAnnotation(db: D1Database, encounterId: string, annotation:
 async function insertToken(db: D1Database, encounterId: string, tokenId: string, token: Record<string, unknown>, now: number) {
   const result = await db.prepare(
     `INSERT OR IGNORE INTO tokens
-     (id, encounter_id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp,
+     (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
+      climb_speed, burrow_speed, armor_class, hp, max_hp,
       is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
-      movement_used, owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?)`,
+      movement_used, altitude, owner_participant_id, owner_name, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL, ?)`,
   ).bind(
     tokenId, encounterId, cleanText(token.name, 48), Number(token.x), Number(token.y),
     token.artAsset ?? null, cleanText(token.kind, 16) || "monster",
     isCreatureSize(token.size) ? token.size : "medium",
     Number.isFinite(Number(token.speed)) ? Number(token.speed) : 30,
+    cleanSecondarySpeed(token.flySpeed), cleanSecondarySpeed(token.swimSpeed),
+    cleanSecondarySpeed(token.climbSpeed), cleanSecondarySpeed(token.burrowSpeed),
     cleanArmorClass(token.armorClass), token.hp ?? null, token.maxHp ?? null, token.hidden ? 1 : 0,
     cleanId(token.summonerTokenId) || null, token.initiative ?? null,
-    token.initiativeOrder ?? null, now,
+    token.initiativeOrder ?? null, Number(token.altitude) || 0, now,
   ).run();
   return changes(result);
 }
@@ -266,17 +271,26 @@ async function updateToken(
   now: number,
 ) {
   const current = await db.prepare(
-    "SELECT x, y, size, armor_class FROM tokens WHERE id = ? AND encounter_id = ?",
-  ).bind(tokenId, encounterId).first<{ x: number; y: number; size: CreatureSize; armor_class: number | null }>();
+    `SELECT x, y, size, altitude, fly_speed, swim_speed, climb_speed, burrow_speed, armor_class
+     FROM tokens WHERE id = ? AND encounter_id = ?`,
+  ).bind(tokenId, encounterId).first<{ x: number; y: number; size: CreatureSize; altitude: number;
+    fly_speed: number | null; swim_speed: number | null; climb_speed: number | null;
+    burrow_speed: number | null; armor_class: number | null }>();
   const result = await db.prepare(
-    `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, armor_class = ?, hp = ?,
+    `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, fly_speed = ?, swim_speed = ?,
+     climb_speed = ?, burrow_speed = ?, altitude = ?, armor_class = ?, hp = ?,
      max_hp = ?, is_hidden = ?, art_asset = ?, updated_at = ?
      WHERE id = ? AND encounter_id = ?`,
   ).bind(
     cleanText(value.name, 48), isCreatureSize(value.size) ? value.size : current?.size ?? "medium",
     Number.isFinite(Number(value.x)) ? Number(value.x) : current?.x ?? input.gridWidth / 2,
     Number.isFinite(Number(value.y)) ? Number(value.y) : current?.y ?? input.gridHeight / 2,
-    Number(value.speed), value.armorClass === undefined ? current?.armor_class ?? null : cleanArmorClass(value.armorClass),
+    Number(value.speed), value.flySpeed === undefined ? current?.fly_speed ?? null : cleanSecondarySpeed(value.flySpeed),
+    value.swimSpeed === undefined ? current?.swim_speed ?? null : cleanSecondarySpeed(value.swimSpeed),
+    value.climbSpeed === undefined ? current?.climb_speed ?? null : cleanSecondarySpeed(value.climbSpeed),
+    value.burrowSpeed === undefined ? current?.burrow_speed ?? null : cleanSecondarySpeed(value.burrowSpeed),
+    Number.isFinite(Number(value.altitude)) ? Number(value.altitude) : current?.altitude ?? 0,
+    value.armorClass === undefined ? current?.armor_class ?? null : cleanArmorClass(value.armorClass),
     value.hp ?? null, value.maxHp ?? null, value.hidden ? 1 : 0,
     value.artAsset ?? null, now, tokenId, encounterId,
   ).run();
@@ -286,6 +300,11 @@ async function updateToken(
 function cleanArmorClass(value: unknown) {
   const armorClass = Math.trunc(Number(value));
   return Number.isFinite(armorClass) && armorClass >= 1 && armorClass <= 40 ? armorClass : null;
+}
+
+function cleanSecondarySpeed(value: unknown) {
+  const speed = Math.trunc(Number(value));
+  return Number.isFinite(speed) && speed > 0 ? Math.min(240, speed) : null;
 }
 
 async function deleteRow(db: D1Database, table: "effects" | "annotations" | "tokens", id: string, encounterId: string) {

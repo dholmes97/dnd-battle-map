@@ -112,3 +112,28 @@ test("spell dismissal is reversible and restores zero-speed spell tokens", async
   assert.deepEqual(await repository.applyAction({ ...input, direction: "redo" }), { changes: 1, expectedChanges: 1 });
   assert.match(statements[1].sql, /DELETE FROM tokens/);
 });
+
+test("move history restores position and altitude as one atomic edit", async () => {
+  const statements = [];
+  const db = {
+    prepare(sql) {
+      return { bind(...bindings) { return { run: async () => (statements.push({ sql, bindings }), { meta: { changes: 1 } }) }; } };
+    },
+  };
+  const repository = createD1HistoryRepository(db);
+  const input = {
+    encounterId: "encounter", participantId: "player", actionType: "token_moved",
+    payload: {
+      tokenId: "hero", from: { x: 1, y: 2 }, to: { x: 3, y: 4 },
+      previousAltitude: 10, altitude: 25,
+      previousMovementUsed: 5, movementUsed: 15,
+      previousMovementOrigin: { x: 1, y: 2 }, movementOrigin: { x: 1, y: 2 },
+    },
+    gridWidth: 24, gridHeight: 16, now: 10,
+  };
+  await repository.applyAction({ ...input, direction: "undo" });
+  assert.match(statements[0].sql, /SET x = \?, y = \?, altitude = \?/);
+  assert.deepEqual(statements[0].bindings, [1, 2, 10, 5, 1, 2, 10, "hero", "encounter", 3, 4, 25]);
+  await repository.applyAction({ ...input, direction: "redo" });
+  assert.deepEqual(statements[1].bindings, [3, 4, 25, 15, 1, 2, 10, "hero", "encounter", 1, 2, 10]);
+});

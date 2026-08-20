@@ -20,6 +20,8 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "3");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'armor_class';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'altitude';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name IN ('fly_speed', 'swim_speed', 'climb_speed', 'burrow_speed');"), "4");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_jobs;"), "0");
   assert.equal(await query(database, "SELECT COUNT(*) FROM scenario_provisioning_assets;"), "0");

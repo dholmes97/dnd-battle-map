@@ -21,6 +21,10 @@ function token(overrides = {}) {
     kind: "character",
     size: "medium",
     speed: 30,
+    fly_speed: null,
+    swim_speed: null,
+    climb_speed: null,
+    burrow_speed: null,
     armor_class: 18,
     hp: 20,
     max_hp: 30,
@@ -31,6 +35,7 @@ function token(overrides = {}) {
     initiative_order: 0,
     turn_complete: 0,
     movement_used: 0,
+    altitude: 0,
     owner_participant_id: null,
     owner_name: null,
     ...overrides,
@@ -88,13 +93,15 @@ test("player-created creatures and spells require the player's root character", 
 
   const valid = context({
     participant: player,
-    payload: { name: "Wolf", armorClass: 13.8, summonerTokenId: "hero", x: 3, y: 3 },
+    payload: { name: "Wolf", armorClass: 13.8, flySpeed: 60, swimSpeed: 0, summonerTokenId: "hero", x: 3, y: 3 },
   });
   const result = await createToken(valid);
   assert.equal(result.payload.created, true);
   const created = valid.calls.find(([name]) => name === "create")[1];
   assert.equal(created.kind, "summon");
   assert.equal(created.armorClass, 13);
+  assert.equal(created.flySpeed, 60);
+  assert.equal(created.swimSpeed, null);
   assert.equal(created.summonerTokenId, "hero");
 
   const spell = context({
@@ -119,11 +126,12 @@ test("players can edit controlled token details but not another participant's to
   const player = { id: "player", name: "Dan", role: "player" };
   const allowed = context({
     participant: player,
-    payload: { tokenId: "token", armorClass: 19, hidden: true },
+    payload: { tokenId: "token", armorClass: 19, altitude: 35, hidden: true },
   });
   assert.equal((await updateToken(allowed)).payload.updated, true);
   const updated = allowed.calls.find(([name]) => name === "update")[1];
   assert.equal(updated.armorClass, 19);
+  assert.equal(updated.altitude, 35);
   assert.equal(updated.hidden, false);
 
   const denied = context({
@@ -164,7 +172,8 @@ test("effects and deletion enforce token control", async () => {
   assert.equal(dismissal[1], "spell_effect_dismissed");
   assert.deepEqual(dismissal[2].token, {
     name: "Hero", x: 4, y: 4, artAsset: "hero.png", kind: "spell-effect",
-    size: "medium", speed: 30, armorClass: 18, hp: 20, maxHp: 30,
+    size: "medium", speed: 30, flySpeed: null, swimSpeed: null, climbSpeed: null,
+    burrowSpeed: null, altitude: 0, armorClass: 18, hp: 20, maxHp: 30,
     hidden: false, summonerTokenId: null, initiative: 18, initiativeOrder: 0,
   });
 });

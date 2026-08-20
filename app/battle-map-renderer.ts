@@ -6,7 +6,7 @@ import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shar
 import { displayHealth } from "@/shared/health";
 import { SPELL_EFFECT_KIND, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
 
-export type TokenPreview = MapPoint & { tokenId: string };
+export type TokenPreview = MapPoint & { tokenId: string; altitude: number };
 export type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 export type SpellPlacementPreview = MapPoint & { spell: SpellEffectDefinition };
 export type BattleMapViewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
@@ -777,6 +777,26 @@ export function drawMap(
       context.fillStyle = active ? "#f7dc9d" : owned ? "#efe6d6" : "#c8bfb1";
       context.fillText(label, x, labelY);
     }
+    const altitude = preview?.tokenId === token.id ? preview.altitude : token.altitude;
+    if (altitude > 0) {
+      const label = `↑ ${altitude} ft`;
+      const fontSize = Math.max(10, Math.min(13, geometry.cellSize * 0.24));
+      context.globalAlpha = 1;
+      context.font = `750 ${fontSize}px ui-sans-serif, system-ui`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      const labelY = y - radius - fontSize * 0.8;
+      const labelWidth = context.measureText(label).width + fontSize * 0.9;
+      context.fillStyle = "rgba(16, 28, 38, 0.94)";
+      context.strokeStyle = preview?.tokenId === token.id ? "#f5c65c" : "rgba(150, 211, 235, 0.9)";
+      context.lineWidth = 1.25;
+      context.beginPath();
+      context.roundRect(x - labelWidth / 2, labelY - fontSize * 0.72, labelWidth, fontSize * 1.44, fontSize * 0.4);
+      context.fill();
+      context.stroke();
+      context.fillStyle = "#d9f3ff";
+      context.fillText(label, x, labelY);
+    }
     context.restore();
   });
 
@@ -807,6 +827,10 @@ export function drawMap(
       kind: SPELL_EFFECT_KIND,
       size: spellPlacementPreview.spell.size,
       speed: 0,
+      flySpeed: null,
+      swimSpeed: null,
+      climbSpeed: null,
+      burrowSpeed: null,
       armorClass: null,
       hp: null,
       maxHp: null,
@@ -817,6 +841,7 @@ export function drawMap(
       initiativeGroupId: null,
       initiativeOrder: null,
       turnComplete: false,
+      altitude: 0,
       movementUsed: 0,
       movementOrigin: null,
       effects: [],

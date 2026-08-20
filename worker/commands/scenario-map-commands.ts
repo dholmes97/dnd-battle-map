@@ -89,6 +89,7 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
         : null,
       copiedHp: duplicate ? token.hp : token.max_hp,
       copiedHidden: duplicate ? Boolean(token.is_hidden) : false,
+      copiedAltitude: duplicate ? token.altitude : 0,
     })),
   });
   await context.recordScenarioAction(scenarioId, participantId, "scenario_created", {

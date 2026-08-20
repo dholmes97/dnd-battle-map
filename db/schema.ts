@@ -206,6 +206,10 @@ export const tokens = sqliteTable(
     kind: text("kind").notNull().default("character"),
     size: text("size").notNull().default("medium"),
     speed: integer("speed").notNull().default(30),
+    flySpeed: integer("fly_speed"),
+    swimSpeed: integer("swim_speed"),
+    climbSpeed: integer("climb_speed"),
+    burrowSpeed: integer("burrow_speed"),
     armorClass: integer("armor_class"),
     hp: integer("hp"),
     maxHp: integer("max_hp"),
@@ -216,6 +220,7 @@ export const tokens = sqliteTable(
     initiativeOrder: integer("initiative_order"),
     turnComplete: integer("turn_complete", { mode: "boolean" }).notNull().default(false),
     movementUsed: real("movement_used").notNull().default(0),
+    altitude: integer("altitude").notNull().default(0),
     movementOriginX: real("movement_origin_x"),
     movementOriginY: real("movement_origin_y"),
     ownerParticipantId: text("owner_participant_id").references(

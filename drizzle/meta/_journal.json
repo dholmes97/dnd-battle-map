@@ -162,6 +162,20 @@
       "when": 1786928719066,
       "tag": "0022_acoustic_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1787140800000,
+      "tag": "0023_token_altitude",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1787191200000,
+      "tag": "0024_token_movement_speeds",
+      "breakpoints": true
     }
   ]
 }

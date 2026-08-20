@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { EncounterSidebar } from "@/app/encounter-sidebar";
 import type { TokenControls } from "@/app/use-token-controls";
 import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
+import { spellEffectById, type SpellEffectDefinition } from "@/shared/spell-effects";
 
 const participant: ParticipantSession = { id: "player-dan", name: "Dan", role: "player", sessionSecret: "session-secret" };
 
@@ -15,6 +16,10 @@ function tokenWithInitiative(initiative: number | null): SharedToken {
     kind: "character",
     size: "medium",
     speed: 30,
+    flySpeed: null,
+    swimSpeed: null,
+    climbSpeed: null,
+    burrowSpeed: null,
     armorClass: 18,
     hp: 42,
     maxHp: 42,
@@ -25,6 +30,7 @@ function tokenWithInitiative(initiative: number | null): SharedToken {
     initiativeGroupId: null,
     initiativeOrder: initiative === null ? null : 0,
     turnComplete: false,
+    altitude: 0,
     movementUsed: 0,
     movementOrigin: null,
     effects: [],
@@ -35,31 +41,32 @@ function tokenWithInitiative(initiative: number | null): SharedToken {
   };
 }
 
-function tokenControls() {
+function tokenControls(hpAmount = "5") {
   return {
     initiativeDrafts: {}, setInitiativeDrafts: vi.fn(), initiativeStatuses: {}, setInitiativeStatuses: vi.fn(),
-    tokenDrafts: {}, setTokenDrafts: vi.fn(), hpAmount: "5", setHpAmount: vi.fn(),
+    tokenDrafts: {}, setTokenDrafts: vi.fn(), altitudeDrafts: {}, setAltitudeDrafts: vi.fn(), hpAmount, setHpAmount: vi.fn(),
     effectName: "", setEffectName: vi.fn(), effectType: "condition", setEffectType: vi.fn(), effectDuration: "1", setEffectDuration: vi.fn(),
     effectReminder: "end", setEffectReminder: vi.fn(), effectEditorTokenId: null, setEffectEditorTokenId: vi.fn(),
     tokenEditorTokenId: null, setTokenEditorTokenId: vi.fn(), pendingDeleteTokenId: null, setPendingDeleteTokenId: vi.fn(),
     concentrationReminder: null, dismissConcentrationReminder: vi.fn(), saveInitiative: vi.fn(), splitInitiativePack: vi.fn(),
     saveInitiativeGroup: vi.fn(), addEffectToToken: vi.fn(), applyHpToToken: vi.fn(), removeEffectFromToken: vi.fn(),
-    discardTokenDetails: vi.fn(), saveTokenDetails: vi.fn(), resizeSpellEffect: vi.fn(),
+    discardTokenDetails: vi.fn(), saveTokenDetails: vi.fn(), resizeSpellEffect: vi.fn(), saveAltitude: vi.fn(),
   } as unknown as TokenControls;
 }
 
-function renderSidebar(initiative: number | null, controlledByViewer = true) {
+function renderSidebar(initiative: number | null, controlledByViewer = true, selectedOverride: SharedToken | null = null, selectedSpell: SpellEffectDefinition | null = null, hpAmount = "5") {
   const token = { ...tokenWithInitiative(initiative), controlledByViewer };
+  const selectedToken = selectedOverride ?? token;
   const state = {
     encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
     grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: participant.id, role: participant.role }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
-    tokens: [token], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
+    tokens: selectedToken.id === token.id ? [token] : [token, selectedToken], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
   } as EncounterState;
-  const controls = tokenControls();
+  const controls = tokenControls(hpAmount);
   const onSelectToken = vi.fn();
   const props: Parameters<typeof EncounterSidebar>[0] = {
-    participant, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "token", token, grouped: false }], selectedToken: token, selectedSpell: null, selectedMapNote: null,
-    preview: null, distance: 0, remainingMovement: 30, overMovement: false, activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls,
+    participant, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "token", token, grouped: false }], selectedToken, selectedSpell, selectedMapNote: null,
+    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls,
     onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken, onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
     onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
   };
@@ -73,6 +80,62 @@ describe("EncounterSidebar initiative disclosure", () => {
     const detail = screen.getByRole("region", { name: "Dar'eleth details" });
     expect(within(detail).getByText("AC")).toBeTruthy();
     expect(within(detail).getByText("18")).toBeTruthy();
+  });
+
+  it("offers an inline altitude editor on a controlled token card", () => {
+    const { controls } = renderSidebar(17);
+    const input = screen.getByRole("textbox", { name: "Dar'eleth altitude" });
+    expect((input as HTMLInputElement).value).toBe("0");
+    fireEvent.change(input, { target: { value: "20" } });
+    expect(controls.setAltitudeDrafts).toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(controls.saveAltitude).toHaveBeenCalled();
+  });
+
+  it("keeps secondary movement speeds in a restrained speed tooltip", () => {
+    const flyer = { ...tokenWithInitiative(17), id: "dragon", name: "Dragon", flySpeed: 60, swimSpeed: 30 };
+    renderSidebar(17, true, flyer);
+    const detail = screen.getByRole("region", { name: "Dragon details" });
+    const speed = within(detail).getByText("30 ft");
+    expect(speed.getAttribute("title")).toBe("Fly 60 ft · Swim 30 ft");
+    expect(speed.getAttribute("aria-label")).toBe("Walk 30 ft. Fly 60 ft. Swim 30 ft.");
+  });
+
+  it("anchors the player's character below a separately selected creature", () => {
+    const wolf = {
+      ...tokenWithInitiative(12), id: "wolf", name: "Wolf", kind: "monster",
+      controller: { name: "Kevin" }, controlledByViewer: false,
+    };
+    renderSidebar(17, true, wolf);
+
+    const stack = screen.getByRole("group", { name: "Your character and selection" });
+    const cards = within(stack).getAllByRole("region");
+    expect(cards).toHaveLength(2);
+    expect(cards[0].getAttribute("aria-label")).toBe("Wolf details");
+    expect(cards[1].getAttribute("aria-label")).toBe("Dar'eleth details");
+    expect(stack.lastElementChild?.contains(cards[1])).toBe(true);
+  });
+
+  it("layers a selected spell card above the persistent character card", () => {
+    const moonbeam = spellEffectById("moonbeam")!;
+    const spell = {
+      ...tokenWithInitiative(17), id: "spell", name: "Moonbeam", kind: "spell-effect",
+      artAsset: moonbeam.artAsset, hp: null, maxHp: null, healthState: null,
+    };
+    renderSidebar(17, true, spell, moonbeam);
+
+    const stack = screen.getByRole("group", { name: "Your character and selection" });
+    const cards = within(stack).getAllByRole("region");
+    expect(cards.map((card) => card.getAttribute("aria-label"))).toEqual([
+      "Moonbeam spell effect details",
+      "Dar'eleth details",
+    ]);
+  });
+
+  it("does not show transient destination or distance details in token cards", () => {
+    renderSidebar(17);
+    expect(screen.queryByText("Destination")).toBeNull();
+    expect(screen.queryByText("Direct / remaining")).toBeNull();
   });
 
   it("lets a player open details for their own token only", async () => {
@@ -93,6 +156,17 @@ describe("EncounterSidebar initiative disclosure", () => {
     expect(controls.applyHpToToken).toHaveBeenCalledWith(expect.objectContaining({ id: "token-dar" }), -5);
     await userEvent.click(screen.getByRole("button", { name: "Heal Dar'eleth for 5" }));
     expect(controls.applyHpToToken).toHaveBeenCalledWith(expect.objectContaining({ id: "token-dar" }), 5);
+  });
+
+  it("does not apply HP changes when the amount is empty", () => {
+    const { controls } = renderSidebar(17, true, null, null, "");
+    const amount = screen.getByRole("textbox", { name: "HP change amount" });
+    const damage = screen.getByRole("button", { name: "Enter an HP amount before damaging Dar'eleth" }) as HTMLButtonElement;
+    const healing = screen.getByRole("button", { name: "Enter an HP amount before healing Dar'eleth" }) as HTMLButtonElement;
+    expect(damage.disabled).toBe(true);
+    expect(healing.disabled).toBe(true);
+    fireEvent.keyDown(amount, { key: "Enter" });
+    expect(controls.applyHpToToken).not.toHaveBeenCalled();
   });
 
   it("selects the complete HP amount whenever the field is entered", async () => {
@@ -136,7 +210,7 @@ describe("EncounterSidebar initiative disclosure", () => {
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
       participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" }, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "group", key: "cave-bat", label: "Cave Bat", tokens: [first, second], expanded: false }], selectedToken: null, selectedSpell: null, selectedMapNote: null,
-      preview: null, distance: 0, remainingMovement: 30, overMovement: false, activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls: tokenControls(),
+      activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls: tokenControls(),
       onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
       onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
     };

@@ -17,7 +17,7 @@ import type {
 import { SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 
 export type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
-type PendingMove = MapPoint & { sequence: number; movementUsed: number; movementOrigin: MapPoint | null };
+type PendingMove = MapPoint & { altitude: number; sequence: number; movementUsed: number; movementOrigin: MapPoint | null };
 type OptimisticMutation = { apply: (state: EncounterState) => EncounterState };
 type HistoryEntry = { mutationId: number; state: EncounterState };
 type TokenCreationCommand = "create-token" | "create-spell-effect";
@@ -71,7 +71,7 @@ export type EncounterSync = {
   runOptimisticCommand: RunOptimisticCommand;
   createTokenOptimistically: CreateTokenOptimistically;
   removeTokenOptimistically: (token: SharedToken, success: string) => Promise<boolean>;
-  moveTokenOptimistically: (tokenId: string, destination: MapPoint, encounterCode?: string) => Promise<MoveConfirmation | null>;
+  moveTokenOptimistically: (tokenId: string, destination: MapPoint & { altitude: number }, encounterCode?: string) => Promise<MoveConfirmation | null>;
   isTokenPendingCreation: (tokenId: string) => boolean;
   runHistory: (direction: HistoryDirection) => Promise<boolean>;
 };
@@ -136,7 +136,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
       if (pendingMoves.size === 0 && pendingOptimistic.size === 0) return next;
       const tokens = next.tokens.map((token) => {
           const pending = pendingMoves.get(token.id);
-          return pending ? { ...token, x: pending.x, y: pending.y, movementUsed: pending.movementUsed, movementOrigin: pending.movementOrigin } : token;
+          return pending ? { ...token, x: pending.x, y: pending.y, altitude: pending.altitude, movementUsed: pending.movementUsed, movementOrigin: pending.movementOrigin } : token;
         });
       let merged = {
         ...next,
@@ -420,13 +420,13 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
 
   const moveTokenOptimistically = async (
     tokenId: string,
-    destination: MapPoint,
+    destination: MapPoint & { altitude: number },
     encounterCode = state?.encounter.code,
   ): Promise<MoveConfirmation | null> => {
     if (!participant || !encounterCode) return null;
     const sequence = ++moveSequenceRef.current;
     const historyMutationId = ++optimisticSequenceRef.current;
-    let authoritativeDestination = destination;
+    let authoritativeDestination: MapPoint & { altitude: number } = destination;
     const moveContext: { token: SharedToken | null } = { token: null };
     flushSync(() => {
       setState((current) => {
@@ -444,15 +444,15 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
           encounterStatus: current.encounter.status,
           isSpellEffect: moveContext.token.kind === SPELL_EFFECT_KIND,
         });
-        authoritativeDestination = move.position;
-        pendingMovesRef.current.set(tokenId, { ...move.position, sequence, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin });
+        authoritativeDestination = { ...move.position, altitude: destination.altitude };
+        pendingMovesRef.current.set(tokenId, { ...move.position, altitude: destination.altitude, sequence, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin });
         localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
         localRedoHistoryRef.current = [];
         return {
           ...current,
           undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 },
           tokens: current.tokens.map((token) => token.id === tokenId
-            ? { ...token, ...move.position, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin }
+            ? { ...token, ...move.position, altitude: destination.altitude, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin }
             : token),
         };
       });
@@ -462,7 +462,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     try {
       const result = await battleMapApi<{ distance: number; overBudget: boolean; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(encounterCode)}/move`,
-        { method: "POST", body: sessionPayload(participant, { tokenId, ...authoritativeDestination }) },
+        { method: "POST", body: sessionPayload(participant, { tokenId, ...authoritativeDestination, altitude: destination.altitude }) },
       );
       if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
       acceptAuthoritativeState(result.state);

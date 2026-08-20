@@ -24,6 +24,10 @@ export type SharedToken = MapPoint & {
   kind: string;
   size: CreatureSize;
   speed: number;
+  flySpeed: number | null;
+  swimSpeed: number | null;
+  climbSpeed: number | null;
+  burrowSpeed: number | null;
   armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
@@ -34,6 +38,7 @@ export type SharedToken = MapPoint & {
   initiativeGroupId: string | null;
   initiativeOrder: number | null;
   turnComplete: boolean;
+  altitude: number;
   movementUsed: number;
   movementOrigin: MapPoint | null;
   effects: SharedEffect[];
@@ -193,6 +198,10 @@ export type CommandPayloadMap = {
     kind: "character" | "monster" | "summon" | "familiar";
     size: CreatureSize;
     speed: number;
+    flySpeed?: number;
+    swimSpeed?: number;
+    climbSpeed?: number;
+    burrowSpeed?: number;
     armorClass?: number;
     hp?: number;
     maxHp?: number;
@@ -208,6 +217,7 @@ export type CommandPayloadMap = {
     name?: string;
     size?: CreatureSize;
     speed?: number;
+    altitude?: number;
     armorClass?: number;
     maxHp?: number;
     hidden?: boolean;

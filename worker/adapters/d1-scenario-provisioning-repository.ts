@@ -40,6 +40,7 @@ type MailMessageRow = {
 
 type CatalogRow = {
   id: string; name: string; size: CreatureSize; default_hp: number; armor_class: number; walk_speed: number;
+  fly_speed: number | null; swim_speed: number | null; climb_speed: number | null; burrow_speed: number | null;
   token_asset: string; thumbnail_asset: string; is_active: number;
 };
 
@@ -322,6 +323,8 @@ async function finalizeProvisioning(
       statements.push(insertToken(db, {
         id: tokenId, encounterId: scenarioId, name: token.name, x: placement.x, y: placement.y,
         artAsset: token.art_asset, kind: token.kind, size: token.size, speed: token.speed,
+        flySpeed: token.fly_speed, swimSpeed: token.swim_speed,
+        climbSpeed: token.climb_speed, burrowSpeed: token.burrow_speed,
         armorClass: token.armor_class, hp: token.max_hp, maxHp: token.max_hp, hidden: false, now: input.now,
       }));
     });
@@ -342,6 +345,8 @@ async function finalizeProvisioning(
         id: tokenId, encounterId: scenarioId, name: placement.name ?? creature.name,
         x: placement.x, y: placement.y, artAsset: creature.tokenAsset, kind: "monster",
         size: creature.size, speed: creature.walkSpeed, armorClass: creature.armorClass, hp, maxHp,
+        flySpeed: creature.flySpeed, swimSpeed: creature.swimSpeed,
+        climbSpeed: creature.climbSpeed, burrowSpeed: creature.burrowSpeed,
         hidden: placement.hidden, now: input.now,
       }));
     }
@@ -382,7 +387,9 @@ async function prepareCatalog(
   jobId: string,
   now: number,
 ) {
-  const records = new Map<string, { id: string; name: string; size: CreatureSize; defaultHp: number; armorClass: number; walkSpeed: number; tokenAsset: string; thumbnailAsset: string }>();
+  const records = new Map<string, { id: string; name: string; size: CreatureSize; defaultHp: number;
+    armorClass: number; walkSpeed: number; flySpeed: number | null; swimSpeed: number | null;
+    climbSpeed: number | null; burrowSpeed: number | null; tokenAsset: string; thumbnailAsset: string }>();
   const statements: D1PreparedStatement[] = [];
   const created: string[] = [];
   const reused: string[] = [];
@@ -391,7 +398,8 @@ async function prepareCatalog(
   let sortOrder = maximum?.value ?? 0;
   for (const requested of manifest.creatures) {
     const existing = await db.prepare(
-      `SELECT id, name, size, default_hp, armor_class, walk_speed, token_asset, thumbnail_asset, is_active
+      `SELECT id, name, size, default_hp, armor_class, walk_speed, fly_speed, swim_speed,
+              climb_speed, burrow_speed, token_asset, thumbnail_asset, is_active
        FROM creature_catalog WHERE id = ?`,
     ).bind(requested.catalogId).first<CatalogRow>();
     if (existing) {
@@ -399,6 +407,8 @@ async function prepareCatalog(
       records.set(requested.catalogId, {
         id: existing.id, name: existing.name, size: existing.size, defaultHp: existing.default_hp,
         armorClass: existing.armor_class, walkSpeed: existing.walk_speed,
+        flySpeed: existing.fly_speed, swimSpeed: existing.swim_speed,
+        climbSpeed: existing.climb_speed, burrowSpeed: existing.burrow_speed,
         tokenAsset: existing.token_asset, thumbnailAsset: existing.thumbnail_asset,
       });
       reused.push(requested.catalogId);
@@ -434,6 +444,8 @@ async function prepareCatalog(
     records.set(requested.catalogId, {
       id: requested.catalogId, name: creature.name, size: creature.size, defaultHp: creature.defaultHp,
       armorClass: creature.armorClass, walkSpeed: creature.speeds.walk, tokenAsset, thumbnailAsset,
+      flySpeed: creature.speeds.fly, swimSpeed: creature.speeds.swim,
+      climbSpeed: creature.speeds.climb, burrowSpeed: creature.speeds.burrow,
     });
     created.push(requested.catalogId);
   }
@@ -493,27 +505,32 @@ async function prepareHandouts(
 
 function insertToken(db: D1Database, token: {
   id: string; encounterId: string; name: string; x: number; y: number; artAsset: string | null;
-  kind: string; size: CreatureSize; speed: number; armorClass: number | null; hp: number | null; maxHp: number | null;
+  kind: string; size: CreatureSize; speed: number; flySpeed: number | null; swimSpeed: number | null;
+  climbSpeed: number | null; burrowSpeed: number | null;
+  armorClass: number | null; hp: number | null; maxHp: number | null;
   hidden: boolean; now: number;
 }) {
   return db.prepare(
     `INSERT INTO tokens
-     (id, encounter_id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp,
+     (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
+      climb_speed, burrow_speed, armor_class, hp, max_hp,
       is_hidden, summoner_token_id, initiative, initiative_group_id, initiative_order,
       turn_complete, movement_used, movement_origin_x, movement_origin_y,
       owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
   ).bind(
     token.id, token.encounterId, token.name, token.x, token.y, token.artAsset, token.kind,
-    token.size, token.speed, token.armorClass, token.hp, token.maxHp, token.hidden ? 1 : 0, token.now,
+    token.size, token.speed, token.flySpeed, token.swimSpeed, token.climbSpeed, token.burrowSpeed,
+    token.armorClass, token.hp, token.maxHp, token.hidden ? 1 : 0, token.now,
   );
 }
 
 async function loadParty(db: D1Database, code: string): Promise<TokenRow[]> {
   const rows = await db.prepare(
-    `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed, t.armor_class, t.hp, t.max_hp,
+    `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
+            t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed, t.armor_class, t.hp, t.max_hp,
             t.is_hidden, t.summoner_token_id, t.initiative, t.initiative_group_id,
-            t.initiative_order, t.turn_complete, t.movement_used, t.movement_origin_x,
+            t.initiative_order, t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
             t.movement_origin_y, t.owner_participant_id, t.owner_name
      FROM tokens t JOIN encounters e ON e.id = t.encounter_id
      WHERE e.code = ? AND t.summoner_token_id IS NULL AND t.name IN (?, ?, ?)

@@ -46,9 +46,6 @@ import type {
 } from "@/shared/contracts";
 import { movementPolicyDenial } from "@/shared/battle-map-policies.ts";
 import { commandRequest } from "@/shared/command-parser.ts";
-import {
-  calculateDirectDistance,
-} from "@/shared/battle-map-geometry.ts";
 import { buildRosterRows } from "@/shared/initiative-domain.ts";
 import {
   SPELL_EFFECT_KIND,
@@ -386,6 +383,10 @@ export default function BattleMapPrototype() {
         kind: effectivePlacementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
+        flySpeed: creature.speeds.fly ?? undefined,
+        swimSpeed: creature.speeds.swim ?? undefined,
+        climbSpeed: creature.speeds.climb ?? undefined,
+        burrowSpeed: creature.speeds.burrow ?? undefined,
         armorClass: creature.armorClass,
         maxHp: creature.defaultHp,
         hp: creature.defaultHp,
@@ -401,6 +402,10 @@ export default function BattleMapPrototype() {
         kind: effectivePlacementSummonerId ? "summon" : "monster",
         size: creature.size,
         speed: creature.defaultSpeed,
+        flySpeed: creature.speeds.fly,
+        swimSpeed: creature.speeds.swim,
+        climbSpeed: creature.speeds.climb,
+        burrowSpeed: creature.speeds.burrow,
         armorClass: creature.armorClass,
         hp: creature.defaultHp,
         maxHp: creature.defaultHp,
@@ -411,6 +416,7 @@ export default function BattleMapPrototype() {
         initiativeGroupId: null,
         initiativeOrder: summoner?.initiativeOrder ?? null,
         turnComplete: false,
+        altitude: 0,
         movementUsed: 0,
         movementOrigin: null,
         effects: [],
@@ -451,6 +457,10 @@ export default function BattleMapPrototype() {
         kind: SPELL_EFFECT_KIND,
         size: spell.size,
         speed: 0,
+        flySpeed: null,
+        swimSpeed: null,
+        climbSpeed: null,
+        burrowSpeed: null,
         armorClass: null,
         hp: null,
         maxHp: null,
@@ -461,6 +471,7 @@ export default function BattleMapPrototype() {
         initiativeGroupId: null,
         initiativeOrder: caster?.initiativeOrder ?? null,
         turnComplete: false,
+        altitude: 0,
         movementUsed: 0,
         movementOrigin: null,
         effects: [],
@@ -487,7 +498,7 @@ export default function BattleMapPrototype() {
     onDismiss: (token) => { void deleteToken(token); },
   });
 
-  const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
+  const publishMove = async (tokenId: string, destination: MapPoint & { altitude: number }, encounter = state?.encounter.code) => {
     const result = await moveTokenOptimistically(tokenId, destination, encounter);
     if (!result) return;
     setNotice(result.spellEffect
@@ -581,11 +592,6 @@ export default function BattleMapPrototype() {
     clearCreaturePlacementPreview,
     clearSpellPlacementPreview,
   } = gestures;
-  const distance = state && dragOrigin && preview
-    ? calculateDirectDistance(dragOrigin, preview, state.grid.feetPerCell)
-    : 0;
-  const remainingMovement = selectedToken ? Math.max(0, selectedToken.speed - distance) : 0;
-  const overMovement = Boolean(selectedToken && distance > selectedToken.speed + 0.05);
   useMapAssets({
     active: !workshopOpen,
     state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport,
@@ -775,8 +781,7 @@ export default function BattleMapPrototype() {
         <EncounterSidebar
           participant={participant} state={state} hidden={!sidebarOpen || presenting} inCombat={inCombat}
           rosterFilter={rosterFilter} rosterRows={rosterRows} selectedToken={selectedToken}
-          selectedSpell={selectedSpell} selectedMapNote={selectedMapNote} preview={preview}
-          distance={distance} remainingMovement={remainingMovement} overMovement={overMovement}
+          selectedSpell={selectedSpell} selectedMapNote={selectedMapNote}
           activeOwnTurnToken={activeOwnTurnToken} activeOwnTurnIsGroup={activeOwnTurnIsGroup}
           initiativeTokens={initiativeTokens} encounterAction={encounterAction} controls={tokenControls}
           onRosterFilterChange={setRosterFilter}

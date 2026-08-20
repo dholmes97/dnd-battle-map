@@ -19,6 +19,7 @@ import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action
 import { healthBand } from "../shared/health.ts";
 import { movementPolicyDenial } from "../shared/battle-map-policies.ts";
 import { transitionTokenMove } from "../shared/encounter-transitions.ts";
+import { normalizeAltitude } from "../shared/token-altitude.ts";
 import { pointVisibleToViewer, visibilityForViewer } from "../shared/fog-of-war.ts";
 import {
   mapPackageForViewer,
@@ -957,8 +958,9 @@ async function encounterState(
   encounter = await findEncounter(env, code);
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
+            t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
             t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
-            t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used,
+            t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used, t.altitude,
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
      FROM tokens t
@@ -1079,6 +1081,10 @@ async function encounterState(
         kind: token.kind,
         size: token.size,
         speed: token.speed,
+        flySpeed: token.fly_speed,
+        swimSpeed: token.swim_speed,
+        climbSpeed: token.climb_speed,
+        burrowSpeed: token.burrow_speed,
         armorClass: canSeePrivateStats ? token.armor_class : null,
         hp: canSeePrivateStats ? token.hp : null,
         maxHp: canSeePrivateStats ? token.max_hp : null,
@@ -1089,6 +1095,7 @@ async function encounterState(
         initiativeGroupId: token.initiative_group_id,
         initiativeOrder: token.initiative_order,
         turnComplete: Boolean(token.turn_complete),
+        altitude: token.altitude,
         movementUsed: token.movement_used,
         movementOrigin: token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
           ? null
@@ -1272,7 +1279,8 @@ async function canControlToken(
   while (current.summoner_token_id && !visited.has(current.id)) {
     visited.add(current.id);
     const summoner = await env.DB.prepare(
-      `SELECT id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
+      `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
+              climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
               summoner_token_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, initiative_group_id
        FROM tokens WHERE id = ? AND encounter_id = ?`,
@@ -1516,9 +1524,10 @@ async function handleApi(
     return json({ error: "Token is required." }, { status: 400 });
   }
   const token = await env.DB.prepare(
-    `SELECT id, name, x, y, art_asset, kind, size, speed, armor_class, hp, max_hp, is_hidden,
+    `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
+            climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
             summoner_token_id, initiative, initiative_order, turn_complete,
-            movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
+            movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,
   )
     .bind(tokenId, encounter.id)
@@ -1544,6 +1553,7 @@ async function handleApi(
     }
     const requestedX = Number(body.x);
     const requestedY = Number(body.y);
+    const requestedAltitude = normalizeAltitude(body.altitude ?? token.altitude);
     if (
       !Number.isFinite(requestedX) ||
       !Number.isFinite(requestedY) ||
@@ -1573,10 +1583,10 @@ async function handleApi(
     const { position: { x, y }, movementOrigin, distance, movementUsed, overBudget } = move;
     const result = await env.DB.prepare(
       `UPDATE tokens
-       SET x = ?, y = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
+       SET x = ?, y = ?, altitude = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
        WHERE id = ? AND encounter_id = ?`,
     )
-      .bind(x, y, movementUsed, movementOrigin?.x ?? null, movementOrigin?.y ?? null, now, tokenId, encounter.id)
+      .bind(x, y, requestedAltitude, movementUsed, movementOrigin?.x ?? null, movementOrigin?.y ?? null, now, tokenId, encounter.id)
       .run();
     if ((result.meta.changes ?? 0) !== 1) {
       return json(
@@ -1589,6 +1599,8 @@ async function handleApi(
       tokenId,
       from: previous,
       to: { x, y },
+      previousAltitude: token.altitude,
+      altitude: requestedAltitude,
       distance,
       previousMovementUsed: token.movement_used,
       previousMovementOrigin,

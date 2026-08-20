@@ -18,6 +18,7 @@ const token = {
   size: "medium",
   x: 5,
   y: 5,
+  altitude: 0,
   movementOrigin: null,
   controlledByViewer: true,
 } as SharedToken;
@@ -176,6 +177,31 @@ describe("useBattleMapGestures", () => {
     act(() => result.current.onCanvasPointerUp(pointerEvent(token.x + 2, token.y + 1)));
 
     expect(onMoveToken).toHaveBeenCalledOnce();
-    expect(onMoveToken).toHaveBeenCalledWith(token.id, expect.objectContaining({ x: token.x + 2, y: token.y + 1 }));
+    expect(onMoveToken).toHaveBeenCalledWith(token.id, expect.objectContaining({ x: token.x + 2, y: token.y + 1, altitude: 0 }));
+  });
+
+  it("uses the wheel to change altitude while dragging and commits height with the move", () => {
+    const onMoveToken = vi.fn();
+    const { result } = renderGestures({ canMoveToken: () => true, onMoveToken });
+    const rect = { left: 0, top: 0, width: 1200, height: 800 } as DOMRect;
+    const canvas = {
+      getBoundingClientRect: () => rect,
+      setPointerCapture: vi.fn(),
+      hasPointerCapture: () => true,
+      releasePointerCapture: vi.fn(),
+    } as unknown as HTMLCanvasElement;
+    const geometry = viewportGeometry(result.current.viewport, state, rect.width, rect.height);
+    const pointerEvent = {
+      button: 0, pointerId: 9,
+      clientX: geometry.offsetX + (token.x - geometry.panX) * geometry.cellSize,
+      clientY: geometry.offsetY + (token.y - geometry.panY) * geometry.cellSize,
+      currentTarget: canvas, preventDefault: vi.fn(),
+    } as unknown as React.PointerEvent<HTMLCanvasElement>;
+    act(() => result.current.onCanvasPointerDown(pointerEvent));
+    const wheelEvent = { currentTarget: canvas, clientX: 0, clientY: 0, deltaY: -100, preventDefault: vi.fn() } as unknown as React.WheelEvent<HTMLCanvasElement>;
+    act(() => result.current.onCanvasWheel(wheelEvent));
+    expect(result.current.preview).toMatchObject({ altitude: 5 });
+    act(() => result.current.onCanvasPointerUp(pointerEvent));
+    expect(onMoveToken).toHaveBeenCalledWith(token.id, expect.objectContaining({ altitude: 5 }));
   });
 });

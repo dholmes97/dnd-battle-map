@@ -1,5 +1,6 @@
 import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
 import { transitionHp } from "../../shared/encounter-transitions.ts";
+import { normalizeAltitude } from "../../shared/token-altitude.ts";
 import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
@@ -34,6 +35,11 @@ export async function createSpellEffect(context: TokenEffectCommandContext<"crea
     x: clamp(context.payload.x, context.encounter.gridWidth, spell.size),
     y: clamp(context.payload.y, context.encounter.gridHeight, spell.size),
     speed: 0,
+    flySpeed: null,
+    swimSpeed: null,
+    climbSpeed: null,
+    burrowSpeed: null,
+    altitude: 0,
     armorClass: null,
     hp: null,
     maxHp: null,
@@ -73,6 +79,11 @@ export async function createToken(context: TokenEffectCommandContext<"create-tok
     x: clamp(context.payload.x, context.encounter.gridWidth, size),
     y: clamp(context.payload.y, context.encounter.gridHeight, size),
     speed: Math.min(120, Math.max(0, Math.trunc(context.payload.speed) || 30)),
+    flySpeed: secondarySpeed(context.payload.flySpeed),
+    swimSpeed: secondarySpeed(context.payload.swimSpeed),
+    climbSpeed: secondarySpeed(context.payload.climbSpeed),
+    burrowSpeed: secondarySpeed(context.payload.burrowSpeed),
+    altitude: 0,
     armorClass: Number.isFinite(context.payload.armorClass)
       ? Math.min(40, Math.max(1, Math.trunc(context.payload.armorClass!)))
       : null,
@@ -120,6 +131,13 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     speed: Number.isFinite(context.payload.speed)
       ? Math.min(120, Math.max(0, Math.trunc(context.payload.speed!)))
       : token.speed,
+    flySpeed: token.fly_speed,
+    swimSpeed: token.swim_speed,
+    climbSpeed: token.climb_speed,
+    burrowSpeed: token.burrow_speed,
+    altitude: context.payload.altitude === undefined
+      ? token.altitude
+      : normalizeAltitude(context.payload.altitude),
     armorClass: Number.isFinite(context.payload.armorClass)
       ? Math.min(40, Math.max(1, Math.trunc(context.payload.armorClass!)))
       : token.armor_class,
@@ -143,6 +161,11 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     name: next.name,
     size: next.size,
     speed: next.speed,
+    fly_speed: next.flySpeed,
+    swim_speed: next.swimSpeed,
+    climb_speed: next.climbSpeed,
+    burrow_speed: next.burrowSpeed,
+    altitude: next.altitude,
     armor_class: next.armorClass,
     hp: next.hp,
     max_hp: next.maxHp,
@@ -254,6 +277,11 @@ function tokenSnapshot(token: TokenRow) {
     kind: token.kind,
     size: token.size,
     speed: token.speed,
+    flySpeed: token.fly_speed,
+    swimSpeed: token.swim_speed,
+    climbSpeed: token.climb_speed,
+    burrowSpeed: token.burrow_speed,
+    altitude: token.altitude,
     armorClass: token.armor_class,
     hp: token.hp,
     maxHp: token.max_hp,
@@ -280,6 +308,9 @@ async function createTokenEntity(
     token: {
       tokenId, name: token.name, kind: token.kind, size: token.size, x: token.x, y: token.y,
       speed: token.speed, armorClass: token.armorClass, hp: token.hp, maxHp: token.maxHp, hidden: token.hidden,
+      flySpeed: token.flySpeed, swimSpeed: token.swimSpeed,
+      climbSpeed: token.climbSpeed, burrowSpeed: token.burrowSpeed,
+      altitude: token.altitude,
       summonerTokenId: token.summonerTokenId, artAsset: token.artAsset,
       initiative: token.initiative, initiativeGroupId: null,
       initiativeOrder: token.initiativeOrder,
@@ -296,6 +327,9 @@ async function validPlayerSummoner(context: TokenEffectCommandContext, token: To
 function tokenChange(previous: TokenRow, next: TokenRow) {
   const view = (token: TokenRow) => ({
     name: token.name, size: token.size, x: token.x, y: token.y, speed: token.speed,
+    flySpeed: token.fly_speed, swimSpeed: token.swim_speed,
+    climbSpeed: token.climb_speed, burrowSpeed: token.burrow_speed,
+    altitude: token.altitude,
     armorClass: token.armor_class, hp: token.hp, maxHp: token.max_hp,
     hidden: Boolean(token.is_hidden), artAsset: token.art_asset,
   });
@@ -307,6 +341,11 @@ function clamp(value: unknown, limit: number, size: CreatureSize) {
   const numeric = Number(value);
   const fallback = limit / 2;
   return Math.round(Math.min(limit - radius, Math.max(radius, Number.isFinite(numeric) ? numeric : fallback)) * 1_000) / 1_000;
+}
+
+function secondarySpeed(value: unknown) {
+  const speed = Math.trunc(Number(value));
+  return Number.isFinite(speed) && speed > 0 ? Math.min(240, speed) : null;
 }
 
 function cleanText(value: unknown, max: number) {

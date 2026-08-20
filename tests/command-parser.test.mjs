@@ -52,6 +52,15 @@ test("command parser accepts empty, map, and optional payload variants", () => {
   assert.equal(applied.ok && applied.request.payload.mapPackage.id, mapPackage.id);
   assert.equal(parseCommandRequest({ command: "apply-map-package" }).ok, false);
   assert.equal(parseCommandRequest({ command: "send-chat-message", message: "Hello", handoutId: null }).ok, true);
+  const creature = parseCommandRequest({
+    command: "create-token", name: "Dragon", kind: "monster", size: "large", speed: 40,
+    flySpeed: 80, swimSpeed: 40, x: 3, y: 4,
+  });
+  assert.equal(creature.ok, true);
+  assert.deepEqual(creature.ok && creature.request.payload, {
+    name: "Dragon", kind: "monster", size: "large", speed: 40,
+    flySpeed: 80, swimSpeed: 40, x: 3, y: 4,
+  });
 });
 
 test("command parser also accepts an explicit payload envelope for adapter flexibility", () => {

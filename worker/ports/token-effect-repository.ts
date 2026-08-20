@@ -16,6 +16,11 @@ export type TokenWrite = {
   kind: string;
   size: TokenRow["size"];
   speed: number;
+  flySpeed: number | null;
+  swimSpeed: number | null;
+  climbSpeed: number | null;
+  burrowSpeed: number | null;
+  altitude: number;
   armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
