@@ -160,4 +160,11 @@ test("effects and deletion enforce token control", async () => {
     repository: { findToken: async () => token({ id: "spell", kind: "spell-effect" }) },
   });
   assert.equal((await deleteToken(allowedSpell)).payload.deleted, true);
+  const dismissal = allowedSpell.calls.find(([name]) => name === "record");
+  assert.equal(dismissal[1], "spell_effect_dismissed");
+  assert.deepEqual(dismissal[2].token, {
+    name: "Hero", x: 4, y: 4, artAsset: "hero.png", kind: "spell-effect",
+    size: "medium", speed: 30, armorClass: 18, hp: 20, maxHp: 30,
+    hidden: false, summonerTokenId: null, initiative: 18, initiativeOrder: 0,
+  });
 });

@@ -27,6 +27,7 @@ import { useMapAssets } from "@/app/use-map-assets";
 import { BattleMapCommandBar, type AnnotationMode } from "@/app/battle-map-command-bar";
 import { EncounterDialogs } from "@/app/encounter-dialogs";
 import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
+import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
@@ -479,6 +480,12 @@ export default function BattleMapPrototype() {
     setSelectedTokenId((current) => current === token.id ? null : current);
     await removeTokenOptimistically(token, token.kind === SPELL_EFFECT_KIND ? `${token.name} dismissed.` : "Token removed.");
   };
+
+  useSpellDismissShortcut({
+    enabled: appView === "map" && !workshopOpen,
+    selectedToken,
+    onDismiss: (token) => { void deleteToken(token); },
+  });
 
   const publishMove = async (tokenId: string, destination: MapPoint, encounter = state?.encounter.code) => {
     const result = await moveTokenOptimistically(tokenId, destination, encounter);

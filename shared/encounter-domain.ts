@@ -32,6 +32,7 @@ export function historyConflictMessage(direction: string, actionType: string): s
     annotation_added: `This drawing cannot be ${direction} because it was changed, erased, or cleared.`,
     annotation_removed: `This erased drawing cannot be ${direction} because the drawing changed again.`,
     token_created: `This placement cannot be ${direction} because the token was deleted, reassigned, or otherwise changed.`,
+    spell_effect_dismissed: `This spell dismissal cannot be ${direction} because the spell effect was changed or dismissed again.`,
     token_updated: `This token edit cannot be ${direction} because the token no longer exists or its details changed again.`,
   };
   return messages[actionType] ?? `This action cannot be ${direction} because its shared state changed.`;

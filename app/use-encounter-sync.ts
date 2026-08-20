@@ -415,7 +415,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     (current) => ({ ...current, tokens: current.tokens.filter((candidate) => candidate.id !== token.id) }),
     success,
     undefined,
-    false,
+    token.kind === SPELL_EFFECT_KIND,
   ));
 
   const moveTokenOptimistically = async (

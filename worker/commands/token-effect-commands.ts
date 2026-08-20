@@ -237,8 +237,31 @@ export async function deleteToken(context: TokenEffectCommandContext<"delete-tok
     return commandError("Only the DM can delete this token.", 403);
   }
   await context.repository.deleteToken(context.encounter.id, tokenId);
-  await finish(context, "token_deleted", { tokenId });
+  await finish(
+    context,
+    token.kind === SPELL_EFFECT_KIND ? "spell_effect_dismissed" : "token_deleted",
+    token.kind === SPELL_EFFECT_KIND ? { tokenId, token: tokenSnapshot(token) } : { tokenId },
+  );
   return success(context, { deleted: true });
+}
+
+function tokenSnapshot(token: TokenRow) {
+  return {
+    name: token.name,
+    x: token.x,
+    y: token.y,
+    artAsset: token.art_asset,
+    kind: token.kind,
+    size: token.size,
+    speed: token.speed,
+    armorClass: token.armor_class,
+    hp: token.hp,
+    maxHp: token.max_hp,
+    hidden: Boolean(token.is_hidden),
+    summonerTokenId: token.summoner_token_id,
+    initiative: token.initiative,
+    initiativeOrder: token.initiative_order,
+  };
 }
 
 async function createTokenEntity(

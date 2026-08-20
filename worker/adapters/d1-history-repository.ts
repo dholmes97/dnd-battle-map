@@ -155,6 +155,11 @@ async function applyAction(
     }
     return insertToken(db, encounterId, tokenId, (payload.token ?? payload) as Record<string, unknown>, now);
   }
+  if (actionType === "spell_effect_dismissed") {
+    return undo
+      ? insertToken(db, encounterId, tokenId, payload.token as Record<string, unknown>, now)
+      : deleteRow(db, "tokens", tokenId, encounterId);
+  }
   if (actionType === "token_updated") {
     const value = payload[undo ? "previous" : "next"] as Record<string, unknown> | undefined;
     return value ? updateToken(db, encounterId, tokenId, value, input, now) : 0;
@@ -243,7 +248,8 @@ async function insertToken(db: D1Database, encounterId: string, tokenId: string,
   ).bind(
     tokenId, encounterId, cleanText(token.name, 48), Number(token.x), Number(token.y),
     token.artAsset ?? null, cleanText(token.kind, 16) || "monster",
-    isCreatureSize(token.size) ? token.size : "medium", Number(token.speed) || 30,
+    isCreatureSize(token.size) ? token.size : "medium",
+    Number.isFinite(Number(token.speed)) ? Number(token.speed) : 30,
     cleanArmorClass(token.armorClass), token.hp ?? null, token.maxHp ?? null, token.hidden ? 1 : 0,
     cleanId(token.summonerTokenId) || null, token.initiative ?? null,
     token.initiativeOrder ?? null, now,
@@ -282,7 +288,7 @@ function cleanArmorClass(value: unknown) {
   return Number.isFinite(armorClass) && armorClass >= 1 && armorClass <= 40 ? armorClass : null;
 }
 
-async function deleteRow(db: D1Database, table: "effects" | "annotations", id: string, encounterId: string) {
+async function deleteRow(db: D1Database, table: "effects" | "annotations" | "tokens", id: string, encounterId: string) {
   const result = await db.prepare(`DELETE FROM ${table} WHERE id = ? AND encounter_id = ?`)
     .bind(id, encounterId).run();
   return changes(result);
