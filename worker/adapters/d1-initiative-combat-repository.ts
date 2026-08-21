@@ -1,5 +1,6 @@
 import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
 import type { TokenRow } from "../types.ts";
+import { MAX_TOKENS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -16,16 +17,16 @@ export function createD1InitiativeCombatRepository(db: D1Database): InitiativeCo
     async activeLeaderIds(encounterId, activeOrder) {
       if (activeOrder === null) return [];
       const rows = await db.prepare(
-        `SELECT DISTINCT CASE WHEN summoner_token_id IS NULL THEN id ELSE summoner_token_id END AS id
-         FROM tokens WHERE encounter_id = ? AND initiative_order = ?`,
-      ).bind(encounterId, activeOrder).all<{ id: string }>();
+         `SELECT DISTINCT CASE WHEN summoner_token_id IS NULL THEN id ELSE summoner_token_id END AS id
+         FROM tokens WHERE encounter_id = ? AND initiative_order = ? LIMIT ?`,
+      ).bind(encounterId, activeOrder, MAX_TOKENS_PER_ENCOUNTER).all<{ id: string }>();
       return rows.results.map((row) => row.id);
     },
     async listInitiativeTokens(encounterId) {
       const rows = await db.prepare(
         `SELECT id, name, initiative, initiative_group_id, summoner_token_id
-         FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
-      ).bind(encounterId).all<{
+         FROM tokens WHERE encounter_id = ? ORDER BY name, id LIMIT ?`,
+      ).bind(encounterId, MAX_TOKENS_PER_ENCOUNTER).all<{
         id: string;
         name: string;
         initiative: number | null;
@@ -86,9 +87,9 @@ export function createD1InitiativeCombatRepository(db: D1Database): InitiativeCo
     },
     async listOrders(encounterId) {
       const rows = await db.prepare(
-        `SELECT DISTINCT initiative_order FROM tokens
-         WHERE encounter_id = ? AND initiative_order IS NOT NULL ORDER BY initiative_order`,
-      ).bind(encounterId).all<{ initiative_order: number }>();
+         `SELECT DISTINCT initiative_order FROM tokens
+         WHERE encounter_id = ? AND initiative_order IS NOT NULL ORDER BY initiative_order LIMIT ?`,
+      ).bind(encounterId, MAX_TOKENS_PER_ENCOUNTER).all<{ initiative_order: number }>();
       return rows.results.map((row) => row.initiative_order);
     },
     async exitCombat(encounterId, now) {

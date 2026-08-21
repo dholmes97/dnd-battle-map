@@ -40,6 +40,18 @@ test("command parser rejects missing, mismatched, and malformed payloads", () =>
   ]) assert.equal(parseCommandRequest(value).ok, false);
 });
 
+test("command parser bounds collection-valued writes before command execution", () => {
+  assert.equal(parseCommandRequest({
+    command: "set-initiative-group",
+    tokenIds: Array.from({ length: 101 }, (_, index) => `token-${index}`),
+    initiative: 10,
+  }).ok, false);
+  assert.equal(parseCommandRequest({
+    command: "update-shared-fog",
+    polygon: Array.from({ length: 101 }, (_, index) => ({ x: index % 10, y: index % 8 })),
+  }).ok, false);
+});
+
 test("command parser accepts empty, map, and optional payload variants", () => {
   const mapPackage = createFullSceneMap(FULL_SCENE_MAPS[0]);
   assert.deepEqual(parseCommandRequest({ command: "undo", ignored: true }), {

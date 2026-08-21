@@ -14,7 +14,7 @@ function context(overrides = {}) {
       now: 1234,
       repository: {
         handoutIsAvailable: async () => true,
-        writeChatMessage: async (message) => calls.push(["message", message]),
+        writeChatMessage: async (message) => { calls.push(["message", message]); return true; },
         findDeletableHandout: async () => ({ id: "handout-1", displayKey: "display", thumbnailKey: "thumbnail" }),
         countHandoutReferences: async () => 3,
         markHandoutDeleted: async (...args) => calls.push(["deleted", ...args]),
@@ -67,6 +67,18 @@ test("players cannot send handouts or private messages to another player", async
     payload: { message: "secret", recipientName: "Barry" },
   });
   assert.equal((await sendChatMessage(privateMessage.value)).status, 403);
+});
+
+test("chat quota failure preserves existing durable messages and does not bump state", async () => {
+  const fixture = context({
+    payload: { message: "One too many" },
+    repository: {
+      ...context().value.repository,
+      writeChatMessage: async () => false,
+    },
+  });
+  assert.equal((await sendChatMessage(fixture.value)).status, 409);
+  assert.deepEqual(fixture.calls, []);
 });
 
 test("handout deletion removes both derived objects without reading D1 directly", async () => {

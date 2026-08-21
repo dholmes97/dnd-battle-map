@@ -8,6 +8,12 @@ import { bearerSecretMatches, parseEmailAllowlist } from "../shared/secret-auth.
 import { createD1ScenarioProvisioningRepository, createR2ScenarioProvisioningStorage } from "./adapters/d1-scenario-provisioning-repository.ts";
 import { ScenarioProvisioningWriteError } from "./ports/scenario-provisioning-repository.ts";
 import { createScenarioProvisioningService } from "./scenario-provisioning-service.ts";
+import {
+  RequestBodyError,
+  parseContentLength,
+  readBoundedJsonObject,
+  readBoundedRequestBytes,
+} from "./request-security.ts";
 import type { Env } from "./types.ts";
 
 const JOB_ROUTE = /^\/api\/scenario-provisioning\/jobs(?:\/([a-zA-Z0-9-]{1,64})(?:\/(assets\/([a-zA-Z0-9._-]{1,96})|finalize))?)?$/;
@@ -75,9 +81,14 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
       if (contentLength === null) throw new ScenarioProvisioningWriteError("asset_size_invalid", "The asset Content-Length is invalid.", 400);
       if (contentLength === undefined) throw new ScenarioProvisioningWriteError("length_required", "Asset uploads require Content-Length.", 411);
       if (contentLength > SCENARIO_PROVISIONING_MAP_MAX_BYTES) throw new ScenarioProvisioningWriteError("asset_size_invalid", "The uploaded asset exceeds the provisioning byte limit.", 413);
-      const bytes = new Uint8Array(await request.arrayBuffer());
-      if (contentLength !== bytes.byteLength) {
-        throw new ScenarioProvisioningWriteError("asset_size_invalid", "The uploaded asset length does not match Content-Length.", 400);
+      let bytes: Uint8Array;
+      try {
+        bytes = await readBoundedRequestBytes(request, SCENARIO_PROVISIONING_MAP_MAX_BYTES);
+      } catch (error) {
+        if (error instanceof RequestBodyError) {
+          throw new ScenarioProvisioningWriteError(error.code, error.message, error.status);
+        }
+        throw error;
       }
       const asset = await service.stageAsset(jobId, assetId!, contentType, bytes);
       return json({
@@ -113,16 +124,16 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
     if (error instanceof ScenarioProvisioningWriteError) {
       return json({ error: error.message, code: error.code }, { status: error.status });
     }
+    const limit = String(error).match(/resource_limit:([a-z_]+)/)?.[1];
+    if (limit) {
+      return json(
+        { error: `The ${limit.replaceAll("_", " ")} limit has been reached.`, code: "resource_limit" },
+        { status: 409 },
+      );
+    }
     console.error("Scenario provisioning API error", error);
     return json({ error: "The scenario provisioning request failed safely.", code: "internal_error" }, { status: 500 });
   }
-}
-
-function parseContentLength(value: string | null): number | null | undefined {
-  if (value === null) return undefined;
-  if (!/^(0|[1-9]\d*)$/.test(value)) return null;
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 async function readJsonBody(request: Request, maximumBytes: number): Promise<Record<string, unknown>> {
@@ -130,14 +141,13 @@ async function readJsonBody(request: Request, maximumBytes: number): Promise<Rec
   if (length === null) throw new ScenarioProvisioningWriteError("request_size_invalid", "The request Content-Length is invalid.", 400);
   if (length === undefined) throw new ScenarioProvisioningWriteError("length_required", "JSON requests require Content-Length.", 411);
   if (length > maximumBytes) throw new ScenarioProvisioningWriteError("request_too_large", "The JSON request is too large.", 413);
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  if (bytes.byteLength > maximumBytes) throw new ScenarioProvisioningWriteError("request_too_large", "The JSON request is too large.", 413);
   try {
-    const value = JSON.parse(new TextDecoder().decode(bytes));
-    if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("not an object");
-    return value as Record<string, unknown>;
-  } catch {
-    throw new ScenarioProvisioningWriteError("json_invalid", "The request body must be a JSON object.", 400);
+    return await readBoundedJsonObject(request, maximumBytes);
+  } catch (error) {
+    if (error instanceof RequestBodyError) {
+      throw new ScenarioProvisioningWriteError(error.code, error.message, error.status);
+    }
+    throw error;
   }
 }
 

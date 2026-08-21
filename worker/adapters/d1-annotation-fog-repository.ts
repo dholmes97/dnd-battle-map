@@ -2,6 +2,7 @@ import type {
   AnnotationFogRepository,
   DurableAnnotation,
 } from "../ports/annotation-fog-repository.ts";
+import { MAX_ANNOTATIONS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 
 export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRepository {
   return {
@@ -18,11 +19,12 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
     },
 
     async insertAnnotation(encounterId, annotation) {
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO annotations
          (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
           created_by, expires_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE (SELECT COUNT(*) FROM annotations WHERE encounter_id = ?) < ?`,
       ).bind(
         annotation.id,
         encounterId,
@@ -36,7 +38,10 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
         annotation.createdBy,
         annotation.expiresAt,
         annotation.createdAt,
+        encounterId,
+        MAX_ANNOTATIONS_PER_ENCOUNTER,
       ).run();
+      return (result.meta.changes ?? 0) === 1;
     },
 
     async clearAnnotations(encounterId) {

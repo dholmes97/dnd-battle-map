@@ -2,6 +2,7 @@ import { tokenRadiusCells } from "../../shared/creature-library.ts";
 import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import { baseTokenControllerName } from "../../shared/token-control.ts";
+import { MAX_SCENARIOS } from "../../shared/resource-limits.ts";
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
 import { commandError, requireDm, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
@@ -54,6 +55,9 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
   const name = cleanText(context.payload.name, 64);
   const mode = context.payload.mode;
   if (name.length < 3) return commandError("Scenario name must be at least three characters.", 400);
+  if (await context.repository.countScenarios() >= MAX_SCENARIOS) {
+    return commandError("The campaign has reached its scenario limit.", 409);
+  }
   const code = await uniqueScenarioCode(context.repository, name);
   const sourceTokens = await context.repository.listScenarioTokens(context.encounter.id);
   const selected = mode === "duplicate"
@@ -127,7 +131,8 @@ export async function saveMapPreset(context: ScenarioMapCommandContext<"save-map
     participantId: context.participant.id,
     now: context.now,
   }, Boolean(requestedId));
-  if (!saved) return commandError("Saved map preset not found.", 404);
+  if (saved === "missing") return commandError("Saved map preset not found.", 404);
+  if (saved === "limit") return commandError("This scenario has reached its saved-map limit. Delete a preset before saving another.", 409);
   await finish(context, requestedId ? "map_preset_updated" : "map_preset_saved", { presetId, name });
   return success(context, { saved: true, presetId });
 }

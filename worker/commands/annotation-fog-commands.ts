@@ -1,3 +1,4 @@
+import { annotationGeometryIsBounded } from "../../shared/annotation-geometry.ts";
 import { ensureSharedFogPolygon } from "../../shared/fog-of-war.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import type { SharedAnnotation } from "../../shared/contracts.ts";
@@ -87,8 +88,12 @@ export async function addAnnotation(context: AnnotationFogCommandContext<"add-an
   const y = context.payload.y;
   const x2 = context.payload.x2 ?? null;
   const y2 = context.payload.y2 ?? null;
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > context.encounter.gridWidth || y > context.encounter.gridHeight) {
-    return commandError("Annotation is outside the map.", 400);
+  if (!annotationGeometryIsBounded(
+    { type: annotationType, x, y, x2, y2 },
+    context.encounter.gridWidth,
+    context.encounter.gridHeight,
+  )) {
+    return commandError("Annotation geometry is outside the map.", 400);
   }
   const expiresAt = annotationType === "ping"
     ? context.now + PING_TTL_MS
@@ -109,7 +114,9 @@ export async function addAnnotation(context: AnnotationFogCommandContext<"add-an
     expiresAt,
     createdAt: context.now,
   };
-  await context.repository.insertAnnotation(context.encounter.id, annotation);
+  if (!await context.repository.insertAnnotation(context.encounter.id, annotation)) {
+    return commandError("This scenario has reached its annotation limit. Clear old annotations before adding another.", 409);
+  }
   await finish(context, "annotation_added", { annotationId, annotation });
   return success(context, { added: true, annotationId });
 }

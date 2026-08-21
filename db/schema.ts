@@ -12,6 +12,27 @@ export const appMaintenance = sqliteTable("app_maintenance", {
   completedAt: integer("completed_at").notNull(),
 });
 
+export const requestRateLimits = sqliteTable(
+  "request_rate_limits",
+  {
+    key: text("key").primaryKey(),
+    requestCount: integer("request_count").notNull(),
+    windowEndsAt: integer("window_ends_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [index("idx_request_rate_limits_expiry").on(table.windowEndsAt)],
+);
+
+export const operationLeases = sqliteTable(
+  "operation_leases",
+  {
+    key: text("key").primaryKey(),
+    leaseToken: text("lease_token").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("idx_operation_leases_expiry").on(table.expiresAt)],
+);
+
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),

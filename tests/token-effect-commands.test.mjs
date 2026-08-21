@@ -47,12 +47,12 @@ function context(overrides = {}) {
   const calls = [];
   const repository = {
     findToken: async () => token(),
-    createToken: async (value) => calls.push(["create", value]),
+    createToken: async (value) => { calls.push(["create", value]); return true; },
     resizeToken: async (...args) => calls.push(["resize", ...args]),
     updateToken: async (value) => calls.push(["update", value]),
     hasConcentration: async () => false,
     updateHp: async (...args) => calls.push(["hp", ...args]),
-    addEffect: async (value) => calls.push(["effect", value]),
+    addEffect: async (value) => { calls.push(["effect", value]); return true; },
     findEffect: async () => null,
     removeEffect: async (...args) => calls.push(["remove-effect", ...args]),
     deleteToken: async (...args) => calls.push(["delete", ...args]),
@@ -176,4 +176,20 @@ test("effects and deletion enforce token control", async () => {
     burrowSpeed: null, altitude: 0, armorClass: 18, hp: 20, maxHp: 30,
     hidden: false, summonerTokenId: null, initiative: 18, initiativeOrder: 0,
   });
+});
+
+test("token and effect quotas fail before state version or history changes", async () => {
+  const tokenQuota = context({
+    payload: { name: "Wolf", kind: "monster", x: 3, y: 3 },
+    repository: { createToken: async () => false },
+  });
+  assert.equal((await createToken(tokenQuota)).status, 409);
+  assert.deepEqual(tokenQuota.calls, []);
+
+  const effectQuota = context({
+    payload: { tokenId: "token", name: "Bless" },
+    repository: { addEffect: async () => false },
+  });
+  assert.equal((await addEffect(effectQuota)).status, 409);
+  assert.deepEqual(effectQuota.calls, []);
 });

@@ -37,10 +37,11 @@ export type MapPresetWrite = {
 
 export interface ScenarioMapRepository {
   renameScenario(encounterId: string, name: string, now: number): Promise<void>;
+  countScenarios(): Promise<number>;
   scenarioCodeExists(code: string): Promise<boolean>;
   listScenarioTokens(encounterId: string): Promise<TokenRow[]>;
   createScenario(input: NewScenarioWrite): Promise<void>;
-  saveMapPreset(input: MapPresetWrite, update: boolean): Promise<boolean>;
+  saveMapPreset(input: MapPresetWrite, update: boolean): Promise<"saved" | "missing" | "limit">;
   deleteMapPreset(encounterId: string, presetId: string): Promise<boolean>;
   clearActivePreset(encounterId: string): Promise<void>;
   loadMapPreset(encounterId: string, presetId: string): Promise<string | null>;

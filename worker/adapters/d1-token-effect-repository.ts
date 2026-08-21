@@ -1,5 +1,10 @@
 import type { TokenEffectRepository } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
+import {
+  MAX_EFFECTS_PER_ENCOUNTER,
+  MAX_EFFECTS_PER_TOKEN,
+  MAX_TOKENS_PER_ENCOUNTER,
+} from "../../shared/resource-limits.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -14,13 +19,14 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       ).bind(tokenId, encounterId).first<TokenRow>() ?? null;
     },
     async createToken(input) {
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO tokens
          (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
           climb_speed, burrow_speed, armor_class, hp, max_hp,
           is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
           movement_used, altitude, owner_participant_id, owner_name, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL, ?
+         WHERE (SELECT COUNT(*) FROM tokens WHERE encounter_id = ?) < ?`,
       ).bind(
         input.id,
         input.encounterId,
@@ -44,7 +50,10 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.initiativeOrder,
         input.altitude,
         input.now,
+        input.encounterId,
+        MAX_TOKENS_PER_ENCOUNTER,
       ).run();
+      return (result.meta.changes ?? 0) === 1;
     },
     async resizeToken(encounterId, tokenId, size, x, y, now) {
       await db.prepare(
@@ -90,11 +99,13 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       ).bind(hp, now, tokenId, encounterId).run();
     },
     async addEffect(input) {
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO effects
          (id, encounter_id, token_id, name, effect_type, duration_rounds,
           expires_round, reminder_timing, created_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE (SELECT COUNT(*) FROM effects WHERE encounter_id = ?) < ?
+           AND (SELECT COUNT(*) FROM effects WHERE encounter_id = ? AND token_id = ?) < ?`,
       ).bind(
         input.id,
         input.encounterId,
@@ -106,7 +117,13 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.reminderTiming,
         input.participantId,
         input.now,
+        input.encounterId,
+        MAX_EFFECTS_PER_ENCOUNTER,
+        input.encounterId,
+        input.tokenId,
+        MAX_EFFECTS_PER_TOKEN,
       ).run();
+      return (result.meta.changes ?? 0) === 1;
     },
     async findEffect(encounterId, effectId) {
       const row = await db.prepare(

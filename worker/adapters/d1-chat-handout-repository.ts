@@ -3,6 +3,7 @@ import type {
   ChatMessageWrite,
   HandoutObjectStorage,
 } from "../ports/chat-handout-repository.ts";
+import { MAX_CHAT_MESSAGES_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 
 export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutRepository {
   return {
@@ -14,10 +15,11 @@ export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutReposi
     },
 
     async writeChatMessage(message: ChatMessageWrite) {
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO chat_messages
          (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, show_immediately, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE (SELECT COUNT(*) FROM chat_messages WHERE encounter_id = ?) < ?`,
       ).bind(
         message.id,
         message.encounterId,
@@ -28,7 +30,10 @@ export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutReposi
         message.handoutId,
         message.showImmediately ? 1 : 0,
         message.createdAt,
+        message.encounterId,
+        MAX_CHAT_MESSAGES_PER_ENCOUNTER,
       ).run();
+      return (result.meta.changes ?? 0) === 1;
     },
 
     async findDeletableHandout(encounterId, handoutId) {

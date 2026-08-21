@@ -33,7 +33,7 @@ export type TokenWrite = {
 
 export interface TokenEffectRepository {
   findToken(encounterId: string, tokenId: string): Promise<TokenRow | null>;
-  createToken(input: TokenWrite): Promise<void>;
+  createToken(input: TokenWrite): Promise<boolean>;
   resizeToken(
     encounterId: string,
     tokenId: string,
@@ -56,7 +56,7 @@ export interface TokenEffectRepository {
     reminderTiming: string;
     participantId: string;
     now: number;
-  }): Promise<void>;
+  }): Promise<boolean>;
   findEffect(encounterId: string, effectId: string): Promise<EffectWithToken | null>;
   removeEffect(encounterId: string, effectId: string): Promise<void>;
   deleteToken(encounterId: string, tokenId: string): Promise<void>;

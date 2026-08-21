@@ -1,5 +1,9 @@
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
 import type { TokenRow } from "../types.ts";
+import {
+  MAX_MAP_PRESETS_PER_ENCOUNTER,
+  MAX_TOKENS_PER_ENCOUNTER,
+} from "../../shared/resource-limits.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -13,6 +17,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         "UPDATE encounters SET name = ?, version = version + 1, updated_at = ? WHERE id = ?",
       ).bind(name, now, encounterId).run();
     },
+    async countScenarios() {
+      const row = await db.prepare("SELECT COUNT(*) AS value FROM encounters").first<{ value: number }>();
+      return Number(row?.value) || 0;
+    },
     async scenarioCodeExists(code) {
       return Boolean(await db.prepare(
         "SELECT 1 AS found FROM encounters WHERE code = ? LIMIT 1",
@@ -20,8 +28,8 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
     },
     async listScenarioTokens(encounterId) {
       const rows = await db.prepare(
-        `SELECT ${TOKEN_COLUMNS} FROM tokens WHERE encounter_id = ? ORDER BY id`,
-      ).bind(encounterId).all<TokenRow>();
+        `SELECT ${TOKEN_COLUMNS} FROM tokens WHERE encounter_id = ? ORDER BY id LIMIT ?`,
+      ).bind(encounterId, MAX_TOKENS_PER_ENCOUNTER).all<TokenRow>();
       return rows.results;
     },
     async createScenario(input) {
@@ -93,13 +101,14 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
           input.id,
           input.encounterId,
         ).run();
-        return (result.meta.changes ?? 0) === 1;
+        return (result.meta.changes ?? 0) === 1 ? "saved" : "missing";
       }
-      await db.prepare(
+      const result = await db.prepare(
         `INSERT INTO map_presets
          (id, encounter_id, name, description, source_prompt, package_json,
           created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE (SELECT COUNT(*) FROM map_presets WHERE encounter_id = ?) < ?`,
       ).bind(
         input.id,
         input.encounterId,
@@ -110,8 +119,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         input.participantId,
         input.now,
         input.now,
+        input.encounterId,
+        MAX_MAP_PRESETS_PER_ENCOUNTER,
       ).run();
-      return true;
+      return (result.meta.changes ?? 0) === 1 ? "saved" : "limit";
     },
     async deleteMapPreset(encounterId, presetId) {
       const result = await db.prepare(
@@ -132,8 +143,8 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
     },
     async listTokenPositions(encounterId) {
       const rows = await db.prepare(
-        "SELECT id, x, y, size FROM tokens WHERE encounter_id = ?",
-      ).bind(encounterId).all<{
+        "SELECT id, x, y, size FROM tokens WHERE encounter_id = ? LIMIT ?",
+      ).bind(encounterId, MAX_TOKENS_PER_ENCOUNTER).all<{
         id: string;
         x: number;
         y: number;

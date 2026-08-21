@@ -48,6 +48,27 @@ import {
 } from "../shared/contracts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
+import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
+import { inspectCatalogPng, type CatalogImageVariant } from "../shared/catalog-image.ts";
+import {
+  API_JSON_BODY_MAX_BYTES,
+  CATALOG_IMAGE_MAX_BYTES,
+  CATALOG_IMAGE_MAX_ENCODED_CHARACTERS,
+  CATALOG_IMPORT_JSON_MAX_BYTES,
+  CATALOG_IMPORT_MAX_DECODED_BYTES,
+  HANDOUT_MULTIPART_MAX_BYTES,
+  MAX_ACTIONS_PER_ENCOUNTER,
+  MAX_ANNOTATIONS_PER_ENCOUNTER,
+  MAX_CATALOG_ENTRIES,
+  MAX_CATALOG_FAMILIES,
+  MAX_EFFECTS_PER_ENCOUNTER,
+  MAX_HANDOUT_ROWS_PER_ENCOUNTER,
+  MAX_MAP_PRESETS_PER_ENCOUNTER,
+  MAX_PARTICIPANTS_PER_ENCOUNTER,
+  MAX_SCENARIOS,
+  MAX_TOKENS_PER_ENCOUNTER,
+  RATE_LIMIT_POLICIES,
+} from "../shared/resource-limits.ts";
 import {
   deleteHandout,
   sendChatMessage,
@@ -100,6 +121,17 @@ import { createD1TokenEffectRepository } from "./adapters/d1-token-effect-reposi
 import { redo, undo, type HistoryCommandContext } from "./commands/history-commands";
 import { createD1HistoryRepository } from "./adapters/d1-history-repository";
 import { createD1ScenarioProvisioningRepository } from "./adapters/d1-scenario-provisioning-repository.ts";
+import {
+  acquireOperationLease,
+  consumeRateLimit,
+  releaseOperationLease,
+  type RateLimitPolicy,
+} from "./adapters/d1-request-guard.ts";
+import {
+  RequestBodyError,
+  readBoundedFormData,
+  readBoundedJsonObject,
+} from "./request-security.ts";
 import { handleScenarioProvisioningApi } from "./scenario-provisioning-api.ts";
 import type {
   ActionRow,
@@ -305,7 +337,61 @@ function json(data: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
   headers.set("content-type", "application/json; charset=utf-8");
   headers.set("cache-control", "no-store");
+  headers.set("x-content-type-options", "nosniff");
   return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+function knownRequestFailure(error: unknown): Response | null {
+  if (error instanceof RequestBodyError) {
+    return json({ error: error.message, code: error.code }, { status: error.status });
+  }
+  const limit = String(error).match(/resource_limit:([a-z_]+)/)?.[1];
+  if (limit) {
+    return json(
+      { error: `This scenario has reached its ${limit.replaceAll("_", " ")} limit.`, code: "resource_limit" },
+      { status: 409 },
+    );
+  }
+  return null;
+}
+
+function apiFailure(error: unknown, label: string, fallback: string): Response {
+  const known = knownRequestFailure(error);
+  if (known) return known;
+  console.error(label, error);
+  return json({ error: fallback }, { status: 500 });
+}
+
+async function requestClientKey(request: Request): Promise<string> {
+  const address = request.headers.get("cf-connecting-ip")?.slice(0, 64) || "local-client";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(address));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function enforceRateLimit(
+  request: Request,
+  env: Env,
+  scope: string,
+  policy: RateLimitPolicy,
+  subject?: string,
+): Promise<Response | null> {
+  const global = await consumeRateLimit(env.DB, `global:${scope}`, {
+    limit: policy.limit * 10,
+    windowMs: policy.windowMs,
+  });
+  if (!global.allowed) {
+    return json(
+      { error: "The service is receiving too many requests. Try again shortly.", code: "rate_limited" },
+      { status: 429, headers: { "retry-after": String(global.retryAfterSeconds) } },
+    );
+  }
+  const client = subject || await requestClientKey(request);
+  const result = await consumeRateLimit(env.DB, `${scope}:${client}`, policy);
+  if (result.allowed) return null;
+  return json(
+    { error: "Too many requests. Try again shortly.", code: "rate_limited" },
+    { status: 429, headers: { "retry-after": String(result.retryAfterSeconds) } },
+  );
 }
 
 function commandOutcomeResponse(outcome: CommandOutcome): Response {
@@ -430,14 +516,6 @@ async function handleProductionR2Backup(request: Request, env: Env, object = fal
   });
 }
 
-async function readJson(request: Request): Promise<Record<string, unknown>> {
-  try {
-    return (await request.json()) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
 function cleanCode(value: string): string {
   try {
     return decodeURIComponent(value)
@@ -483,8 +561,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0021_thankful_randall_flagg.sql";
-const REQUIRED_SCHEMA_MARKER = "scenario-mail-provenance-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0025_resource_guardrails.sql";
+const REQUIRED_SCHEMA_MARKER = "resource-guardrails-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -512,6 +590,8 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
     return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
   }
   await ensureSchema(env);
+  const rateLimited = await enforceRateLimit(request, env, "creature-catalog", RATE_LIMIT_POLICIES.publicRead);
+  if (rateLimited) return rateLimited;
   const url = new URL(request.url);
   const limit = Math.min(48, Math.max(8, Math.trunc(Number(url.searchParams.get("limit"))) || 24));
   const offset = Math.max(0, Math.trunc(Number(url.searchParams.get("cursor"))) || 0);
@@ -539,8 +619,8 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
     .bind(...bindings, limit + 1, offset)
     .all<CreatureCatalogRow>();
   const families = await env.DB.prepare(
-    "SELECT DISTINCT family FROM creature_catalog WHERE is_active = 1 ORDER BY family",
-  ).all<{ family: string }>();
+    "SELECT DISTINCT family FROM creature_catalog WHERE is_active = 1 ORDER BY family LIMIT ?",
+  ).bind(MAX_CATALOG_FAMILIES).all<{ family: string }>();
   const page = rows.results.slice(0, limit);
   return json({
     items: page.map((creature) => ({
@@ -573,17 +653,15 @@ function authorizedCatalogImport(request: Request, env: Env): boolean {
   return bearerSecretMatches(request.headers.get("authorization"), env.CATALOG_IMPORT_TOKEN);
 }
 
-function decodeCatalogImage(value: unknown): Uint8Array | null {
-  if (typeof value !== "string" || value.length === 0 || value.length > 2_800_000) return null;
+function decodeCatalogImage(value: unknown, variant: CatalogImageVariant): Uint8Array | null {
+  if (typeof value !== "string" || value.length === 0 || value.length > CATALOG_IMAGE_MAX_ENCODED_CHARACTERS) return null;
   try {
     const raw = value.replace(/^data:image\/(?:png|webp|jpeg);base64,/i, "");
     const decoded = atob(raw);
-    if (decoded.length === 0 || decoded.length > 2_000_000) return null;
+    if (decoded.length === 0 || decoded.length > CATALOG_IMAGE_MAX_BYTES) return null;
     const bytes = new Uint8Array(decoded.length);
     for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
-    const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-    if (bytes.length < pngSignature.length || pngSignature.some((byte, index) => bytes[index] !== byte)) return null;
-    return bytes;
+    return inspectCatalogPng(bytes, variant) ? bytes : null;
   } catch {
     return null;
   }
@@ -606,7 +684,22 @@ async function handleCreatureCatalogImport(request: Request, env: Env): Promise<
     return json({ error: "Creature asset storage is unavailable." }, { status: 503 });
   }
   await ensureSchema(env);
-  const body = await readJson(request);
+  const rateLimited = await enforceRateLimit(request, env, "catalog-import", RATE_LIMIT_POLICIES.catalogImport, "authorized-importer");
+  if (rateLimited) return rateLimited;
+  const leaseKey = "catalog-import";
+  const lease = await acquireOperationLease(env.DB, leaseKey, 120_000);
+  if (!lease) {
+    return json({ error: "Another catalog import is already running.", code: "operation_in_progress" }, { status: 409 });
+  }
+  try {
+    return await importCreatureCatalogBatch(request, env, env.MAP_ASSETS);
+  } finally {
+    await releaseOperationLease(env.DB, leaseKey, lease);
+  }
+}
+
+async function importCreatureCatalogBatch(request: Request, env: Env, storage: R2Bucket): Promise<Response> {
+  const body = await readBoundedJsonObject(request, CATALOG_IMPORT_JSON_MAX_BYTES);
   const entries = Array.isArray(body.creatures) ? body.creatures : [];
   if (entries.length === 0 || entries.length > 10) {
     return json({ error: "Import one to ten creatures per batch." }, { status: 400 });
@@ -617,6 +710,7 @@ async function handleCreatureCatalogImport(request: Request, env: Env): Promise<
     walk: number; fly: number | null; swim: number | null; climb: number | null; burrow: number | null;
     assetKey: string; tokenAsset: string; thumbnailAsset: string; original: Uint8Array; thumbnail: Uint8Array;
   }> = [];
+  let decodedImageBytes = 0;
   for (const raw of entries) {
     if (!raw || typeof raw !== "object") return json({ error: "Every catalog entry must be an object." }, { status: 400 });
     const entry = raw as Record<string, unknown>;
@@ -635,11 +729,15 @@ async function handleCreatureCatalogImport(request: Request, env: Env): Promise<
     const swim = cleanCatalogSpeed(speeds.swim);
     const climb = cleanCatalogSpeed(speeds.climb);
     const burrow = cleanCatalogSpeed(speeds.burrow);
-    const original = decodeCatalogImage(entry.imageBase64);
-    const thumbnail = decodeCatalogImage(entry.thumbnailBase64);
+    const original = decodeCatalogImage(entry.imageBase64, "original");
+    const thumbnail = decodeCatalogImage(entry.thumbnailBase64, "thumbnail");
     if (!id || !name || !family || !size || !Number.isFinite(defaultHp) || defaultHp < 1 || defaultHp > 10000 ||
         !Number.isFinite(armorClass) || armorClass < 1 || armorClass > 40 || walk === null || !original || !thumbnail) {
       return json({ error: `Invalid catalog metadata or images for ${name || id || "an entry"}.` }, { status: 400 });
+    }
+    decodedImageBytes += original.byteLength + thumbnail.byteLength;
+    if (decodedImageBytes > CATALOG_IMPORT_MAX_DECODED_BYTES) {
+      return json({ error: "The decoded catalog image batch is too large." }, { status: 413 });
     }
     const assetKey = `tokens/catalog/${id}.png`;
     const tokenAsset = `/creature-assets/${assetKey}`;
@@ -647,16 +745,26 @@ async function handleCreatureCatalogImport(request: Request, env: Env): Promise<
       walk, fly, swim, climb, burrow, assetKey, tokenAsset,
       thumbnailAsset: `${tokenAsset}?variant=thumbnail&v=3`, original, thumbnail });
   }
+  const catalogCount = await env.DB.prepare("SELECT COUNT(*) AS value FROM creature_catalog")
+    .first<{ value: number }>();
+  const existingCount = await env.DB.prepare(
+    `SELECT COUNT(*) AS value FROM creature_catalog
+     WHERE id IN (${prepared.map(() => "?").join(", ")})`,
+  ).bind(...prepared.map((creature) => creature.id)).first<{ value: number }>();
+  const newEntries = prepared.length - (existingCount?.value ?? 0);
+  if ((catalogCount?.value ?? 0) + newEntries > MAX_CATALOG_ENTRIES) {
+    return json({ error: "The creature catalog has reached its entry limit." }, { status: 409 });
+  }
   const now = Date.now();
   const currentMax = await env.DB.prepare("SELECT COALESCE(MAX(sort_order), 0) AS value FROM creature_catalog")
     .first<{ value: number }>();
   let sortOrder = currentMax?.value ?? 0;
   for (const creature of prepared) {
     await Promise.all([
-      env.MAP_ASSETS.put(`creature-catalog/original/${creature.assetKey}`, creature.original, {
+      storage.put(`creature-catalog/original/${creature.assetKey}`, creature.original, {
         httpMetadata: { contentType: "image/png", cacheControl: "public, max-age=31536000, immutable" },
       }),
-      env.MAP_ASSETS.put(`creature-catalog/thumbnails/${creature.assetKey}`, creature.thumbnail, {
+      storage.put(`creature-catalog/thumbnails/${creature.assetKey}`, creature.thumbnail, {
         httpMetadata: { contentType: "image/png", cacheControl: "public, max-age=31536000, immutable" },
       }),
     ]);
@@ -712,10 +820,12 @@ async function handleEncounterList(request: Request, env: Env): Promise<Response
     return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
   }
   await ensureSchema(env);
+  const rateLimited = await enforceRateLimit(request, env, "encounter-list", RATE_LIMIT_POLICIES.publicRead);
+  if (rateLimited) return rateLimited;
   const encounters = await env.DB.prepare(
     `SELECT code, name, status, updated_at
-     FROM encounters ORDER BY updated_at DESC, name, code`,
-  ).all<{ code: string; name: string; status: "setup" | "active" | "paused"; updated_at: number }>();
+     FROM encounters ORDER BY updated_at DESC, name, code LIMIT ?`,
+  ).bind(MAX_SCENARIOS).all<{ code: string; name: string; status: "setup" | "active" | "paused"; updated_at: number }>();
   return json({ items: encounters.results.map((encounter) => ({
     code: encounter.code,
     name: encounter.name,
@@ -755,16 +865,34 @@ async function handleHandoutUpload(request: Request, env: Env, code: string): Pr
   if (!participant) return json({ error: "Participant session is invalid." }, { status: 401 });
   if (participant.role !== "dm") return json({ error: "Only the DM can prepare handouts." }, { status: 403 });
   if (!env.MAP_ASSETS) return json({ error: "Handout storage is unavailable." }, { status: 503 });
-  const contentLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > HANDOUT_DISPLAY_MAX_BYTES + HANDOUT_THUMBNAIL_MAX_BYTES + 128_000) {
-    return json({ error: "The prepared handout upload is too large." }, { status: 413 });
+  const rateLimited = await enforceRateLimit(
+    request,
+    env,
+    `handout-upload:${encounter.id}`,
+    RATE_LIMIT_POLICIES.handoutUpload,
+    participant.id,
+  );
+  if (rateLimited) return rateLimited;
+  const leaseKey = `handout-upload:${encounter.id}`;
+  const lease = await acquireOperationLease(env.DB, leaseKey, 60_000);
+  if (!lease) {
+    return json({ error: "Another handout upload is already running.", code: "operation_in_progress" }, { status: 409 });
   }
-  let form: FormData;
   try {
-    form = await request.formData();
-  } catch {
-    return json({ error: "The handout upload could not be read." }, { status: 400 });
+    return await persistHandoutUpload(request, env, env.MAP_ASSETS, encounter, participant);
+  } finally {
+    await releaseOperationLease(env.DB, leaseKey, lease);
   }
+}
+
+async function persistHandoutUpload(
+  request: Request,
+  env: Env,
+  storage: R2Bucket,
+  encounter: EncounterRow,
+  participant: ParticipantRow,
+): Promise<Response> {
+  const form = await readBoundedFormData(request, HANDOUT_MULTIPART_MAX_BYTES);
   const title = cleanHandoutTitle(form.get("title"));
   const replaceId = cleanTokenId(form.get("replaceId"));
   const display = form.get("display");
@@ -824,10 +952,10 @@ async function handleHandoutUpload(request: Request, env: Env, code: string): Pr
   const thumbnailKey = `${storagePrefix}/thumbnail.${fileExtension}`;
   const now = Date.now();
   await Promise.all([
-    env.MAP_ASSETS.put(displayKey, displayBytes, {
+    storage.put(displayKey, displayBytes, {
       httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
     }),
-    env.MAP_ASSETS.put(thumbnailKey, thumbnailBytes, {
+    storage.put(thumbnailKey, thumbnailBytes, {
       httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
     }),
   ]);
@@ -862,17 +990,17 @@ async function handleHandoutUpload(request: Request, env: Env, code: string): Pr
       ).run();
     }
   } catch (error) {
-    await Promise.all([env.MAP_ASSETS.delete(displayKey), env.MAP_ASSETS.delete(thumbnailKey)]);
+    await Promise.all([storage.delete(displayKey), storage.delete(thumbnailKey)]);
     throw error;
   }
   if (replacedHandout) {
     await Promise.allSettled([
-      env.MAP_ASSETS.delete(replacedHandout.display_key),
-      env.MAP_ASSETS.delete(replacedHandout.thumbnail_key),
+      storage.delete(replacedHandout.display_key),
+      storage.delete(replacedHandout.thumbnail_key),
     ]);
   }
   await bumpEncounter(env, encounter.id, now);
-  return json({ handoutId, replaced: Boolean(replacedHandout), state: await encounterState(env, code, participant) }, { status: replacedHandout ? 200 : 201 });
+  return json({ handoutId, replaced: Boolean(replacedHandout), state: await encounterState(env, encounter.code, participant) }, { status: replacedHandout ? 200 : 201 });
 }
 
 async function handleHandoutAsset(
@@ -888,6 +1016,14 @@ async function handleHandoutAsset(
   if (!encounter) return new Response("Not found", { status: 404 });
   const participant = await participantFromHeaders(request, env, encounter.id);
   if (!participant) return new Response("Unauthorized", { status: 401 });
+  const rateLimited = await enforceRateLimit(
+    request,
+    env,
+    `handout-read:${encounter.id}`,
+    RATE_LIMIT_POLICIES.authenticatedProjection,
+    participant.id,
+  );
+  if (rateLimited) return rateLimited;
   const handout = await env.DB.prepare(
     `SELECT id, title, display_key, thumbnail_key, mime_type, width, height,
             display_bytes, thumbnail_bytes, created_by, created_at, updated_at, deleted_at
@@ -964,24 +1100,24 @@ async function encounterState(
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
      FROM tokens t
-     WHERE t.encounter_id = ? ORDER BY t.name, t.id`,
+     WHERE t.encounter_id = ? ORDER BY t.name, t.id LIMIT ?`,
   )
-    .bind(encounter!.id)
+    .bind(encounter!.id, MAX_TOKENS_PER_ENCOUNTER)
     .all<TokenRow>();
 
   const effects = await env.DB.prepare(
     `SELECT id, token_id, name, effect_type, duration_rounds, expires_round,
             reminder_timing
-     FROM effects WHERE encounter_id = ? ORDER BY created_at, id`,
+     FROM effects WHERE encounter_id = ? ORDER BY created_at, id LIMIT ?`,
   )
-    .bind(encounter!.id)
+    .bind(encounter!.id, MAX_EFFECTS_PER_ENCOUNTER)
     .all<EffectRow>();
   const annotations = await env.DB.prepare(
     `SELECT id, annotation_type, x, y, x2, y2, color, label, created_by,
             expires_at
-     FROM annotations WHERE encounter_id = ? ORDER BY created_at, id`,
+     FROM annotations WHERE encounter_id = ? ORDER BY created_at, id LIMIT ?`,
   )
-    .bind(encounter!.id)
+    .bind(encounter!.id, MAX_ANNOTATIONS_PER_ENCOUNTER)
     .all<AnnotationRow>();
   const recentChatMessages = viewer
     ? await env.DB.prepare(
@@ -1007,8 +1143,8 @@ async function encounterState(
          LEFT JOIN chat_messages cm ON cm.handout_id = h.id
          WHERE h.encounter_id = ? AND h.deleted_at IS NULL
          GROUP BY h.id
-         ORDER BY h.created_at DESC, h.id DESC`,
-      ).bind(encounter!.id).all<HandoutRow>()
+         ORDER BY h.created_at DESC, h.id DESC LIMIT ?`,
+      ).bind(encounter!.id, Math.min(HANDOUT_MAX_PER_SCENARIO, MAX_HANDOUT_ROWS_PER_ENCOUNTER)).all<HandoutRow>()
     : { results: [] as HandoutRow[] };
   const availableHistory = viewer
     ? await historyStacks(env, encounter!.id, viewer.id)
@@ -1016,8 +1152,8 @@ async function encounterState(
   const savedMapPresets = viewer?.role === "dm"
     ? await env.DB.prepare(
         `SELECT id, name, description, source_prompt, package_json, created_at, updated_at
-         FROM map_presets WHERE encounter_id = ? ORDER BY updated_at DESC, name LIMIT 60`,
-      ).bind(encounter!.id).all<MapPresetRow>()
+         FROM map_presets WHERE encounter_id = ? ORDER BY updated_at DESC, name LIMIT ?`,
+      ).bind(encounter!.id, MAX_MAP_PRESETS_PER_ENCOUNTER).all<MapPresetRow>()
     : { results: [] as MapPresetRow[] };
   let activeMapPackage: MapPackage | null = null;
   if (encounter!.map_package_json) {
@@ -1026,6 +1162,12 @@ async function encounterState(
 
   if (tokens.results.length === 0) return null;
   const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
+  const effectsByToken = new Map<string, EffectRow[]>();
+  for (const effect of effects.results) {
+    const tokenEffects = effectsByToken.get(effect.token_id);
+    if (tokenEffects) tokenEffects.push(effect);
+    else effectsByToken.set(effect.token_id, [effect]);
+  }
   const controllerNames = new Map<string, string>();
   const controllerName = (token: TokenRow): string => {
     const cached = controllerNames.get(token.id);
@@ -1100,8 +1242,7 @@ async function encounterState(
         movementOrigin: token.movement_origin_x === null || token.movement_origin_x === undefined || token.movement_origin_y === null || token.movement_origin_y === undefined
           ? null
           : { x: token.movement_origin_x, y: token.movement_origin_y },
-        effects: effects.results
-          .filter((effect) => effect.token_id === token.id)
+        effects: (effectsByToken.get(token.id) ?? [])
           .map((effect) => ({
             id: effect.id,
             name: effect.name,
@@ -1117,7 +1258,16 @@ async function encounterState(
         controlledByViewer,
       };
     }),
-    annotations: annotations.results.filter((annotation) => viewer?.role === "dm" || pointVisibleToViewer(annotation, fogVisibility)).map((annotation) => ({
+    annotations: annotations.results.filter((annotation) =>
+      annotationGeometryIsBounded({
+        type: annotation.annotation_type,
+        x: annotation.x,
+        y: annotation.y,
+        x2: annotation.x2,
+        y2: annotation.y2,
+      }, encounter!.grid_width, encounter!.grid_height) &&
+      (viewer?.role === "dm" || pointVisibleToViewer(annotation, fogVisibility)),
+    ).map((annotation) => ({
       id: annotation.id,
       type: annotation.annotation_type,
       x: annotation.x,
@@ -1193,20 +1343,28 @@ async function recordAction(
   payload: unknown,
   now = Date.now(),
 ) {
-  await env.DB.prepare(
-    `INSERT INTO actions
+  await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM actions
+       WHERE encounter_id = ?
+         AND id NOT IN (
+           SELECT id FROM actions WHERE encounter_id = ?
+           ORDER BY created_at DESC, id DESC LIMIT ?
+         )`,
+    ).bind(encounterId, encounterId, MAX_ACTIONS_PER_ENCOUNTER - 1),
+    env.DB.prepare(
+      `INSERT INTO actions
       (id, encounter_id, participant_id, action_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).bind(
       crypto.randomUUID(),
       encounterId,
       participantId,
       actionType,
       JSON.stringify(payload),
       now,
-    )
-    .run();
+    ),
+  ]);
 }
 
 const REVERSIBLE_ACTION_TYPES = new Set([
@@ -1254,6 +1412,14 @@ async function handleStatePoll(
   const encounter = await findEncounter(env, code);
   if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
   const viewer = await participantFromHeaders(request, env, encounter.id);
+  const rateLimited = await enforceRateLimit(
+    request,
+    env,
+    `state-poll:${encounter.id}:${viewer ? "session" : "anonymous"}`,
+    viewer ? RATE_LIMIT_POLICIES.authenticatedProjection : RATE_LIMIT_POLICIES.anonymousProjection,
+    viewer?.id,
+  );
+  if (rateLimited) return rateLimited;
   // Version equality is authoritative: avoid loading tokens, effects, map
   // packages, chat, and dynamic sight polygons for an unchanged idle poll.
   if (encounter.version === lastVersion) {
@@ -1436,6 +1602,15 @@ async function handleApi(
     const viewer = encounter
       ? await participantFromHeaders(request, env, encounter.id)
       : null;
+    if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
+    const rateLimited = await enforceRateLimit(
+      request,
+      env,
+      `state:${encounter.id}:${viewer ? "session" : "anonymous"}`,
+      viewer ? RATE_LIMIT_POLICIES.authenticatedProjection : RATE_LIMIT_POLICIES.anonymousProjection,
+      viewer?.id,
+    );
+    if (rateLimited) return rateLimited;
     const state = await encounterState(env, code, viewer);
     return state
       ? json(state)
@@ -1448,7 +1623,14 @@ async function handleApi(
   const encounter = await findEncounter(env, code);
   if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
 
-  const body = await readJson(request);
+  const requestPolicy = action === "join"
+    ? RATE_LIMIT_POLICIES.join
+    : action === "move"
+      ? RATE_LIMIT_POLICIES.tokenMove
+      : RATE_LIMIT_POLICIES.encounterWrite;
+  const rateLimited = await enforceRateLimit(request, env, `encounter-${action}:${encounter.id}`, requestPolicy);
+  if (rateLimited) return rateLimited;
+  const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const now = Date.now();
   if (action === "join") {
     const participantName = cleanName(body.participantName);
@@ -1459,12 +1641,20 @@ async function handleApi(
 
     const participantId = crypto.randomUUID();
     const sessionSecret = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO participants
+    await env.DB.batch([
+      env.DB.prepare(
+        `DELETE FROM participants
+         WHERE encounter_id = ?
+           AND id NOT IN (
+             SELECT id FROM participants WHERE encounter_id = ?
+             ORDER BY last_seen_at DESC, joined_at DESC, id DESC LIMIT ?
+           )`,
+      ).bind(encounter.id, encounter.id, MAX_PARTICIPANTS_PER_ENCOUNTER - 1),
+      env.DB.prepare(
+        `INSERT INTO participants
         (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
         participantId,
         encounter.id,
         participantName,
@@ -1472,8 +1662,8 @@ async function handleApi(
         sessionSecret,
         now,
         now,
-      )
-      .run();
+      ),
+    ]);
     await recordAction(env, encounter.id, participantId, "participant_joined", {
       name: participantName,
       role: participantRole,
@@ -1637,8 +1827,7 @@ const worker = {
       try {
         return await handleCreatureCatalog(request, env);
       } catch (error) {
-        console.error("Creature catalog API error", error);
-        return json({ error: "The creature catalog is temporarily unavailable." }, { status: 500 });
+        return apiFailure(error, "Creature catalog API error", "The creature catalog is temporarily unavailable.");
       }
     }
 
@@ -1646,8 +1835,7 @@ const worker = {
       try {
         return await handleEncounterList(request, env);
       } catch (error) {
-        console.error("Encounter list API error", error);
-        return json({ error: "The scenario list is temporarily unavailable." }, { status: 500 });
+        return apiFailure(error, "Encounter list API error", "The scenario list is temporarily unavailable.");
       }
     }
 
@@ -1655,8 +1843,7 @@ const worker = {
       try {
         return await handleCreatureCatalogImport(request, env);
       } catch (error) {
-        console.error("Creature catalog import error", error);
-        return json({ error: "The creature catalog batch could not be imported." }, { status: 500 });
+        return apiFailure(error, "Creature catalog import error", "The creature catalog batch could not be imported.");
       }
     }
 
@@ -1682,8 +1869,7 @@ const worker = {
         }
         return json({ error: "Handout route not found." }, { status: 404 });
       } catch (error) {
-        console.error("Handout API error", error);
-        return json({ error: "The handout service is temporarily unavailable." }, { status: 500 });
+        return apiFailure(error, "Handout API error", "The handout service is temporarily unavailable.");
       }
     }
 
@@ -1697,8 +1883,7 @@ const worker = {
           apiMatch[2],
         );
       } catch (error) {
-        console.error("Battle map API error", error);
-        return json({ error: "The encounter service is temporarily unavailable." }, { status: 500 });
+        return apiFailure(error, "Battle map API error", "The encounter service is temporarily unavailable.");
       }
     }
 

@@ -4,6 +4,19 @@ import { mkdtemp, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
+import {
+  MAX_ACTIONS_PER_ENCOUNTER,
+  MAX_ANNOTATIONS_PER_ENCOUNTER,
+  MAX_CHAT_MESSAGES_PER_ENCOUNTER,
+  MAX_CATALOG_ENTRIES,
+  MAX_EFFECTS_PER_ENCOUNTER,
+  MAX_EFFECTS_PER_TOKEN,
+  MAX_HANDOUT_ROWS_PER_ENCOUNTER,
+  MAX_MAP_PRESETS_PER_ENCOUNTER,
+  MAX_PARTICIPANTS_PER_ENCOUNTER,
+  MAX_SCENARIOS,
+  MAX_TOKENS_PER_ENCOUNTER,
+} from "../shared/resource-limits.ts";
 
 const projectRoot = new URL("../", import.meta.url);
 const migrationDirectory = new URL("../drizzle/", import.meta.url);
@@ -32,6 +45,9 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-provisioning-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-provisioning-revision-guard-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-mail-provenance-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases');"), "2");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%_insert';"), "10");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -45,6 +61,51 @@ test("numbered migrations build and seed a fresh database", async () => {
     (await query(database, "SELECT name FROM tokens ORDER BY name;")).split("\n"),
     ["Dar'eleth", "Jelton", "Malichar"],
   );
+  await sqlite(database, `
+    WITH RECURSIVE sequence(value) AS (
+      SELECT 1 UNION ALL SELECT value + 1 FROM sequence WHERE value < 500
+    )
+    INSERT INTO annotations
+      (id, encounter_id, annotation_type, x, y, x2, y2, color, label, created_by, expires_at, created_at)
+    SELECT 'guardrail-' || value, (SELECT id FROM encounters LIMIT 1), 'drawing', 1, 1, 2, 2,
+           '#fff', NULL, 'test', NULL, value FROM sequence;
+  `);
+  assert.equal(await query(database, "SELECT COUNT(*) FROM annotations WHERE id LIKE 'guardrail-%';"), "500");
+  await assert.rejects(sqlite(database, `
+    INSERT INTO annotations
+      (id, encounter_id, annotation_type, x, y, x2, y2, color, label, created_by, expires_at, created_at)
+    VALUES ('guardrail-overflow', (SELECT id FROM encounters LIMIT 1), 'drawing', 1, 1, 2, 2,
+            '#fff', NULL, 'test', NULL, 501);
+  `), /resource_limit:annotations/);
+  await sqlite(database, `
+    WITH RECURSIVE sequence(value) AS (
+      SELECT 18 UNION ALL SELECT value + 1 FROM sequence WHERE value < 2000
+    )
+    INSERT INTO creature_catalog
+      (id, name, family, creature_type, size, default_hp, armor_class, default_speed,
+       walk_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active, created_at, updated_at)
+    SELECT 'guardrail-creature-' || value, 'Guardrail creature ' || value, 'test', 'beast',
+           'medium', 10, 10, 30, 30, 'source-' || value, 'token-' || value,
+           'thumbnail-' || value, value, 1, value, value
+    FROM sequence;
+  `);
+  assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "2000");
+  await assert.rejects(sqlite(database, `
+    INSERT INTO creature_catalog
+      (id, name, family, creature_type, size, default_hp, armor_class, default_speed,
+       walk_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active, created_at, updated_at)
+    VALUES ('guardrail-catalog-overflow', 'Overflow', 'test', 'beast', 'medium', 10, 10,
+            30, 30, 'source-overflow', 'token-overflow', 'thumbnail-overflow', 2001, 1, 2001, 2001);
+  `), /resource_limit:creature_catalog/);
+  await sqlite(database, `
+    INSERT INTO creature_catalog
+      (id, name, family, creature_type, size, default_hp, armor_class, default_speed,
+       walk_speed, source_asset, token_asset, thumbnail_asset, sort_order, is_active, created_at, updated_at)
+    VALUES ('guardrail-creature-18', 'Updated at capacity', 'test', 'beast', 'medium', 10, 10,
+            30, 30, 'source-18', 'token-18', 'thumbnail-18', 18, 1, 18, 2002)
+    ON CONFLICT(id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at;
+  `);
+  assert.equal(await query(database, "SELECT name FROM creature_catalog WHERE id = 'guardrail-creature-18';"), "Updated at capacity");
 });
 
 test("bootstrap migration preserves customized existing records", async () => {
@@ -176,8 +237,27 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /scenario-mail-provenance-v1/);
+  assert.match(block, /resource-guardrails-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
+});
+
+test("resource-limit migration constants stay aligned with application policies", async () => {
+  const migration = await readFile(new URL("../drizzle/0025_resource_guardrails.sql", import.meta.url), "utf8");
+  for (const [table, limit] of [
+    ["encounters", MAX_SCENARIOS],
+    ["participants", MAX_PARTICIPANTS_PER_ENCOUNTER],
+    ["tokens", MAX_TOKENS_PER_ENCOUNTER],
+    ["annotations", MAX_ANNOTATIONS_PER_ENCOUNTER],
+    ["map_presets", MAX_MAP_PRESETS_PER_ENCOUNTER],
+    ["handouts", MAX_HANDOUT_ROWS_PER_ENCOUNTER],
+    ["chat_messages", MAX_CHAT_MESSAGES_PER_ENCOUNTER],
+    ["actions", MAX_ACTIONS_PER_ENCOUNTER],
+  ]) {
+    assert.match(migration, new RegExp("FROM `" + table + "`[^;]+>= " + limit));
+  }
+  assert.match(migration, new RegExp("FROM `effects` WHERE `encounter_id` = NEW\\.`encounter_id`\\) >= " + MAX_EFFECTS_PER_ENCOUNTER));
+  assert.match(migration, new RegExp("AND `token_id` = NEW\\.`token_id`\\) >= " + MAX_EFFECTS_PER_TOKEN));
+  assert.match(migration, new RegExp("FROM `creature_catalog`\\) >= " + MAX_CATALOG_ENTRIES));
 });
 
 async function migrationFiles() {

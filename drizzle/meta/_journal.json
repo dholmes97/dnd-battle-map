@@ -176,6 +176,13 @@
       "when": 1787191200000,
       "tag": "0024_token_movement_speeds",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1787299200000,
+      "tag": "0025_resource_guardrails",
+      "breakpoints": true
     }
   ]
 }

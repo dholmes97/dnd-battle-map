@@ -37,7 +37,7 @@ function fixture(overrides = {}) {
       repository: {
         updateStrictMovement: async (...args) => calls.push(["strict", ...args]),
         updateMapPackage: async (...args) => calls.push(["map", ...args]),
-        insertAnnotation: async (...args) => calls.push(["insert", ...args]),
+        insertAnnotation: async (...args) => { calls.push(["insert", ...args]); return true; },
         clearAnnotations: async (...args) => calls.push(["clear", ...args]),
         findAnnotation: async () => ({ id: "line-1", annotationType: "drawing", x: 1, y: 1, x2: 2, y2: 2, color: "#fff", label: null, createdBy: "player-1", expiresAt: null, createdAt: 10 }),
         removeAnnotation: async (...args) => { calls.push(["remove", ...args]); return true; },
@@ -90,6 +90,32 @@ test("transient pings get expiry while durable drawings do not", async () => {
   const drawing = fixture({ payload: { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: 5 } });
   await addAnnotation(drawing.context);
   assert.equal(drawing.calls[0][2].expiresAt, null);
+});
+
+test("drawings reject missing, non-finite, and out-of-map second endpoints", async () => {
+  for (const payload of [
+    { annotationType: "drawing", x: 2, y: 3 },
+    { annotationType: "drawing", x: 2, y: 3, x2: Number.MAX_VALUE, y2: 5 },
+    { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: Number.POSITIVE_INFINITY },
+    { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: 99 },
+    { annotationType: "ping", x: 2, y: 3, x2: 4 },
+  ]) {
+    const setup = fixture({ payload });
+    assert.equal((await addAnnotation(setup.context)).status, 400);
+    assert.deepEqual(setup.calls, []);
+  }
+});
+
+test("annotation quota failures do not bump state or record history", async () => {
+  const setup = fixture({
+    payload: { annotationType: "drawing", x: 2, y: 3, x2: 4, y2: 5 },
+    repository: {
+      ...fixture().context.repository,
+      insertAnnotation: async () => false,
+    },
+  });
+  assert.equal((await addAnnotation(setup.context)).status, 409);
+  assert.deepEqual(setup.calls, []);
 });
 
 test("players can erase only their own durable drawings", async () => {

@@ -14,10 +14,11 @@ function context(overrides = {}) {
   let id = 0;
   const repository = {
     renameScenario: async (...args) => calls.push(["rename", ...args]),
+    countScenarios: async () => 1,
     scenarioCodeExists: async () => false,
     listScenarioTokens: async () => [],
     createScenario: async (value) => calls.push(["create", value]),
-    saveMapPreset: async (value, update) => (calls.push(["save", value, update]), true),
+    saveMapPreset: async (value, update) => (calls.push(["save", value, update]), "saved"),
     deleteMapPreset: async () => true,
     clearActivePreset: async () => {},
     loadMapPreset: async () => null,
@@ -115,8 +116,44 @@ test("party scenario creation resets state and records history on the new scenar
   assert.equal(result.payload.state.code, "FRESH-ADVENTURE");
 });
 
+test("scenario and preset quotas fail without partial writes", async () => {
+  const scenarioQuota = context({
+    payload: { name: "One Too Many", mode: "party" },
+    repository: { countScenarios: async () => 100 },
+  });
+  assert.equal((await createScenario(scenarioQuota)).status, 409);
+  assert.deepEqual(scenarioQuota.calls, []);
+
+  const map = createMapPackage();
+  const presetQuota = context({
+    payload: { mapPackage: map, name: "Preset" },
+    repository: { saveMapPreset: async () => "limit" },
+  });
+  assert.equal((await saveMapPreset(presetQuota)).status, 409);
+  assert.deepEqual(presetQuota.calls, []);
+});
+
 test("map presets and map application stay behind a fakeable repository", async () => {
-  const map = {
+  const map = createMapPackage();
+  const saved = context({ payload: { mapPackage: map, name: "Preset" } });
+  assert.equal((await saveMapPreset(saved)).payload.saved, true);
+  assert.equal(saved.calls.find(([name]) => name === "save")[1].name, "Preset");
+
+  const applied = context({
+    payload: { mapPackage: map },
+    repository: {
+      listTokenPositions: async () => [{ id: "token", x: -10, y: 99, size: "large" }],
+    },
+  });
+  assert.equal((await applyMapPackage(applied)).payload.applied, true);
+  assert.deepEqual(
+    applied.calls.find(([name]) => name === "apply")[1].tokenPositions[0],
+    { id: "token", x: 0.86, y: 15.14 },
+  );
+});
+
+function createMapPackage() {
+  return {
     format: "dnd-battle-map",
     version: 1,
     id: "map-1",
@@ -147,19 +184,4 @@ test("map presets and map application stay behind a fakeable repository", async 
     source: { kind: "generated-scene" },
     createdAt: 1,
   };
-  const saved = context({ payload: { mapPackage: map, name: "Preset" } });
-  assert.equal((await saveMapPreset(saved)).payload.saved, true);
-  assert.equal(saved.calls.find(([name]) => name === "save")[1].name, "Preset");
-
-  const applied = context({
-    payload: { mapPackage: map },
-    repository: {
-      listTokenPositions: async () => [{ id: "token", x: -10, y: 99, size: "large" }],
-    },
-  });
-  assert.equal((await applyMapPackage(applied)).payload.applied, true);
-  assert.deepEqual(
-    applied.calls.find(([name]) => name === "apply")[1].tokenPositions[0],
-    { id: "token", x: 0.86, y: 15.14 },
-  );
-});
+}

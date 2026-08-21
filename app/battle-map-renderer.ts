@@ -5,6 +5,7 @@ import type { EncounterState, MapPoint, ParticipantSession, SharedAnnotation, Sh
 import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shared/battle-map-geometry";
 import { displayHealth } from "@/shared/health";
 import { SPELL_EFFECT_KIND, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
+import { annotationGeometryIsBounded } from "@/shared/annotation-geometry";
 
 export type TokenPreview = MapPoint & { tokenId: string; altitude: number };
 export type PlacementPreview = MapPoint & { creature: CreatureTemplate };
@@ -589,6 +590,7 @@ export function drawMap(
   }
 
   for (const annotation of state.annotations) {
+    if (!annotationGeometryIsBounded(annotation, state.grid.width, state.grid.height)) continue;
     const x = screenX(annotation.x);
     const y = screenY(annotation.y);
     context.save();

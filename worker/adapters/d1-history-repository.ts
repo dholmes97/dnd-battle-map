@@ -1,7 +1,9 @@
 import { isCreatureSize, type CreatureSize } from "../../shared/creature-library.ts";
+import { annotationGeometryIsBounded } from "../../shared/annotation-geometry.ts";
 import { orderedInitiativeGroups } from "../../shared/initiative-domain.ts";
 import type { HistoryDirection, HistoryRepository } from "../ports/history-repository.ts";
 import type { ActionRow } from "../types.ts";
+import { MAX_INITIATIVE_GROUP_TOKENS, MAX_TOKENS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 
 export function createD1HistoryRepository(db: D1Database): HistoryRepository {
   return {
@@ -16,9 +18,9 @@ export function createD1HistoryRepository(db: D1Database): HistoryRepository {
     async activeLeaderIds(encounterId, activeOrder) {
       if (activeOrder === null) return [];
       const rows = await db.prepare(
-        `SELECT DISTINCT CASE WHEN summoner_token_id IS NULL THEN id ELSE summoner_token_id END AS id
-         FROM tokens WHERE encounter_id = ? AND initiative_order = ?`,
-      ).bind(encounterId, activeOrder).all<{ id: string }>();
+         `SELECT DISTINCT CASE WHEN summoner_token_id IS NULL THEN id ELSE summoner_token_id END AS id
+         FROM tokens WHERE encounter_id = ? AND initiative_order = ? LIMIT ?`,
+      ).bind(encounterId, activeOrder, MAX_TOKENS_PER_ENCOUNTER).all<{ id: string }>();
       return rows.results.map((row) => row.id);
     },
     async applyAction(input) {
@@ -31,8 +33,8 @@ export function createD1HistoryRepository(db: D1Database): HistoryRepository {
     async rebuildInitiativeOrders(encounterId, activeLeaderIds, now) {
       const tokens = await db.prepare(
         `SELECT id, name, initiative, initiative_group_id, summoner_token_id
-         FROM tokens WHERE encounter_id = ? ORDER BY name, id`,
-      ).bind(encounterId).all<{
+         FROM tokens WHERE encounter_id = ? ORDER BY name, id LIMIT ?`,
+      ).bind(encounterId, MAX_TOKENS_PER_ENCOUNTER).all<{
         id: string; name: string; initiative: number | null;
         initiative_group_id: string | null; summoner_token_id: string | null;
       }>();
@@ -141,11 +143,11 @@ async function applyAction(
   if (actionType === "annotation_added") {
     return undo
       ? deleteRow(db, "annotations", cleanId(payload.annotationId), encounterId)
-      : insertAnnotation(db, encounterId, (payload.annotation ?? payload) as Record<string, unknown>, participantId, now);
+      : insertAnnotation(db, encounterId, (payload.annotation ?? payload) as Record<string, unknown>, participantId, now, input.gridWidth, input.gridHeight);
   }
   if (actionType === "annotation_removed") {
     return undo
-      ? insertAnnotation(db, encounterId, payload.annotation as Record<string, unknown>, participantId, now)
+      ? insertAnnotation(db, encounterId, payload.annotation as Record<string, unknown>, participantId, now, input.gridWidth, input.gridHeight)
       : deleteRow(db, "annotations", cleanId(payload.annotationId), encounterId);
   }
   if (actionType === "token_created") {
@@ -181,8 +183,8 @@ async function applyInitiativeGroup(
   if (!values.length) return 0;
   if (direction === "undo") {
     const current = await db.prepare(
-      "SELECT id FROM tokens WHERE encounter_id = ? AND initiative_group_id = ? AND initiative = ?",
-    ).bind(encounterId, groupId, payload.to).all<{ id: string }>();
+      "SELECT id FROM tokens WHERE encounter_id = ? AND initiative_group_id = ? AND initiative = ? LIMIT ?",
+    ).bind(encounterId, groupId, payload.to, MAX_INITIATIVE_GROUP_TOKENS).all<{ id: string }>();
     if (current.results.length !== values.length ||
         !values.every((member) => current.results.some((row) => row.id === cleanId(member.tokenId)))) return 0;
     const results = await db.batch(values.map((member) => db.prepare(
@@ -223,16 +225,29 @@ async function insertEffect(db: D1Database, encounterId: string, effect: Record<
   return changes(result);
 }
 
-async function insertAnnotation(db: D1Database, encounterId: string, annotation: Record<string, unknown> | undefined, participantId: string, now: number) {
+async function insertAnnotation(
+  db: D1Database,
+  encounterId: string,
+  annotation: Record<string, unknown> | undefined,
+  participantId: string,
+  now: number,
+  gridWidth: number,
+  gridHeight: number,
+) {
   if (!annotation) return 0;
+  const type = cleanText(annotation.annotationType, 24);
+  const x = Number(annotation.x);
+  const y = Number(annotation.y);
+  const x2 = annotation.x2 === null || annotation.x2 === undefined ? null : Number(annotation.x2);
+  const y2 = annotation.y2 === null || annotation.y2 === undefined ? null : Number(annotation.y2);
+  if (!annotationGeometryIsBounded({ type, x, y, x2, y2 }, gridWidth, gridHeight)) return 0;
   const result = await db.prepare(
     `INSERT OR IGNORE INTO annotations
      (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
       created_by, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     cleanId(annotation.id ?? annotation.annotationId), encounterId,
-    cleanText(annotation.annotationType, 24), Number(annotation.x), Number(annotation.y),
-    annotation.x2 ?? null, annotation.y2 ?? null,
+    type, x, y, x2, y2,
     cleanText(annotation.color, 16) || "#f5c65c", cleanText(annotation.label, 48) || null,
     cleanId(annotation.createdBy) || participantId, annotation.expiresAt ?? null,
     Number(annotation.createdAt) || now,

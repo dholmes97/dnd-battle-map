@@ -41,7 +41,7 @@ export async function sendChatMessage(context: ChatHandoutCommandContext<"send-c
   if (!recipient.allowed) return commandError(recipient.error, 403);
 
   const messageId = services.createId();
-  await repository.writeChatMessage({
+  if (!await repository.writeChatMessage({
     id: messageId,
     encounterId: encounter.id,
     senderName: participant.name,
@@ -51,7 +51,7 @@ export async function sendChatMessage(context: ChatHandoutCommandContext<"send-c
     handoutId,
     showImmediately,
     createdAt: now,
-  });
+  })) return commandError("The chat message could not be stored within the scenario limit.", 409);
   await services.bumpEncounter();
   return { payload: { messageId, state: await services.loadState() } };
 }

@@ -20,7 +20,7 @@ export type DeletableHandout = {
 
 export interface ChatHandoutRepository {
   handoutIsAvailable(encounterId: string, handoutId: string): Promise<boolean>;
-  writeChatMessage(message: ChatMessageWrite): Promise<void>;
+  writeChatMessage(message: ChatMessageWrite): Promise<boolean>;
   findDeletableHandout(encounterId: string, handoutId: string): Promise<DeletableHandout | null>;
   countHandoutReferences(encounterId: string, handoutId: string): Promise<number>;
   markHandoutDeleted(encounterId: string, handoutId: string, deletedAt: number): Promise<void>;

@@ -1,6 +1,7 @@
 import { isCreatureSize } from "./creature-library.ts";
 import { parseMapPackage } from "./map-package.ts";
 import { isSpellAreaSize, spellEffectById } from "./spell-effects.ts";
+import { MAX_INITIATIVE_GROUP_TOKENS, MAX_SHARED_FOG_INPUT_POINTS } from "./resource-limits.ts";
 import {
   COMMAND_NAMES,
   isCommandName,
@@ -265,7 +266,7 @@ function optionalBoolean(value: unknown): value is boolean | undefined {
 }
 
 function stringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+  return Array.isArray(value) && value.length <= MAX_INITIATIVE_GROUP_TOKENS && value.every((entry) => typeof entry === "string");
 }
 
 function encounterStatus(value: unknown): value is EncounterStatus {
@@ -293,7 +294,7 @@ function annotationType(value: unknown): value is SharedAnnotation["type"] {
 }
 
 function mapPoints(value: unknown): MapPoint[] | null {
-  if (!Array.isArray(value)) return null;
+  if (!Array.isArray(value) || value.length > MAX_SHARED_FOG_INPUT_POINTS) return null;
   const points: MapPoint[] = [];
   for (const entry of value) {
     if (!isRecord(entry) || !finiteNumber(entry.x) || !finiteNumber(entry.y)) return null;

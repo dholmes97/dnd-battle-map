@@ -216,7 +216,7 @@ export async function addEffect(context: TokenEffectCommandContext<"add-effect">
     id: effectId, tokenId, name, effectType, durationRounds, expiresRound,
     reminderTiming, createdBy: context.participant.id, createdAt: context.now,
   };
-  await context.repository.addEffect({
+  if (!await context.repository.addEffect({
     id: effectId,
     encounterId: context.encounter.id,
     tokenId,
@@ -227,7 +227,9 @@ export async function addEffect(context: TokenEffectCommandContext<"add-effect">
     reminderTiming,
     participantId: context.participant.id,
     now: context.now,
-  });
+  })) {
+    return commandError("This token or scenario has reached its effect limit. Remove an old effect before adding another.", 409);
+  }
   await finish(context, "effect_added", { effectId, tokenId, effect });
   return success(context, { added: true, effectId });
 }
@@ -297,12 +299,14 @@ async function createTokenEntity(
   token: Omit<TokenWrite, "id" | "encounterId" | "now">,
 ): Promise<CommandOutcome> {
   const tokenId = context.services.createId();
-  await context.repository.createToken({
+  if (!await context.repository.createToken({
     ...token,
     id: tokenId,
     encounterId: context.encounter.id,
     now: context.now,
-  });
+  })) {
+    return commandError("This scenario has reached its token limit. Remove a token before placing another.", 409);
+  }
   await finish(context, "token_created", {
     tokenId,
     token: {
