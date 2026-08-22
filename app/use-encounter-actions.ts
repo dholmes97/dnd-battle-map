@@ -18,8 +18,8 @@ export function useEncounterActions(sync: EncounterSync) {
     return { ...current, encounter: { ...current.encounter, status: "active", currentRound: 1, activeInitiativeOrder: 0 }, tokens: current.tokens.map((token) => { const leaderId = token.summonerTokenId ?? token.id; return orders.has(leaderId) ? { ...token, initiativeOrder: orders.get(leaderId)!, turnComplete: false, movementUsed: 0, movementOrigin: null } : { ...token, initiativeOrder: null, turnComplete: false, movementUsed: 0, movementOrigin: null }; }) };
   }, "Combat started.");
 
-  const endTurn = (token: SharedToken) => void sync.runOptimisticCommand("end-turn", { tokenId: token.id }, (current) => advanceEncounterTurn(current, true), "Group turn ended.", undefined, undefined, true);
-  const advanceTurn = () => void sync.runOptimisticCommand("advance-turn", {}, (current) => advanceEncounterTurn(current, true), "Turn advanced.", undefined, undefined, true);
+  const endTurn = (token: SharedToken) => void sync.runOptimisticCommand("end-turn", { tokenId: token.id }, (current) => advanceEncounterTurn(current, true), "Group turn ended.");
+  const advanceTurn = () => void sync.runOptimisticCommand("advance-turn", {}, (current) => advanceEncounterTurn(current, true), "Turn advanced.");
   const correctTurn = (round: number, activeOrder: number) => void sync.runOptimisticCommand("correct-turn", { round, activeOrder }, (current) => ({ ...current, encounter: { ...current.encounter, status: "active", currentRound: round, activeInitiativeOrder: activeOrder }, tokens: current.tokens.map((token) => token.initiativeOrder === activeOrder ? { ...token, turnComplete: false, movementUsed: 0, movementOrigin: null } : token) }), "Turn corrected.");
 
   const configure = async (status: "setup" | "active" | "paused", notice: string) => {

@@ -60,7 +60,17 @@ Clients use short conditional requests keyed by encounter version. Unchanged
 responses stop before loading encounter collections or calculating vision. The
 initiating client paints optimistic operations immediately and keeps pending
 reducers across refreshes; the Worker remains authoritative and confirms or
-rolls back only the affected operation.
+rolls back only the affected operation. The browser retains the last accepted
+authoritative snapshot separately from visible state, projects one monotonically
+ordered operation ledger over it, and serializes optimistic requests in that same
+order. Success, rejection, timeout, and stale responses remove the matching
+operation and reproject immediately; a failed recovery request cannot leave
+rejected paint behind or delay pending-control cleanup. Session generations
+isolate late responses and cancel unsent queued work after scenario navigation.
+Browser requests use a composed default deadline through response
+consumption, with caller cancellation preserved. For optimistic operations the
+deadline begins when the reducer paints, so time spent waiting in the serialized
+request queue consumes the same bounded budget instead of restarting it.
 
 This polling adapter is deliberate for the current small trusted group. Earlier
 production trials found that the hosting path buffered Server-Sent Events and

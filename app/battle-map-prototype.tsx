@@ -11,10 +11,8 @@ import {
   PING_DURATION_MS,
   SPOTLIGHT_DURATION_MS,
 } from "@/app/battle-map-renderer";
-import {
-  battleMapApi as api,
-  useEncounterSync,
-} from "@/app/use-encounter-sync";
+import { battleMapApi as api } from "@/app/battle-map-api";
+import { useEncounterSync } from "@/app/use-encounter-sync";
 import {
   ChatPanel,
 } from "@/app/chat-handouts-ui";

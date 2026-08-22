@@ -1,0 +1,50 @@
+export const DEFAULT_API_TIMEOUT_MS = 12_000;
+export const API_TIMEOUT_MESSAGE = "The request timed out. Please try again.";
+
+type BattleMapApiOptions = RequestInit & { timeoutMs?: number };
+
+export async function battleMapRequest<T>(
+  url: string,
+  options: BattleMapApiOptions,
+  consume: (response: Response) => Promise<T>,
+): Promise<T> {
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal: callerSignal, ...requestOptions } = options;
+  const controller = new AbortController();
+  let timedOut = false;
+  const forwardCallerAbort = () => controller.abort(
+    callerSignal?.reason ?? new DOMException("The request was cancelled.", "AbortError"),
+  );
+  if (callerSignal?.aborted) forwardCallerAbort();
+  else callerSignal?.addEventListener("abort", forwardCallerAbort, { once: true });
+  const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0
+    ? setTimeout(() => {
+        if (controller.signal.aborted) return;
+        timedOut = true;
+        controller.abort(new DOMException("The request timed out.", "TimeoutError"));
+      }, timeoutMs)
+    : null;
+  try {
+    const response = await fetch(url, {
+      ...requestOptions,
+      signal: controller.signal,
+    });
+    return await consume(response);
+  } catch (error) {
+    if (timedOut) throw new Error(API_TIMEOUT_MESSAGE, { cause: error });
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", forwardCallerAbort);
+  }
+}
+
+export async function battleMapApi<T>(url: string, options: BattleMapApiOptions = {}): Promise<T> {
+  return battleMapRequest(url, {
+    ...options,
+    headers: { "content-type": "application/json", ...(options.headers ?? {}) },
+  }, async (response) => {
+    const data = (await response.json()) as T & { error?: string };
+    if (!response.ok) throw new Error(data.error ?? "Request failed.");
+    return data;
+  });
+}

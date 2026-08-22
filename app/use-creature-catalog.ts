@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { battleMapApi as api } from "@/app/use-encounter-sync";
+import { battleMapApi as api } from "@/app/battle-map-api";
 import type { CreatureTemplate } from "@/shared/creature-library";
 import type { Role } from "@/shared/contracts";
 

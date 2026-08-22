@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
+import {
+  API_TIMEOUT_MESSAGE,
+  DEFAULT_API_TIMEOUT_MS,
+  battleMapApi,
+  battleMapRequest,
+} from "@/app/battle-map-api";
 import { commandRequest } from "@/shared/command-parser";
 import { transitionTokenMove } from "@/shared/encounter-transitions";
 import { scheduleAfterPoll, shouldRunLiveRequests } from "@/shared/live-polling";
@@ -17,8 +23,7 @@ import type {
 import { SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 
 export type ConnectionState = "connecting" | "live" | "reconnecting" | "lost";
-type PendingMove = MapPoint & { altitude: number; sequence: number; movementUsed: number; movementOrigin: MapPoint | null };
-type OptimisticMutation = { apply: (state: EncounterState) => EncounterState };
+type OptimisticMutation = { operationId: number; apply: (state: EncounterState) => EncounterState };
 type HistoryEntry = { mutationId: number; state: EncounterState };
 type TokenCreationCommand = "create-token" | "create-spell-effect";
 export type HistoryDirection = "undo" | "redo";
@@ -48,7 +53,6 @@ type RunOptimisticCommand = <T extends CommandResponse, Name extends CommandName
   success?: string,
   beforeAccept?: (result: T) => void,
   trackHistory?: boolean,
-  serializeTurnAdvance?: boolean,
 ) => Promise<T | null>;
 
 type CreateTokenOptimistically = <T extends CommandResponse, Name extends TokenCreationCommand>(
@@ -83,16 +87,6 @@ const OPTIMISTIC_HISTORY_COMMANDS = new Set<CommandName>([
   "create-spell-effect", "resize-spell-effect",
 ]);
 
-export async function battleMapApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: { "content-type": "application/json", ...(options?.headers ?? {}) },
-  });
-  const data = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(data.error ?? "Request failed.");
-  return data;
-}
-
 export function sessionPayload(participant: ParticipantSession, extra: object = {}) {
   return JSON.stringify({
     participantId: participant.id,
@@ -118,37 +112,46 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingMovesRef = useRef<Map<string, PendingMove>>(new Map());
+  const authoritativeStateRef = useRef<EncounterState | null>(null);
   const pendingTokenIdsRef = useRef<Set<string>>(new Set());
   const pendingOptimisticRef = useRef<Map<number, OptimisticMutation>>(new Map());
   const localUndoHistoryRef = useRef<HistoryEntry[]>([]);
   const localRedoHistoryRef = useRef<HistoryEntry[]>([]);
-  const moveSequenceRef = useRef(0);
   const optimisticSequenceRef = useRef(0);
-  const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const sessionGenerationRef = useRef(0);
+  const optimisticRequestQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const projectPendingOperations = useCallback((authoritative: EncounterState) => {
+    let projected = authoritative;
+    const operations = [...pendingOptimisticRef.current.values()]
+      .sort((left, right) => left.operationId - right.operationId);
+    for (const operation of operations) projected = operation.apply(projected);
+    return projected;
+  }, []);
+
+  const repaintFromAuthoritative = useCallback((synchronous = false) => {
+    const paint = () => setState((current) => {
+      const authoritative = authoritativeStateRef.current;
+      if (!authoritative) return current;
+      return projectPendingOperations(authoritative);
+    });
+    if (synchronous) flushSync(paint);
+    else paint();
+  }, [projectPendingOperations]);
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
     if (!isEncounterState(next)) {
       throw new Error("The server returned an invalid encounter state. Refresh and try again.");
     }
-    setState((current) => {
-      if (current && next.encounter.code !== current.encounter.code) return current;
-      if (current && next.encounter.version < current.encounter.version) return current;
-      const pendingMoves = pendingMovesRef.current;
-      const pendingOptimistic = pendingOptimisticRef.current;
-      if (pendingMoves.size === 0 && pendingOptimistic.size === 0) return next;
-      const tokens = next.tokens.map((token) => {
-          const pending = pendingMoves.get(token.id);
-          return pending ? { ...token, x: pending.x, y: pending.y, altitude: pending.altitude, movementUsed: pending.movementUsed, movementOrigin: pending.movementOrigin } : token;
-        });
-      let merged = {
-        ...next,
-        tokens,
-      };
-      for (const mutation of pendingOptimistic.values()) merged = mutation.apply(merged);
-      return merged;
-    });
-  }, []);
+    const current = authoritativeStateRef.current;
+    if (current && next.encounter.code !== current.encounter.code) return;
+    if (!current || next.encounter.version >= current.encounter.version) {
+      authoritativeStateRef.current = next;
+    }
+    // Reproject even when the response is stale: its operation may just have
+    // settled, so removing that reducer must still change the visible state.
+    repaintFromAuthoritative();
+  }, [repaintFromAuthoritative]);
 
   const joinedCode = state?.encounter.code;
 
@@ -173,7 +176,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     };
     const refresh = async () => {
       const fresh = await battleMapApi<EncounterState>(`/api/encounters/${encodeURIComponent(joinedCode)}/state`, { headers });
-      if (!disposed) { lastVersion = fresh.encounter.version; acceptAuthoritativeState(fresh); markLive(); }
+      if (!disposed) { acceptAuthoritativeState(fresh); lastVersion = fresh.encounter.version; markLive(); }
     };
     const wait = (milliseconds: number) => new Promise<void>((resolve) => {
       wakeDelay = () => {
@@ -217,22 +220,27 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
         }
         controller = new AbortController();
         try {
-          const response = await fetch(
+          const received = await battleMapRequest(
             `/api/encounters/${encodeURIComponent(joinedCode)}/events?since=${lastVersion}`,
             { signal: controller.signal, cache: "no-store", headers },
+            async (response) => ({
+              ok: response.ok,
+              status: response.status,
+              state: response.status === 204 ? null : await response.json() as EncounterState,
+            }),
           );
           if (disposed) return;
-          if (response.status === 204) {
+          if (received.status === 204) {
             markLive();
             const schedule = scheduleAfterPoll(unchangedPolls, false);
             unchangedPolls = schedule.unchangedPolls;
             await wait(schedule.delayMs);
             continue;
           }
-          if (!response.ok) throw new Error("Live updates are unavailable.");
-          const next = (await response.json()) as EncounterState;
-          lastVersion = next.encounter.version;
+          if (!received.ok || !received.state) throw new Error("Live updates are unavailable.");
+          const next = received.state;
           acceptAuthoritativeState(next);
+          lastVersion = next.encounter.version;
           markLive();
           const schedule = scheduleAfterPoll(unchangedPolls, true);
           unchangedPolls = schedule.unchangedPolls;
@@ -281,12 +289,43 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
   }, [joinedCode, participant]);
 
   const refreshAfterError = async () => {
-    if (!participant || !state) return;
+    const authoritative = authoritativeStateRef.current;
+    if (!participant || !authoritative) return;
     const fresh = await battleMapApi<EncounterState>(
-      `/api/encounters/${encodeURIComponent(state.encounter.code)}/state`,
+      `/api/encounters/${encodeURIComponent(authoritative.encounter.code)}/state`,
       { headers: viewerHeaders(participant) },
     ).catch(() => null);
     if (fresh) acceptAuthoritativeState(fresh);
+  };
+
+  const requestCommandFor = async <T extends CommandResponse = CommandResponse, Name extends CommandName = CommandName>(
+    targetParticipant: ParticipantSession,
+    encounterCode: string,
+    name: Name,
+    extra: CommandPayload<Name> = {} as CommandPayload<Name>,
+    timeoutMs = DEFAULT_API_TIMEOUT_MS,
+  ) => battleMapApi<T>(`/api/encounters/${encodeURIComponent(encounterCode)}/command`, {
+    method: "POST", body: sessionPayload(targetParticipant, commandRequest(name, extra)), timeoutMs,
+  });
+
+  const requestCommand = async <T extends CommandResponse = CommandResponse, Name extends CommandName = CommandName>(
+    name: Name,
+    extra: CommandPayload<Name> = {} as CommandPayload<Name>,
+  ) => {
+    const authoritative = authoritativeStateRef.current;
+    if (!participant || !authoritative) throw new Error("Join the encounter first.");
+    return requestCommandFor<T, Name>(participant, authoritative.encounter.code, name, extra);
+  };
+
+  const enqueueOptimisticRequest = <T,>(send: (timeoutMs: number) => Promise<T>) => {
+    const deadline = Date.now() + DEFAULT_API_TIMEOUT_MS;
+    const queued = optimisticRequestQueueRef.current.then(() => {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) throw new Error(API_TIMEOUT_MESSAGE);
+      return send(remainingMs);
+    });
+    optimisticRequestQueueRef.current = queued.then(() => undefined, () => undefined);
+    return queued;
   };
 
   const sendCommand: SendCommand = async <T extends CommandResponse = CommandResponse, Name extends CommandName = CommandName>(
@@ -294,10 +333,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     extra: CommandPayload<Name> = {} as CommandPayload<Name>,
     beforeAccept?: (result: T) => void,
   ) => {
-    if (!participant || !state) throw new Error("Join the encounter first.");
-    const result = await battleMapApi<T>(`/api/encounters/${encodeURIComponent(state.encounter.code)}/command`, {
-      method: "POST", body: sessionPayload(participant, commandRequest(name, extra)),
-    });
+    const result = await requestCommand<T, Name>(name, extra);
     beforeAccept?.(result);
     acceptAuthoritativeState(result.state);
     return result;
@@ -315,7 +351,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
       return true;
     } catch (commandError) {
       setError(commandError instanceof Error ? commandError.message : "Action rejected.");
-      await refreshAfterError();
+      void refreshAfterError();
       return false;
     }
   };
@@ -327,9 +363,11 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     success?: string,
     beforeAccept?: (result: T) => void,
     trackHistory = OPTIMISTIC_HISTORY_COMMANDS.has(name),
-    serializeTurnAdvance = false,
   ): Promise<T | null> => {
     const mutationId = ++optimisticSequenceRef.current;
+    const operationGeneration = sessionGenerationRef.current;
+    const operationParticipant = participant;
+    const operationEncounterCode = authoritativeStateRef.current?.encounter.code;
     const applyOptimistic = (current: EncounterState) => {
       const applied = apply(current);
       return trackHistory ? {
@@ -337,7 +375,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
         undo: { ...applied.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 },
       } : applied;
     };
-    pendingOptimisticRef.current.set(mutationId, { apply: applyOptimistic });
+    pendingOptimisticRef.current.set(mutationId, { operationId: mutationId, apply: applyOptimistic });
     flushSync(() => {
       setState((current) => {
         if (!current) return current;
@@ -345,44 +383,57 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
           localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId, state: current }];
           localRedoHistoryRef.current = [];
         }
-        return applyOptimistic(current);
+        const authoritative = authoritativeStateRef.current;
+        return authoritative ? projectPendingOperations(authoritative) : applyOptimistic(current);
       });
     });
     setError("");
+    let result: T;
     try {
-      const send = () => sendCommand<T, Name>(name, extra);
-      let result: T;
-      if (serializeTurnAdvance) {
-        const queued = turnAdvanceQueueRef.current.then(send);
-        turnAdvanceQueueRef.current = queued.then(() => undefined, () => undefined);
-        result = await queued;
-      } else {
-        result = await send();
-      }
-      beforeAccept?.(result);
+      result = await enqueueOptimisticRequest((timeoutMs) => {
+        if (operationGeneration !== sessionGenerationRef.current) throw new Error("The operation was cancelled after leaving the scenario.");
+        if (!operationParticipant || !operationEncounterCode) throw new Error("Join the encounter first.");
+        return requestCommandFor<T, Name>(operationParticipant, operationEncounterCode, name, extra, timeoutMs);
+      });
+      if (operationGeneration !== sessionGenerationRef.current) return null;
       pendingOptimisticRef.current.delete(mutationId);
       acceptAuthoritativeState(result.state);
-      if (success) setNotice(success);
-      return result;
     } catch (commandError) {
+      if (operationGeneration !== sessionGenerationRef.current) return null;
       pendingOptimisticRef.current.delete(mutationId);
-      if (trackHistory) localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== mutationId);
+      if (trackHistory) {
+        // A later snapshot may include the rejected reducer. Drop it and every
+        // dependent local snapshot; durable server history remains available.
+        localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId < mutationId);
+        localRedoHistoryRef.current = [];
+      }
+      repaintFromAuthoritative(true);
       setError(commandError instanceof Error ? commandError.message : "Action rejected.");
-      await refreshAfterError();
+      void refreshAfterError();
       return null;
     }
+    try {
+      beforeAccept?.(result);
+    } catch (followUpError) {
+      setError(followUpError instanceof Error ? followUpError.message : "The action completed, but its local follow-up failed.");
+    }
+    if (success) setNotice(success);
+    return result;
   };
 
   const clearPendingState = () => {
-    pendingMovesRef.current.clear();
+    sessionGenerationRef.current += 1;
+    authoritativeStateRef.current = null;
     pendingTokenIdsRef.current.clear();
     pendingOptimisticRef.current.clear();
     localUndoHistoryRef.current = [];
     localRedoHistoryRef.current = [];
+    optimisticRequestQueueRef.current = Promise.resolve();
   };
 
   const startSession = (nextParticipant: ParticipantSession, nextState: EncounterState) => {
     clearPendingState();
+    authoritativeStateRef.current = nextState;
     setParticipant(nextParticipant);
     setState(nextState);
     setConnection("connecting");
@@ -427,8 +478,8 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     encounterCode = state?.encounter.code,
   ): Promise<MoveConfirmation | null> => {
     if (!participant || !encounterCode) return null;
-    const sequence = ++moveSequenceRef.current;
-    const historyMutationId = ++optimisticSequenceRef.current;
+    const operationId = ++optimisticSequenceRef.current;
+    const operationGeneration = sessionGenerationRef.current;
     let authoritativeDestination: MapPoint & { altitude: number } = destination;
     const moveContext: { token: SharedToken | null } = { token: null };
     flushSync(() => {
@@ -448,26 +499,34 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
           isSpellEffect: moveContext.token.kind === SPELL_EFFECT_KIND,
         });
         authoritativeDestination = { ...move.position, altitude: destination.altitude };
-        pendingMovesRef.current.set(tokenId, { ...move.position, altitude: destination.altitude, sequence, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin });
-        localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: historyMutationId, state: current }];
+        pendingOptimisticRef.current.set(operationId, {
+          operationId,
+          apply: (projected) => ({
+            ...projected,
+            undo: { ...projected.undo, available: Math.min(10, projected.undo.available + 1), redoAvailable: 0 },
+            tokens: projected.tokens.map((token) => token.id === tokenId
+              ? { ...token, ...move.position, altitude: destination.altitude, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin }
+              : token),
+          }),
+        });
+        localUndoHistoryRef.current = [...localUndoHistoryRef.current.slice(-9), { mutationId: operationId, state: current }];
         localRedoHistoryRef.current = [];
-        return {
-          ...current,
-          undo: { ...current.undo, available: Math.min(10, current.undo.available + 1), redoAvailable: 0 },
-          tokens: current.tokens.map((token) => token.id === tokenId
-            ? { ...token, ...move.position, altitude: destination.altitude, movementUsed: move.movementUsed, movementOrigin: move.movementOrigin }
-            : token),
-        };
+        const authoritative = authoritativeStateRef.current;
+        return authoritative ? projectPendingOperations(authoritative) : current;
       });
     });
     if (!moveContext.token) return null;
     setError("");
     try {
-      const result = await battleMapApi<{ distance: number; overBudget: boolean; state: EncounterState }>(
-        `/api/encounters/${encodeURIComponent(encounterCode)}/move`,
-        { method: "POST", body: sessionPayload(participant, { tokenId, ...authoritativeDestination, altitude: destination.altitude }) },
-      );
-      if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
+      const result = await enqueueOptimisticRequest((timeoutMs) => {
+        if (operationGeneration !== sessionGenerationRef.current) throw new Error("The operation was cancelled after leaving the scenario.");
+        return battleMapApi<{ distance: number; overBudget: boolean; state: EncounterState }>(
+            `/api/encounters/${encodeURIComponent(encounterCode)}/move`,
+            { method: "POST", body: sessionPayload(participant, { tokenId, ...authoritativeDestination, altitude: destination.altitude }), timeoutMs },
+          );
+      });
+      if (operationGeneration !== sessionGenerationRef.current) return null;
+      pendingOptimisticRef.current.delete(operationId);
       acceptAuthoritativeState(result.state);
       return {
         distance: result.distance,
@@ -476,10 +535,13 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
         spellEffect: moveContext.token.kind === SPELL_EFFECT_KIND,
       };
     } catch (moveError) {
-      if (pendingMovesRef.current.get(tokenId)?.sequence === sequence) pendingMovesRef.current.delete(tokenId);
-      localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId !== historyMutationId);
+      if (operationGeneration !== sessionGenerationRef.current) return null;
+      pendingOptimisticRef.current.delete(operationId);
+      localUndoHistoryRef.current = localUndoHistoryRef.current.filter((entry) => entry.mutationId < operationId);
+      localRedoHistoryRef.current = [];
+      repaintFromAuthoritative(true);
       setError(moveError instanceof Error ? moveError.message : "Move rejected.");
-      await refreshAfterError();
+      void refreshAfterError();
       return null;
     }
   };

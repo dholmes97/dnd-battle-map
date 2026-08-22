@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { prepareHandoutImages } from "@/app/handout-images";
+import { battleMapRequest } from "@/app/battle-map-api";
 import { viewerHeaders, type EncounterSync } from "@/app/use-encounter-sync";
 import type {
   EncounterState,
@@ -232,13 +233,16 @@ export function useChatHandouts({ participant, state, sync, canvasRef, setNotice
       form.set("display", prepared.display, "display.webp");
       form.set("thumbnail", prepared.thumbnail, "thumbnail.webp");
       if (replaceId) form.set("replaceId", replaceId);
-      const response = await fetch(`/api/encounters/${encodeURIComponent(state.encounter.code)}/handouts`, {
+      const received = await battleMapRequest(`/api/encounters/${encodeURIComponent(state.encounter.code)}/handouts`, {
         method: "POST",
         headers: viewerHeaders(participant),
         body: form,
-      });
-      const result = await response.json() as { handoutId?: string; state?: EncounterState; error?: string };
-      if (!response.ok || !result.state || !result.handoutId) throw new Error(result.error || "The handout could not be saved.");
+      }, async (response) => ({
+        ok: response.ok,
+        result: await response.json() as { handoutId?: string; state?: EncounterState; error?: string },
+      }));
+      const { result } = received;
+      if (!received.ok || !result.state || !result.handoutId) throw new Error(result.error || "The handout could not be saved.");
       sync.acceptState(result.state);
       setHandoutTitle("");
       if (selectForChat) {

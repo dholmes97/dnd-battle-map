@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { battleMapRequest } from "@/app/battle-map-api";
 import type { ParticipantSession } from "@/shared/contracts";
 import {
   HANDOUT_DISPLAY_MAX_BYTES,
@@ -52,20 +53,25 @@ export function ProtectedHandoutImage({
     if (!shouldLoad) return;
     let disposed = false;
     let objectUrl = "";
-    void fetch(handoutAssetUrl(encounterCode, handoutId, variant, revision), {
+    const controller = new AbortController();
+    void battleMapRequest(handoutAssetUrl(encounterCode, handoutId, variant, revision), {
       cache: "no-store",
+      signal: controller.signal,
       headers: {
         "x-participant-id": participant.id,
         "x-session-secret": participant.sessionSecret,
       },
-    }).then(async (response) => {
+    }, async (response) => {
       if (!response.ok) throw new Error("Handout unavailable");
-      objectUrl = URL.createObjectURL(await response.blob());
+      return response.blob();
+    }).then((blob) => {
+      objectUrl = URL.createObjectURL(blob);
       if (disposed) URL.revokeObjectURL(objectUrl);
       else setSource(objectUrl);
     }).catch(() => { if (!disposed) setFailed(true); });
     return () => {
       disposed = true;
+      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [encounterCode, handoutId, participant.id, participant.sessionSecret, revision, shouldLoad, variant]);
