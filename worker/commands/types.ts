@@ -9,6 +9,7 @@ export type CommandEncounter = {
   id: string;
   code: string;
   name: string;
+  version: number;
   status: "setup" | "active" | "paused";
   mapAsset: string;
   mapPackageJson: string | null;
@@ -35,8 +36,15 @@ export type CommandOutcome = {
 export type CommandServices = {
   createId(): string;
   loadState(): Promise<EncounterState | null>;
-  bumpEncounter(): Promise<void>;
-  recordAction(actionType: string, payload: Record<string, unknown>): Promise<void>;
+  commit(actionType: string | null, payload?: Record<string, unknown>): Promise<void>;
+  commitFor(input: {
+    encounterId: string;
+    expectedVersion?: number | null;
+    participantId: string | null;
+    actionType: string | null;
+    payload?: Record<string, unknown>;
+    bumpVersion?: boolean;
+  }): Promise<void>;
 };
 
 export type CommandContext<Name extends CommandName = CommandName> = {

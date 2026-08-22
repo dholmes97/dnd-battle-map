@@ -1,4 +1,5 @@
 import type { SharedAnnotation } from "../../shared/contracts.ts";
+import type { HistoryReplayInput } from "./history-repository.ts";
 
 export type DurableAnnotation = {
   id: string;
@@ -21,4 +22,5 @@ export interface AnnotationFogRepository {
   clearAnnotations(encounterId: string): Promise<void>;
   findAnnotation(encounterId: string, annotationId: string): Promise<DurableAnnotation | null>;
   removeAnnotation(encounterId: string, annotationId: string): Promise<boolean>;
+  replayHistoryAction(input: HistoryReplayInput): Promise<number>;
 }

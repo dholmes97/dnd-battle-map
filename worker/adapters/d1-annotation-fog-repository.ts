@@ -3,6 +3,7 @@ import type {
   DurableAnnotation,
 } from "../ports/annotation-fog-repository.ts";
 import { MAX_ANNOTATIONS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
+import { replayAnnotationHistory } from "./d1-annotation-history.ts";
 
 export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRepository {
   return {
@@ -19,6 +20,10 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
     },
 
     async insertAnnotation(encounterId, annotation) {
+      const count = await db.prepare(
+        "SELECT COUNT(*) AS value FROM annotations WHERE encounter_id = ?",
+      ).bind(encounterId).first<{ value: number }>();
+      if ((Number(count?.value) || 0) >= MAX_ANNOTATIONS_PER_ENCOUNTER) return false;
       const result = await db.prepare(
         `INSERT INTO annotations
          (id, encounter_id, annotation_type, x, y, x2, y2, color, label,
@@ -82,10 +87,15 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
     },
 
     async removeAnnotation(encounterId, annotationId) {
+      const exists = await db.prepare(
+        "SELECT 1 AS found FROM annotations WHERE id = ? AND encounter_id = ?",
+      ).bind(annotationId, encounterId).first();
+      if (!exists) return false;
       const result = await db.prepare(
         "DELETE FROM annotations WHERE id = ? AND encounter_id = ?",
       ).bind(annotationId, encounterId).run();
       return (result.meta.changes ?? 0) === 1;
     },
+    replayHistoryAction: (input) => replayAnnotationHistory(db, input),
   };
 }

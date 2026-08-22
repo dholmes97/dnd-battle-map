@@ -8,7 +8,7 @@ function context(overrides = {}) {
   return {
     calls,
     value: {
-      encounter: { id: "encounter-1", code: "TEST", name: "Test", status: "setup", mapPackageJson: null, activeMapPresetId: null, gridWidth: 24, gridHeight: 16, currentRound: 0, activeInitiativeOrder: null, strictMovement: true, updatedAt: 1 },
+      encounter: { id: "encounter-1", code: "TEST", name: "Test", version: 1, status: "setup", mapPackageJson: null, activeMapPresetId: null, gridWidth: 24, gridHeight: 16, currentRound: 0, activeInitiativeOrder: null, strictMovement: true, updatedAt: 1 },
       participant: { id: "participant-1", name: "Kevin", role: "dm" },
       payload: {},
       now: 1234,
@@ -21,13 +21,13 @@ function context(overrides = {}) {
       },
       objectStorage: {
         available: true,
-        deleteObjects: async (keys) => calls.push(["objects", keys]),
+        reconcileCleanup: async () => calls.push(["reconcile"]),
       },
       services: {
         createId: () => "message-1",
         loadState: async () => ({ marker: "state" }),
-        bumpEncounter: async () => calls.push(["bump"]),
-        recordAction: async () => {},
+        commit: async (...args) => calls.push(["commit", ...args]),
+        commitFor: async (...args) => calls.push(["commit-for", ...args]),
       },
       ...overrides,
     },
@@ -50,7 +50,7 @@ test("chat handler applies recipient policy and writes through a fake port", asy
     showImmediately: false,
     createdAt: 1234,
   }]);
-  assert.deepEqual(fixture.calls.at(-1), ["bump"]);
+  assert.equal(fixture.calls.at(-1)[0], "commit");
 });
 
 test("players cannot send handouts or private messages to another player", async () => {
@@ -81,14 +81,14 @@ test("chat quota failure preserves existing durable messages and does not bump s
   assert.deepEqual(fixture.calls, []);
 });
 
-test("handout deletion removes both derived objects without reading D1 directly", async () => {
+test("handout deletion commits a tombstone/outbox before cleanup reconciliation", async () => {
   const fixture = context({ payload: { handoutId: "handout-1" } });
   const result = await deleteHandout(fixture.value);
   assert.equal(result.payload.deleted, true);
   assert.equal(result.payload.referencedMessages, 3);
   assert.deepEqual(fixture.calls, [
-    ["objects", ["display", "thumbnail"]],
-    ["deleted", "encounter-1", "handout-1", 1234],
-    ["bump"],
+    ["deleted", "encounter-1", { id: "handout-1", displayKey: "display", thumbnailKey: "thumbnail" }, 1234],
+    ["commit", "handout_deleted", { handoutId: "handout-1", referencedMessages: 3 }],
+    ["reconcile"],
   ]);
 });

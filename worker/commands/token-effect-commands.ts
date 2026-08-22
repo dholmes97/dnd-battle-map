@@ -361,8 +361,7 @@ function cleanId(value: unknown) {
 }
 
 async function finish(context: TokenEffectCommandContext, type: string, payload: Record<string, unknown>) {
-  await context.services.bumpEncounter();
-  await context.services.recordAction(type, payload);
+  await context.services.commit(type, payload);
 }
 
 async function success(context: TokenEffectCommandContext, payload: Record<string, unknown>): Promise<CommandOutcome> {

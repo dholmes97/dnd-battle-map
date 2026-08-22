@@ -4,6 +4,10 @@ import type {
   HandoutObjectStorage,
 } from "../ports/chat-handout-repository.ts";
 import { MAX_CHAT_MESSAGES_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
+import {
+  queueStorageCleanupStatement,
+  reconcileStorageLifecycle,
+} from "./d1-storage-lifecycle.ts";
 
 export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutRepository {
   return {
@@ -15,6 +19,10 @@ export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutReposi
     },
 
     async writeChatMessage(message: ChatMessageWrite) {
+      const count = await db.prepare(
+        "SELECT COUNT(*) AS value FROM chat_messages WHERE encounter_id = ?",
+      ).bind(message.encounterId).first<{ value: number }>();
+      if ((Number(count?.value) || 0) >= MAX_CHAT_MESSAGES_PER_ENCOUNTER) return false;
       const result = await db.prepare(
         `INSERT INTO chat_messages
          (id, encounter_id, sender_name, sender_role, recipient_name, body, handout_id, show_immediately, created_at)
@@ -57,21 +65,27 @@ export function createD1ChatHandoutRepository(db: D1Database): ChatHandoutReposi
       return Number(row?.value) || 0;
     },
 
-    async markHandoutDeleted(encounterId, handoutId, deletedAt) {
-      await db.prepare(
-        `UPDATE handouts SET display_key = '', thumbnail_key = '', updated_at = ?, deleted_at = ?
-         WHERE id = ? AND encounter_id = ?`,
-      ).bind(deletedAt, deletedAt, handoutId, encounterId).run();
+    async markHandoutDeleted(encounterId, handout, deletedAt) {
+      await db.batch([
+        db.prepare(
+          `UPDATE handouts SET display_key = '', thumbnail_key = '', updated_at = ?, deleted_at = ?
+           WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
+        ).bind(deletedAt, deletedAt, handout.id, encounterId),
+        queueStorageCleanupStatement(db, handout.displayKey, "handout-deleted", deletedAt),
+        queueStorageCleanupStatement(db, handout.thumbnailKey, "handout-deleted", deletedAt),
+      ]);
     },
   };
 }
 
-export function createR2HandoutObjectStorage(bucket: R2Bucket | undefined): HandoutObjectStorage {
+export function createR2HandoutObjectStorage(
+  bucket: R2Bucket | undefined,
+  db: D1Database,
+): HandoutObjectStorage {
   return {
     available: Boolean(bucket),
-    async deleteObjects(keys) {
-      if (!bucket) throw new Error("Handout storage is unavailable.");
-      await Promise.all(keys.map((key) => bucket.delete(key)));
+    async reconcileCleanup() {
+      await reconcileStorageLifecycle(db, bucket);
     },
   };
 }

@@ -224,4 +224,28 @@ describe("EncounterSidebar initiative disclosure", () => {
     expect(props.controls.saveInitiativeGroup).toHaveBeenCalledWith("cave-bat", [first, second]);
     expect(screen.queryByRole("textbox", { name: "Initiative for all Cave Bat creatures" })).toBeNull();
   });
+
+  it("does not offer pause or reset while combat is still in setup", () => {
+    const token = tokenWithInitiative(17);
+    const state = {
+      encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
+      grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+      tokens: [token], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
+    } as EncounterState;
+    const props: Parameters<typeof EncounterSidebar>[0] = {
+      participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" },
+      state, hidden: false, inCombat: false, rosterFilter: "",
+      rosterRows: [{ type: "token", token, grouped: false }], selectedToken: null,
+      selectedSpell: null, selectedMapNote: null, activeOwnTurnToken: null,
+      activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null,
+      controls: tokenControls(), onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(),
+      onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(),
+      onDeleteToken: vi.fn(), canMoveToken: () => true, onHideToken: vi.fn(),
+      onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(),
+      onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+    };
+    render(<EncounterSidebar {...props} />);
+    expect((screen.getByRole("button", { name: "Pause" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Reset" }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

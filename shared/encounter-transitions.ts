@@ -58,3 +58,25 @@ export function transitionHp(currentHp: number | null, maxHp: number, delta: num
   const hp = Math.min(maxHp, Math.max(0, from + Math.trunc(delta)));
   return { from, hp, healthState: healthBand(hp, maxHp)! };
 }
+
+export type CombatStatusTransitionInput = {
+  from: EncounterStatus;
+  to: EncounterStatus;
+  currentRound: number;
+  activeInitiativeOrder: number | null;
+};
+
+export function combatStatusTransitionError(input: CombatStatusTransitionInput): string | null {
+  if (input.from === input.to) return null;
+  if (input.to === "setup") return null;
+  if (input.from === "setup") {
+    return "Combat must be started before it can be paused or resumed.";
+  }
+  if (input.from === "active" && input.to === "paused") return null;
+  if (input.from === "paused" && input.to === "active") {
+    return input.currentRound >= 1 && input.activeInitiativeOrder !== null
+      ? null
+      : "Paused combat cannot resume without an initialized round and active turn.";
+  }
+  return `Combat cannot transition from ${input.from} to ${input.to}.`;
+}

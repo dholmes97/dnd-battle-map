@@ -24,8 +24,13 @@ export async function setInitiative(context: InitiativeCombatCommandContext<"set
   }
   if (initiative === null) return commandError("Initiative must be a whole number from 0 to 99.", 400);
   const active = await activeLeaders(context);
+  const initiativeTokens = await context.repository.listInitiativeTokens(context.encounter.id);
   await context.repository.setInitiative(context.encounter.id, tokenId, initiative, context.now);
-  await rebuildOrders(context, active);
+  await rebuildOrders(context, active, initiativeTokens.map((candidate) =>
+    candidate.id === tokenId
+      ? { ...candidate, initiative, initiative_group_id: null }
+      : candidate
+  ));
   await finish(context, "initiative_set", {
     tokenId,
     from: token.initiative,
@@ -60,7 +65,11 @@ export async function setInitiativeGroup(context: InitiativeCombatCommandContext
     groupId,
     context.now,
   );
-  await rebuildOrders(context, active);
+  await rebuildOrders(context, active, all.map((candidate) =>
+    tokenIds.includes(candidate.id)
+      ? { ...candidate, initiative, initiative_group_id: groupId }
+      : candidate
+  ));
   await finish(context, "initiative_group_set", {
     groupId,
     to: initiative,
@@ -135,9 +144,15 @@ async function activeLeaders(context: InitiativeCombatCommandContext) {
     : [];
 }
 
-async function rebuildOrders(context: InitiativeCombatCommandContext, activeLeaderIds: string[]) {
+async function rebuildOrders(
+  context: InitiativeCombatCommandContext,
+  activeLeaderIds: string[],
+  tokens = [] as Awaited<ReturnType<InitiativeCombatRepository["listInitiativeTokens"]>>,
+) {
   if (context.encounter.status !== "active") return;
-  const groups = orderedGroups(await context.repository.listInitiativeTokens(context.encounter.id));
+  const groups = orderedGroups(tokens.length
+    ? tokens
+    : await context.repository.listInitiativeTokens(context.encounter.id));
   const activeOrder = Math.max(0, groups.findIndex((members) =>
     members.some((id) => activeLeaderIds.includes(id))
   ));
@@ -192,8 +207,7 @@ async function finish(
   type: string,
   payload: Record<string, unknown>,
 ) {
-  await context.services.bumpEncounter();
-  await context.services.recordAction(type, payload);
+  await context.services.commit(type, payload);
 }
 
 async function success(

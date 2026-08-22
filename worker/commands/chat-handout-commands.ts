@@ -52,7 +52,11 @@ export async function sendChatMessage(context: ChatHandoutCommandContext<"send-c
     showImmediately,
     createdAt: now,
   })) return commandError("The chat message could not be stored within the scenario limit.", 409);
-  await services.bumpEncounter();
+  await services.commit("chat_message_sent", {
+    messageId,
+    recipientName: recipient.recipientName,
+    handoutId,
+  });
   return { payload: { messageId, state: await services.loadState() } };
 }
 
@@ -65,9 +69,9 @@ export async function deleteHandout(context: ChatHandoutCommandContext<"delete-h
   if (!handout) return commandError("Handout not found.", 404);
 
   const references = await repository.countHandoutReferences(encounter.id, handout.id);
-  await objectStorage.deleteObjects([handout.displayKey, handout.thumbnailKey]);
-  await repository.markHandoutDeleted(encounter.id, handout.id, now);
-  await services.bumpEncounter();
+  await repository.markHandoutDeleted(encounter.id, handout, now);
+  await services.commit("handout_deleted", { handoutId: handout.id, referencedMessages: references });
+  await objectStorage.reconcileCleanup().catch(() => undefined);
   return {
     payload: {
       deleted: true,

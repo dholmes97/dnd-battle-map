@@ -21,6 +21,7 @@ function fixture(overrides = {}) {
         id: "encounter-1",
         code: "TEST",
         name: "Test",
+        version: 1,
         status: "setup",
         mapPackageJson: JSON.stringify(map),
         activeMapPresetId: null,
@@ -45,8 +46,8 @@ function fixture(overrides = {}) {
       services: {
         createId: () => "annotation-1",
         loadState: async () => ({ marker: "state" }),
-        bumpEncounter: async () => calls.push(["bump"]),
-        recordAction: async (...args) => calls.push(["action", ...args]),
+        commit: async (...args) => calls.push(["commit", ...args]),
+        commitFor: async (...args) => calls.push(["commit-for", ...args]),
       },
       ...overrides,
     },
@@ -61,7 +62,7 @@ test("fog handlers authorize the DM and persist only through their port", async 
   const saved = JSON.parse(setup.calls[0][2]);
   assert.equal(saved.fog.mode, "shared");
   assert.equal(saved.fog.sharedPolygon.length, 8);
-  assert.deepEqual(setup.calls.slice(1).map((call) => call[0]), ["bump", "action"]);
+  assert.deepEqual(setup.calls.slice(1).map((call) => call[0]), ["commit"]);
 });
 
 test("strict movement is a validated DM-only setting", async () => {

@@ -1,4 +1,5 @@
 import type { TokenRow } from "../types.ts";
+import type { HistoryReplayInput } from "./history-repository.ts";
 
 export type InitiativeToken = Pick<
   TokenRow,
@@ -35,4 +36,5 @@ export interface InitiativeCombatRepository {
   enterTurn(encounterId: string, round: number, order: number, now: number): Promise<void>;
   orderExists(encounterId: string, order: number): Promise<boolean>;
   correctTurn(encounterId: string, round: number, order: number, now: number): Promise<void>;
+  replayHistoryAction(input: HistoryReplayInput): Promise<number>;
 }

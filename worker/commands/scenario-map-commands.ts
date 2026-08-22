@@ -3,6 +3,7 @@ import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { parseMapPackage } from "../../shared/map-package.ts";
 import { baseTokenControllerName } from "../../shared/token-control.ts";
 import { MAX_SCENARIOS } from "../../shared/resource-limits.ts";
+import { combatStatusTransitionError } from "../../shared/encounter-transitions.ts";
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
 import { commandError, requireDm, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
@@ -12,12 +13,6 @@ type ScenarioMapCommandName =
 type ScenarioMapDependencies = {
   repository: ScenarioMapRepository;
   loadScenarioState(code: string, participantId: string): ReturnType<CommandContext["services"]["loadState"]>;
-  recordScenarioAction(
-    encounterId: string,
-    participantId: string,
-    actionType: string,
-    payload: Record<string, unknown>,
-  ): Promise<void>;
 };
 export type ScenarioMapCommandContext<Name extends ScenarioMapCommandName = ScenarioMapCommandName> =
   CommandContextFor<Name, ScenarioMapDependencies>;
@@ -30,7 +25,7 @@ export async function renameScenario(context: ScenarioMapCommandContext<"rename-
   const changed = name !== context.encounter.name;
   if (changed) {
     await context.repository.renameScenario(context.encounter.id, name, context.now);
-    await context.services.recordAction("scenario_renamed", {
+    await context.services.commit("scenario_renamed", {
       previousName: context.encounter.name,
       name,
     });
@@ -96,10 +91,17 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
       copiedAltitude: duplicate ? token.altitude : 0,
     })),
   });
-  await context.recordScenarioAction(scenarioId, participantId, "scenario_created", {
-    sourceEncounterId: context.encounter.id,
-    mode,
-    tokenCount: selected.length,
+  await context.services.commitFor({
+    encounterId: scenarioId,
+    expectedVersion: null,
+    participantId,
+    actionType: "scenario_created",
+    payload: {
+      sourceEncounterId: context.encounter.id,
+      mode,
+      tokenCount: selected.length,
+    },
+    bumpVersion: false,
   });
   return {
     payload: {
@@ -195,6 +197,14 @@ export async function configureEncounter(context: ScenarioMapCommandContext<"con
   const denied = requireDm(context);
   if (denied) return denied;
   const status = context.payload.status;
+  const transitionError = combatStatusTransitionError({
+    from: context.encounter.status,
+    to: status,
+    currentRound: context.encounter.currentRound,
+    activeInitiativeOrder: context.encounter.activeInitiativeOrder,
+  });
+  if (transitionError) return commandError(transitionError, 409);
+  if (status === context.encounter.status) return success(context, { configured: false });
   await context.repository.configureEncounter(context.encounter.id, status, context.now);
   await finish(context, "encounter_configured", {
     previous: { status: context.encounter.status },
@@ -243,8 +253,7 @@ async function finish(
   type: string,
   payload: Record<string, unknown>,
 ) {
-  await context.services.bumpEncounter();
-  await context.services.recordAction(type, payload);
+  await context.services.commit(type, payload);
 }
 
 async function success(

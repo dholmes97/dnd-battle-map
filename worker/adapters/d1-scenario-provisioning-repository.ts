@@ -13,6 +13,12 @@ import type {
 } from "../ports/scenario-provisioning-repository.ts";
 import { ScenarioProvisioningWriteError } from "../ports/scenario-provisioning-repository.ts";
 import type { TokenRow } from "../types.ts";
+import {
+  abandonStorageWriteIntent,
+  createStorageWriteIntent,
+  queueStorageCleanupStatement,
+  reconcileStorageLifecycle,
+} from "./d1-storage-lifecycle.ts";
 
 type JobRow = {
   id: string; idempotency_key: string; revision: number; operation: "create" | "revise";
@@ -81,23 +87,48 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
         .bind(code).first<{ id: string; code: string; version: number }>();
     },
     async createJob(job) {
-      await db.prepare(
-        `INSERT INTO scenario_provisioning_jobs
-         (id, idempotency_key, revision, operation, status, manifest_json, manifest_hash,
-          scenario_id, scenario_code, base_scenario_version, summary, error_code, result_json, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(
-        job.id, job.idempotencyKey, job.revision, job.operation, job.status, job.manifestJson,
-        job.manifestHash, job.scenarioId, job.scenarioCode, job.baseScenarioVersion, job.summary, job.errorCode,
-        job.resultJson, job.createdAt, job.updatedAt,
-      ).run();
+      try {
+        await db.prepare(
+          `INSERT INTO scenario_provisioning_jobs
+           (id, idempotency_key, revision, operation, status, manifest_json, manifest_hash,
+            scenario_id, scenario_code, base_scenario_version, summary, error_code, result_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).bind(
+          job.id, job.idempotencyKey, job.revision, job.operation, job.status, job.manifestJson,
+          job.manifestHash, job.scenarioId, job.scenarioCode, job.baseScenarioVersion, job.summary, job.errorCode,
+          job.resultJson, job.createdAt, job.updatedAt,
+        ).run();
+      } catch (error) {
+        if (String(error).includes("resource_limit:scenario_provisioning_jobs_hourly")) {
+          throw new ScenarioProvisioningWriteError(
+            "job_rate_limited",
+            "The scenario provisioning job limit has been reached; retry later.",
+            429,
+          );
+        }
+        throw error;
+      }
     },
     async updateJobStatus(input) {
-      const result = await db.prepare(
+      const update = db.prepare(
         `UPDATE scenario_provisioning_jobs SET status = ?, summary = ?, error_code = ?, updated_at = ?
          WHERE id = ? AND status = ?`,
-      ).bind(input.to, input.summary, input.errorCode, input.now, input.jobId, input.from).run();
-      return (result.meta.changes ?? 0) === 1;
+      ).bind(input.to, input.summary, input.errorCode, input.now, input.jobId, input.from);
+      if (input.to !== "failed") {
+        const result = await update.run();
+        return (result.meta.changes ?? 0) === 1;
+      }
+      const assets = await db.prepare(
+        `SELECT r2_key FROM scenario_provisioning_assets
+         WHERE job_id = ? AND committed_at IS NULL`,
+      ).bind(input.jobId).all<{ r2_key: string }>();
+      const results = await db.batch([
+        update,
+        ...assets.results.map((asset) =>
+          queueStorageCleanupStatement(db, asset.r2_key, "provisioning-job-failed", input.now)
+        ),
+      ]);
+      return (results[0]?.meta.changes ?? 0) === 1;
     },
     async findAsset(jobId, assetId) {
       const row = await db.prepare(
@@ -111,12 +142,19 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
       ).bind(jobId).all<AssetRow>();
       return rows.results.map(mapAsset);
     },
-    async upsertAsset(asset) {
-      const result = await db.prepare(
+    async beginAssetWrite(operationId, r2Key, now) {
+      await createStorageWriteIntent(db, operationId, [r2Key], now);
+    },
+    async commitAssetWrite(input) {
+      const result = db.prepare(
         `INSERT INTO scenario_provisioning_assets
          (id, job_id, asset_id, kind, r2_key, content_type, width, height, byte_length,
           sha256, committed_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?
+         WHERE EXISTS (
+           SELECT 1 FROM scenario_provisioning_jobs
+           WHERE id = ? AND status NOT IN ('finalizing', 'ready')
+         )
          ON CONFLICT(job_id, asset_id) DO UPDATE SET
           kind = excluded.kind, r2_key = excluded.r2_key, content_type = excluded.content_type,
           width = excluded.width, height = excluded.height, byte_length = excluded.byte_length,
@@ -124,10 +162,27 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
          WHERE scenario_provisioning_assets.committed_at IS NULL
            AND scenario_provisioning_assets.id = excluded.id`,
       ).bind(
-        asset.id, asset.jobId, asset.assetId, asset.kind, asset.r2Key, asset.contentType,
-        asset.width, asset.height, asset.byteLength, asset.sha256, asset.createdAt,
-      ).run();
-      return (result.meta.changes ?? 0) === 1;
+        input.asset.id, input.asset.jobId, input.asset.assetId, input.asset.kind,
+        input.asset.r2Key, input.asset.contentType, input.asset.width, input.asset.height,
+        input.asset.byteLength, input.asset.sha256, input.asset.createdAt, input.asset.jobId,
+      );
+      const statements = [result];
+      if (input.previousR2Key && input.previousR2Key !== input.asset.r2Key) {
+        statements.push(queueStorageCleanupStatement(
+          db,
+          input.previousR2Key,
+          "provisioning-asset-superseded",
+          input.now,
+        ));
+      }
+      statements.push(db.prepare(
+        "DELETE FROM storage_write_intents WHERE operation_id = ?",
+      ).bind(input.operationId));
+      const results = await db.batch(statements);
+      return (results[0]?.meta.changes ?? 0) === 1;
+    },
+    async abandonAssetWrite(operationId, r2Key, reason, now) {
+      await abandonStorageWriteIntent(db, operationId, [r2Key], reason, now);
     },
     async findMailReply(jobId, replyKind) {
       const row = await db.prepare(
@@ -214,7 +269,10 @@ function mapMailMessage(row: MailMessageRow): ScenarioProvisioningMailMessageRec
   };
 }
 
-export function createR2ScenarioProvisioningStorage(bucket: R2Bucket | undefined): ScenarioProvisioningObjectStorage {
+export function createR2ScenarioProvisioningStorage(
+  bucket: R2Bucket | undefined,
+  db: D1Database,
+): ScenarioProvisioningObjectStorage {
   return {
     available: Boolean(bucket),
     async put(key, bytes, contentType) {
@@ -226,6 +284,9 @@ export function createR2ScenarioProvisioningStorage(bucket: R2Bucket | undefined
     },
     async get(key) {
       return bucket ? bucket.get(key) : null;
+    },
+    async reconcile() {
+      await reconcileStorageLifecycle(db, bucket);
     },
   };
 }
@@ -257,6 +318,21 @@ async function finalizeProvisioning(
     : null;
   const dmParticipantId = dmParticipant?.id ?? input.createId();
   const statements: D1PreparedStatement[] = [];
+  const assertionId = input.createId();
+  statements.push(target
+    ? db.prepare(
+      `INSERT INTO mutation_assertions (operation_id, valid, created_at)
+       SELECT ?, CASE WHEN
+         EXISTS (SELECT 1 FROM scenario_provisioning_jobs WHERE id = ? AND status = 'finalizing')
+         AND EXISTS (SELECT 1 FROM encounters WHERE id = ? AND version = ?)
+       THEN 1 ELSE 0 END, ?`,
+    ).bind(assertionId, input.job.id, target.id, input.job.baseScenarioVersion, input.now)
+    : db.prepare(
+      `INSERT INTO mutation_assertions (operation_id, valid, created_at)
+       SELECT ?, CASE WHEN EXISTS (
+         SELECT 1 FROM scenario_provisioning_jobs WHERE id = ? AND status = 'finalizing'
+       ) THEN 1 ELSE 0 END, ?`,
+    ).bind(assertionId, input.job.id, input.now));
   if (!dmParticipant) statements.push(db.prepare(
     `INSERT INTO participants (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
      VALUES (?, ?, 'Kevin', 'dm', ?, ?, ?)`,
@@ -284,17 +360,25 @@ async function finalizeProvisioning(
         `UPDATE encounters SET name = ?, dm_briefing = CASE WHEN ? = '' THEN dm_briefing ELSE ? END,
          map_asset = ?, map_package_json = ?, active_map_preset_id = ?,
          strict_movement = COALESCE(?, strict_movement), version = version + 1, updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ? AND version = ?`,
       ).bind(
         scenarioName, briefing, briefing, mapPackage.visual.assetUrl, JSON.stringify(mapPackage), presetId,
-        booleanInteger(input.manifest.settings.strictMovement), input.now, scenarioId,
+        booleanInteger(input.manifest.settings.strictMovement), input.now, scenarioId, input.job.baseScenarioVersion,
       ));
     } else {
       statements.push(db.prepare(
         `UPDATE encounters SET name = ?, dm_briefing = CASE WHEN ? = '' THEN dm_briefing ELSE ? END,
          strict_movement = COALESCE(?, strict_movement), version = version + 1, updated_at = ?
-         WHERE id = ?`,
-      ).bind(scenarioName, briefing, briefing, booleanInteger(input.manifest.settings.strictMovement), input.now, scenarioId));
+         WHERE id = ? AND version = ?`,
+      ).bind(
+        scenarioName,
+        briefing,
+        briefing,
+        booleanInteger(input.manifest.settings.strictMovement),
+        input.now,
+        scenarioId,
+        input.job.baseScenarioVersion,
+      ));
     }
   }
   if (mapPackage && presetId) statements.push(db.prepare(
@@ -376,7 +460,34 @@ async function finalizeProvisioning(
     scenarioId, scenarioCode, `Scenario ${scenarioName} is ready to test.`, JSON.stringify(result),
     input.now, input.job.id,
   ));
-  await db.batch(statements);
+  statements.push(db.prepare(
+    `INSERT INTO actions
+     (id, encounter_id, participant_id, action_type, payload_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    input.createId(),
+    scenarioId,
+    dmParticipantId,
+    target ? "scenario_revised" : "scenario_provisioned",
+    JSON.stringify({ jobId: input.job.id, presetId, handoutIds, placedTokenIds }),
+    input.now,
+  ));
+  statements.push(db.prepare(
+    "DELETE FROM mutation_assertions WHERE operation_id = ?",
+  ).bind(assertionId));
+  try {
+    await db.batch(statements);
+  } catch (error) {
+    if (String(error).includes("mutation_conflict:encounter_version")) {
+      throw new ScenarioProvisioningWriteError(
+        target ? "scenario_changed" : "job_changed",
+        target
+          ? "The target scenario changed before finalization committed. Review the latest scenario before retrying."
+          : "The provisioning job changed before finalization committed.",
+      );
+    }
+    throw error;
+  }
   return result;
 }
 
@@ -474,8 +585,10 @@ async function prepareHandouts(
     if (!display || !thumbnail || display.contentType !== thumbnail.contentType) throw new ScenarioProvisioningWriteError("handout_assets_invalid", `Prepared assets are invalid for ${handout.title}.`);
     const handoutId = handout.replaceHandoutId ?? createId();
     if (handout.replaceHandoutId) {
-      const existing = await db.prepare("SELECT 1 AS found FROM handouts WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL")
-        .bind(handoutId, scenarioId).first<{ found: number }>();
+      const existing = await db.prepare(
+        `SELECT display_key, thumbnail_key FROM handouts
+         WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
+      ).bind(handoutId, scenarioId).first<{ display_key: string; thumbnail_key: string }>();
       if (!existing) throw new ScenarioProvisioningWriteError("handout_not_found", `The handout to replace for ${handout.title} was not found.`, 404);
       statements.push(db.prepare(
         `UPDATE handouts SET title = ?, display_key = ?, thumbnail_key = ?, mime_type = ?,
@@ -486,6 +599,10 @@ async function prepareHandouts(
         display.width, display.height, display.byteLength, thumbnail.byteLength,
         now, handoutId, scenarioId,
       ));
+      statements.push(
+        queueStorageCleanupStatement(db, existing.display_key, "provisioning-handout-replaced", now),
+        queueStorageCleanupStatement(db, existing.thumbnail_key, "provisioning-handout-replaced", now),
+      );
     } else {
       statements.push(db.prepare(
         `INSERT INTO handouts

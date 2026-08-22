@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { transitionHp, transitionTokenMove } from "../shared/encounter-transitions.ts";
+import {
+  combatStatusTransitionError,
+  transitionHp,
+  transitionTokenMove,
+} from "../shared/encounter-transitions.ts";
 
 const baseMove = {
   previous: { x: 2, y: 2 }, destination: { x: 5, y: 4 },
@@ -42,6 +46,27 @@ test("HP transition clamps damage and healing and derives the visible band", () 
   assert.deepEqual(transitionHp(10, 20, -99), { from: 10, hp: 0, healthState: "down" });
   assert.deepEqual(transitionHp(null, 20, -5), { from: 20, hp: 15, healthState: "injured" });
   assert.deepEqual(transitionHp(18, 20, 99), { from: 18, hp: 20, healthState: "unharmed" });
+});
+
+test("combat status transitions reject setup pause/resume and require initialized resume state", () => {
+  assert.match(combatStatusTransitionError({
+    from: "setup", to: "paused", currentRound: 0, activeInitiativeOrder: null,
+  }), /must be started/);
+  assert.match(combatStatusTransitionError({
+    from: "setup", to: "active", currentRound: 0, activeInitiativeOrder: null,
+  }), /must be started/);
+  assert.equal(combatStatusTransitionError({
+    from: "active", to: "paused", currentRound: 2, activeInitiativeOrder: 1,
+  }), null);
+  assert.match(combatStatusTransitionError({
+    from: "paused", to: "active", currentRound: 0, activeInitiativeOrder: null,
+  }), /initialized/);
+  assert.equal(combatStatusTransitionError({
+    from: "paused", to: "active", currentRound: 2, activeInitiativeOrder: 1,
+  }), null);
+  assert.equal(combatStatusTransitionError({
+    from: "active", to: "setup", currentRound: 2, activeInitiativeOrder: 1,
+  }), null);
 });
 
 test("both adapters invoke the same movement and HP transitions", async () => {

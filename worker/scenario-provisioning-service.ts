@@ -253,7 +253,21 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (existing?.committedAt) throw new ScenarioProvisioningWriteError("asset_committed", "That asset is already committed.");
     if (existing?.sha256 === sha256 && existing.contentType === contentType) return existing;
     const r2Key = storageKey(jobId, spec, contentType, sha256);
-    await objectStorage.put(r2Key, bytes, contentType);
+    const operationId = dependencies.createId();
+    const intentNow = dependencies.now();
+    await repository.beginAssetWrite(operationId, r2Key, intentNow);
+    try {
+      await objectStorage.put(r2Key, bytes, contentType);
+    } catch (error) {
+      await repository.abandonAssetWrite(
+        operationId,
+        r2Key,
+        "provisioning-storage-write-failed",
+        dependencies.now(),
+      ).catch(() => undefined);
+      await objectStorage.reconcile().catch(() => undefined);
+      throw error;
+    }
     const asset: ScenarioProvisioningAssetRecord = {
       id: existing?.id ?? dependencies.createId(),
       jobId,
@@ -268,11 +282,35 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
       committedAt: null,
       createdAt: existing?.createdAt ?? dependencies.now(),
     };
-    if (!await repository.upsertAsset(asset)) {
-      await objectStorage.delete(r2Key).catch(() => undefined);
+    let committed = false;
+    try {
+      committed = await repository.commitAssetWrite({
+        operationId,
+        asset,
+        previousR2Key: existing?.r2Key ?? null,
+        now: dependencies.now(),
+      });
+    } catch (error) {
+      await repository.abandonAssetWrite(
+        operationId,
+        r2Key,
+        "provisioning-metadata-write-failed",
+        dependencies.now(),
+      ).catch(() => undefined);
+      await objectStorage.reconcile().catch(() => undefined);
+      throw error;
+    }
+    if (!committed) {
+      await repository.abandonAssetWrite(
+        operationId,
+        r2Key,
+        "provisioning-asset-race-lost",
+        dependencies.now(),
+      ).catch(() => undefined);
+      await objectStorage.reconcile().catch(() => undefined);
       throw new ScenarioProvisioningWriteError("asset_committed", "That asset was committed while the upload was being applied.");
     }
-    if (existing && existing.r2Key !== r2Key) await objectStorage.delete(existing.r2Key).catch(() => undefined);
+    await objectStorage.reconcile().catch(() => undefined);
     if (job.status !== "staging" && !scenarioProvisioningTransitionError(job.status, "staging")) {
       await repository.updateJobStatus({
         jobId,
@@ -291,7 +329,7 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (job.status === "ready" && job.resultJson) return JSON.parse(job.resultJson) as ScenarioProvisioningFinalizeResult;
     if (job.status === "finalizing") throw new ScenarioProvisioningWriteError("job_finalizing", "This job is already finalizing.");
     const parsed = parseStoredManifest(job);
-    const assets = await repository.listAssets(jobId);
+    let assets = await repository.listAssets(jobId);
     validateCompleteAssetSet(parsed.manifest, assets);
     const transitionError = scenarioProvisioningTransitionError(job.status, "finalizing");
     if (transitionError) throw new ScenarioProvisioningWriteError("job_not_finalizable", transitionError);
@@ -306,8 +344,22 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     })) throw new ScenarioProvisioningWriteError("job_changed", "The provisioning job changed before finalization.");
     job = { ...job, status: "finalizing", summary: "Finalizing scenario records.", updatedAt: now };
     try {
+      // Claim the job before the authoritative asset read. Asset metadata commits
+      // reject finalizing/ready jobs, so this snapshot cannot be replaced beneath
+      // the D1 finalization batch.
+      assets = await repository.listAssets(jobId);
+      validateCompleteAssetSet(parsed.manifest, assets);
       const mapPackage = parsed.manifest.map ? buildProvisionedMapPackage(parsed.manifest.map, jobId, now) : null;
-      return await repository.finalize({ job, manifest: parsed.manifest, mapPackage, assets, now, createId: dependencies.createId });
+      const result = await repository.finalize({
+        job,
+        manifest: parsed.manifest,
+        mapPackage,
+        assets,
+        now,
+        createId: dependencies.createId,
+      });
+      await objectStorage.reconcile().catch(() => undefined);
+      return result;
     } catch (error) {
       const writeError = error instanceof ScenarioProvisioningWriteError ? error : null;
       await repository.updateJobStatus({
@@ -318,6 +370,7 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
         errorCode: writeError?.code ?? "finalization_failed",
         now: dependencies.now(),
       }).catch(() => undefined);
+      await objectStorage.reconcile().catch(() => undefined);
       throw error;
     }
   }

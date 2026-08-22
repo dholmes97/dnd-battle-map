@@ -103,7 +103,14 @@ export interface ScenarioProvisioningRepository {
   }): Promise<boolean>;
   findAsset(jobId: string, assetId: string): Promise<ScenarioProvisioningAssetRecord | null>;
   listAssets(jobId: string): Promise<ScenarioProvisioningAssetRecord[]>;
-  upsertAsset(asset: ScenarioProvisioningAssetRecord): Promise<boolean>;
+  beginAssetWrite(operationId: string, r2Key: string, now: number): Promise<void>;
+  commitAssetWrite(input: {
+    operationId: string;
+    asset: ScenarioProvisioningAssetRecord;
+    previousR2Key: string | null;
+    now: number;
+  }): Promise<boolean>;
+  abandonAssetWrite(operationId: string, r2Key: string, reason: string, now: number): Promise<void>;
   findMailReply(jobId: string, replyKind: ScenarioMailReplyKind): Promise<ScenarioProvisioningMailReplyRecord | null>;
   findMailReplyById(replyId: string): Promise<ScenarioProvisioningMailReplyRecord | null>;
   findMailReplyByMarker(responseMarker: string): Promise<ScenarioProvisioningMailReplyRecord | null>;
@@ -126,4 +133,5 @@ export interface ScenarioProvisioningObjectStorage {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
   delete(key: string): Promise<void>;
   get(key: string): Promise<R2ObjectBody | null>;
+  reconcile(): Promise<void>;
 }

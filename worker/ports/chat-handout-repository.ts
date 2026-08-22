@@ -23,10 +23,10 @@ export interface ChatHandoutRepository {
   writeChatMessage(message: ChatMessageWrite): Promise<boolean>;
   findDeletableHandout(encounterId: string, handoutId: string): Promise<DeletableHandout | null>;
   countHandoutReferences(encounterId: string, handoutId: string): Promise<number>;
-  markHandoutDeleted(encounterId: string, handoutId: string, deletedAt: number): Promise<void>;
+  markHandoutDeleted(encounterId: string, handout: DeletableHandout, deletedAt: number): Promise<void>;
 }
 
 export interface HandoutObjectStorage {
   available: boolean;
-  deleteObjects(keys: string[]): Promise<void>;
+  reconcileCleanup(): Promise<void>;
 }

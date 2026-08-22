@@ -5,6 +5,7 @@ import {
   MAX_EFFECTS_PER_TOKEN,
   MAX_TOKENS_PER_ENCOUNTER,
 } from "../../shared/resource-limits.ts";
+import { replayTokenEffectHistory } from "./d1-token-effect-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -19,6 +20,10 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       ).bind(tokenId, encounterId).first<TokenRow>() ?? null;
     },
     async createToken(input) {
+      const count = await db.prepare(
+        "SELECT COUNT(*) AS value FROM tokens WHERE encounter_id = ?",
+      ).bind(input.encounterId).first<{ value: number }>();
+      if ((Number(count?.value) || 0) >= MAX_TOKENS_PER_ENCOUNTER) return false;
       const result = await db.prepare(
         `INSERT INTO tokens
          (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
@@ -99,6 +104,16 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       ).bind(hp, now, tokenId, encounterId).run();
     },
     async addEffect(input) {
+      const counts = await db.prepare(
+        `SELECT COUNT(*) AS encounter_count,
+         SUM(CASE WHEN token_id = ? THEN 1 ELSE 0 END) AS token_count
+         FROM effects WHERE encounter_id = ?`,
+      ).bind(input.tokenId, input.encounterId).first<{
+        encounter_count: number;
+        token_count: number;
+      }>();
+      if ((Number(counts?.encounter_count) || 0) >= MAX_EFFECTS_PER_ENCOUNTER ||
+          (Number(counts?.token_count) || 0) >= MAX_EFFECTS_PER_TOKEN) return false;
       const result = await db.prepare(
         `INSERT INTO effects
          (id, encounter_id, token_id, name, effect_type, duration_rounds,
@@ -185,5 +200,6 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       await db.prepare("DELETE FROM tokens WHERE id = ? AND encounter_id = ?")
         .bind(tokenId, encounterId).run();
     },
+    replayHistoryAction: (input) => replayTokenEffectHistory(db, input),
   };
 }

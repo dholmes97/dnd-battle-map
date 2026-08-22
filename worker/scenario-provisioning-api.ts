@@ -41,9 +41,10 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
   if (!match && !mailReplyMatch && !isMailClassification) {
     return json({ error: "Scenario provisioning route not found.", code: "not_found" }, { status: 404 });
   }
+  const objectStorage = createR2ScenarioProvisioningStorage(env.MAP_ASSETS, env.DB);
   const service = createScenarioProvisioningService({
     repository: createD1ScenarioProvisioningRepository(env.DB),
-    objectStorage: createR2ScenarioProvisioningStorage(env.MAP_ASSETS),
+    objectStorage,
     createId: () => crypto.randomUUID(),
     now: () => Date.now(),
     hash: sha256,

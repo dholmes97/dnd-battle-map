@@ -1,6 +1,7 @@
 import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
 import type { TokenRow } from "../types.ts";
 import { MAX_TOKENS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
+import { replayInitiativeHistory } from "./d1-initiative-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -129,5 +130,6 @@ export function createD1InitiativeCombatRepository(db: D1Database): InitiativeCo
         ).bind(now, encounterId, order),
       ]);
     },
+    replayHistoryAction: (input) => replayInitiativeHistory(db, input),
   };
 }

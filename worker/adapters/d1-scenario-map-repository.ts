@@ -14,7 +14,7 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
   return {
     async renameScenario(encounterId, name, now) {
       await db.prepare(
-        "UPDATE encounters SET name = ?, version = version + 1, updated_at = ? WHERE id = ?",
+        "UPDATE encounters SET name = ?, updated_at = ? WHERE id = ?",
       ).bind(name, now, encounterId).run();
     },
     async countScenarios() {
@@ -89,6 +89,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
     },
     async saveMapPreset(input, update) {
       if (update) {
+        const exists = await db.prepare(
+          "SELECT 1 AS found FROM map_presets WHERE id = ? AND encounter_id = ?",
+        ).bind(input.id, input.encounterId).first();
+        if (!exists) return "missing";
         const result = await db.prepare(
           `UPDATE map_presets SET name = ?, description = ?, source_prompt = ?,
            package_json = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
@@ -103,6 +107,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         ).run();
         return (result.meta.changes ?? 0) === 1 ? "saved" : "missing";
       }
+      const count = await db.prepare(
+        "SELECT COUNT(*) AS value FROM map_presets WHERE encounter_id = ?",
+      ).bind(input.encounterId).first<{ value: number }>();
+      if ((Number(count?.value) || 0) >= MAX_MAP_PRESETS_PER_ENCOUNTER) return "limit";
       const result = await db.prepare(
         `INSERT INTO map_presets
          (id, encounter_id, name, description, source_prompt, package_json,
@@ -125,6 +133,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
       return (result.meta.changes ?? 0) === 1 ? "saved" : "limit";
     },
     async deleteMapPreset(encounterId, presetId) {
+      const exists = await db.prepare(
+        "SELECT 1 AS found FROM map_presets WHERE id = ? AND encounter_id = ?",
+      ).bind(presetId, encounterId).first();
+      if (!exists) return false;
       const result = await db.prepare(
         "DELETE FROM map_presets WHERE id = ? AND encounter_id = ?",
       ).bind(presetId, encounterId).run();

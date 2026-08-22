@@ -1,4 +1,5 @@
 import type { EffectRow, TokenRow } from "../types.ts";
+import type { HistoryReplayInput } from "./history-repository.ts";
 
 export type EffectWithToken = EffectRow & {
   created_by: string;
@@ -60,4 +61,5 @@ export interface TokenEffectRepository {
   findEffect(encounterId: string, effectId: string): Promise<EffectWithToken | null>;
   removeEffect(encounterId: string, effectId: string): Promise<void>;
   deleteToken(encounterId: string, tokenId: string): Promise<void>;
+  replayHistoryAction(input: HistoryReplayInput): Promise<number>;
 }

@@ -1,4 +1,5 @@
 import {
+  check,
   index,
   integer,
   real,
@@ -6,6 +7,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 export const appMaintenance = sqliteTable("app_maintenance", {
   id: text("id").primaryKey(),
@@ -31,6 +33,45 @@ export const operationLeases = sqliteTable(
     expiresAt: integer("expires_at").notNull(),
   },
   (table) => [index("idx_operation_leases_expiry").on(table.expiresAt)],
+);
+
+export const mutationAssertions = sqliteTable(
+  "mutation_assertions",
+  {
+    operationId: text("operation_id").primaryKey(),
+    valid: integer("valid").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [check("mutation_assertions_valid", sql`${table.valid} = 1`)],
+);
+
+export const storageWriteIntents = sqliteTable(
+  "storage_write_intents",
+  {
+    id: text("id").primaryKey(),
+    operationId: text("operation_id").notNull(),
+    objectKey: text("object_key").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_storage_write_intents_operation_key").on(table.operationId, table.objectKey),
+    index("idx_storage_write_intents_created").on(table.createdAt),
+    index("idx_storage_write_intents_object_key").on(table.objectKey),
+  ],
+);
+
+export const storageCleanupOutbox = sqliteTable(
+  "storage_cleanup_outbox",
+  {
+    objectKey: text("object_key").primaryKey(),
+    reason: text("reason").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: integer("available_at").notNull(),
+    createdAt: integer("created_at").notNull(),
+    completedAt: integer("completed_at"),
+    lastError: text("last_error"),
+  },
+  (table) => [index("idx_storage_cleanup_outbox_pending").on(table.completedAt, table.availableAt)],
 );
 
 export const encounters = sqliteTable("encounters", {
@@ -74,6 +115,7 @@ export const scenarioProvisioningJobs = sqliteTable(
   },
   (table) => [
     uniqueIndex("idx_scenario_provisioning_jobs_idempotency").on(table.idempotencyKey),
+    index("idx_scenario_provisioning_jobs_created").on(table.createdAt),
     index("idx_scenario_provisioning_jobs_status_updated").on(table.status, table.updatedAt),
     index("idx_scenario_provisioning_jobs_scenario").on(table.scenarioId, table.updatedAt),
   ],

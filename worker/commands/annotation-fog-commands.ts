@@ -144,8 +144,7 @@ export async function removeAnnotation(context: AnnotationFogCommandContext<"rem
 }
 
 async function finish(context: AnnotationFogCommandContext, type: string, payload: Record<string, unknown>) {
-  await context.services.bumpEncounter();
-  await context.services.recordAction(type, payload);
+  await context.services.commit(type, payload);
 }
 
 async function success(context: AnnotationFogCommandContext, payload: Record<string, unknown>): Promise<CommandOutcome> {

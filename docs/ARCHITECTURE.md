@@ -36,10 +36,19 @@ are adapter internals and are not shared with React consumers.
 Adapters may translate framework-shaped records into domain-shaped data, invoke a domain function, and translate the result back. A decision used by both adapters belongs in `shared/`; it should not be reimplemented in each adapter.
 
 Shared transitions do not imply whole-encounter persistence. Worker handlers
-write only the records and fields affected by a command. Side-effect-led
-workflows such as chat and handouts, scenario creation, catalog imports, and
-history persistence remain adapter orchestrations that call shared policies
-where useful rather than being forced through a universal reducer.
+write only the records and fields affected by a command. Every encounter
+mutation nevertheless uses one request-scoped D1 unit of work: affected feature
+records, the optimistic version assertion, encounter version increment, and
+history row either commit together or all roll back. Undo/redo discovers its
+stack through the history adapter, then delegates replay to the feature adapter
+that owns the affected records instead of duplicating persistence rules.
+
+D1 and R2 cannot share a transaction. Storage-backed workflows therefore record
+idempotent write intents before an R2 put and commit D1 visibility plus cleanup
+outbox rows atomically. Reconciliation is reference-aware, treats deletion as
+idempotent, retries partial failures with backoff, and expires abandoned writes
+and provisioning jobs. R2 deletion never precedes the D1 tombstone that makes an
+object unreachable.
 
 New work should extend the existing feature boundary, command family,
 repository port, or shared transition that owns the behavior instead of adding
@@ -68,6 +77,10 @@ intent into the versioned manifest defined by `shared/scenario-provisioning.ts`.
 Only the dedicated provisioning API may stage derived assets and atomically
 create or revise a scenario. Its token and sender allowlist grant no participant,
 backup, catalog-import, deployment, SQL, or arbitrary R2 capability.
+Finalization checks both job state and the target scenario version at the final
+D1 batch boundary. Content-addressed assets remain protected by active write
+intents and live-reference checks until their metadata wins or durable cleanup
+work is queued.
 
 Outbound Gmail identity is persisted separately from thread context. Every
 candidate message is classified before its content is parsed, and every reply

@@ -114,9 +114,12 @@ The API:
   and placement bounds;
 - finalizes D1 metadata atomically and uses committed references as the
   visibility boundary;
+- verifies the job state and target scenario version inside that final D1
+  transaction, so a concurrent revision cannot partially win;
 - preserves unrelated and customized production records during revisions; and
-- leaves failed staged assets unreferenced and eligible for bounded later
-  cleanup rather than exposing a partial scenario.
+- records an idempotent write intent before each R2 put and moves failed,
+  abandoned, or superseded objects to a reference-aware cleanup outbox. Cleanup
+  retries partial failures and never deletes a still-referenced winning object.
 
 Durable job states are `received`, `parsing`, `needs_clarification`,
 `generating`, `researching_creatures`, `validating`, `staging`, `finalizing`,

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   applyMapPackage,
+  configureEncounter,
   createScenario,
   renameScenario,
   saveMapPreset,
@@ -34,6 +35,7 @@ function context(overrides = {}) {
       id: "encounter-1",
       code: "OLD-CODE",
       name: "Old name",
+      version: 1,
       status: "setup",
       mapAsset: "map.jpg",
       mapPackageJson: null,
@@ -49,12 +51,11 @@ function context(overrides = {}) {
     payload: {},
     now: 100,
     loadScenarioState: async (code, participantId) => ({ code, participantId }),
-    recordScenarioAction: async (...args) => calls.push(["record-new", ...args]),
     services: {
       createId: () => `id-${++id}`,
       loadState: async () => ({ marker: "current" }),
-      bumpEncounter: async () => calls.push(["bump"]),
-      recordAction: async (...args) => calls.push(["record", ...args]),
+      commit: async (...args) => calls.push(["commit", ...args]),
+      commitFor: async (input) => calls.push(["commit-for", input]),
     },
     ...contextOverrides,
   };
@@ -111,8 +112,8 @@ test("party scenario creation resets state and records history on the new scenar
   assert.equal(write.tokens[0].copiedHp, 42);
   assert.equal(write.tokens[0].copiedHidden, false);
   assert.equal(write.tokens[0].copiedAltitude, 0);
-  const recorded = value.calls.find(([name]) => name === "record-new");
-  assert.equal(recorded[1], write.id);
+  const recorded = value.calls.find(([name]) => name === "commit-for");
+  assert.equal(recorded[1].encounterId, write.id);
   assert.equal(result.payload.state.code, "FRESH-ADVENTURE");
 });
 
@@ -150,6 +151,33 @@ test("map presets and map application stay behind a fakeable repository", async 
     applied.calls.find(([name]) => name === "apply")[1].tokenPositions[0],
     { id: "token", x: 0.86, y: 15.14 },
   );
+});
+
+test("encounter configuration enforces the core combat transition policy", async () => {
+  const invalidPause = context({ payload: { status: "paused" } });
+  assert.equal((await configureEncounter(invalidPause)).status, 409);
+  assert.deepEqual(invalidPause.calls, []);
+
+  const paused = context({
+    encounter: {
+      ...context().encounter,
+      status: "active",
+      currentRound: 2,
+      activeInitiativeOrder: 1,
+    },
+    payload: { status: "paused" },
+    repository: {
+      configureEncounter: async (...args) => paused.calls.push(["configure", ...args]),
+    },
+  });
+  assert.equal((await configureEncounter(paused)).payload.configured, true);
+  assert.equal(paused.calls.find(([name]) => name === "configure")[2], "paused");
+
+  const corruptResume = context({
+    encounter: { ...context().encounter, status: "paused" },
+    payload: { status: "active" },
+  });
+  assert.equal((await configureEncounter(corruptResume)).status, 409);
 });
 
 function createMapPackage() {

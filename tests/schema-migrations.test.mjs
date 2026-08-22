@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
   MAX_ACTIONS_PER_ENCOUNTER,
@@ -17,6 +18,8 @@ import {
   MAX_SCENARIOS,
   MAX_TOKENS_PER_ENCOUNTER,
 } from "../shared/resource-limits.ts";
+import { HANDOUT_MAX_PER_SCENARIO } from "../shared/handout-domain.ts";
+import { SCENARIO_PROVISIONING_MAX_JOBS_PER_HOUR } from "../shared/scenario-provisioning.ts";
 
 const projectRoot = new URL("../", import.meta.url);
 const migrationDirectory = new URL("../drizzle/", import.meta.url);
@@ -46,8 +49,9 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-provisioning-revision-guard-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'scenario-mail-provenance-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases');"), "2");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%_insert';"), "10");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "12");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -55,6 +59,10 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_replies WHERE job_id = 'job-1' AND reply_kind = 'ready';"),
     /USING INDEX idx_scenario_provisioning_mail_replies_job_kind/,
+  );
+  assert.match(
+    await query(database, "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM scenario_provisioning_jobs WHERE created_at >= 1800000000000 - 3600000;"),
+    /USING COVERING INDEX idx_scenario_provisioning_jobs_created/,
   );
   assert.equal(await query(database, "SELECT name FROM encounters WHERE code = 'EMBER-KEEP';"), "Swamp Battle");
   assert.deepEqual(
@@ -237,7 +245,7 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /resource-guardrails-v1/);
+  assert.match(block, /state-integrity-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
 });
 
@@ -258,6 +266,45 @@ test("resource-limit migration constants stay aligned with application policies"
   assert.match(migration, new RegExp("FROM `effects` WHERE `encounter_id` = NEW\\.`encounter_id`\\) >= " + MAX_EFFECTS_PER_ENCOUNTER));
   assert.match(migration, new RegExp("AND `token_id` = NEW\\.`token_id`\\) >= " + MAX_EFFECTS_PER_TOKEN));
   assert.match(migration, new RegExp("FROM `creature_catalog`\\) >= " + MAX_CATALOG_ENTRIES));
+});
+
+test("state-integrity migration aligns atomic quotas and outbox schema", async () => {
+  const migration = await readFile(new URL("../drizzle/0026_state_integrity_outbox.sql", import.meta.url), "utf8");
+  assert.match(migration, /CREATE TABLE `mutation_assertions`/);
+  assert.match(migration, /CREATE TABLE `storage_write_intents`/);
+  assert.match(migration, /CREATE TABLE `storage_cleanup_outbox`/);
+  assert.match(migration, /CREATE INDEX `idx_scenario_provisioning_jobs_created` ON `scenario_provisioning_jobs` \(`created_at`\)/);
+  assert.match(migration, new RegExp("deleted_at` IS NULL[\\s\\S]+>= " + HANDOUT_MAX_PER_SCENARIO));
+  assert.match(migration, new RegExp("scenario_provisioning_jobs[\\s\\S]+>= " + SCENARIO_PROVISIONING_MAX_JOBS_PER_HOUR));
+});
+
+test("Drizzle snapshots form a complete no-op generation baseline", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "battle-map-drizzle-snapshots-"));
+  const output = join(directory, "drizzle");
+  await cp(migrationDirectory, output, { recursive: true });
+  const expectedMigrations = (await readdir(output)).filter((name) => /^\d{4}_.+\.sql$/.test(name)).sort();
+
+  await runProcess(process.execPath, [
+    fileURLToPath(new URL("../node_modules/drizzle-kit/bin.cjs", import.meta.url)),
+    "generate",
+    "--schema",
+    fileURLToPath(new URL("../db/schema.ts", import.meta.url)),
+    "--out",
+    "drizzle",
+    "--dialect",
+    "sqlite",
+    "--name",
+    "snapshot-probe",
+  ], directory);
+
+  const actualMigrations = (await readdir(output)).filter((name) => /^\d{4}_.+\.sql$/.test(name)).sort();
+  assert.deepEqual(actualMigrations, expectedMigrations);
+  const snapshots = await Promise.all([22, 23, 24, 25, 26].map(async (index) =>
+    JSON.parse(await readFile(join(output, "meta", `${String(index).padStart(4, "0")}_snapshot.json`), "utf8"))
+  ));
+  for (let index = 1; index < snapshots.length; index += 1) {
+    assert.equal(snapshots[index].prevId, snapshots[index - 1].id);
+  }
 });
 
 async function migrationFiles() {
@@ -290,5 +337,20 @@ function runSqlite(database, arguments_, input) {
       else reject(new Error(`sqlite3 failed (${code}): ${Buffer.concat(stderr).toString("utf8").trim()}`));
     });
     child.stdin.end(input);
+  });
+}
+
+function runProcess(command, arguments_, cwd) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, arguments_, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    child.stderr.on("data", (chunk) => stderr.push(chunk));
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolvePromise(Buffer.concat(stdout).toString("utf8"));
+      else reject(new Error(`command failed (${code}): ${Buffer.concat(stderr).toString("utf8").trim()}`));
+    });
   });
 }

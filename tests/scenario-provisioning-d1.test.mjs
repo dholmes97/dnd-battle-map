@@ -29,19 +29,41 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
       }
     }
     let nextId = 0;
+    const testNow = Date.now();
+    const storage = createR2ScenarioProvisioningStorage(bucket, db);
+    let blockNextPut = false;
+    let releaseBlockedPut = () => {};
+    let announceBlockedPut = () => {};
+    const blockedPutStarted = new Promise((resolve) => { announceBlockedPut = resolve; });
     const service = createScenarioProvisioningService({
       repository: createD1ScenarioProvisioningRepository(db),
-      objectStorage: createR2ScenarioProvisioningStorage(bucket),
+      objectStorage: {
+        ...storage,
+        async put(key, bytes, contentType) {
+          if (blockNextPut) {
+            blockNextPut = false;
+            announceBlockedPut();
+            await new Promise((resolve) => { releaseBlockedPut = resolve; });
+          }
+          await storage.put(key, bytes, contentType);
+        },
+      },
       createId: () => `provisioned-id-${++nextId}`,
-      now: () => 1_800_000_000_000 + nextId,
+      now: () => testNow + nextId,
       hash: async (value) => `hash-${typeof value === "string" ? value.length : value.byteLength}`,
       authorizedSenders: ["kevin@example.com", "dan@example.com"],
     });
     const created = await service.createJob(manifest());
-    await service.stageAsset(created.job.id, "map-main", "image/jpeg", jpeg(3072, 2048));
+    const initialMap = await service.stageAsset(created.job.id, "map-main", "image/jpeg", jpeg(3072, 2048));
     await service.stageAsset(created.job.id, "shadow-bat-original", "image/png", png(512, 512));
     await service.stageAsset(created.job.id, "shadow-bat-thumbnail", "image/png", png(144, 144));
+    const replacement = new Uint8Array([...jpeg(3072, 2048), 1]);
+    blockNextPut = true;
+    const lateStage = service.stageAsset(created.job.id, "map-main", "image/jpeg", replacement);
+    await blockedPutStarted;
     const result = await service.finalize(created.job.id);
+    releaseBlockedPut();
+    await assert.rejects(lateStage, (error) => error.code === "asset_committed");
 
     assert.equal(result.scenario.name, "Sunken Chapel");
     assert.equal(result.placedTokenIds.length, 4);
@@ -51,6 +73,12 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM map_presets WHERE encounter_id = ?", result.scenario.id), 1);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_assets WHERE committed_at IS NOT NULL", undefined), 3);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_jobs WHERE status = 'ready'", undefined), 1);
+    assert.equal((await createD1ScenarioProvisioningRepository(db).findAsset(created.job.id, "map-main")).r2Key, initialMap.r2Key);
+    assert.equal(await scalar(
+      db,
+      "SELECT COUNT(*) AS value FROM storage_cleanup_outbox WHERE reason = 'provisioning-asset-race-lost' AND completed_at IS NOT NULL",
+      undefined,
+    ), 1);
     assert.deepEqual(await service.finalize(created.job.id), result);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM encounters WHERE code = ?", result.scenario.code), 1);
 
@@ -75,6 +103,127 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
     await assert.rejects(service.finalize(revision.job.id), (error) => error.code === "scenario_changed");
     assert.equal(await scalar(db, "SELECT strict_movement AS value FROM encounters WHERE id = ?", result.scenario.id), 0);
     assert.equal((await service.getJob(revision.job.id)).status, "failed");
+  } finally {
+    await miniflare.dispose();
+  }
+});
+
+test("concurrent identical staging preserves the winning content-addressed R2 object", async () => {
+  const miniflare = new Miniflare({
+    modules: true,
+    script: "export default { fetch() { return new Response('ok') } }",
+    compatibilityDate: "2026-05-22",
+    d1Databases: ["DB"],
+    r2Buckets: ["MAP_ASSETS"],
+  });
+  try {
+    const db = await miniflare.getD1Database("DB");
+    const bucket = await miniflare.getR2Bucket("MAP_ASSETS");
+    const migrationDirectory = new URL("../drizzle/", import.meta.url);
+    const migrations = (await readdir(migrationDirectory)).filter((name) => /^\d{4}_.+\.sql$/.test(name)).sort();
+    for (const migration of migrations) {
+      const sql = await readFile(new URL(migration, migrationDirectory), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint").map((value) => value.trim()).filter(Boolean)) {
+        await db.prepare(statement).run();
+      }
+    }
+    let nextId = 0;
+    const testNow = Date.now();
+    const repository = createD1ScenarioProvisioningRepository(db);
+    const service = createScenarioProvisioningService({
+      repository,
+      objectStorage: createR2ScenarioProvisioningStorage(bucket, db),
+      createId: () => `race-id-${++nextId}`,
+      now: () => testNow + nextId,
+      hash: async (value) => `hash-${typeof value === "string" ? value.length : [...value].reduce((sum, byte) => sum + byte, 0)}`,
+      authorizedSenders: ["kevin@example.com"],
+    });
+    const request = manifest();
+    request.idempotencyKey = "concurrent-stage-1";
+    request.source.messageId = "concurrent-stage-message";
+    const created = await service.createJob(request);
+    const bytes = jpeg(3072, 2048);
+    const results = await Promise.allSettled([
+      service.stageAsset(created.job.id, "map-main", "image/jpeg", bytes),
+      service.stageAsset(created.job.id, "map-main", "image/jpeg", bytes),
+    ]);
+    assert.ok(results.some((result) => result.status === "fulfilled"));
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_assets WHERE job_id = ?", created.job.id), 1);
+    const winner = await repository.findAsset(created.job.id, "map-main");
+    assert.ok(winner);
+    assert.ok(await bucket.get(winner.r2Key));
+    await createR2ScenarioProvisioningStorage(bucket, db).reconcile();
+    assert.ok(await bucket.get(winner.r2Key));
+
+    const replacementBytes = jpeg(3072, 2048);
+    replacementBytes[20] = 1;
+    const replacement = await service.stageAsset(created.job.id, "map-main", "image/jpeg", replacementBytes);
+    assert.notEqual(replacement.r2Key, winner.r2Key);
+    assert.equal(await bucket.get(winner.r2Key), null);
+    assert.ok(await bucket.get(replacement.r2Key));
+  } finally {
+    await miniflare.dispose();
+  }
+});
+
+test("a scenario revision changing at the final D1 batch boundary fully rolls back", async () => {
+  const miniflare = new Miniflare({
+    modules: true,
+    script: "export default { fetch() { return new Response('ok') } }",
+    compatibilityDate: "2026-05-22",
+    d1Databases: ["DB"],
+    r2Buckets: ["MAP_ASSETS"],
+  });
+  try {
+    const db = await miniflare.getD1Database("DB");
+    const bucket = await miniflare.getR2Bucket("MAP_ASSETS");
+    const migrationDirectory = new URL("../drizzle/", import.meta.url);
+    const migrations = (await readdir(migrationDirectory)).filter((name) => /^\d{4}_.+\.sql$/.test(name)).sort();
+    for (const migration of migrations) {
+      const sql = await readFile(new URL(migration, migrationDirectory), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint").map((value) => value.trim()).filter(Boolean)) {
+        await db.prepare(statement).run();
+      }
+    }
+    const target = await db.prepare("SELECT id, code, name, version, strict_movement FROM encounters WHERE code = 'EMBER-KEEP'").first();
+    let injectRace = false;
+    const racingDb = new Proxy(db, {
+      get(targetDb, property, receiver) {
+        if (property === "batch") {
+          return async (statements) => {
+            if (injectRace && statements.length > 5) {
+              injectRace = false;
+              await db.prepare("UPDATE encounters SET version = version + 1 WHERE id = ?")
+                .bind(target.id).run();
+            }
+            return db.batch(statements);
+          };
+        }
+        const value = Reflect.get(targetDb, property, receiver);
+        return typeof value === "function" ? value.bind(targetDb) : value;
+      },
+    });
+    let nextId = 0;
+    const service = createScenarioProvisioningService({
+      repository: createD1ScenarioProvisioningRepository(racingDb),
+      objectStorage: createR2ScenarioProvisioningStorage(bucket, db),
+      createId: () => `revision-race-${++nextId}`,
+      now: () => 1_910_000_000_000 + nextId,
+      hash: async (value) => `hash-${typeof value === "string" ? value.length : value.byteLength}`,
+      authorizedSenders: ["kevin@example.com"],
+    });
+    const request = revisionManifest(target.code, "Raced Rename");
+    request.idempotencyKey = "revision-race-final-batch";
+    request.source.messageId = "revision-race-message";
+    const created = await service.createJob(request);
+    await service.transition(created.job.id, "validating", "Revision validated.");
+    injectRace = true;
+    await assert.rejects(service.finalize(created.job.id), (error) => error.code === "scenario_changed");
+    const after = await db.prepare("SELECT name, strict_movement FROM encounters WHERE id = ?")
+      .bind(target.id).first();
+    assert.equal(after.name, target.name);
+    assert.equal(after.strict_movement, target.strict_movement);
+    assert.equal((await service.getJob(created.job.id)).status, "failed");
   } finally {
     await miniflare.dispose();
   }

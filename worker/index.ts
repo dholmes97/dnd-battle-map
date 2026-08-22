@@ -120,6 +120,14 @@ import {
 import { createD1TokenEffectRepository } from "./adapters/d1-token-effect-repository";
 import { redo, undo, type HistoryCommandContext } from "./commands/history-commands";
 import { createD1HistoryRepository } from "./adapters/d1-history-repository";
+import { createD1MutationUnitOfWork } from "./adapters/d1-mutation-unit-of-work.ts";
+import { MutationConflictError } from "./ports/mutation-unit-of-work.ts";
+import {
+  abandonStorageWriteIntent,
+  createStorageWriteIntent,
+  queueStorageCleanupStatement,
+  reconcileStorageLifecycle,
+} from "./adapters/d1-storage-lifecycle.ts";
 import { createD1ScenarioProvisioningRepository } from "./adapters/d1-scenario-provisioning-repository.ts";
 import {
   acquireOperationLease,
@@ -561,8 +569,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0025_resource_guardrails.sql";
-const REQUIRED_SCHEMA_MARKER = "resource-guardrails-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0026_state_integrity_outbox.sql";
+const REQUIRED_SCHEMA_MARKER = "state-integrity-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -951,24 +959,29 @@ async function persistHandoutUpload(
   const displayKey = `${storagePrefix}/display.${fileExtension}`;
   const thumbnailKey = `${storagePrefix}/thumbnail.${fileExtension}`;
   const now = Date.now();
-  await Promise.all([
-    storage.put(displayKey, displayBytes, {
-      httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
-    }),
-    storage.put(thumbnailKey, thumbnailBytes, {
-      httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
-    }),
-  ]);
+  const operationId = crypto.randomUUID();
+  const newKeys = [displayKey, thumbnailKey];
+  await createStorageWriteIntent(env.DB, operationId, newKeys, now);
   try {
+    await Promise.all([
+      storage.put(displayKey, displayBytes, {
+        httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
+      }),
+      storage.put(thumbnailKey, thumbnailBytes, {
+        httpMetadata: { contentType: storedMimeType, cacheControl: "private, no-store" },
+      }),
+    ]);
+    const unitOfWork = createD1MutationUnitOfWork(env.DB);
+    const mutationDb = unitOfWork.database;
     if (replacedHandout) {
-      await env.DB.prepare(
+      await mutationDb.prepare(
         `UPDATE handouts SET title = ?, display_key = ?, thumbnail_key = ?, mime_type = ?,
                 width = ?, height = ?, display_bytes = ?, thumbnail_bytes = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ? AND deleted_at IS NULL`,
       ).bind(title, displayKey, thumbnailKey, storedMimeType, displaySize.width, displaySize.height,
         displayBytes.byteLength, thumbnailBytes.byteLength, now, handoutId, encounter.id).run();
     } else {
-      await env.DB.prepare(
+      await mutationDb.prepare(
         `INSERT INTO handouts
          (id, encounter_id, title, display_key, thumbnail_key, mime_type, width, height,
           display_bytes, thumbnail_bytes, created_by, created_at, updated_at, deleted_at)
@@ -989,17 +1002,42 @@ async function persistHandoutUpload(
         now,
       ).run();
     }
+    if (replacedHandout) {
+      await mutationDb.batch([
+        queueStorageCleanupStatement(mutationDb, replacedHandout.display_key, "handout-replaced", now),
+        queueStorageCleanupStatement(mutationDb, replacedHandout.thumbnail_key, "handout-replaced", now),
+      ]);
+    }
+    await mutationDb.prepare(
+      "DELETE FROM storage_write_intents WHERE operation_id = ?",
+    ).bind(operationId).run();
+    await unitOfWork.commit({
+      encounterId: encounter.id,
+      expectedVersion: encounter.version,
+      participantId: participant.id,
+      actionType: replacedHandout ? "handout_replaced" : "handout_uploaded",
+      actionPayload: { handoutId, title },
+      now,
+    });
   } catch (error) {
-    await Promise.all([storage.delete(displayKey), storage.delete(thumbnailKey)]);
+    await abandonStorageWriteIntent(env.DB, operationId, newKeys, "handout-write-failed", Date.now())
+      .catch(() => undefined);
+    await reconcileStorageLifecycle(env.DB, storage).catch(() => undefined);
+    if (error instanceof MutationConflictError) {
+      return json({
+        error: error.message,
+        code: "shared_state_conflict",
+        state: await encounterState(env, encounter.code, participant),
+      }, { status: 409 });
+    }
+    if (String(error).includes("resource_limit:active_handouts")) {
+      return json({
+        error: `This scenario already has ${HANDOUT_MAX_PER_SCENARIO} handouts.`,
+      }, { status: 409 });
+    }
     throw error;
   }
-  if (replacedHandout) {
-    await Promise.allSettled([
-      storage.delete(replacedHandout.display_key),
-      storage.delete(replacedHandout.thumbnail_key),
-    ]);
-  }
-  await bumpEncounter(env, encounter.id, now);
+  await reconcileStorageLifecycle(env.DB, storage).catch(() => undefined);
   return json({ handoutId, replaced: Boolean(replacedHandout), state: await encounterState(env, encounter.code, participant) }, { status: replacedHandout ? 200 : 201 });
 }
 
@@ -1056,27 +1094,25 @@ async function handleHandoutAsset(
   });
 }
 
-async function bumpEncounter(env: Env, encounterId: string, now = Date.now()) {
-  await env.DB.prepare(
-    "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
-  )
-    .bind(now, encounterId)
-    .run();
-}
-
 async function expireAnnotations(
   env: Env,
   encounter: EncounterRow,
 ): Promise<void> {
-  const result = await env.DB.prepare(
-    `DELETE FROM annotations
-     WHERE encounter_id = ? AND expires_at IS NOT NULL AND expires_at <= ?`,
-  )
-    .bind(encounter.id, Date.now())
-    .run();
-  if ((result.meta.changes ?? 0) > 0) {
-    await bumpEncounter(env, encounter.id);
-  }
+  const now = Date.now();
+  const expired = await env.DB.prepare(
+    `SELECT 1 AS found FROM annotations
+     WHERE encounter_id = ? AND expires_at IS NOT NULL AND expires_at <= ? LIMIT 1`,
+  ).bind(encounter.id, now).first();
+  if (!expired) return;
+  await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM annotations
+       WHERE encounter_id = ? AND expires_at IS NOT NULL AND expires_at <= ?`,
+    ).bind(encounter.id, now),
+    env.DB.prepare(
+      "UPDATE encounters SET version = version + 1, updated_at = ? WHERE id = ?",
+    ).bind(now, encounter.id),
+  ]);
 }
 
 function coarseHealth(hp: number | null, maxHp: number | null): SharedToken["healthState"] {
@@ -1160,7 +1196,6 @@ async function encounterState(
     try { activeMapPackage = parseMapPackage(JSON.parse(encounter!.map_package_json)); } catch { activeMapPackage = null; }
   }
 
-  if (tokens.results.length === 0) return null;
   const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
   const effectsByToken = new Map<string, EffectRow[]>();
   for (const effect of effects.results) {
@@ -1335,38 +1370,6 @@ async function encounterState(
   return projectedState;
 }
 
-async function recordAction(
-  env: Env,
-  encounterId: string,
-  participantId: string,
-  actionType: string,
-  payload: unknown,
-  now = Date.now(),
-) {
-  await env.DB.batch([
-    env.DB.prepare(
-      `DELETE FROM actions
-       WHERE encounter_id = ?
-         AND id NOT IN (
-           SELECT id FROM actions WHERE encounter_id = ?
-           ORDER BY created_at DESC, id DESC LIMIT ?
-         )`,
-    ).bind(encounterId, encounterId, MAX_ACTIONS_PER_ENCOUNTER - 1),
-    env.DB.prepare(
-      `INSERT INTO actions
-      (id, encounter_id, participant_id, action_type, payload_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      crypto.randomUUID(),
-      encounterId,
-      participantId,
-      actionType,
-      JSON.stringify(payload),
-      now,
-    ),
-  ]);
-}
-
 const REVERSIBLE_ACTION_TYPES = new Set([
   "token_moved",
   "hp_changed",
@@ -1470,11 +1473,14 @@ async function handleCommand(
   const parsed = parseCommandRequest(body);
   if (!parsed.ok) return json({ error: parsed.error }, { status: 400 });
   const request = parsed.request;
+  const unitOfWork = createD1MutationUnitOfWork(env.DB);
+  const mutationDb = unitOfWork.database;
   const state = () => encounterState(env, code, participant);
   const commandEncounter = {
     id: encounter.id,
     code: encounter.code,
     name: encounter.name,
+    version: encounter.version,
     status: encounter.status,
     mapAsset: encounter.map_asset,
     mapPackageJson: encounter.map_package_json,
@@ -1489,9 +1495,31 @@ async function handleCommand(
   const commandServices = {
     createId: () => crypto.randomUUID(),
     loadState: state,
-    bumpEncounter: () => bumpEncounter(env, encounter.id, now),
-    recordAction: (actionType: string, payload: Record<string, unknown>) =>
-      recordAction(env, encounter.id, participant.id, actionType, payload, now),
+    commit: (actionType: string | null, payload: Record<string, unknown> = {}) =>
+      unitOfWork.commit({
+        encounterId: encounter.id,
+        expectedVersion: encounter.version,
+        participantId: actionType ? participant.id : null,
+        actionType,
+        actionPayload: payload,
+        now,
+      }),
+    commitFor: (input: {
+      encounterId: string;
+      expectedVersion?: number | null;
+      participantId: string | null;
+      actionType: string | null;
+      payload?: Record<string, unknown>;
+      bumpVersion?: boolean;
+    }) => unitOfWork.commit({
+      encounterId: input.encounterId,
+      expectedVersion: input.expectedVersion,
+      participantId: input.participantId,
+      actionType: input.actionType,
+      actionPayload: input.payload,
+      bumpVersion: input.bumpVersion,
+      now,
+    }),
   };
   const baseContext = <Name extends CommandName>(payload: CommandPayload<Name>) =>
     ({ encounter: commandEncounter, participant, payload, now, services: commandServices });
@@ -1499,26 +1527,24 @@ async function handleCommand(
     payload: CommandPayload<Name>,
   ): ChatHandoutCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1ChatHandoutRepository(env.DB),
-    objectStorage: createR2HandoutObjectStorage(env.MAP_ASSETS),
+    repository: createD1ChatHandoutRepository(mutationDb),
+    objectStorage: createR2HandoutObjectStorage(env.MAP_ASSETS, env.DB),
   });
   const annotationFogContext = <Name extends
     "set-strict-movement" | "set-fog-mode" | "set-vision-door-open" |
     "update-shared-fog" | "add-annotation" | "clear-annotations" | "remove-annotation"
   >(payload: CommandPayload<Name>): AnnotationFogCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1AnnotationFogRepository(env.DB),
+    repository: createD1AnnotationFogRepository(mutationDb),
   });
   const scenarioMapContext = <Name extends
     "rename-scenario" | "create-scenario" | "save-map-preset" |
     "delete-map-preset" | "apply-map-package" | "configure-encounter"
   >(payload: CommandPayload<Name>): ScenarioMapCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1ScenarioMapRepository(env.DB),
+    repository: createD1ScenarioMapRepository(mutationDb),
     loadScenarioState: async (scenarioCode, participantId) =>
       encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }),
-    recordScenarioAction: (encounterId, participantId, actionType, payload) =>
-      recordAction(env, encounterId, participantId, actionType, payload, now),
   });
   type InitiativeCommandName =
     | "set-initiative" | "set-initiative-group" | "start-combat"
@@ -1527,7 +1553,7 @@ async function handleCommand(
     payload: CommandPayload<Name>,
   ): InitiativeCombatCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1InitiativeCombatRepository(env.DB),
+    repository: createD1InitiativeCombatRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
   });
   const tokenEffectContext = <Name extends
@@ -1535,7 +1561,7 @@ async function handleCommand(
     "apply-hp" | "add-effect" | "remove-effect" | "delete-token"
   >(payload: CommandPayload<Name>): TokenEffectCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1TokenEffectRepository(env.DB),
+    repository: createD1TokenEffectRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
     isAllowedArt: (value) => isAllowedTokenArt(env, value),
   });
@@ -1543,10 +1569,15 @@ async function handleCommand(
     payload: CommandPayload<Name>,
   ): HistoryCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1HistoryRepository(env.DB),
+    repository: createD1HistoryRepository(mutationDb),
+    tokenRepository: createD1TokenEffectRepository(mutationDb),
+    annotationRepository: createD1AnnotationFogRepository(mutationDb),
+    initiativeRepository: createD1InitiativeCombatRepository(mutationDb),
+    canControl: (token) => canControlToken(env, encounter.id, token, participant),
   });
   let outcome: CommandOutcome;
-  switch (request.command) {
+  try {
+    switch (request.command) {
     case "send-chat-message": outcome = await sendChatMessage(chatHandoutContext(request.payload)); break;
     case "delete-handout": outcome = await deleteHandout(chatHandoutContext(request.payload)); break;
     case "undo": outcome = await undo(historyContext(request.payload)); break;
@@ -1577,7 +1608,17 @@ async function handleCommand(
     case "update-shared-fog": outcome = await updateSharedFog(annotationFogContext(request.payload)); break;
     case "add-annotation": outcome = await addAnnotation(annotationFogContext(request.payload)); break;
     case "clear-annotations": outcome = await clearAnnotations(annotationFogContext(request.payload)); break;
-    case "remove-annotation": outcome = await removeAnnotation(annotationFogContext(request.payload)); break;
+      case "remove-annotation": outcome = await removeAnnotation(annotationFogContext(request.payload)); break;
+    }
+  } catch (error) {
+    if (error instanceof MutationConflictError) {
+      return json({
+        error: error.message,
+        code: "shared_state_conflict",
+        state: await state(),
+      }, { status: 409 });
+    }
+    throw error;
   }
   return commandOutcomeResponse(outcome);
 }
@@ -1663,11 +1704,26 @@ async function handleApi(
         now,
         now,
       ),
+      env.DB.prepare(
+        `DELETE FROM actions
+         WHERE encounter_id = ?
+           AND id NOT IN (
+             SELECT id FROM actions WHERE encounter_id = ?
+             ORDER BY created_at DESC, id DESC LIMIT ?
+           )`,
+      ).bind(encounter.id, encounter.id, MAX_ACTIONS_PER_ENCOUNTER - 1),
+      env.DB.prepare(
+        `INSERT INTO actions
+         (id, encounter_id, participant_id, action_type, payload_json, created_at)
+         VALUES (?, ?, ?, 'participant_joined', ?, ?)`,
+      ).bind(
+        crypto.randomUUID(),
+        encounter.id,
+        participantId,
+        JSON.stringify({ name: participantName, role: participantRole }),
+        now,
+      ),
     ]);
-    await recordAction(env, encounter.id, participantId, "participant_joined", {
-      name: participantName,
-      role: participantRole,
-    });
     const joinedParticipant: ParticipantRow = {
       id: participantId,
       name: participantName,
@@ -1771,7 +1827,8 @@ async function handleApi(
       isSpellEffect,
     });
     const { position: { x, y }, movementOrigin, distance, movementUsed, overBudget } = move;
-    const result = await env.DB.prepare(
+    const unitOfWork = createD1MutationUnitOfWork(env.DB);
+    const result = await unitOfWork.database.prepare(
       `UPDATE tokens
        SET x = ?, y = ?, altitude = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ?, updated_at = ?
        WHERE id = ? AND encounter_id = ?`,
@@ -1784,20 +1841,37 @@ async function handleApi(
         { status: 409 },
       );
     }
-    await bumpEncounter(env, encounter.id, now);
-    await recordAction(env, encounter.id, participantId, "token_moved", {
-      tokenId,
-      from: previous,
-      to: { x, y },
-      previousAltitude: token.altitude,
-      altitude: requestedAltitude,
-      distance,
-      previousMovementUsed: token.movement_used,
-      previousMovementOrigin,
-      movementOrigin,
-      movementUsed,
-      overBudget,
-    });
+    try {
+      await unitOfWork.commit({
+        encounterId: encounter.id,
+        expectedVersion: encounter.version,
+        participantId,
+        actionType: "token_moved",
+        actionPayload: {
+          tokenId,
+          from: previous,
+          to: { x, y },
+          previousAltitude: token.altitude,
+          altitude: requestedAltitude,
+          distance,
+          previousMovementUsed: token.movement_used,
+          previousMovementOrigin,
+          movementOrigin,
+          movementUsed,
+          overBudget,
+        },
+        now,
+      });
+    } catch (error) {
+      if (error instanceof MutationConflictError) {
+        return json({
+          error: error.message,
+          code: "shared_state_conflict",
+          state: await encounterState(env, code, participant),
+        }, { status: 409 });
+      }
+      throw error;
+    }
     return json({ moved: true, distance, movementUsed, overBudget, state: await encounterState(env, code, participant) });
   }
 
@@ -1809,6 +1883,7 @@ const worker = {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/scenario-provisioning/")) {
+      ctx.waitUntil(reconcileStorageLifecycle(env.DB, env.MAP_ASSETS).catch(() => undefined));
       return handleScenarioProvisioningApi(request, env);
     }
 
@@ -1859,6 +1934,7 @@ const worker = {
 
     const handoutMatch = url.pathname.match(HANDOUT_API_ROUTE);
     if (handoutMatch) {
+      ctx.waitUntil(reconcileStorageLifecycle(env.DB, env.MAP_ASSETS).catch(() => undefined));
       try {
         const code = cleanCode(handoutMatch[1]);
         const handoutId = handoutMatch[2];

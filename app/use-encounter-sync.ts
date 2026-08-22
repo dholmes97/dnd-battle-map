@@ -128,6 +128,9 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
   const turnAdvanceQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const acceptAuthoritativeState = useCallback((next: EncounterState) => {
+    if (!isEncounterState(next)) {
+      throw new Error("The server returned an invalid encounter state. Refresh and try again.");
+    }
     setState((current) => {
       if (current && next.encounter.code !== current.encounter.code) return current;
       if (current && next.encounter.version < current.encounter.version) return current;
@@ -527,4 +530,18 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     isTokenPendingCreation: (tokenId) => pendingTokenIdsRef.current.has(tokenId),
     runHistory,
   };
+}
+
+function isEncounterState(value: unknown): value is EncounterState {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<EncounterState>;
+  return Boolean(
+    candidate.encounter &&
+    typeof candidate.encounter.code === "string" &&
+    Number.isFinite(candidate.encounter.version) &&
+    Array.isArray(candidate.tokens) &&
+    Array.isArray(candidate.annotations) &&
+    Array.isArray(candidate.chatMessages) &&
+    Array.isArray(candidate.handouts),
+  );
 }

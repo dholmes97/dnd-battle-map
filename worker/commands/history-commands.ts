@@ -1,6 +1,10 @@
 import { deriveHistoryActionIds, isReversibleHistoryRow } from "../../shared/action-history.ts";
 import { historyConflictMessage } from "../../shared/encounter-domain.ts";
-import type { HistoryDirection, HistoryRepository } from "../ports/history-repository.ts";
+import type { HistoryDirection, HistoryRepository, HistoryReplayInput } from "../ports/history-repository.ts";
+import type { TokenEffectRepository } from "../ports/token-effect-repository.ts";
+import type { AnnotationFogRepository } from "../ports/annotation-fog-repository.ts";
+import type { InitiativeCombatRepository } from "../ports/initiative-combat-repository.ts";
+import type { TokenRow } from "../types.ts";
 import type { ActionRow } from "../types.ts";
 import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
@@ -19,7 +23,13 @@ const REVERSIBLE_ACTION_TYPES = new Set([
 ]);
 
 export type HistoryCommandContext<Name extends "undo" | "redo" = "undo" | "redo"> =
-  CommandContextFor<Name, { repository: HistoryRepository }>;
+  CommandContextFor<Name, {
+    repository: HistoryRepository;
+    tokenRepository: TokenEffectRepository;
+    annotationRepository: AnnotationFogRepository;
+    initiativeRepository: InitiativeCombatRepository;
+    canControl(token: TokenRow): Promise<boolean>;
+  }>;
 
 export async function undo(context: HistoryCommandContext<"undo">): Promise<CommandOutcome> {
   return applyHistory(context, "undo");
@@ -54,13 +64,16 @@ async function applyHistory(
   }
   const initiativeAction = action.action_type === "initiative_set" ||
     action.action_type === "initiative_group_set";
+  if (!await replayIsAuthorized(context, action.action_type, payload)) {
+    return commandError("That historical action is no longer authorized.", 403);
+  }
   const activeLeaderIds = initiativeAction && context.encounter.status === "active"
-    ? await context.repository.activeLeaderIds(
+    ? await context.initiativeRepository.activeLeaderIds(
       context.encounter.id,
       context.encounter.activeInitiativeOrder,
     )
     : [];
-  const result = await context.repository.applyAction({
+  const replayInput: HistoryReplayInput = {
     direction,
     encounterId: context.encounter.id,
     participantId: context.participant.id,
@@ -69,22 +82,23 @@ async function applyHistory(
     gridWidth: context.encounter.gridWidth,
     gridHeight: context.encounter.gridHeight,
     now: context.now,
-  });
-  if (result.expectedChanges === 0 || result.changes !== result.expectedChanges) {
+    activeLeaderIds,
+  };
+  const changes = initiativeAction
+    ? await context.initiativeRepository.replayHistoryAction(replayInput)
+    : action.action_type.startsWith("annotation_")
+      ? await context.annotationRepository.replayHistoryAction(replayInput)
+      : await context.tokenRepository.replayHistoryAction(replayInput);
+  const expectedChanges = action.action_type === "initiative_group_set"
+    ? members(payload).length
+    : 1;
+  if (expectedChanges === 0 || changes !== expectedChanges) {
     return commandError(
       historyConflictMessage(direction === "undo" ? "undone" : "redone", action.action_type),
       409,
     );
   }
-  if (initiativeAction) {
-    await context.repository.rebuildInitiativeOrders(
-      context.encounter.id,
-      activeLeaderIds,
-      context.now,
-    );
-  }
-  await context.services.bumpEncounter();
-  await context.services.recordAction(
+  await context.services.commit(
     direction === "undo" ? "action_undone" : "action_redone",
     { actionId: action.id, actionType: action.action_type },
   );
@@ -95,6 +109,41 @@ async function applyHistory(
       state: await context.services.loadState(),
     },
   };
+}
+
+async function replayIsAuthorized(
+  context: HistoryCommandContext,
+  actionType: string,
+  payload: Record<string, unknown>,
+): Promise<boolean> {
+  if (context.participant.role === "dm") return true;
+  if (actionType === "initiative_group_set") return false;
+  if (actionType === "initiative_set" && context.encounter.status !== "setup") return false;
+  if (actionType.startsWith("annotation_")) {
+    const annotation = (payload.annotation ?? payload) as Record<string, unknown>;
+    return annotation.createdBy === context.participant.id;
+  }
+  const snapshot = (payload.token ?? {}) as Record<string, unknown>;
+  const effect = (payload.effect ?? payload) as Record<string, unknown>;
+  const tokenId = cleanId(payload.tokenId) || cleanId(effect.tokenId);
+  let token = tokenId
+    ? await context.tokenRepository.findToken(context.encounter.id, tokenId)
+    : null;
+  if (!token) {
+    const summonerTokenId = cleanId(snapshot.summonerTokenId);
+    token = summonerTokenId
+      ? await context.tokenRepository.findToken(context.encounter.id, summonerTokenId)
+      : null;
+  }
+  return Boolean(token && await context.canControl(token));
+}
+
+function members(payload: Record<string, unknown>) {
+  return Array.isArray(payload.members) ? payload.members as Array<Record<string, unknown>> : [];
+}
+
+function cleanId(value: unknown) {
+  return typeof value === "string" ? value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64) : "";
 }
 
 function historyStacks(rows: ActionRow[]) {

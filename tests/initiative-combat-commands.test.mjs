@@ -47,6 +47,7 @@ function context(overrides = {}) {
       id: "encounter",
       code: "CODE",
       name: "Scenario",
+      version: 1,
       status: "setup",
       mapAsset: "",
       mapPackageJson: null,
@@ -65,8 +66,8 @@ function context(overrides = {}) {
     services: {
       createId: () => "group-id",
       loadState: async () => ({ marker: "state" }),
-      bumpEncounter: async () => calls.push(["bump"]),
-      recordAction: async (...args) => calls.push(["record", ...args]),
+      commit: async (...args) => calls.push(["commit", ...args]),
+      commitFor: async (...args) => calls.push(["commit-for", ...args]),
     },
     ...rest,
   };
