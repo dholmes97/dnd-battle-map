@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s | D&D Battle Map",
   },
   description:
-    "A focused proof of server-authoritative, real-time tabletop movement.",
+    "A shared campaign home and server-authoritative battle map for the Friday Lunch Crew.",
   icons: {
     icon: "/favicon.png",
   },

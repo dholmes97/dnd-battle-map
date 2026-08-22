@@ -1,6 +1,6 @@
 # Battle-map token art
 
-This initial library contains six newly generated, transparent-background tactical fantasy cutouts. Each asset is a 1254 x 1254 RGBA PNG with a fully transparent outer border and enough padding for either free-standing map art or a UI-applied portrait/token frame. No frame, token ring, text, scenery, or shadow is baked into the image.
+This library contains the transparent-background tactical fantasy cutouts declared by `manifest.json`. Each asset is a 1254 x 1254 RGBA PNG with a fully transparent outer border and enough padding for either free-standing map art or a UI-applied portrait/token frame. No frame, token ring, text, scenery, or shadow is baked into the image.
 
 ## Provenance
 

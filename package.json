@@ -10,8 +10,14 @@
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "npm run typecheck && npm run build && node --test tests/*.test.mjs && npm run test:components",
+    "test": "npm run typecheck && npm run build && npm run test:node && npm run test:components",
+    "test:node": "node --test tests/*.test.mjs",
     "test:components": "vitest run",
+    "test:coverage": "npm run test:coverage:node && npm run test:coverage:components",
+    "test:coverage:node": "c8 --all --include='shared/**/*.ts' --include='worker/commands/**/*.ts' --include='worker/adapters/**/*.ts' --exclude='**/*.d.ts' --reporter=text --reporter=lcov --report-dir=coverage/node --check-coverage --statements=76 --branches=71 --functions=87 --lines=76 node --test tests/*.test.mjs",
+    "test:coverage:components": "vitest run --coverage",
+    "test:browser": "playwright test",
+    "test:browser:server": "npm run build && npm run db:bootstrap && npm run dev -- --host localhost --port 4173",
     "test:live": "node --test tests/live/*.test.mjs",
     "backup:production": "node scripts/backup-production.mjs",
     "backup:verify": "node scripts/verify-production-backup.mjs",
@@ -22,19 +28,23 @@
     "scenario:mail-reply": "node scripts/scenario-mail-reply.mjs",
     "scenario:prepare-handout": "node scripts/prepare-scenario-handout.mjs",
     "scenario:prepare-creature": "node scripts/prepare-creature-art.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --max-warnings 0",
+    "audit:dependencies": "npm audit --omit=dev --audit-level=low && npm audit --audit-level=high",
+    "verify": "npm run typecheck && npm run lint && npm run build && npm run test:node && npm run test:components && npm run test:browser",
     "db:generate": "drizzle-kit generate",
     "db:generate-bootstrap": "node scripts/generate-bootstrap-migration.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
-    "next": "16.2.6",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "^4.20260702.1",
+    "@axe-core/playwright": "4.13.0",
+    "@cloudflare/vite-plugin": "1.53.1",
+    "@cloudflare/workers-types": "5.20260822.1",
+    "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -42,19 +52,30 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
+    "@vitejs/plugin-rsc": "0.5.34",
+    "@vitest/coverage-v8": "4.1.11",
+    "c8": "12.0.0",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.2",
     "jsdom": "^30.0.1",
-    "react-server-dom-webpack": "19.2.6",
-    "sharp": "^0.34.5",
+    "miniflare": "4.20260730.0",
+    "react-server-dom-webpack": "19.2.8",
+    "sharp": "0.35.3",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "vitest": "^4.1.10",
-    "wrangler": "4.92.0"
+    "vinext": "1.0.0-beta.8",
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.125.0"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.28.2"
+    },
+    "miniflare": {
+      "undici": "7.29.0"
+    }
   },
   "type": "module"
 }

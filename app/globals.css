@@ -489,10 +489,10 @@ input:focus {
 .ui-settings-panel { position: absolute; z-index: 20; top: calc(100% + 0.55rem); right: 0; width: 15rem; padding: 0.65rem; border: 1px solid #464138; border-radius: 0.55rem; background: rgba(24, 23, 20, 0.98); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5); color: #d8d0c3; }
 .ui-settings-heading { display: grid; gap: 0.08rem; padding-bottom: 0.5rem; border-bottom: 1px solid #34302a; }
 .ui-settings-heading strong { font-size: 0.74rem; }
-.ui-settings-heading small { color: #827b70; font-size: 0.58rem; }
+.ui-settings-heading small { color: var(--muted); font-size: 0.58rem; }
 .ui-settings-section-label { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding-top: 0.55rem; }
 .ui-settings-section-label strong { color: #b9b0a3; font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; }
-.ui-settings-section-label small { color: #777066; font-size: 0.55rem; }
+.ui-settings-section-label small { color: var(--muted); font-size: 0.55rem; }
 .ui-settings-global { margin-top: 0.6rem; padding-top: 0.05rem; border-top: 1px solid #4a4031; }
 .ui-setting-select { display: grid; gap: 0.35rem; margin: 0.45rem 0; }
 .ui-setting-select > span, .vision-door-controls > span { display: grid; gap: 0.08rem; }
@@ -515,7 +515,7 @@ input:focus {
 .ui-setting-toggle { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-top: 0.55rem; border-top: 1px solid #34302a; cursor: pointer; }
 .ui-setting-toggle > span { display: grid; gap: 0.1rem; }
 .ui-setting-toggle strong { font-size: 0.66rem; }
-.ui-setting-toggle small { color: #827b70; font-size: 0.57rem; line-height: 1.25; }
+.ui-setting-toggle small { color: var(--muted); font-size: 0.57rem; line-height: 1.25; }
 .ui-setting-toggle input { width: 1rem; height: 1rem; margin: 0; accent-color: #c69447; }
 
 .command-bar .creature-tool {
@@ -532,7 +532,7 @@ input:focus {
   padding: 0 0.35rem;
   border-color: transparent;
   background: transparent;
-  color: #756f65;
+  color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.6rem;
 }
@@ -1149,7 +1149,7 @@ input:focus {
 .movement-summary { margin: 0.7rem 0; color: #8f877b; font-size: 0.7rem; }
 .movement-summary strong { color: #ded5c7; }
 .altitude-control { margin: 0 0 0 auto; display: flex; align-items: center; gap: 0.38rem; color: #8f877b; font-size: 0.7rem; }
-.altitude-input { display: flex; align-items: center; gap: 0.22rem; color: #777067; font-size: 0.62rem; }
+.altitude-input { display: flex; align-items: center; gap: 0.22rem; color: var(--muted); font-size: 0.62rem; }
 .altitude-input input { width: 3.4rem; min-height: 1.7rem; padding: 0.24rem 0.28rem; border-radius: 0.35rem; font-family: var(--font-geist-mono), monospace; font-size: 0.68rem; text-align: right; }
 .end-turn-button, .danger-button, .text-button {
   width: 100%; min-height: 2.45rem; margin-top: 0.55rem; border-radius: 0.55rem; font-weight: 720;

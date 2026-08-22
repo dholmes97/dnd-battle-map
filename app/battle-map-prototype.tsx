@@ -79,7 +79,6 @@ function playPingSound(context: AudioContext) {
 }
 
 export default function BattleMapPrototype() {
-  const [encounterCode, setEncounterCode] = useState("");
   const [encounters, setEncounters] = useState<EncounterSummary[]>([]);
   const [encountersLoading, setEncountersLoading] = useState(true);
   const [signedInIdentity, setSignedInIdentity] = useState<JoinIdentity | null>(null);
@@ -249,7 +248,6 @@ export default function BattleMapPrototype() {
       .then(({ items }) => {
         if (disposed) return;
         setEncounters(items);
-        setEncounterCode((current) => items.some((encounter) => encounter.code === current) ? current : items[0]?.code ?? "");
       })
       .catch(() => { if (!disposed) setError("Your scenarios could not be loaded. Please try again."); })
       .finally(() => { if (!disposed) setEncountersLoading(false); });
@@ -270,7 +268,7 @@ export default function BattleMapPrototype() {
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       personalUiSettings.loadForIdentity(name, result.role);
       resetChatForParticipant(name, result.role, result.state.encounter.code);
-      startSession(joined, result.state); setEncounterCode(result.state.encounter.code); setAppView("map");
+      startSession(joined, result.state); setAppView("map");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
         ? "The encounter took too long to respond. Please try again."

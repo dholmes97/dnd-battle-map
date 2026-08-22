@@ -1,7 +1,7 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
-import { sites } from "./build/sites-vite-plugin";
+import hostingConfig from "./.openai/hosting.json" with { type: "json" };
+import { sites } from "./build/sites-vite-plugin.ts";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -20,7 +20,10 @@ const localBindingConfig = {
           binding: d1,
           database_name: "site-creator-d1",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
-          migrations_dir: "../../drizzle",
+          // The build adapter rewrites project-relative paths for dist/server.
+          // Keep this rooted at the source checkout so both dev and generated
+          // Wrangler configuration resolve the checked-in migration ledger.
+          migrations_dir: "./drizzle",
         },
       ]
     : [],

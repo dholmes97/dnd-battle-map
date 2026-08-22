@@ -83,6 +83,7 @@ if (migratedLegacyDatabase) {
   console.log("Upgraded the existing project-local database without replacing its data.");
 }
 await run("npx", [
+  "--no-install",
   "wrangler",
   "d1",
   "migrations",

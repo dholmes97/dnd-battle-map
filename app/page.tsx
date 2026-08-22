@@ -3,7 +3,7 @@ import BattleMapPrototype from "./battle-map-prototype";
 
 export const metadata: Metadata = {
   description:
-    "A focused real-time battle-map prototype for shared token movement.",
+    "Plan scenarios, share handouts, and run live tactical encounters with the Friday Lunch Crew.",
 };
 
 export default function Home() {
