@@ -65,6 +65,8 @@ describe("BattleMapCommandBar", () => {
     await userEvent.click(screen.getByLabelText("Health rings"));
     expect(props.onHealthRingsChange).toHaveBeenCalledWith(false);
     expect(screen.getByLabelText("Strict movement")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(settingsLauncher!.closest("details")?.hasAttribute("open")).toBe(false);
   });
 });
 
@@ -73,6 +75,7 @@ describe("placement palettes", () => {
     const onArm = vi.fn(); const onClose = vi.fn();
     render(<CreaturePalette participant={player} tokens={[baseToken]} playerCharacter={baseToken} creatures={[{ id: "wolf", name: "Wolf", family: "Beast", size: "medium", thumbnailAsset: "/wolf.png", artAsset: "/wolf.png", armorClass: 13, defaultHp: 11, hitDice: "2d8+2", challengeRating: "1/4", creatureType: "beast", defaultSpeed: 40, speeds: { walk: 40, fly: 0, swim: 0, climb: 0, burrow: 0 } }]} families={["Beast"]} query="" family="" cursor={null} loading={false} error="" armedId="wolf" summonerId="" onClose={onClose} onSummonerChange={vi.fn()} onQueryChange={vi.fn()} onFamilyChange={vi.fn()} onArm={onArm} onDragStart={vi.fn()} onDragEnd={vi.fn()} onLoadMore={vi.fn()} />);
     expect(screen.getByRole("button", { name: /Wolf/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("Tap the visible map to place copies");
     expect(screen.getByText(/click repeatedly to place copies/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Close creature palette" })); expect(onClose).toHaveBeenCalledOnce();
   });
@@ -80,6 +83,7 @@ describe("placement palettes", () => {
     const onArm = vi.fn();
     render(<SpellPalette participant={player} playerCharacter={baseToken} armedId="moonbeam" onClose={vi.fn()} onArm={onArm} onDragStart={vi.fn()} onDragEnd={vi.fn()} />);
     expect(screen.getByRole("button", { name: /Moonbeam/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("Tap the visible map to place it once");
     await userEvent.click(screen.getByRole("button", { name: "Cancel spell placement" }));
     expect(onArm).toHaveBeenCalledWith(null);
   });

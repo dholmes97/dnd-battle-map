@@ -74,6 +74,7 @@ describe("ChatPanel", () => {
     expect(onSend).not.toHaveBeenCalled();
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onSend).toHaveBeenCalledOnce();
+    expect(screen.getByRole("log").getAttribute("tabindex")).toBe("0");
   });
 
   it("uses the standard remove control and retains the immediate-view choice", async () => {

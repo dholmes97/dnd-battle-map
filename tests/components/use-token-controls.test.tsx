@@ -13,6 +13,18 @@ const concentratingToken = {
 } as SharedToken;
 
 describe("useTokenControls", () => {
+  it("starts with no HP action armed", () => {
+    const { result } = renderHook(() => useTokenControls({
+      participant: null,
+      state: null,
+      sync: { runOptimisticCommand: vi.fn() } as unknown as EncounterSync,
+      setError: vi.fn(),
+      setNotice: vi.fn(),
+    }));
+
+    expect(result.current.hpAmount).toBe("");
+  });
+
   it("shows a locally known concentration reminder before the HP request resolves", async () => {
     let resolveCommand!: (value: CommandResponse | null) => void;
     const commandPromise = new Promise<CommandResponse | null>((resolve) => { resolveCommand = resolve; });

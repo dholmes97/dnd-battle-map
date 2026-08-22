@@ -21,7 +21,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const [initiativeStatuses, setInitiativeStatuses] = useState<Record<string, "editing" | "saving" | "saved">>({});
   const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; armorClass?: string; maxHp?: string; artAsset?: string }>>({});
   const [altitudeDrafts, setAltitudeDrafts] = useState<Record<string, string>>({});
-  const [hpAmount, setHpAmount] = useState("5");
+  const [hpAmount, setHpAmount] = useState("");
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
   const [effectDuration, setEffectDuration] = useState("1");

@@ -125,6 +125,7 @@ export function ChatPanel({
         ref={messagesRef}
         className="chat-messages"
         role="log"
+        tabIndex={0}
         aria-live="polite"
         aria-label={`${channels.find((channel) => channel.key === activeChannel)?.label ?? "Chat"} messages`}
         onScroll={onMessagesScroll}

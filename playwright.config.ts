@@ -18,6 +18,10 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    { name: "webkit", use: { browserName: "webkit" } },
+  ],
   webServer: {
     command: "npm run test:browser:server",
     url: `http://localhost:${port}`,

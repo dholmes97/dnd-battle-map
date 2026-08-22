@@ -51,6 +51,11 @@ test("the release workflow is read-only, immutable, and covers every local gate"
   const packageJson = JSON.parse(packageText);
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
   assert.doesNotMatch(workflow, /pull_request_target|permissions:\s*write-all/);
+  assert.match(workflow, /playwright install --with-deps chromium webkit/);
+  assert.equal(
+    packageJson.scripts["test:browser:server"],
+    "node scripts/start-browser-test-server.mjs",
+  );
   for (const reference of workflow.matchAll(/uses:\s*([^\s#]+)/g)) {
     assert.match(reference[1], /@[a-f0-9]{40}$/i, `${reference[1]} must be pinned to a commit`);
   }

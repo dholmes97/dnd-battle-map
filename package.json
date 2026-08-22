@@ -17,7 +17,7 @@
     "test:coverage:node": "c8 --all --include='shared/**/*.ts' --include='worker/commands/**/*.ts' --include='worker/adapters/**/*.ts' --exclude='**/*.d.ts' --reporter=text --reporter=lcov --report-dir=coverage/node --check-coverage --statements=76 --branches=71 --functions=87 --lines=76 node --test tests/*.test.mjs",
     "test:coverage:components": "vitest run --coverage",
     "test:browser": "playwright test",
-    "test:browser:server": "npm run build && npm run db:bootstrap && npm run dev -- --host localhost --port 4173",
+    "test:browser:server": "node scripts/start-browser-test-server.mjs",
     "test:live": "node --test tests/live/*.test.mjs",
     "backup:production": "node scripts/backup-production.mjs",
     "backup:verify": "node scripts/verify-production-backup.mjs",

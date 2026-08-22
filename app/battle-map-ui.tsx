@@ -81,7 +81,7 @@ export function UiSettingsMenu({
     <details ref={menuRef} className="ui-settings-menu">
       <summary className="icon-tool" aria-label="UI Settings" data-tooltip="UI Settings"><Icon name="settings" /></summary>
       <section className="ui-settings-panel" aria-label="UI Settings">
-        <div className="ui-settings-heading"><strong>UI Settings</strong><small>Personal and encounter display controls</small></div>
+        <div className="ui-settings-heading"><span><strong>UI Settings</strong><small>Personal and encounter display controls</small></span><button type="button" className="ui-settings-close" onClick={() => menuRef.current?.removeAttribute("open")}>Done</button></div>
         <div className="ui-settings-section-label"><strong>Your display</strong><small>Only changes your view</small></div>
         <label className="grid-opacity-control">
           <span>Grid visibility <output>{Math.round(gridOpacity * 100)}%</output></span>
