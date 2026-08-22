@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   addAnnotation,
+  clearAnnotations,
   removeAnnotation,
   setFogMode,
   setStrictMovement,
@@ -39,7 +40,8 @@ function fixture(overrides = {}) {
         updateStrictMovement: async (...args) => calls.push(["strict", ...args]),
         updateMapPackage: async (...args) => calls.push(["map", ...args]),
         insertAnnotation: async (...args) => { calls.push(["insert", ...args]); return true; },
-        clearAnnotations: async (...args) => calls.push(["clear", ...args]),
+        listDurableAnnotations: async () => [{ id: "line-1", annotationType: "drawing", x: 1, y: 1, x2: 2, y2: 2, color: "#fff", label: null, createdBy: "player-1", expiresAt: null, createdAt: 10 }],
+        clearDurableAnnotations: async (...args) => calls.push(["clear", ...args]),
         findAnnotation: async () => ({ id: "line-1", annotationType: "drawing", x: 1, y: 1, x2: 2, y2: 2, color: "#fff", label: null, createdBy: "player-1", expiresAt: null, createdAt: 10 }),
         removeAnnotation: async (...args) => { calls.push(["remove", ...args]); return true; },
       },
@@ -126,4 +128,28 @@ test("players can erase only their own durable drawings", async () => {
   const owner = fixture({ participant: { id: "player-1", name: "Dan", role: "player" }, payload: { annotationId: "line-1" } });
   assert.equal((await removeAnnotation(owner.context)).payload.removed, true);
   assert.equal(owner.calls[0][0], "remove");
+});
+
+test("clearing snapshots durable drawings for atomic history and leaves transients outside the operation", async () => {
+  const setup = fixture();
+  const result = await clearAnnotations(setup.context);
+  assert.equal(result.payload.cleared, true);
+  assert.equal(result.payload.count, 1);
+  assert.deepEqual(setup.calls[0], ["clear", "encounter-1"]);
+  assert.equal(setup.calls[1][0], "commit");
+  assert.equal(setup.calls[1][1], "annotations_cleared");
+  assert.equal(setup.calls[1][2].annotations[0].annotationType, "drawing");
+});
+
+test("clearing no drawings is a controlled no-op without a version or history write", async () => {
+  const setup = fixture({
+    repository: {
+      ...fixture().context.repository,
+      listDurableAnnotations: async () => [],
+    },
+  });
+  const result = await clearAnnotations(setup.context);
+  assert.equal(result.status, 409);
+  assert.match(result.payload.error, /no durable drawings/i);
+  assert.deepEqual(setup.calls, []);
 });

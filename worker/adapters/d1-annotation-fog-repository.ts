@@ -6,6 +6,8 @@ import { MAX_ANNOTATIONS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 import { replayAnnotationHistory } from "./d1-annotation-history.ts";
 
 export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRepository {
+  const selectAnnotationColumns = `id, annotation_type, x, y, x2, y2, color, label,
+                                   created_by, expires_at, created_at`;
   return {
     async updateStrictMovement(encounterId, enabled, updatedAt) {
       await db.prepare(
@@ -49,41 +51,29 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
       return (result.meta.changes ?? 0) === 1;
     },
 
-    async clearAnnotations(encounterId) {
-      await db.prepare("DELETE FROM annotations WHERE encounter_id = ?").bind(encounterId).run();
+    async listDurableAnnotations(encounterId) {
+      const rows = await db.prepare(
+        `SELECT ${selectAnnotationColumns}
+         FROM annotations
+         WHERE encounter_id = ? AND annotation_type = 'drawing'
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`,
+      ).bind(encounterId, MAX_ANNOTATIONS_PER_ENCOUNTER).all<AnnotationRow>();
+      return rows.results.map(mapAnnotationRow);
+    },
+
+    async clearDurableAnnotations(encounterId) {
+      await db.prepare(
+        "DELETE FROM annotations WHERE encounter_id = ? AND annotation_type = 'drawing'",
+      ).bind(encounterId).run();
     },
 
     async findAnnotation(encounterId, annotationId) {
       const row = await db.prepare(
-        `SELECT id, annotation_type, x, y, x2, y2, color, label, created_by,
-                expires_at, created_at
+        `SELECT ${selectAnnotationColumns}
          FROM annotations WHERE id = ? AND encounter_id = ?`,
-      ).bind(annotationId, encounterId).first<{
-        id: string;
-        annotation_type: DurableAnnotation["annotationType"];
-        x: number;
-        y: number;
-        x2: number | null;
-        y2: number | null;
-        color: string;
-        label: string | null;
-        created_by: string;
-        expires_at: number | null;
-        created_at: number;
-      }>();
-      return row ? {
-        id: row.id,
-        annotationType: row.annotation_type,
-        x: row.x,
-        y: row.y,
-        x2: row.x2,
-        y2: row.y2,
-        color: row.color,
-        label: row.label,
-        createdBy: row.created_by,
-        expiresAt: row.expires_at,
-        createdAt: row.created_at,
-      } : null;
+      ).bind(annotationId, encounterId).first<AnnotationRow>();
+      return row ? mapAnnotationRow(row) : null;
     },
 
     async removeAnnotation(encounterId, annotationId) {
@@ -97,5 +87,35 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
       return (result.meta.changes ?? 0) === 1;
     },
     replayHistoryAction: (input) => replayAnnotationHistory(db, input),
+  };
+}
+
+type AnnotationRow = {
+  id: string;
+  annotation_type: DurableAnnotation["annotationType"];
+  x: number;
+  y: number;
+  x2: number | null;
+  y2: number | null;
+  color: string;
+  label: string | null;
+  created_by: string;
+  expires_at: number | null;
+  created_at: number;
+};
+
+function mapAnnotationRow(row: AnnotationRow): DurableAnnotation {
+  return {
+    id: row.id,
+    annotationType: row.annotation_type,
+    x: row.x,
+    y: row.y,
+    x2: row.x2,
+    y2: row.y2,
+    color: row.color,
+    label: row.label,
+    createdBy: row.created_by,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
   };
 }

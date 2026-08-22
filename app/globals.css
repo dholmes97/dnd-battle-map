@@ -1222,9 +1222,12 @@ input:focus {
   background: linear-gradient(145deg, #25221e, #191816);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58);
 }
+.modal-dialog-surface:focus { outline: none; }
 .confirm-dialog h2 { margin: 0.35rem 0 0.55rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; font-weight: 500; }
 .confirm-dialog p { margin: 0; color: #aaa194; font-size: 0.78rem; line-height: 1.55; }
 .confirm-dialog .danger-button { margin-top: 0; }
+.workshop-return-options { flex-wrap: wrap; }
+.workshop-return-options > * { min-width: 7.5rem; }
 .scenario-dialog { width: min(100%, 42rem); max-height: calc(100vh - 2rem); overflow-y: auto; }
 .scenario-dialog label { margin: 0.85rem 0 0; }
 .scenario-dialog .button-row { margin-top: 1rem; }

@@ -17,6 +17,7 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "effect_removed",
   "annotation_added",
   "annotation_removed",
+  "annotations_cleared",
   "token_created",
   "spell_effect_dismissed",
   "token_updated",
@@ -86,11 +87,13 @@ async function applyHistory(
   };
   const changes = initiativeAction
     ? await context.initiativeRepository.replayHistoryAction(replayInput)
-    : action.action_type.startsWith("annotation_")
+    : isAnnotationAction(action.action_type)
       ? await context.annotationRepository.replayHistoryAction(replayInput)
       : await context.tokenRepository.replayHistoryAction(replayInput);
   const expectedChanges = action.action_type === "initiative_group_set"
     ? members(payload).length
+    : action.action_type === "annotations_cleared"
+      ? annotations(payload).length
     : 1;
   if (expectedChanges === 0 || changes !== expectedChanges) {
     return commandError(
@@ -119,7 +122,7 @@ async function replayIsAuthorized(
   if (context.participant.role === "dm") return true;
   if (actionType === "initiative_group_set") return false;
   if (actionType === "initiative_set" && context.encounter.status !== "setup") return false;
-  if (actionType.startsWith("annotation_")) {
+  if (isAnnotationAction(actionType)) {
     const annotation = (payload.annotation ?? payload) as Record<string, unknown>;
     return annotation.createdBy === context.participant.id;
   }
@@ -140,6 +143,14 @@ async function replayIsAuthorized(
 
 function members(payload: Record<string, unknown>) {
   return Array.isArray(payload.members) ? payload.members as Array<Record<string, unknown>> : [];
+}
+
+function annotations(payload: Record<string, unknown>) {
+  return Array.isArray(payload.annotations) ? payload.annotations as Array<Record<string, unknown>> : [];
+}
+
+function isAnnotationAction(actionType: string) {
+  return actionType.startsWith("annotation_") || actionType === "annotations_cleared";
 }
 
 function cleanId(value: unknown) {

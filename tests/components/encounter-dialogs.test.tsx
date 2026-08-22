@@ -27,9 +27,11 @@ describe("EncounterDialogs scenario details", () => {
 
     render(<EncounterDialogs
       participant={participant} state={state} resetOpen={false} restartOpen={false}
+      clearAnnotationsOpen={false} clearAnnotationCount={0}
       concentrationReminder={null} scenario={scenario as never} handoutTitle="" handoutUploading={false}
       handoutUploadError="" handoutDeletingId={null} lightboxHandout={null} handoutFitMode
-      onResetOpen={vi.fn()} onRestartOpen={vi.fn()} onReset={vi.fn()} onRestart={vi.fn()}
+      onResetOpen={vi.fn()} onRestartOpen={vi.fn()} onClearAnnotationsOpen={vi.fn()}
+      onReset={vi.fn()} onRestart={vi.fn()} onClearAnnotations={vi.fn()}
       onDismissConcentrationReminder={vi.fn()} onHandoutTitle={vi.fn()} onUploadHandout={vi.fn()}
       onPreviewHandout={vi.fn()} onDeleteHandout={vi.fn()} onHandoutFitMode={vi.fn()} onCloseLightbox={vi.fn()}
     />);

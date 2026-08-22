@@ -49,3 +49,16 @@ test("only durable drawings are reversible annotations", () => {
   assert.equal(isReversibleHistoryRow(row("neon-spotlight"), annotationTypes), false);
   assert.equal(isReversibleHistoryRow({ ...row("broken"), payload_json: "{" }, annotationTypes), false);
 });
+
+test("a bounded nonempty durable clear snapshot is reversible", () => {
+  const annotationTypes = new Set(["annotations_cleared"]);
+  const row = (annotations) => ({
+    id: "clear",
+    action_type: "annotations_cleared",
+    payload_json: JSON.stringify({ annotations }),
+  });
+  assert.equal(isReversibleHistoryRow(row([{ annotationType: "drawing" }]), annotationTypes), true);
+  assert.equal(isReversibleHistoryRow(row([]), annotationTypes), false);
+  assert.equal(isReversibleHistoryRow(row([{ annotationType: "ping" }]), annotationTypes), false);
+  assert.equal(isReversibleHistoryRow({ ...row([]), payload_json: "{" }, annotationTypes), false);
+});

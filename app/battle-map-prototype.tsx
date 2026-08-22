@@ -124,6 +124,7 @@ export default function BattleMapPrototype() {
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
+  const [clearAnnotationsConfirmOpen, setClearAnnotationsConfirmOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [spellPaletteOpen, setSpellPaletteOpen] = useState(false);
   const [armedCreatureId, setArmedCreatureId] = useState<string | null>(null);
@@ -179,9 +180,6 @@ export default function BattleMapPrototype() {
     onDockPointerEnd: onChatDockPointerEnd,
   } = useChatHandouts({ participant, state, sync: encounterSync, canvasRef, setNotice });
   const scenarioControls = useScenarioControls();
-  const {
-    open: scenarioManagerOpen, setOpen: setScenarioManagerOpen,
-  } = scenarioControls;
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
@@ -348,21 +346,6 @@ export default function BattleMapPrototype() {
   useEffect(() => () => {
     if (pingAudioContextRef.current?.state !== "closed") void pingAudioContextRef.current?.close();
   }, []);
-  useEffect(() => {
-    if (!resetConfirmOpen && !restartConfirmOpen && !scenarioManagerOpen && !lightboxHandout) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (lightboxHandout) { setLightboxHandout(null); return; }
-        setResetConfirmOpen(false);
-        setRestartConfirmOpen(false);
-        if (!handoutUploading) setScenarioManagerOpen(false);
-      }
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [handoutUploading, lightboxHandout, resetConfirmOpen, restartConfirmOpen, scenarioManagerOpen, setLightboxHandout, setScenarioManagerOpen]);
-
-
   const placeCreature = async (creature: CreatureTemplate, point: MapPoint) => {
     if (!participant || !state || !movementEnabled) return;
     if (participant.role === "player" && !effectivePlacementSummonerId) {
@@ -667,6 +650,7 @@ export default function BattleMapPrototype() {
         ? "Reconnecting — restoring shared encounter updates."
         : "Connecting — loading shared encounter updates.";
   const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
+  const durableAnnotationCount = state.annotations.filter((annotation) => annotation.type === "drawing").length;
 
   if (participant.role === "dm" && workshopOpen) return <MapWorkshop
     activeMapPackage={state.encounter.mapPackage}
@@ -692,10 +676,10 @@ export default function BattleMapPrototype() {
         paletteOpen={paletteOpen} spellPaletteOpen={spellPaletteOpen} busy={busy} viewport={viewport}
         effectiveZoom={effectiveZoom} connection={connection} connectionLabel={connectionLabel} connectionTooltip={connectionTooltip}
         uiSettingsRef={uiSettingsRef} gridOpacity={gridOpacity} showColoredTokenCenters={showColoredTokenCenters}
-        showHealthRings={showHealthRings} sidebarOpen={sidebarOpen} presenting={presenting}
+        showHealthRings={showHealthRings} sidebarOpen={sidebarOpen} presenting={presenting} durableAnnotationCount={durableAnnotationCount}
         onAnnotationMode={(mode) => { if (mode === "ping") enablePingAudio(); setAnnotationMode(mode); }}
         onToggleFogEditor={() => { toggleSharedFogEditing(); setAnnotationMode("move"); }}
-        onClearAnnotations={() => void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: [] }), "Annotations cleared.")}
+        onRequestClearAnnotations={() => setClearAnnotationsConfirmOpen(true)}
         onToggleChat={() => { if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; } else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; } else { markChatChannelRead(activeChatChannel); setChatOpen(false); } }}
         onToggleCreatures={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); clearSpellPlacementPreview(); setAnnotationMode("move"); }}
         onToggleSpells={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); clearCreaturePlacementPreview(); setAnnotationMode("move"); }}
@@ -796,13 +780,15 @@ export default function BattleMapPrototype() {
       </div>
       <EncounterDialogs
         participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
+        clearAnnotationsOpen={clearAnnotationsConfirmOpen} clearAnnotationCount={durableAnnotationCount}
         concentrationReminder={tokenControls.concentrationReminder}
         scenario={scenarioControls} handoutTitle={handoutTitle} handoutUploading={handoutUploading}
         handoutUploadError={handoutUploadError} handoutDeletingId={handoutDeletingId}
         lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
-        onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen}
+        onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen} onClearAnnotationsOpen={setClearAnnotationsConfirmOpen}
         onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
         onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
+        onClearAnnotations={() => { setClearAnnotationsConfirmOpen(false); void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: current.annotations.filter((annotation) => annotation.type !== "drawing") }), `${durableAnnotationCount} ${durableAnnotationCount === 1 ? "drawing" : "drawings"} cleared. Use Undo to restore.`); }}
         onDismissConcentrationReminder={tokenControls.dismissConcentrationReminder}
         onHandoutTitle={setHandoutTitle}
         onUploadHandout={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId)}

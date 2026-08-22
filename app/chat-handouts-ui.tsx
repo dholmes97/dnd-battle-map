@@ -3,6 +3,7 @@
 import type { FormEvent, PointerEvent as ReactPointerEvent, RefObject, UIEvent } from "react";
 import IconActionButton from "@/app/icon-action-button";
 import { ProtectedHandoutImage } from "@/app/handout-images";
+import { ModalDialog } from "@/app/modal-dialog";
 import type {
   EncounterState,
   ParticipantSession,
@@ -222,11 +223,9 @@ export function HandoutLightbox({ participant, encounterCode, handout, fitMode, 
   onFitModeChange: (fit: boolean) => void;
   onClose: () => void;
 }) {
-  return <div className="modal-shadowbox handout-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section role="dialog" aria-modal="true" aria-labelledby="handout-lightbox-title">
-      <header><span><small>Handout</small><strong id="handout-lightbox-title">{handout.title}</strong></span><IconActionButton variant="close" label="Close handout" autoFocus onClick={onClose} /></header>
+  return <ModalDialog labelledBy="handout-lightbox-title" backdropClassName="modal-shadowbox handout-lightbox" dialogClassName="" closeOnBackdrop onDismiss={onClose}>
+      <header><span><small>Handout</small><strong id="handout-lightbox-title">{handout.title}</strong></span><IconActionButton variant="close" label="Close handout" data-dialog-initial-focus onClick={onClose} /></header>
       <div className={`handout-lightbox-image${fitMode ? " is-fit" : " is-actual"}`}><ProtectedHandoutImage participant={participant} encounterCode={encounterCode} handoutId={handout.id} variant="display" revision={handout.updatedAt} alt={handout.title} /></div>
       <footer><div className="handout-view-controls" role="group" aria-label="Image size"><button type="button" aria-pressed={fitMode} onClick={() => onFitModeChange(true)}>Fit</button><button type="button" aria-pressed={!fitMode} onClick={() => onFitModeChange(false)}>Actual size</button></div>{handout.width && handout.height ? <span>{handout.width} × {handout.height}</span> : null}</footer>
-    </section>
-  </div>;
+  </ModalDialog>;
 }

@@ -64,6 +64,14 @@ async function visibleTokenCount(page: Page) {
   return Number(count);
 }
 
+async function durableDrawingCount(page: Page) {
+  const label = await page.locator("button[data-tooltip='Clear durable drawings']").getAttribute("aria-label");
+  if (label === "No drawings to clear") return 0;
+  const count = label?.match(/^Clear (\d+) drawings?$/)?.[1];
+  if (!count) throw new Error(`Unable to read durable drawing count from: ${label}`);
+  return Number(count);
+}
+
 async function tapExposedMap(page: Page, drawerSelector: string) {
   const canvasLocator = page.getByRole("img", { name: /battle grid with .* visible tokens/i });
   const canvas = await canvasLocator.boundingBox();
@@ -108,6 +116,80 @@ test("the DM can enter a scenario and reach an accessible battle-map shell", asy
   await page.locator("summary[aria-label='UI Settings']").click();
   await expect(page.getByLabel("Colored token centers")).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
+});
+
+test("blocking dialogs contain focus, inert the map, close on Escape, and restore the launcher", async ({ page }) => {
+  await enterFirstScenarioAsDm(page);
+  const launcher = page.getByRole("button", { name: "Manage current scenario" });
+  await launcher.click();
+  const dialog = page.getByRole("dialog", { name: "Scenario details" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toBeFocused();
+  expect(await page.locator(".workspace").evaluate((element) => (element as HTMLElement).inert)).toBe(true);
+  await expectNoSeriousAccessibilityViolations(page);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(launcher).toBeFocused();
+});
+
+test("dirty workshop exits are explicit and preserve the draft when cancelled", async ({ page }) => {
+  await enterFirstScenarioAsDm(page);
+  await page.getByRole("button", { name: "Open Map Workshop" }).click();
+  await expect(page.getByText("Map workshop", { exact: true })).toBeVisible();
+  const description = page.getByLabel("Description");
+  await description.fill("Browser-only unsaved draft");
+  await expect(page.getByText("Private changes", { exact: true })).toBeVisible();
+
+  const returnButton = page.getByRole("button", { name: "Return to battle map" });
+  await returnButton.click();
+  const guard = page.getByRole("dialog", { name: "Return without applying?" });
+  await expect(guard).toBeVisible();
+  await expect(page.getByRole("button", { name: "Keep editing" })).toBeFocused();
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await expect(returnButton).toBeFocused();
+  await expect(description).toHaveValue("Browser-only unsaved draft");
+
+  await returnButton.click();
+  await page.getByRole("button", { name: "Discard and return" }).click();
+  await expect(page.getByLabel("Map tools and encounter status")).toBeVisible();
+});
+
+test("clear drawings confirms, supports undo and redo, and preserves unrelated map state", async ({ page }) => {
+  await enterFirstScenarioAsDm(page);
+  const originalCount = await durableDrawingCount(page);
+  const map = page.getByRole("img", { name: /battle grid with .* visible tokens/i });
+  const bounds = await map.boundingBox();
+  expect(bounds).not.toBeNull();
+  const start = { x: bounds!.x + bounds!.width * 0.08, y: bounds!.y + bounds!.height * 0.12 };
+  const end = { x: bounds!.x + bounds!.width * 0.2, y: bounds!.y + bounds!.height * 0.12 };
+
+  await page.getByRole("button", { name: "Draw line" }).click();
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(() => durableDrawingCount(page)).toBe(originalCount + 1);
+
+  const clear = page.locator("button[data-tooltip='Clear durable drawings']");
+  await clear.click();
+  await expect(page.getByRole("dialog", { name: `Clear ${originalCount + 1} ${originalCount === 0 ? "drawing" : "drawings"}?` })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Keep drawings" })).toBeFocused();
+  await page.getByRole("button", { name: "Keep drawings" }).click();
+  await expect.poll(() => durableDrawingCount(page)).toBe(originalCount + 1);
+
+  await clear.click();
+  await page.getByRole("button", { name: "Clear drawings" }).click();
+  await expect.poll(() => durableDrawingCount(page)).toBe(0);
+  await page.getByRole("button", { name: "Undo last action" }).click();
+  await expect.poll(() => durableDrawingCount(page)).toBe(originalCount + 1);
+  await page.getByRole("button", { name: "Redo last action" }).click();
+  await expect.poll(() => durableDrawingCount(page)).toBe(0);
+  await page.getByRole("button", { name: "Undo last action" }).click();
+  await expect.poll(() => durableDrawingCount(page)).toBe(originalCount + 1);
+
+  await page.getByRole("button", { name: "Erase line" }).click();
+  await map.click({ position: { x: (start.x + end.x) / 2 - bounds!.x, y: start.y - bounds!.y } });
+  await expect.poll(() => durableDrawingCount(page)).toBe(originalCount);
 });
 
 test.describe("mobile playability", () => {

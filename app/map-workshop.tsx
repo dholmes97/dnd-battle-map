@@ -2,6 +2,7 @@
 
 import NextImage from "next/image";
 import IconActionButton from "@/app/icon-action-button";
+import { ModalDialog } from "@/app/modal-dialog";
 import { renderMapPackageToContext } from "@/app/map-scene-renderer";
 import {
   type PointerEvent,
@@ -144,6 +145,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const [selectedFogVertex, setSelectedFogVertex] = useState<number | null>(null);
   const [selectedFogBlocker, setSelectedFogBlocker] = useState<SelectedFogBlocker | null>(null);
   const [fogCirclePreview, setFogCirclePreview] = useState<{ center: Point; radius: number } | null>(null);
+  const [exitPrompt, setExitPrompt] = useState<"discard" | "return" | null>(null);
 
   const selectedLabel = selectedAnnotation?.kind === "label" ? map.labels.find((label) => label.id === selectedAnnotation.id) ?? null : null;
   const selectedNote = selectedAnnotation?.kind === "note" ? map.notes.find((note) => note.id === selectedAnnotation.id) ?? null : null;
@@ -420,8 +422,12 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     const result = await runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`);
     if (result && loadedPresetId === preset.id) { setLoadedPresetId(null); setPresetName(map.name); }
   };
-  const apply = async () => { const result = await runCommand("apply-map-package", { mapPackage: map, presetId: loadedPresetId || undefined }, `Applied “${map.name}”. Players now receive this scene.`); if (result) setDirty(false); };
+  const apply = async () => { const result = await runCommand("apply-map-package", { mapPackage: map, presetId: loadedPresetId || undefined }, `Applied “${map.name}”. Players now receive this scene.`); if (result) setDirty(false); return Boolean(result); };
   const discard = () => { const next = activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE); const activePresetName = savedPresets.find((preset) => preset.id === activeMapPresetId)?.name ?? next.name; replaceDraft(next, false, activePresetName); setLoadedPresetId(activeMapPresetId); setMessage("Discarded private changes and restored the applied scene."); };
+  const requestDiscard = () => { if (dirty) setExitPrompt("discard"); };
+  const requestReturn = () => { if (dirty) { setMessage(""); setExitPrompt("return"); } else onClose(); };
+  const discardAndReturn = () => { discard(); setExitPrompt(null); onClose(); };
+  const applyAndReturn = async () => { if (await apply()) { setExitPrompt(null); onClose(); } };
   const loadPreset = (preset: SavedMapPreset) => { replaceDraft(preset.mapPackage, preset.id !== activeMapPresetId, preset.name); setLoadedPresetId(preset.id); setMessage(`Loaded “${preset.name}” into the private workshop.`); };
   return <main className="workshop-shell">
     <header className="workshop-header">
@@ -448,7 +454,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         <div className="workshop-history-tools" role="group" aria-label="Draft history"><button className="workshop-icon-tool" aria-label="Undo draft change" data-tooltip="Undo — Ctrl/Cmd + Z" disabled={!historyCounts.undo} onClick={undo}><WorkshopHistoryIcon direction="undo" /></button><button className="workshop-icon-tool" aria-label="Redo draft change" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" disabled={!historyCounts.redo} onClick={redo}><WorkshopHistoryIcon direction="redo" /></button></div>
       </div>
       <div className="workshop-header-title"><strong>{presetName.trim() || map.name}</strong><span>Map workshop</span></div>
-      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Private changes" : "Matches players"}</span><div className="workshop-action-tools" role="group" aria-label="Workshop actions"><button className="workshop-icon-tool" aria-label="Discard private changes" data-tooltip="Discard private changes" onClick={discard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply to players" data-tooltip="Apply this map to players" disabled={busy} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to battle map" data-tooltip="Return to battle map" onClick={onClose}><WorkshopActionIcon action="return" /></button></div></div>
+      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Private changes" : "Matches players"}</span><div className="workshop-action-tools" role="group" aria-label="Workshop actions"><button className="workshop-icon-tool" aria-label="Discard private changes" data-tooltip="Discard private changes" disabled={!dirty || busy} onClick={requestDiscard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply to players" data-tooltip="Apply this map to players" disabled={busy} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to battle map" data-tooltip="Return to battle map" disabled={busy} onClick={requestReturn}><WorkshopActionIcon action="return" /></button></div></div>
     </header>
     <div className="workshop-layout">
       <aside className="workshop-controls" aria-label="Map Workshop controls">
@@ -468,5 +474,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       </aside>
       <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Map preset draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-label={`${map.name} map draft`} /></div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>The base map remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>
+    {exitPrompt === "discard" ? <ModalDialog labelledBy="discard-workshop-title" describedBy="discard-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="discard-workshop-title">Discard private changes?</h2><p id="discard-workshop-description">This restores the map currently applied to players and permanently removes the draft’s unsaved vision geometry, fog corners, labels, and notes.</p><div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => { discard(); setExitPrompt(null); }}>Discard changes</button></div></ModalDialog> : null}
+    {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="return-workshop-title">Return without applying?</h2><p id="return-workshop-description">Your private workshop changes are not visible to players. Keep editing, discard the draft and return, or apply it to everyone before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={discardAndReturn}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}
   </main>;
 }

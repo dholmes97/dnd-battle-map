@@ -120,3 +120,25 @@ test("history replay rechecks current authorization", async () => {
   assert.equal(denied.status, 403);
   assert.equal(value.calls.length, 0);
 });
+
+test("cleared drawings replay as one DM history action with an exact expected count", async () => {
+  const annotations = [
+    { id: "a", annotationType: "drawing", createdBy: "dm", x: 1, y: 1, x2: 2, y2: 2 },
+    { id: "b", annotationType: "drawing", createdBy: "dm", x: 2, y: 2, x2: 3, y2: 3 },
+  ];
+  const value = context([
+    action("1", "annotations_cleared", { annotations }),
+  ], { participant: { id: "dm", name: "Kevin", role: "dm" } });
+  value.annotationRepository = {
+    replayHistoryAction: async (input) => (value.calls.push(["annotation-replay", input]), 2),
+  };
+  assert.equal((await undo(value)).payload.undone, true);
+  assert.equal(value.calls.find(([name]) => name === "annotation-replay")[1].actionType, "annotations_cleared");
+
+  const conflict = context([
+    action("1", "annotations_cleared", { annotations }),
+  ], { participant: { id: "dm", name: "Kevin", role: "dm" } });
+  const denied = await undo(conflict);
+  assert.equal(denied.status, 409);
+  assert.match(denied.payload.error, /cleared drawings/i);
+});

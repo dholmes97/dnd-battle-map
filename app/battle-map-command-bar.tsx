@@ -30,9 +30,10 @@ type CommandBarProps = {
   showHealthRings: boolean;
   sidebarOpen: boolean;
   presenting: boolean;
+  durableAnnotationCount: number;
   onAnnotationMode: (mode: AnnotationMode) => void;
   onToggleFogEditor: () => void;
-  onClearAnnotations: () => void;
+  onRequestClearAnnotations: () => void;
   onToggleChat: () => void;
   onToggleCreatures: () => void;
   onToggleSpells: () => void;
@@ -62,7 +63,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
       {tool("move", "move", "Move tokens", "V")}{tool("ping", "ping", "Ping map", "P")}{tool("drawing", "line", "Draw line", "L")}{tool("erase", "erase", "Erase line", "E")}
       {participant.role === "dm" ? tool("spotlight", "spotlight", "Arcane spotlight", "S") : null}{participant.role === "dm" ? tool("neon-spotlight", "neon", "Neon arrow", "N") : null}
       {participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared" ? <button className={`icon-tool${props.editingSharedFog ? " tool-active" : ""}`} aria-label="Edit shared fog" data-tooltip="Edit shared fog corners" aria-pressed={props.editingSharedFog} onClick={props.onToggleFogEditor}><Icon name="fog" /></button> : null}
-      {participant.role === "dm" ? <button className="icon-tool" aria-label="Clear all annotations" data-tooltip="Clear all annotations" onClick={props.onClearAnnotations}><Icon name="clear" /></button> : null}
+      {participant.role === "dm" ? <button className="icon-tool" aria-label={props.durableAnnotationCount > 0 ? `Clear ${props.durableAnnotationCount} ${props.durableAnnotationCount === 1 ? "drawing" : "drawings"}` : "No drawings to clear"} data-tooltip="Clear durable drawings" disabled={props.durableAnnotationCount === 0} onClick={props.onRequestClearAnnotations}><Icon name="clear" /></button> : null}
     </div>
     <div className="map-tool-group" role="group" aria-label="Map content">
       <button className={`icon-tool chat-launcher${props.chatOpen ? " tool-active" : ""}`} aria-label={props.chatUnreadTotal > 0 ? `Chat, ${props.chatUnreadTotal} unread messages` : "Chat"} data-tooltip="Chat" aria-pressed={props.chatOpen} onClick={props.onToggleChat}><Icon name="chat" />{props.chatUnreadTotal > 0 ? <span className="chat-unread-badge" aria-hidden="true">{Math.min(99, props.chatUnreadTotal)}</span> : null}</button>

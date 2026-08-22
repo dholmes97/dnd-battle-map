@@ -124,9 +124,11 @@ export async function addAnnotation(context: AnnotationFogCommandContext<"add-an
 export async function clearAnnotations(context: AnnotationFogCommandContext<"clear-annotations">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  await context.repository.clearAnnotations(context.encounter.id);
-  await finish(context, "annotations_cleared", {});
-  return success(context, { cleared: true });
+  const annotations = await context.repository.listDurableAnnotations(context.encounter.id);
+  if (annotations.length === 0) return commandError("There are no durable drawings to clear.", 409);
+  await context.repository.clearDurableAnnotations(context.encounter.id);
+  await finish(context, "annotations_cleared", { annotations });
+  return success(context, { cleared: true, count: annotations.length });
 }
 
 export async function removeAnnotation(context: AnnotationFogCommandContext<"remove-annotation">): Promise<CommandOutcome> {
