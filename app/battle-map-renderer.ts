@@ -472,6 +472,7 @@ export function drawMap(
   showHealthRings: boolean,
   sharedFogPreview: MapPoint[] | null,
   selectedSharedFogVertex: number | null,
+  keyboardCursor: MapPoint | null,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -916,6 +917,28 @@ export function drawMap(
     context.save(); context.globalAlpha = 0.78;
     drawSpellEffect(context, spellToken, screenX(spellToken.x), screenY(spellToken.y), radius,
       tokenArt.get(spellToken.artAsset ?? "") ?? null, animationNow, true, true);
+    context.restore();
+  }
+  if (keyboardCursor) {
+    const x = screenX(keyboardCursor.x);
+    const y = screenY(keyboardCursor.y);
+    const radius = Math.max(8, Math.min(cellWidth, cellHeight) * 0.28);
+    context.save();
+    context.strokeStyle = "#fff2bd";
+    context.fillStyle = "rgba(22, 18, 12, 0.72)";
+    context.lineWidth = 2;
+    context.setLineDash([4, 3]);
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.setLineDash([]);
+    context.beginPath();
+    context.moveTo(x - radius - 5, y);
+    context.lineTo(x + radius + 5, y);
+    context.moveTo(x, y - radius - 5);
+    context.lineTo(x, y + radius + 5);
+    context.stroke();
     context.restore();
   }
 }

@@ -159,6 +159,18 @@ describe("token label layout", () => {
 });
 
 describe("executable canvas adapters", () => {
+  it("paints a high-contrast keyboard cursor on the real map canvas", () => {
+    const context = contextMock();
+    const canvas = document.createElement("canvas");
+    Object.defineProperty(canvas, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 800, height: 500 }) });
+    Object.defineProperty(canvas, "getContext", { value: () => context });
+
+    drawMap(canvas, createState(), null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null, { x: 12, y: 8 });
+
+    expect(context.arc).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), expect.any(Number), 0, Math.PI * 2);
+    expect(context.setLineDash).toHaveBeenCalledWith([4, 3]);
+  });
+
   it("draws collision-laid-out names through the real battle-map renderer", () => {
     const context = contextMock();
     const canvas = document.createElement("canvas");
@@ -167,7 +179,7 @@ describe("executable canvas adapters", () => {
     const selected = createToken({ id: "selected", name: "Selected Hero", x: 10, y: 8 });
     const crowded = createToken({ id: "crowded", name: "Crowded Monster", size: "large", controller: { name: "Kevin" }, controlledByViewer: false, x: 10.25, y: 8 });
 
-    drawMap(canvas, createState([crowded, selected]), null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, selected.id, null, 0.4, true, true, null, null);
+    drawMap(canvas, createState([crowded, selected]), null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, selected.id, null, 0.4, true, true, null, null, null);
 
     expect(context.fillText).toHaveBeenCalledWith("Selected Hero", expect.any(Number), expect.any(Number));
     const labelRects = vi.mocked(context.roundRect).mock.calls.map(([x, y, width, height]) => ({ x: Number(x), y: Number(y), width: Number(width), height: Number(height) }));
@@ -185,7 +197,7 @@ describe("executable canvas adapters", () => {
       Object.defineProperty(canvas, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 400, height: 240 }) });
       Object.defineProperty(canvas, "getContext", { value: () => context });
 
-      drawMap(canvas, createState(), null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null);
+      drawMap(canvas, createState(), null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null, null);
 
       expect(canvas.width).toBe(800);
       expect(canvas.height).toBe(480);
@@ -214,7 +226,7 @@ describe("executable canvas adapters", () => {
       revealedCircles: [{ id: "tree", x: 6, y: 6, radius: 1 }],
     };
 
-    drawMap(canvas, state, null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null);
+    drawMap(canvas, state, null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null, null);
 
     expect(maskContext.fillRect).toHaveBeenCalledWith(0, 0, 400, 240);
     expect(maskContext.closePath).toHaveBeenCalled();
@@ -297,6 +309,7 @@ describe("useMapAssets", () => {
       showHealthRings: true,
       sharedFogPreview: null,
       selectedSharedFogVertex: null,
+      keyboardCursor: null,
       pingStartedAtRef: { current: new Map() },
       canvasRef: { current: null },
     });

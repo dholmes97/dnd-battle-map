@@ -520,6 +520,7 @@ export default function BattleMapPrototype() {
     armedCreatureId,
     armedSpellId,
     playerCharacter,
+    selectedTokenId: effectiveSelectedTokenId,
     canMoveToken,
     isTokenPendingCreation,
     setNotice,
@@ -551,6 +552,8 @@ export default function BattleMapPrototype() {
     editingSharedFog,
     sharedFogPreview,
     selectedSharedFogVertex,
+    keyboardCursor,
+    keyboardStatus,
     onPaletteDragStart,
     onSpellDragStart,
     onMapDragOver,
@@ -561,6 +564,8 @@ export default function BattleMapPrototype() {
     onCanvasPointerUp,
     onCanvasPointerCancel,
     onCanvasWheel,
+    onCanvasFocus,
+    onCanvasKeyDown,
     changeZoom,
     fitViewport,
     resetViewport,
@@ -575,7 +580,7 @@ export default function BattleMapPrototype() {
     active: !workshopOpen,
     state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport,
     selectedTokenId: effectiveSelectedTokenId, selectedMapNoteId, gridOpacity,
-    showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex,
+    showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor,
     pingStartedAtRef, canvasRef,
   });
 
@@ -668,20 +673,20 @@ export default function BattleMapPrototype() {
     token.controlledByViewer && !token.turnComplete) ?? null;
   const activeOwnTurnIsGroup = activeTurnMembers.length > 1;
   const mapInteractionDescription = !movementEnabled
-    ? "Movement and placement are currently unavailable. Click any visible token to inspect it; scroll to zoom."
+    ? "Movement and placement are currently unavailable. Select any visible token to inspect it. Focus the map for keyboard inspection; use arrow keys for the map cursor and Enter to select."
     : armedCreatureId
-      ? "Click to place the selected creature."
+      ? "Click or focus the map and press Enter to place the selected creature."
       : armedSpellId
-        ? "Click to manifest the selected spell effect."
+        ? "Click or focus the map and press Enter to manifest the selected spell effect."
         : annotationMode === "erase"
-          ? "Erase mode. Click a drawn line to remove it."
+          ? "Erase mode. Click a drawn line, or move the keyboard cursor to it and press Enter, to remove it."
           : selectedToken && canMoveToken(selectedToken)
-            ? `Selected ${selectedToken.name}. Click any visible token to inspect it, drag a permitted token to move it, or drag empty map space to pan.`
+            ? `Selected ${selectedToken.name}. Select any visible token to inspect it, drag a permitted token to move it, or use the keyboard map cursor. Space grabs or drops a token.`
             : participant.role === "dm" || !state.encounter.strictMovement
-              ? "Click any visible token to inspect it, drag a permitted token to move it, or drag empty map space to pan."
+              ? "Select any visible token to inspect it, drag a permitted token to move it, or use the keyboard map cursor. Space grabs or drops a token."
               : selectedToken
-                ? `Selected ${selectedToken.name}. Click any visible token to inspect it; drag your character or summons to move them, or drag empty map space to pan.`
-                : "Click any visible token to inspect it; drag your character or summons to move them, or drag empty map space to pan.";
+                ? `Selected ${selectedToken.name}. Select any visible token to inspect it; drag your character or summons to move them, or use the keyboard map cursor.`
+                : "Select any visible token to inspect it; drag your character or summons to move them, or use the keyboard map cursor.";
 
   return (
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
@@ -712,7 +717,9 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="img" />
+            <p id="battle-map-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the current tool or selects an object. Space grabs or drops a movable token. Page Up and Page Down adjust altitude while grabbed. Alt plus arrows pans. Plus and minus zoom. Escape cancels a staged keyboard action.</p>
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-describedby="battle-map-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space PageUp PageDown Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight + - Escape" aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="application" tabIndex={0} />
+            <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div>
             {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeSharedFogPoint}>Remove selected</button><button type="button" onClick={finishSharedFogEditing}>Done</button></div> : null}
             {paletteOpen ? <CreaturePalette
               participant={participant} tokens={state.tokens} playerCharacter={playerCharacter}

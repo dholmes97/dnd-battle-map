@@ -573,6 +573,7 @@ input:focus {
 .map-canvas.is-erasing { cursor: cell; }
 .map-canvas.is-blocked { cursor: default; }
 .map-canvas.is-editing-fog { cursor: crosshair; }
+.map-canvas:focus-visible, .workshop-canvas-frame canvas:focus-visible { outline: 3px solid #f5c65c; outline-offset: -3px; }
 
 .fog-live-controls {
   position: absolute;
@@ -1425,7 +1426,7 @@ input:focus {
 .structure-options { margin-top: 0.45rem; padding: 0.45rem; border: 1px solid #33342f; border-radius: 0.38rem; background: #171815; }
 .structure-options > span { display: block; margin-bottom: 0.35rem; color: #8f887d; font-size: 0.58rem; }
 .structure-options label { margin: 0.35rem 0; }
-.structure-options textarea { width: 100%; min-height: 3.6rem; resize: vertical; padding: 0.45rem; border: 1px solid #393a34; border-radius: 0.35rem; background: #11120f; color: #d0c8bb; font: 0.62rem/1.4 var(--font-geist-sans), sans-serif; }
+.structure-options textarea { width: 100%; min-height: 3.6rem; resize: vertical; padding: 0.45rem; border: 1px solid #393a34; border-radius: 0.35rem; background: #11120f; color: #d0c8bb; font: 0.625rem/1.4 var(--font-geist-sans), sans-serif; }
 .map-object-list { border: 1px solid #30322c; border-radius: 0.42rem; background: #151613; }
 .map-object-list summary { padding: 0.55rem 0.65rem; display: flex; justify-content: space-between; color: #a59e93; cursor: pointer; font-size: 0.64rem; font-weight: 720; }
 .map-object-list summary span { padding: 0.05rem 0.34rem; border-radius: 999px; background: #292a25; color: #7d776d; font-size: 0.55rem; }
@@ -1433,6 +1434,16 @@ input:focus {
 .map-object-list > div { margin: 0 0.45rem; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 1.7rem; align-items: stretch; border-top: 1px solid #2b2d27; }
 .map-object-list > div > span { min-width: 0; padding: 0.38rem 0.2rem; display: grid; gap: 0.08rem; overflow: hidden; color: #aaa398; font-size: 0.59rem; text-overflow: ellipsis; white-space: nowrap; }
 .map-object-list > div small { overflow: hidden; color: #656057; font-size: 0.52rem; text-overflow: ellipsis; white-space: nowrap; }
+.map-object-select { min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.map-object-select > span { min-width: 0; padding: 0.45rem 0.3rem; display: grid; gap: 0.12rem; overflow: hidden; color: #c6beb2; font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
+.map-object-select:hover, .map-object-select[aria-pressed="true"] { background: rgba(245, 198, 92, 0.09); }
+.map-object-select:focus-visible { outline: 2px solid #f5c65c; outline-offset: -2px; }
+.vision-object-list > div { grid-template-columns: minmax(0, 1fr); }
+.geometry-fields { margin: 0.55rem 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+.geometry-fields.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.geometry-fields.is-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.geometry-fields label { min-width: 0; margin: 0; display: grid; gap: 0.25rem; color: #aaa196; font-size: 0.625rem; }
+.geometry-fields input { min-width: 0; width: 100%; box-sizing: border-box; }
 .icon-action-delete { border: 0; background: transparent; color: #74685f; }
 .icon-action-delete .icon-action-glyph { width: 0.82rem; height: 0.82rem; }
 .icon-action-delete:hover { background: rgba(188, 76, 64, 0.1); color: #d7857a; }
@@ -1448,7 +1459,7 @@ input:focus {
 .map-note-detail > p { margin: 0.7rem 0 0; color: #c0b5c7; font-size: 0.7rem; line-height: 1.55; white-space: pre-wrap; }
 
 .map-library-panel .button-row { grid-template-columns: 1.25fr 0.85fr 0.85fr; }
-.map-library-panel textarea { width: 100%; min-height: 2.8rem; resize: vertical; padding: 0.38rem 0.45rem; border: 1px solid #373932; border-radius: 0.35rem; background: #141512; color: #aaa398; font: 0.58rem/1.4 var(--font-geist-sans), sans-serif; }
+.map-library-panel textarea { width: 100%; min-height: 2.8rem; resize: vertical; padding: 0.38rem 0.45rem; border: 1px solid #373932; border-radius: 0.35rem; background: #141512; color: #aaa398; font: 0.625rem/1.4 var(--font-geist-sans), sans-serif; }
 .saved-map-list { display: grid; gap: 0.25rem; margin-top: 0.55rem; }
 .saved-map-list article { display: grid; grid-template-columns: minmax(0, 1fr) 1.8rem; align-items: stretch; border: 1px solid #34362f; border-radius: 0.38rem; overflow: hidden; background: #181915; }
 .saved-map-list article.is-selected { border-color: #75623a; background: #1e1c16; }
@@ -1474,6 +1485,45 @@ input:focus {
 .legend-cell { border: 1px solid #d3ad55; background: rgba(245, 198, 92, 0.18); }
 .legend-grid { border: 1px solid rgba(244, 234, 205, 0.3); }
 .workshop-launch { margin-top: 0.45rem; }
+
+/* Essential interface copy never renders below ten CSS pixels. Mobile rules
+   below may intentionally increase these values further. */
+.campaign-person small, .scenario-card-top small, .scenario-status, .encounter-identity span,
+.round-counter span, .combat-state-copy small, .command-bar [data-tooltip]::after,
+.command-bar .zoom-value, .fog-live-controls button,
+.chat-unread-badge, .chat-panel-unread-badge,
+.chat-panel-header small, .chat-empty span, .chat-channels em, .chat-message time,
+.chat-handout-preview small, .chat-handout-unavailable small, .chat-handout-preview em,
+.handout-image-status, .chat-compose label, .chat-compose .chat-compose-heading > button,
+.chat-compose > small, .chat-selected-handout small, .chat-show-immediately > span strong,
+.chat-show-immediately > span small, .chat-handout-picker .chat-handout-picker-head > label,
+.chat-compose .chat-handout-options > button, .chat-handout-picker > p, .chat-handout-picker-head > strong,
+.spell-copy small, .spell-detail-copy small, .spell-detail-meta small, .palette-heading small,
+.palette-hint, .palette-search label,
+.creature-tile small, .roster-effects, .player-card-layer.is-character::before,
+.panel-round, .turn-correction-details summary, .initiative-save-status, .altitude-input,
+.handout-storage-note, .scenario-handout-list article > span small, .scenario-handout-empty,
+.scenario-dialog .handout-item-actions label, .concentration-reminder-shadowbox header small,
+.handout-lightbox header small, .handout-lightbox footer, .token-config-toolbar small,
+.token-config label, .workshop-header-title span, .workshop-header [data-tooltip]::after,
+.workshop-visibility-mode select, .workshop-visibility-actions span, .workshop-visibility-actions button,
+.draft-status, .workshop-tool-row button, .workshop-message,
+.workshop-section-heading small, .workshop-controls label, .workshop-help,
+.full-scene-list small, .current-base-map small,
+.structure-options > span, .map-object-list summary span, .map-object-list > div > span,
+.map-object-list > div small, .map-note-heading small, .saved-map-load small,
+.workshop-canvas-heading small, .workshop-canvas-heading > span, .workshop-legend {
+  font-size: 0.625rem;
+}
+
+.workshop-section-heading small, .full-scene-list small, .current-base-map small,
+.map-object-list summary span, .map-object-list > div small, .saved-map-load small,
+.workshop-canvas-heading small, .workshop-canvas-heading > span, .workshop-legend,
+.workshop-help,
+.handout-lightbox footer, .initiative-save-status, .handout-storage-note,
+.scenario-handout-list article > span small, .token-config-toolbar small {
+  color: #a9a196;
+}
 
 @media (max-width: 850px) {
   .scenario-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

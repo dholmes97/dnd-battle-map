@@ -54,11 +54,11 @@ async function enterFirstScenarioAsDm(page: Page) {
   await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
   await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
   await page.getByRole("button", { name: "Open scenario" }).first().click();
-  await expect(page.getByRole("img", { name: /battle grid with .* visible tokens/i })).toBeVisible();
+  await expect(page.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
 }
 
 async function visibleTokenCount(page: Page) {
-  const label = await page.getByRole("img", { name: /battle grid with .* visible tokens/i }).getAttribute("aria-label");
+  const label = await page.getByRole("application", { name: /battle grid with .* visible tokens/i }).getAttribute("aria-label");
   const count = label?.match(/with (\d+) visible tokens/)?.[1];
   if (!count) throw new Error(`Unable to read visible-token count from: ${label}`);
   return Number(count);
@@ -73,7 +73,7 @@ async function durableDrawingCount(page: Page) {
 }
 
 async function tapExposedMap(page: Page, drawerSelector: string) {
-  const canvasLocator = page.getByRole("img", { name: /battle grid with .* visible tokens/i });
+  const canvasLocator = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
   const canvas = await canvasLocator.boundingBox();
   const drawer = await page.locator(drawerSelector).boundingBox();
   expect(canvas).not.toBeNull();
@@ -118,6 +118,53 @@ test("the DM can enter a scenario and reach an accessible battle-map shell", asy
   await expectNoSeriousAccessibilityViolations(page);
 });
 
+test("the main map and workshop support a complete no-pointer spatial flow", async ({ page }) => {
+  await enterFirstScenarioAsDm(page);
+  const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
+  await map.focus();
+  await expect(map).toBeFocused();
+
+  await page.keyboard.press("Space");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("PageUp");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(/Move confirmed/).first()).toBeVisible();
+
+  await map.focus();
+  await page.keyboard.press("l");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Tactical line shared.").first()).toBeVisible();
+
+  const workshopLauncher = page.getByRole("button", { name: "Open Map Workshop" });
+  await workshopLauncher.focus();
+  await page.keyboard.press("Enter");
+  const labelTool = page.getByRole("button", { name: "Add map label" });
+  await labelTool.focus();
+  await page.keyboard.press("Enter");
+  const labelText = page.getByLabel("Text");
+  await labelText.focus();
+  await page.keyboard.type("Keyboard browser marker");
+  const workshop = page.getByRole("application", { name: /editable map draft/i });
+  await workshop.focus();
+  await page.keyboard.press("Enter");
+  await page.getByText("Map details").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: /Keyboard browser marker.*everyone/i })).toBeVisible();
+  await expectReadableText(page, ".workshop-shell");
+  await expectNoSeriousAccessibilityViolations(page);
+
+  await workshop.focus();
+  await page.keyboard.press("Delete");
+  await expect(page.getByRole("button", { name: /Keyboard browser marker.*everyone/i })).toBeHidden();
+  const returnButton = page.getByRole("button", { name: "Return to battle map" });
+  await returnButton.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Discard and return" }).focus();
+  await page.keyboard.press("Enter");
+});
+
 test("blocking dialogs contain focus, inert the map, close on Escape, and restore the launcher", async ({ page }) => {
   await enterFirstScenarioAsDm(page);
   const launcher = page.getByRole("button", { name: "Manage current scenario" });
@@ -157,7 +204,7 @@ test("dirty workshop exits are explicit and preserve the draft when cancelled", 
 test("clear drawings confirms, supports undo and redo, and preserves unrelated map state", async ({ page }) => {
   await enterFirstScenarioAsDm(page);
   const originalCount = await durableDrawingCount(page);
-  const map = page.getByRole("img", { name: /battle grid with .* visible tokens/i });
+  const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
   const bounds = await map.boundingBox();
   expect(bounds).not.toBeNull();
   const start = { x: bounds!.x + bounds!.width * 0.08, y: bounds!.y + bounds!.height * 0.12 };

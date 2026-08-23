@@ -58,6 +58,7 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
     armedCreatureId: null,
     armedSpellId: null,
     playerCharacter: token,
+    selectedTokenId: null,
     canMoveToken: () => false,
     isTokenPendingCreation: () => false,
     setNotice: vi.fn(),
@@ -101,7 +102,92 @@ function pointerDownAtToken(
   return { canvas, event };
 }
 
+function keyboardEvent(key: string, modifiers: Partial<React.KeyboardEvent<HTMLCanvasElement>> = {}) {
+  const canvas = document.createElement("canvas");
+  vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ left: 0, top: 0, width: 1200, height: 800 } as DOMRect);
+  return {
+    key,
+    currentTarget: canvas,
+    preventDefault: vi.fn(),
+    metaKey: false,
+    ctrlKey: false,
+    altKey: false,
+    shiftKey: false,
+    ...modifiers,
+  } as unknown as React.KeyboardEvent<HTMLCanvasElement>;
+}
+
 describe("useBattleMapGestures", () => {
+  it("completes a token move and altitude change without a pointer", () => {
+    const onMoveToken = vi.fn();
+    const { result, onSelectToken } = renderGestures({
+      selectedTokenId: token.id,
+      canMoveToken: () => true,
+      onMoveToken,
+    });
+
+    act(() => result.current.onCanvasFocus());
+    act(() => result.current.onCanvasKeyDown(keyboardEvent(" ")));
+    expect(onSelectToken).toHaveBeenCalledWith(token.id);
+    expect(result.current.dragging).toBe(true);
+
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowRight")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("PageUp")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
+
+    expect(onMoveToken).toHaveBeenCalledWith(token.id, { x: 6, y: 5, altitude: 5 });
+    expect(result.current.dragging).toBe(false);
+    expect(result.current.keyboardStatus).toContain("Move submitted");
+  });
+
+  it("stages and cancels a keyboard move without publishing it", () => {
+    const onMoveToken = vi.fn();
+    const { result } = renderGestures({ selectedTokenId: token.id, canMoveToken: () => true, onMoveToken });
+    act(() => result.current.onCanvasFocus());
+    act(() => result.current.onCanvasKeyDown(keyboardEvent(" ")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowDown")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Escape")));
+    expect(onMoveToken).not.toHaveBeenCalled();
+    expect(result.current.preview).toBeNull();
+    expect(result.current.keyboardStatus).toContain("cancelled");
+  });
+
+  it("creates a tactical line with two keyboard activations while keeping the tool active", () => {
+    const onAddAnnotation = vi.fn();
+    const { result } = renderGestures({ annotationMode: "drawing", onAddAnnotation });
+    act(() => result.current.onCanvasFocus());
+    const start = result.current.keyboardCursor;
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowRight")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
+    expect(onAddAnnotation).toHaveBeenCalledWith("drawing", start, expect.objectContaining({ x: start!.x + 1, y: start!.y }));
+    expect(result.current.keyboardStatus).toContain("tool remains active");
+  });
+
+  it("selects and reshapes a shared-fog corner with the keyboard", () => {
+    const centeredFogState = {
+      ...state,
+      encounter: {
+        ...state.encounter,
+        mapPackage: {
+          ...state.encounter.mapPackage,
+          fog: {
+            ...state.encounter.mapPackage!.fog,
+            sharedPolygon: [{ x: 12.5, y: 8.5 }, { x: 24, y: 0 }, { x: 24, y: 16 }, { x: 0, y: 16 }],
+          },
+        },
+      },
+    } as EncounterState;
+    const dm = { ...participant, role: "dm" as const };
+    const { result, onUpdateSharedFog } = renderGestures({ state: centeredFogState, participant: dm, playerCharacter: null });
+    act(() => result.current.toggleSharedFogEditing());
+    act(() => result.current.onCanvasFocus());
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowLeft")));
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
+    expect(onUpdateSharedFog).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ x: 11.5, y: 8.5 })]));
+  });
+
   it("zooms from a Safari trackpad pinch without double-applying wheel zoom", () => {
     const canvas = document.createElement("canvas");
     const rect = { left: 100, top: 50, width: 1200, height: 800 } as DOMRect;

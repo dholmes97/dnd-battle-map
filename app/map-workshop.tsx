@@ -5,6 +5,7 @@ import IconActionButton from "@/app/icon-action-button";
 import { ModalDialog } from "@/app/modal-dialog";
 import { renderMapPackageToContext } from "@/app/map-scene-renderer";
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent,
   useCallback,
   useEffect,
@@ -22,6 +23,12 @@ import {
   mapThumbnailUrl,
   snapMapPoint,
 } from "@/shared/map-workshop-domain.ts";
+import {
+  moveSpatialPoint,
+  nearestSpatialItem,
+  spatialCoordinateAnnouncement,
+  spatialKeyboardIntent,
+} from "@/shared/spatial-keyboard";
 
 type Props = {
   activeMapPackage: MapPackage | null;
@@ -40,6 +47,7 @@ type SelectedAnnotation = { kind: "label" | "note"; id: string };
 type SelectedFogBlocker = { kind: "wall" | "door" | "circle"; id: string };
 type FogBlockerTarget = SelectedFogBlocker & { handle: "start" | "end" | "body" | "radius" };
 type FogBlockerDrag = { pointerId: number; target: FogBlockerTarget; start: Point; before: MapPackage };
+type KeyboardAnchor = { tool: "vision-wall" | "vision-door" | "vision-circle"; point: Point };
 
 const DEFAULT_SCENE = FULL_SCENE_MAPS[0];
 const HISTORY_LIMIT = 50;
@@ -146,10 +154,16 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const [selectedFogBlocker, setSelectedFogBlocker] = useState<SelectedFogBlocker | null>(null);
   const [fogCirclePreview, setFogCirclePreview] = useState<{ center: Point; radius: number } | null>(null);
   const [exitPrompt, setExitPrompt] = useState<"discard" | "return" | null>(null);
+  const [keyboardCursor, setKeyboardCursor] = useState<Point | null>(null);
+  const [keyboardAnchor, setKeyboardAnchor] = useState<KeyboardAnchor | null>(null);
+  const [keyboardGrabBefore, setKeyboardGrabBefore] = useState<MapPackage | null>(null);
+  const [keyboardStatus, setKeyboardStatus] = useState("");
 
   const selectedLabel = selectedAnnotation?.kind === "label" ? map.labels.find((label) => label.id === selectedAnnotation.id) ?? null : null;
   const selectedNote = selectedAnnotation?.kind === "note" ? map.notes.find((note) => note.id === selectedAnnotation.id) ?? null : null;
   const selectedFogDoor = selectedFogBlocker?.kind === "door" ? map.fog.doors.find((door) => door.id === selectedFogBlocker.id) ?? null : null;
+  const selectedFogWall = selectedFogBlocker?.kind === "wall" ? map.fog.walls.find((wall) => wall.id === selectedFogBlocker.id) ?? null : null;
+  const selectedFogCircle = selectedFogBlocker?.kind === "circle" ? map.fog.circles.find((circle) => circle.id === selectedFogBlocker.id) ?? null : null;
   const baseMap = FULL_SCENE_MAPS.find((definition) => definition.assetUrl === map.visual.assetUrl) ?? DEFAULT_SCENE;
   const assetPaths = useMemo(() => [map.visual.assetUrl], [map.visual.assetUrl]);
 
@@ -228,11 +242,18 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
       context.beginPath(); context.arc(screenX(selectedNote.x), screenY(selectedNote.y), Math.max(12, cellWidth * 0.3), 0, Math.PI * 2); context.stroke();
       context.restore();
     }
+    if (keyboardCursor) {
+      const x = screenX(keyboardCursor.x); const y = screenY(keyboardCursor.y);
+      const radius = Math.max(8, Math.min(cellWidth, cellHeight) * 0.28);
+      context.save(); context.fillStyle = "rgba(22, 18, 12, 0.72)"; context.strokeStyle = "#fff2bd"; context.lineWidth = 2; context.setLineDash([4, 3]);
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke(); context.setLineDash([]);
+      context.beginPath(); context.moveTo(x - radius - 5, y); context.lineTo(x + radius + 5, y); context.moveTo(x, y - radius - 5); context.lineTo(x, y + radius + 5); context.stroke(); context.restore();
+    }
     if (wallPreview) {
       context.strokeStyle = "#f5c65c"; context.lineWidth = 3; context.setLineDash([7, 5]);
       context.beginPath(); context.moveTo(screenX(wallPreview.start.x), screenY(wallPreview.start.y)); context.lineTo(screenX(wallPreview.end.x), screenY(wallPreview.end.y)); context.stroke(); context.setLineDash([]);
     }
-  }, [fogCirclePreview, images, map, selectedFogBlocker, selectedFogVertex, selectedLabel, selectedNote, wallPreview]);
+  }, [fogCirclePreview, images, keyboardCursor, map, selectedFogBlocker, selectedFogVertex, selectedLabel, selectedNote, wallPreview]);
 
   useEffect(() => {
     draw();
@@ -410,6 +431,180 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     commit((current) => ({ ...current, fog: { ...current.fog, doors: current.fog.doors.map((door) => door.id === selectedFogBlocker.id ? { ...door, open: !door.open } : door) } }));
   };
 
+  const selectAtKeyboardCursor = (point: Point, canvas: HTMLCanvasElement) => {
+    setSelectedAnnotation(null); setSelectedFogVertex(null); setSelectedFogBlocker(null);
+    if (map.fog.mode === "shared") {
+      const vertex = nearestSpatialItem(point, map.fog.sharedPolygon.map((item, index) => ({ ...item, id: String(index) })), 0.8);
+      if (vertex) { const index = Number(vertex.id); setSelectedFogVertex(index); setKeyboardCursor(map.fog.sharedPolygon[index]); setKeyboardStatus(`Fog corner ${index + 1} selected. Press Space to grab it, or Delete to remove it.`); return; }
+    }
+    if (map.fog.mode === "dynamic") {
+      const target = fogBlockerHandleAtPoint(map.fog, point, 0.55, selectedFogBlocker) as FogBlockerTarget | null;
+      if (target) { setSelectedFogBlocker({ kind: target.kind, id: target.id }); setKeyboardStatus(`${target.kind} selected. Press Space to grab it; use the geometry fields for endpoints or radius.`); return; }
+    }
+    const note = mapNoteAt(map, point);
+    const label = note ? null : labelAt(canvas, map, point);
+    if (note || label) {
+      setSelectedAnnotation({ kind: note ? "note" : "label", id: (note ?? label)!.id });
+      setKeyboardStatus(`${note ? "DM note" : `Label ${(label?.text ?? "").slice(0, 40)}`} selected. Press Space to grab it, or Delete to remove it.`);
+      return;
+    }
+    setKeyboardStatus(`No editable object is at ${spatialCoordinateAnnouncement(point)}.`);
+  };
+
+  const moveKeyboardSelection = (dx: number, dy: number) => {
+    setMap((current) => {
+      if (selectedAnnotation) {
+        const collection = selectedAnnotation.kind === "label" ? "labels" : "notes";
+        return { ...current, [collection]: current[collection].map((item) => item.id === selectedAnnotation.id ? {
+          ...item,
+          x: Math.max(0, Math.min(current.width, item.x + dx)),
+          y: Math.max(0, Math.min(current.height, item.y + dy)),
+        } : item) };
+      }
+      if (selectedFogVertex !== null) {
+        return { ...current, fog: { ...current.fog, sharedPolygon: current.fog.sharedPolygon.map((item, index) => index === selectedFogVertex ? {
+          x: Math.max(0, Math.min(current.width, item.x + dx)),
+          y: Math.max(0, Math.min(current.height, item.y + dy)),
+        } : item) } };
+      }
+      if (!selectedFogBlocker) return current;
+      if (selectedFogBlocker.kind === "circle") {
+        return { ...current, fog: { ...current.fog, circles: current.fog.circles.map((circle) => circle.id === selectedFogBlocker.id ? {
+          ...circle,
+          x: Math.max(circle.radius, Math.min(current.width - circle.radius, circle.x + dx)),
+          y: Math.max(circle.radius, Math.min(current.height - circle.radius, circle.y + dy)),
+        } : circle) } };
+      }
+      const collection = selectedFogBlocker.kind === "door" ? "doors" : "walls";
+      return { ...current, fog: { ...current.fog, [collection]: current.fog[collection].map((line) => {
+        if (line.id !== selectedFogBlocker.id) return line;
+        const boundedDx = Math.max(-Math.min(line.x1, line.x2), Math.min(current.width - Math.max(line.x1, line.x2), dx));
+        const boundedDy = Math.max(-Math.min(line.y1, line.y2), Math.min(current.height - Math.max(line.y1, line.y2), dy));
+        return { ...line, x1: line.x1 + boundedDx, y1: line.y1 + boundedDy, x2: line.x2 + boundedDx, y2: line.y2 + boundedDy };
+      }) } };
+    });
+  };
+
+  const finishKeyboardGrab = (save: boolean) => {
+    const before = keyboardGrabBefore;
+    if (!before) return;
+    if (save) { if (JSON.stringify(before) !== JSON.stringify(map)) { remember(before); setDirty(true); } }
+    else setMap(before);
+    setKeyboardGrabBefore(null);
+    setKeyboardStatus(save ? "Keyboard move saved to the private draft." : "Keyboard move cancelled. The draft was restored.");
+  };
+
+  const onCanvasFocus = () => {
+    const point = keyboardCursor ?? { x: Math.floor(map.width / 2) + 0.5, y: Math.floor(map.height / 2) + 0.5 };
+    setKeyboardCursor(point);
+    setKeyboardStatus(`Workshop keyboard active at ${spatialCoordinateAnnouncement(point)}. Arrow keys move the cursor; Enter activates the current tool; Space grabs or drops a selected object; Escape cancels.`);
+  };
+
+  const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    if (event.metaKey || event.ctrlKey) return;
+    const intent = spatialKeyboardIntent(event);
+    if (!intent) return;
+    const point = keyboardCursor ?? { x: Math.floor(map.width / 2) + 0.5, y: Math.floor(map.height / 2) + 0.5 };
+    if (intent.kind === "move") {
+      event.preventDefault();
+      if (keyboardGrabBefore) {
+        moveKeyboardSelection(intent.dx * intent.step, intent.dy * intent.step);
+        setKeyboardStatus(`Selected object preview moved ${intent.step} cell${intent.step === 1 ? "" : "s"}. Press Enter or Space to save; Escape cancels.`);
+        return;
+      }
+      const next = moveSpatialPoint(point, intent, { width: map.width, height: map.height });
+      setKeyboardCursor(next);
+      if (keyboardAnchor?.tool === "vision-circle") setFogCirclePreview({ center: keyboardAnchor.point, radius: Math.max(0.25, Math.hypot(next.x - keyboardAnchor.point.x, next.y - keyboardAnchor.point.y)) });
+      else if (keyboardAnchor) setWallPreview({ start: keyboardAnchor.point, end: next });
+      setKeyboardStatus(`Workshop cursor at ${spatialCoordinateAnnouncement(next)}.`);
+      return;
+    }
+    if (intent.kind === "grab") {
+      event.preventDefault();
+      if (keyboardGrabBefore) { finishKeyboardGrab(true); return; }
+      if (!selectedAnnotation && selectedFogVertex === null && !selectedFogBlocker) { setKeyboardStatus("Select an editable object before grabbing it."); return; }
+      setKeyboardGrabBefore(cloneMapPackage(map));
+      setKeyboardStatus("Object grabbed. Arrow keys move it; Shift plus arrows moves five cells; Enter or Space saves; Escape cancels.");
+      return;
+    }
+    if (intent.kind === "cancel") {
+      if (!keyboardGrabBefore && !keyboardAnchor) return;
+      event.preventDefault();
+      if (keyboardGrabBefore) finishKeyboardGrab(false);
+      setKeyboardAnchor(null); setWallPreview(null); setFogCirclePreview(null);
+      setKeyboardStatus("Keyboard action cancelled. The private draft was not changed.");
+      return;
+    }
+    if (intent.kind === "delete") {
+      event.preventDefault();
+      if (selectedAnnotation) deleteSelectedAnnotation();
+      else deleteSelectedFogItem();
+      setKeyboardStatus("Selected object deleted from the private draft. Undo is available.");
+      return;
+    }
+    if (intent.kind === "pan" || intent.kind === "zoom" || intent.kind === "altitude") return;
+    if (intent.kind !== "activate") return;
+    event.preventDefault();
+    if (keyboardGrabBefore) { finishKeyboardGrab(true); return; }
+    if (keyboardAnchor) {
+      const distance = Math.hypot(point.x - keyboardAnchor.point.x, point.y - keyboardAnchor.point.y);
+      if (distance < 0.25) { setKeyboardStatus("Move at least one quarter cell from the anchor before finishing this shape."); return; }
+      const id = crypto.randomUUID();
+      if (keyboardAnchor.tool === "vision-circle") {
+        commit((current) => ({ ...current, fog: { ...current.fog, circles: [...current.fog.circles, { id, x: keyboardAnchor.point.x, y: keyboardAnchor.point.y, radius: Math.round(distance * 20) / 20 }] } }));
+        setSelectedFogBlocker({ kind: "circle", id });
+      } else {
+        const kind = keyboardAnchor.tool === "vision-door" ? "door" : "wall";
+        const collection = kind === "door" ? "doors" : "walls";
+        commit((current) => ({ ...current, fog: { ...current.fog, [collection]: [...current.fog[collection], { id, x1: keyboardAnchor.point.x, y1: keyboardAnchor.point.y, x2: point.x, y2: point.y, ...(kind === "door" ? { open: false } : {}) }] } }));
+        setSelectedFogBlocker({ kind, id });
+      }
+      setKeyboardAnchor(null); setWallPreview(null); setFogCirclePreview(null); setTool("select");
+      setKeyboardStatus("Vision geometry created and selected. Undo is available.");
+      return;
+    }
+    if (tool === "select") { selectAtKeyboardCursor(point, event.currentTarget); return; }
+    if (tool === "label" || tool === "note") {
+      const text = tool === "label" ? labelText.trim().slice(0, 120) : noteText.trim().slice(0, 500);
+      if (!text) { setKeyboardStatus(`Enter ${tool === "label" ? "label text" : "a private note"} before placing it.`); return; }
+      const location = snapMapPoint(point); const id = crypto.randomUUID();
+      if (tool === "label") { commit((current) => ({ ...current, labels: [...current.labels, { id, ...location, text, visibility: labelVisibility }] })); setSelectedAnnotation({ kind: "label", id }); }
+      else { commit((current) => ({ ...current, notes: [...current.notes, { id, ...location, text }] })); setSelectedAnnotation({ kind: "note", id }); }
+      setKeyboardStatus(`${tool === "label" ? "Label" : "DM note"} created at ${spatialCoordinateAnnouncement(location)}. The tool remains active.`);
+      return;
+    }
+    if (tool === "fog-add" && map.fog.mode === "shared") {
+      const location = snapMapPoint(point); let insertAfter = 0; let closest = Infinity;
+      map.fog.sharedPolygon.forEach((start, index) => { const end = map.fog.sharedPolygon[(index + 1) % map.fog.sharedPolygon.length]; const distance = distanceToSegment(location, start, end); if (distance < closest) { closest = distance; insertAfter = index; } });
+      commit((current) => ({ ...current, fog: { ...current.fog, sharedPolygon: [...current.fog.sharedPolygon.slice(0, insertAfter + 1), location, ...current.fog.sharedPolygon.slice(insertAfter + 1)] } }));
+      setSelectedFogVertex(insertAfter + 1); setTool("select"); setKeyboardStatus(`Fog corner created at ${spatialCoordinateAnnouncement(location)}.`); return;
+    }
+    if ((tool === "vision-wall" || tool === "vision-door" || tool === "vision-circle") && map.fog.mode === "dynamic") {
+      setKeyboardAnchor({ tool, point: freeFogPoint(point) });
+      if (tool === "vision-circle") setFogCirclePreview({ center: point, radius: 0.25 }); else setWallPreview({ start: point, end: point });
+      setKeyboardStatus(`${tool === "vision-circle" ? "Round blocker center" : tool === "vision-door" ? "Vision door start" : "Vision wall start"} set. Move the cursor and press Enter to finish; Escape cancels.`);
+    }
+  };
+
+  const updateSelectedAnnotationCoordinate = (axis: "x" | "y", value: number) => {
+    if (!selectedAnnotation || !Number.isFinite(value)) return;
+    const collection = selectedAnnotation.kind === "label" ? "labels" : "notes";
+    commit((current) => ({ ...current, [collection]: current[collection].map((item) => item.id === selectedAnnotation.id ? { ...item, [axis]: Math.max(0, Math.min(axis === "x" ? current.width : current.height, value)) } : item) }));
+  };
+  const updateSelectedFogVertexCoordinate = (axis: "x" | "y", value: number) => {
+    if (selectedFogVertex === null || !Number.isFinite(value)) return;
+    commit((current) => ({ ...current, fog: { ...current.fog, sharedPolygon: current.fog.sharedPolygon.map((item, index) => index === selectedFogVertex ? { ...item, [axis]: Math.max(0, Math.min(axis === "x" ? current.width : current.height, value)) } : item) } }));
+  };
+  const updateSelectedBlockerCoordinate = (field: "x1" | "y1" | "x2" | "y2" | "x" | "y" | "radius", value: number) => {
+    if (!selectedFogBlocker || !Number.isFinite(value)) return;
+    if (selectedFogBlocker.kind === "circle") {
+      commit((current) => ({ ...current, fog: { ...current.fog, circles: current.fog.circles.map((circle) => circle.id === selectedFogBlocker.id ? { ...circle, [field]: field === "radius" ? Math.max(0.25, Math.min(Math.min(current.width, current.height) / 2, value)) : Math.max(0, Math.min(field === "x" ? current.width : current.height, value)) } : circle) } }));
+      return;
+    }
+    const collection = selectedFogBlocker.kind === "door" ? "doors" : "walls";
+    commit((current) => ({ ...current, fog: { ...current.fog, [collection]: current.fog[collection].map((line) => line.id === selectedFogBlocker.id ? { ...line, [field]: Math.max(0, Math.min(field.startsWith("x") ? current.width : current.height, value)) } : line) } }));
+  };
+
   const savePreset = async () => {
     const name = presetName.trim() || map.name; const result = await runCommand("save-map-preset", { presetId: loadedPresetId || undefined, name, description: map.description, mapPackage: map }, loadedPresetId ? `Updated “${name}”.` : `Saved “${name}”.`);
     setPresetName(name);
@@ -461,18 +656,25 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         <section className="map-library-panel"><div className="workshop-section-heading"><small>Map presets</small><strong>Save and load</strong></div><label>Preset name<input value={presetName} maxLength={72} onChange={(event) => setPresetName(event.target.value)} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button></div><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{withCanonicalBaseMapName(preset.mapPackage).name} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><IconActionButton className="saved-map-delete" variant="delete" label={`Delete ${preset.name}`} onClick={() => void deletePreset(preset)} /></article>)}</div></section>
         <section className="base-map-panel"><div className="workshop-section-heading"><strong>Base map</strong></div><div className="current-base-map"><NextImage src={mapThumbnailUrl(baseMap.assetUrl)} alt="" width={96} height={64} unoptimized /><span><strong>{baseMap.name}</strong><small>{baseMap.biome} · {baseMap.width ?? 24} × {baseMap.height ?? 16}</small></span></div><button className="secondary-button" onClick={() => setBaseMapChooserOpen((open) => !open)}>{baseMapChooserOpen ? "Cancel change" : "Change base map"}</button>{baseMapChooserOpen ? <div className="full-scene-list" aria-label="Choose a different base map">{FULL_SCENE_MAPS.map((definition) => <button key={definition.id} className={map.visual.assetUrl === definition.assetUrl ? "is-active" : ""} onClick={() => chooseScene(definition)}><NextImage src={mapThumbnailUrl(definition.assetUrl)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{definition.name}</strong><small>{definition.biome} · {definition.width ?? 24} × {definition.height ?? 16}</small></span></button>)}</div> : null}</section>
         {tool === "label" || tool === "note" ? <section><div className="workshop-section-heading"><small>Active tool</small><strong>{tool === "label" ? "Add label" : "Add DM note"}</strong></div>
-          {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene.</p></div> : null}
-          {tool === "note" ? <div className="structure-options"><label>Private note<textarea value={noteText} onChange={(event) => setNoteText(event.target.value)} rows={3} /></label><p className="workshop-help">Enter a note, then click its location.</p></div> : null}
+          {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene or focus the map and press Enter.</p></div> : null}
+          {tool === "note" ? <div className="structure-options"><label>Private note<textarea value={noteText} onChange={(event) => setNoteText(event.target.value)} rows={3} /></label><p className="workshop-help">Enter a note, then click its location or focus the map and press Enter.</p></div> : null}
         </section> : null}
         <details className="map-object-list"><summary>Map details <span>{map.walls.length + map.portals.length + map.labels.length + map.notes.length}</span></summary>
           {map.walls.map((wall, index) => <div key={wall.id}><span>Wall {index + 1}</span><IconActionButton variant="delete" label={`Delete wall ${index + 1}`} onClick={() => deleteObject("walls", wall.id)} /></div>)}
           {map.portals.map((portal, index) => <div key={portal.id}><span>{portal.kind} {index + 1}<small>{portal.orientation}</small></span><IconActionButton variant="delete" label={`Delete ${portal.kind} ${index + 1}`} onClick={() => deleteObject("portals", portal.id)} /></div>)}
-          {map.labels.map((label, index) => <div key={label.id}><span>{label.text}<small>{label.visibility}</small></span><IconActionButton variant="delete" label={`Delete label ${index + 1}`} onClick={() => deleteObject("labels", label.id)} /></div>)}
-          {map.notes.map((note, index) => <div key={note.id}><span>DM note {index + 1}<small>{note.text}</small></span><IconActionButton variant="delete" label={`Delete note ${index + 1}`} onClick={() => deleteObject("notes", note.id)} /></div>)}
+          {map.labels.map((label, index) => <div key={label.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "label" && selectedAnnotation.id === label.id} onClick={() => { setSelectedAnnotation({ kind: "label", id: label.id }); setSelectedFogVertex(null); setSelectedFogBlocker(null); }}><span>{label.text}<small>{label.visibility} · x {label.x}, y {label.y}</small></span></button><IconActionButton variant="delete" label={`Delete label ${index + 1}`} onClick={() => deleteObject("labels", label.id)} /></div>)}
+          {map.notes.map((note, index) => <div key={note.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "note" && selectedAnnotation.id === note.id} onClick={() => { setSelectedAnnotation({ kind: "note", id: note.id }); setSelectedFogVertex(null); setSelectedFogBlocker(null); }}><span>DM note {index + 1}<small>{note.text} · x {note.x}, y {note.y}</small></span></button><IconActionButton variant="delete" label={`Delete note ${index + 1}`} onClick={() => deleteObject("notes", note.id)} /></div>)}
         </details>
-        {selectedLabel || selectedNote ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>{selectedLabel ? "Selected label" : "Selected DM note"}</small><strong>{selectedLabel?.text ?? `Note ${map.notes.findIndex((note) => note.id === selectedNote?.id) + 1}`}</strong></div>{selectedNote ? <p className="workshop-help selected-note-copy">{selectedNote.text}</p> : <p className="workshop-help">{selectedLabel?.visibility === "dm" ? "Visible only to the DM." : "Visible to everyone after the scene is applied."}</p>}<button className="danger-button" onClick={deleteSelectedAnnotation}>Delete</button></section> : null}
+        <details className="map-object-list vision-object-list"><summary>Vision geometry <span>{map.fog.mode === "shared" ? map.fog.sharedPolygon.length : map.fog.walls.length + map.fog.doors.length + map.fog.circles.length}</span></summary>
+          {map.fog.mode === "shared" ? map.fog.sharedPolygon.map((point, index) => <div key={`fog-corner-${index}`}><button className="map-object-select" aria-pressed={selectedFogVertex === index} onClick={() => { setSelectedFogVertex(index); setSelectedAnnotation(null); setSelectedFogBlocker(null); }}><span>Fog corner {index + 1}<small>x {point.x}, y {point.y}</small></span></button></div>) : null}
+          {map.fog.mode === "dynamic" ? <>{map.fog.walls.map((wall, index) => <div key={wall.id}><button className="map-object-select" aria-pressed={selectedFogBlocker?.kind === "wall" && selectedFogBlocker.id === wall.id} onClick={() => { setSelectedFogBlocker({ kind: "wall", id: wall.id }); setSelectedAnnotation(null); setSelectedFogVertex(null); }}><span>Vision wall {index + 1}<small>{wall.x1}, {wall.y1} to {wall.x2}, {wall.y2}</small></span></button></div>)}{map.fog.doors.map((door, index) => <div key={door.id}><button className="map-object-select" aria-pressed={selectedFogBlocker?.kind === "door" && selectedFogBlocker.id === door.id} onClick={() => { setSelectedFogBlocker({ kind: "door", id: door.id }); setSelectedAnnotation(null); setSelectedFogVertex(null); }}><span>Vision door {index + 1}<small>{door.open ? "open" : "closed"} · {door.x1}, {door.y1} to {door.x2}, {door.y2}</small></span></button></div>)}{map.fog.circles.map((circle, index) => <div key={circle.id}><button className="map-object-select" aria-pressed={selectedFogBlocker?.kind === "circle" && selectedFogBlocker.id === circle.id} onClick={() => { setSelectedFogBlocker({ kind: "circle", id: circle.id }); setSelectedAnnotation(null); setSelectedFogVertex(null); }}><span>Round blocker {index + 1}<small>x {circle.x}, y {circle.y}, radius {circle.radius}</small></span></button></div>)}</> : null}
+        </details>
+        {selectedLabel || selectedNote ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>{selectedLabel ? "Selected label" : "Selected DM note"}</small><strong>{selectedLabel?.text ?? `Note ${map.notes.findIndex((note) => note.id === selectedNote?.id) + 1}`}</strong></div>{selectedNote ? <p className="workshop-help selected-note-copy">{selectedNote.text}</p> : <p className="workshop-help">{selectedLabel?.visibility === "dm" ? "Visible only to the DM." : "Visible to everyone after the scene is applied."}</p>}<div className="geometry-fields"><label>X coordinate<input aria-label="Selected annotation X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedLabel?.x ?? selectedNote?.x ?? 0} onChange={(event) => updateSelectedAnnotationCoordinate("x", event.currentTarget.valueAsNumber)} /></label><label>Y coordinate<input aria-label="Selected annotation Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedLabel?.y ?? selectedNote?.y ?? 0} onChange={(event) => updateSelectedAnnotationCoordinate("y", event.currentTarget.valueAsNumber)} /></label></div><button className="danger-button" onClick={deleteSelectedAnnotation}>Delete</button></section> : null}
+        {selectedFogVertex !== null && map.fog.sharedPolygon[selectedFogVertex] ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected fog corner</small><strong>Corner {selectedFogVertex + 1}</strong></div><div className="geometry-fields"><label>X coordinate<input aria-label="Selected fog corner X coordinate" type="number" min={0} max={map.width} step={0.25} value={map.fog.sharedPolygon[selectedFogVertex].x} onChange={(event) => updateSelectedFogVertexCoordinate("x", event.currentTarget.valueAsNumber)} /></label><label>Y coordinate<input aria-label="Selected fog corner Y coordinate" type="number" min={0} max={map.height} step={0.25} value={map.fog.sharedPolygon[selectedFogVertex].y} onChange={(event) => updateSelectedFogVertexCoordinate("y", event.currentTarget.valueAsNumber)} /></label></div><button className="danger-button" disabled={map.fog.sharedPolygon.length <= 3} onClick={deleteSelectedFogItem}>Delete corner</button></section> : null}
+        {selectedFogWall || selectedFogDoor ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected vision {selectedFogDoor ? "door" : "wall"}</small><strong>Endpoint geometry</strong></div><div className="geometry-fields is-four"><label>Start X<input aria-label="Selected blocker start X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x1 ?? selectedFogDoor?.x1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x1", event.currentTarget.valueAsNumber)} /></label><label>Start Y<input aria-label="Selected blocker start Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y1 ?? selectedFogDoor?.y1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y1", event.currentTarget.valueAsNumber)} /></label><label>End X<input aria-label="Selected blocker end X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x2 ?? selectedFogDoor?.x2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x2", event.currentTarget.valueAsNumber)} /></label><label>End Y<input aria-label="Selected blocker end Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y2 ?? selectedFogDoor?.y2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y2", event.currentTarget.valueAsNumber)} /></label></div>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
+        {selectedFogCircle ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected round blocker</small><strong>Center and radius</strong></div><div className="geometry-fields is-three"><label>Center X<input aria-label="Selected round blocker X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogCircle.x} onChange={(event) => updateSelectedBlockerCoordinate("x", event.currentTarget.valueAsNumber)} /></label><label>Center Y<input aria-label="Selected round blocker Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogCircle.y} onChange={(event) => updateSelectedBlockerCoordinate("y", event.currentTarget.valueAsNumber)} /></label><label>Radius<input aria-label="Selected round blocker radius" type="number" min={0.25} max={Math.min(map.width, map.height) / 2} step={0.25} value={selectedFogCircle.radius} onChange={(event) => updateSelectedBlockerCoordinate("radius", event.currentTarget.valueAsNumber)} /></label></div><button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
       </aside>
-      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Map preset draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-label={`${map.name} map draft`} /></div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>The base map remains one cohesive image</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
+      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Map preset draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><p id="workshop-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the selected workshop tool. Space grabs or drops a selected object. Delete removes a selected object. Escape cancels a staged shape or move. Exact geometry is also editable in the controls sidebar.</p><canvas ref={canvasRef} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-describedby="workshop-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Delete Escape" aria-label={`${map.name} editable map draft`} role="application" tabIndex={0} /></div><div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>Focus the map for keyboard editing; exact geometry is available in the sidebar</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>
     {exitPrompt === "discard" ? <ModalDialog labelledBy="discard-workshop-title" describedBy="discard-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="discard-workshop-title">Discard private changes?</h2><p id="discard-workshop-description">This restores the map currently applied to players and permanently removes the draft’s unsaved vision geometry, fog corners, labels, and notes.</p><div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => { discard(); setExitPrompt(null); }}>Discard changes</button></div></ModalDialog> : null}
     {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="return-workshop-title">Return without applying?</h2><p id="return-workshop-description">Your private workshop changes are not visible to players. Keep editing, discard the draft and return, or apply it to everyone before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={discardAndReturn}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}

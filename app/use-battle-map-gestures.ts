@@ -7,6 +7,7 @@ import {
   useState,
   type Dispatch,
   type DragEvent as ReactDragEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   type SetStateAction,
@@ -38,6 +39,12 @@ import type {
 import { insertSharedFogPoint } from "@/shared/fog-of-war";
 import { stepAltitude } from "@/shared/token-altitude";
 import {
+  moveSpatialPoint,
+  nearestSpatialItem,
+  spatialCoordinateAnnouncement,
+  spatialKeyboardIntent,
+} from "@/shared/spatial-keyboard";
+import {
   SPELL_EFFECT_KIND,
   spellEffectByArt,
   spellEffectById,
@@ -67,6 +74,14 @@ type FogVertexGesture = {
   polygon: MapPoint[];
 };
 
+type KeyboardTokenMove = {
+  tokenId: string;
+  origin: MapPoint;
+  latest: MapPoint;
+  altitude: number;
+  allowAltitude: boolean;
+};
+
 type SafariGestureEvent = Event & {
   scale: number;
   clientX: number;
@@ -92,13 +107,14 @@ type UseBattleMapGesturesInput = {
   armedCreatureId: string | null;
   armedSpellId: string | null;
   playerCharacter: SharedToken | null;
+  selectedTokenId: string | null;
   canMoveToken: (token: SharedToken) => boolean;
   isTokenPendingCreation: (tokenId: string) => boolean;
   setNotice: Dispatch<SetStateAction<string>>;
   onSelectToken: (tokenId: string) => void;
   onSelectMapNote: (noteId: string) => void;
-  onArmCreature: (creatureId: string) => void;
-  onArmSpell: (spellId: string) => void;
+  onArmCreature: (creatureId: string | null) => void;
+  onArmSpell: (spellId: string | null) => void;
   onPlaceCreature: (creature: CreatureTemplate, point: MapPoint) => void | Promise<void>;
   onPlaceSpellEffect: (spell: SpellEffectDefinition, point: MapPoint) => void | Promise<void>;
   onMoveToken: (tokenId: string, point: MapPoint & { altitude: number }) => void | Promise<void>;
@@ -156,6 +172,7 @@ export function useBattleMapGestures({
   armedCreatureId,
   armedSpellId,
   playerCharacter,
+  selectedTokenId,
   canMoveToken,
   isTokenPendingCreation,
   setNotice,
@@ -181,6 +198,11 @@ export function useBattleMapGestures({
   const [editingSharedFog, setEditingSharedFog] = useState(false);
   const [sharedFogPreview, setSharedFogPreview] = useState<MapPoint[] | null>(null);
   const [selectedSharedFogVertex, setSelectedSharedFogVertex] = useState<number | null>(null);
+  const [keyboardCursor, setKeyboardCursor] = useState<MapPoint | null>(null);
+  const [keyboardMove, setKeyboardMove] = useState<KeyboardTokenMove | null>(null);
+  const [keyboardDrawStart, setKeyboardDrawStart] = useState<MapPoint | null>(null);
+  const [keyboardFogEditing, setKeyboardFogEditing] = useState(false);
+  const [keyboardStatus, setKeyboardStatus] = useState("");
   const dragGestureRef = useRef<DragGesture | null>(null);
   const panGestureRef = useRef<PanGesture | null>(null);
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
@@ -661,6 +683,260 @@ export function useBattleMapGestures({
     onUpdateSharedFog(next);
   };
 
+  const resolvedKeyboardCursor = () => {
+    if (!state) return { x: 0, y: 0 };
+    const selected = state.tokens.find((token) => token.id === selectedTokenId);
+    return keyboardCursor ?? (selected
+      ? { x: selected.x, y: selected.y }
+      : { x: Math.floor(state.grid.width / 2) + 0.5, y: Math.floor(state.grid.height / 2) + 0.5 });
+  };
+
+  const tokenAtKeyboardCursor = (point: MapPoint) => {
+    if (!state) return null;
+    let best: SharedToken | null = null;
+    let bestDistance = Infinity;
+    for (const token of state.tokens) {
+      if (isTokenPendingCreation(token.id)) continue;
+      const distance = Math.hypot(point.x - token.x, point.y - token.y);
+      if (distance > tokenRadiusCells(token.size) + 0.25) continue;
+      const bestIsSpell = best?.kind === SPELL_EFFECT_KIND;
+      const tokenIsSpell = token.kind === SPELL_EFFECT_KIND;
+      if (distance > bestDistance || (distance === bestDistance && best && !bestIsSpell && tokenIsSpell)) continue;
+      if (distance === bestDistance && best && bestIsSpell === tokenIsSpell && token.id.localeCompare(best.id) >= 0) continue;
+      best = token;
+      bestDistance = distance;
+    }
+    return best;
+  };
+
+  const paintKeyboardCursor = (point: MapPoint) => {
+    setKeyboardCursor(point);
+    const creature = participant?.role === "dm" || playerCharacter ? paletteCreature(armedCreatureId) : null;
+    const spell = participant?.role === "dm" || playerCharacter ? spellEffectById(armedSpellId) : null;
+    if (creature) setPlacementPreview({ creature, ...clampMapPoint(state!.grid, point, tokenRadiusCells(creature.size)) });
+    else setPlacementPreview(null);
+    if (spell) setSpellPlacementPreview({ spell, ...clampMapPoint(state!.grid, point, tokenRadiusCells(spell.size)) });
+    else setSpellPlacementPreview(null);
+  };
+
+  const onCanvasFocus = () => {
+    if (!state) return;
+    const point = resolvedKeyboardCursor();
+    paintKeyboardCursor(point);
+    setKeyboardStatus(`Map keyboard active at ${spatialCoordinateAnnouncement(point, state.grid.feetPerCell)}. Arrow keys move the cursor; Enter activates; Space grabs or drops a token; Alt plus arrows pans; plus and minus zoom.`);
+  };
+
+  const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    if (!state || !participant || event.metaKey || event.ctrlKey) return;
+    const intent = spatialKeyboardIntent(event);
+    if (!intent) return;
+    const currentPoint = resolvedKeyboardCursor();
+
+    if (intent.kind === "move") {
+      event.preventDefault();
+      if (keyboardMove) {
+        const token = state.tokens.find((item) => item.id === keyboardMove.tokenId);
+        const latest = moveSpatialPoint(keyboardMove.latest, intent, state.grid, tokenRadiusCells(token?.size ?? "medium"));
+        const next = { ...keyboardMove, latest };
+        setKeyboardMove(next);
+        setKeyboardCursor(latest);
+        setPreview({ tokenId: next.tokenId, ...latest, altitude: next.altitude });
+        setKeyboardStatus(`${token?.name ?? "Token"} preview at ${spatialCoordinateAnnouncement(latest, state.grid.feetPerCell)}, altitude ${next.altitude} feet. Press Enter or Space to submit; Escape cancels.`);
+        return;
+      }
+      if (keyboardFogEditing && selectedSharedFogVertex !== null) {
+        const polygon = (sharedFogPreview ?? state.encounter.mapPackage?.fog.sharedPolygon ?? []).map((point) => ({ ...point }));
+        if (!polygon[selectedSharedFogVertex]) return;
+        const latest = moveSpatialPoint(polygon[selectedSharedFogVertex], intent, state.grid);
+        polygon[selectedSharedFogVertex] = latest;
+        setSharedFogPreview(polygon);
+        setKeyboardCursor(latest);
+        setKeyboardStatus(`Fog corner ${selectedSharedFogVertex + 1} preview at ${spatialCoordinateAnnouncement(latest, state.grid.feetPerCell)}. Press Enter to submit; Escape cancels.`);
+        return;
+      }
+      const next = moveSpatialPoint(currentPoint, intent, state.grid);
+      paintKeyboardCursor(next);
+      setKeyboardStatus(`Map cursor at ${spatialCoordinateAnnouncement(next, state.grid.feetPerCell)}.`);
+      return;
+    }
+
+    if (intent.kind === "pan") {
+      event.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      setViewport((current) => clampViewport({
+        ...current,
+        fit: false,
+        centerX: current.centerX + intent.dx * intent.step,
+        centerY: current.centerY + intent.dy * intent.step,
+      }, state, rect.width, rect.height));
+      setKeyboardStatus(`Map view panned ${intent.dx < 0 ? "west" : intent.dx > 0 ? "east" : intent.dy < 0 ? "north" : "south"}.`);
+      return;
+    }
+
+    if (intent.kind === "zoom") {
+      event.preventDefault();
+      changeZoom(intent.direction * 0.25);
+      setKeyboardStatus(intent.direction > 0 ? "Map zoomed in." : "Map zoomed out.");
+      return;
+    }
+
+    if (intent.kind === "altitude") {
+      if (!keyboardMove?.allowAltitude) return;
+      event.preventDefault();
+      const altitude = stepAltitude(keyboardMove.altitude, intent.direction);
+      const next = { ...keyboardMove, altitude };
+      setKeyboardMove(next);
+      setPreview({ tokenId: next.tokenId, ...next.latest, altitude });
+      setKeyboardStatus(`Altitude ${altitude} feet. Press Enter or Space to submit; Escape cancels.`);
+      return;
+    }
+
+    if (intent.kind === "cancel") {
+      if (!keyboardMove && !keyboardDrawStart && !keyboardFogEditing) return;
+      event.preventDefault();
+      setKeyboardMove(null);
+      setKeyboardDrawStart(null);
+      setKeyboardFogEditing(false);
+      setSharedFogPreview(editingSharedFog ? state.encounter.mapPackage?.fog.sharedPolygon ?? null : null);
+      setPreview(null);
+      setDragging(false);
+      setDragOrigin(null);
+      paintKeyboardCursor(currentPoint);
+      setKeyboardStatus("Keyboard action cancelled. Shared state was not changed.");
+      return;
+    }
+
+    if (intent.kind === "grab") {
+      event.preventDefault();
+      if (keyboardMove) {
+        void onMoveToken(keyboardMove.tokenId, { ...keyboardMove.latest, altitude: keyboardMove.altitude });
+        setKeyboardMove(null);
+        setPreview(null);
+        setDragging(false);
+        setDragOrigin(null);
+        setKeyboardStatus("Move submitted. The map will announce its authoritative result.");
+        return;
+      }
+      if (!movementEnabled) { setKeyboardStatus("Movement is unavailable, but Enter still inspects a token at the cursor."); return; }
+      const token = tokenAtKeyboardCursor(currentPoint);
+      if (!token) { setKeyboardStatus("No token is at the keyboard cursor."); return; }
+      onSelectToken(token.id);
+      if (!canMoveToken(token)) { setKeyboardStatus(`${token.name} selected for inspection. You cannot move this token.`); return; }
+      const next: KeyboardTokenMove = {
+        tokenId: token.id,
+        origin: { x: token.x, y: token.y },
+        latest: { x: token.x, y: token.y },
+        altitude: token.altitude,
+        allowAltitude: token.kind !== SPELL_EFFECT_KIND,
+      };
+      setKeyboardMove(next);
+      setKeyboardCursor(next.latest);
+      setDragging(true);
+      setPreview({ tokenId: token.id, ...next.latest, altitude: token.altitude });
+      setDragOrigin(token.kind === SPELL_EFFECT_KIND ? null : state.encounter.status === "active" ? token.movementOrigin ?? next.origin : next.origin);
+      setKeyboardStatus(`${token.name} grabbed. Arrow keys move; Shift plus arrows moves five cells; Page Up and Page Down change altitude; Enter or Space submits; Escape cancels.`);
+      return;
+    }
+
+    if (intent.kind === "delete") {
+      if (editingSharedFog && selectedSharedFogVertex !== null) {
+        event.preventDefault();
+        removeSharedFogPoint();
+        setKeyboardStatus("Selected fog corner removed.");
+      } else if (annotationMode === "erase" && movementEnabled) {
+        event.preventDefault();
+        eraseAnnotationAtPoint(event.currentTarget, currentPoint);
+      }
+      return;
+    }
+
+    if (intent.kind !== "activate") return;
+    event.preventDefault();
+    if (keyboardMove) {
+      void onMoveToken(keyboardMove.tokenId, { ...keyboardMove.latest, altitude: keyboardMove.altitude });
+      setKeyboardMove(null);
+      setPreview(null);
+      setDragging(false);
+      setDragOrigin(null);
+      setKeyboardStatus("Move submitted. The map will announce its authoritative result.");
+      return;
+    }
+    if (editingSharedFog && participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared") {
+      const polygon = sharedFogPreview ?? state.encounter.mapPackage.fog.sharedPolygon;
+      if (keyboardFogEditing && selectedSharedFogVertex !== null) {
+        onUpdateSharedFog(polygon.map((point) => ({ ...point })));
+        setKeyboardFogEditing(false);
+        setKeyboardStatus(`Fog corner ${selectedSharedFogVertex + 1} submitted.`);
+        return;
+      }
+      const nearest = nearestSpatialItem(currentPoint, polygon.map((point, index) => ({ ...point, id: String(index) })), 1.25);
+      if (!nearest) { setKeyboardStatus("No shared-fog corner is near the keyboard cursor."); return; }
+      const index = Number(nearest.id);
+      setSelectedSharedFogVertex(index);
+      setKeyboardFogEditing(true);
+      setKeyboardCursor(polygon[index]);
+      setKeyboardStatus(`Fog corner ${index + 1} selected. Arrow keys move it; Enter submits; Escape cancels.`);
+      return;
+    }
+    if (!movementEnabled) {
+      const token = tokenAtKeyboardCursor(currentPoint);
+      if (token) { onSelectToken(token.id); setKeyboardStatus(`${token.name} selected for inspection. Movement remains unavailable.`); }
+      else setKeyboardStatus("Movement and map actions are unavailable at this time.");
+      return;
+    }
+    const creature = participant.role === "dm" || playerCharacter ? paletteCreature(armedCreatureId) : null;
+    if (creature) {
+      const point = clampMapPoint(state.grid, currentPoint, tokenRadiusCells(creature.size));
+      void onPlaceCreature(creature, point);
+      setKeyboardStatus(`${creature.name} placement submitted at ${spatialCoordinateAnnouncement(point, state.grid.feetPerCell)}.`);
+      return;
+    }
+    const spell = participant.role === "dm" || playerCharacter ? spellEffectById(armedSpellId) : null;
+    if (spell) {
+      const point = clampMapPoint(state.grid, currentPoint, tokenRadiusCells(spell.size));
+      void onPlaceSpellEffect(spell, point);
+      setKeyboardStatus(`${spell.name} placement submitted at ${spatialCoordinateAnnouncement(point, state.grid.feetPerCell)}.`);
+      return;
+    }
+    if (annotationMode === "erase") {
+      eraseAnnotationAtPoint(event.currentTarget, currentPoint);
+      return;
+    }
+    if (annotationMode === "drawing") {
+      if (!keyboardDrawStart) {
+        setKeyboardDrawStart(currentPoint);
+        setKeyboardStatus(`Line start set at ${spatialCoordinateAnnouncement(currentPoint, state.grid.feetPerCell)}. Move the cursor and press Enter to share the line; Escape cancels.`);
+      } else {
+        void onAddAnnotation("drawing", keyboardDrawStart, currentPoint);
+        setKeyboardDrawStart(null);
+        setKeyboardStatus("Tactical line submitted. The drawing tool remains active.");
+      }
+      return;
+    }
+    if (annotationMode !== "move") {
+      void onAddAnnotation(annotationMode, currentPoint);
+      setKeyboardStatus(`${annotationMode === "ping" ? "Ping" : "Spotlight"} submitted. The tool remains active.`);
+      return;
+    }
+    const token = tokenAtKeyboardCursor(currentPoint);
+    if (token) {
+      onSelectToken(token.id);
+      setKeyboardStatus(`${token.name} selected for inspection. Press Space to grab it when movement is allowed.`);
+      return;
+    }
+    const note = participant.role === "dm"
+      ? nearestSpatialItem(currentPoint, state.encounter.mapPackage?.notes ?? [], 0.75)
+      : null;
+    if (note) {
+      onSelectMapNote(note.id);
+      setKeyboardStatus(`DM note selected at ${spatialCoordinateAnnouncement(note, state.grid.feetPerCell)}.`);
+      return;
+    }
+    setKeyboardStatus(`No interactive object is at ${spatialCoordinateAnnouncement(currentPoint, state.grid.feetPerCell)}.`);
+  };
+
   return {
     canvasRef,
     preview,
@@ -674,6 +950,8 @@ export function useBattleMapGestures({
     editingSharedFog,
     sharedFogPreview,
     selectedSharedFogVertex,
+    keyboardCursor,
+    keyboardStatus,
     onPaletteDragStart,
     onSpellDragStart,
     onMapDragOver,
@@ -684,6 +962,8 @@ export function useBattleMapGestures({
     onCanvasPointerUp,
     onCanvasPointerCancel,
     onCanvasWheel,
+    onCanvasFocus,
+    onCanvasKeyDown,
     changeZoom,
     fitViewport,
     resetViewport,
