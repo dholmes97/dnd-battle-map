@@ -13,7 +13,7 @@ The application currently supports:
 - initiative groups, summons, movement tracking, HP, effects, and concentration
   reminders;
 - optimistic shared interactions with server-authoritative reconciliation;
-- reusable high-resolution full-scene maps and Map Workshop presets;
+- database-backed high-resolution map images and durable per-encounter Map Workshop drafts;
 - off, shared DM-controlled, and dynamic player-vision fog modes;
 - a storage-backed creature palette and persistent spell effects;
 - scenario-scoped public/private chat and image handouts; and
@@ -21,7 +21,11 @@ The application currently supports:
 
 ## Local development
 
-Node.js 22.13 or newer is required. Node 24 LTS is recommended.
+Node.js 26.7.0 is the pinned development and CI baseline. Use the version in
+`.node-version`; `package.json`, `@types/node`, and every GitHub Actions job are
+kept aligned with it. This build-and-test baseline is separate from the Sites
+runtime, which is governed by the generated Cloudflare Worker compatibility
+date and flags.
 
 ```bash
 npm install

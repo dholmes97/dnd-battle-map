@@ -49,7 +49,8 @@ const state: EncounterState = {
     version: 7,
     status: "active",
     mapPackage: null,
-    activeMapPresetId: null,
+    mapDraft: null,
+    draftUpdatedAt: null,
     currentRound: 7,
     activeInitiativeOrder: 0,
     strictMovement: false,
@@ -63,7 +64,7 @@ const state: EncounterState = {
   annotations: [],
   chatMessages: [],
   handouts: [],
-  savedMapPresets: [],
+  mapImages: [],
   availableArt: [],
 };
 

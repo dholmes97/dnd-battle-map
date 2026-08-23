@@ -26,8 +26,6 @@ function manifest(overrides = {}) {
     scenario: {
       name: "Sunken Chapel",
       briefing: "A drowned shrine has awakened.",
-      presetName: "Sunken Chapel - Vision Ready",
-      presetDescription: "Prepared from Kevin's scenario request.",
     },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },

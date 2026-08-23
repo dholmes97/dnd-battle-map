@@ -1,6 +1,6 @@
 import { tokenRadiusCells } from "../../shared/creature-library.ts";
 import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
-import { parseMapPackage } from "../../shared/map-package.ts";
+import { mapSetupFromPackage, parseMapPackage, parseMapSetup, type MapImage } from "../../shared/map-package.ts";
 import { baseTokenControllerName } from "../../shared/token-control.ts";
 import { MAX_SCENARIOS } from "../../shared/resource-limits.ts";
 import { combatStatusTransitionError } from "../../shared/encounter-transitions.ts";
@@ -8,8 +8,8 @@ import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts"
 import { commandError, requireDm, type CommandContext, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
 type ScenarioMapCommandName =
-  | "rename-scenario" | "create-scenario" | "save-map-preset"
-  | "delete-map-preset" | "apply-map-package" | "configure-encounter";
+  | "rename-scenario" | "create-scenario" | "save-map-draft"
+  | "discard-map-draft" | "apply-map-draft" | "configure-encounter";
 type ScenarioMapDependencies = {
   repository: ScenarioMapRepository;
   loadScenarioState(code: string, participantId: string): ReturnType<CommandContext["services"]["loadState"]>;
@@ -72,8 +72,10 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
     id: scenarioId,
     code,
     name,
-    mapAsset: duplicate ? context.encounter.mapAsset : "",
-    mapPackageJson: duplicate ? context.encounter.mapPackageJson : null,
+    activeMapImageId: duplicate ? context.encounter.activeMapImageId : null,
+    activeMapSetupJson: duplicate ? context.encounter.activeMapSetupJson : null,
+    draftMapImageId: duplicate ? context.encounter.activeMapImageId : null,
+    draftMapSetupJson: duplicate ? context.encounter.activeMapSetupJson : null,
     width: context.encounter.gridWidth,
     height: context.encounter.gridHeight,
     strictMovement: duplicate ? context.encounter.strictMovement : true,
@@ -115,82 +117,63 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
   };
 }
 
-export async function saveMapPreset(context: ScenarioMapCommandContext<"save-map-preset">): Promise<CommandOutcome> {
+export async function saveMapDraft(context: ScenarioMapCommandContext<"save-map-draft">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const map = cleanMapPackage(context.payload.mapPackage);
-  if (!map) return commandError("That map package is invalid or too large.", 400);
-  const name = cleanText(context.payload.name, 72) || cleanText(map.name, 72) || "Untitled map";
-  const requestedId = cleanId(context.payload.presetId);
-  const presetId = requestedId || context.services.createId();
-  const saved = await context.repository.saveMapPreset({
-    id: presetId,
-    encounterId: context.encounter.id,
-    name,
-    description: cleanText(context.payload.description, 240) || cleanText(map.description, 240),
-    sourcePrompt: cleanText(context.payload.sourcePrompt, 600) || null,
-    packageJson: JSON.stringify(map),
-    participantId: context.participant.id,
-    now: context.now,
-  }, Boolean(requestedId));
-  if (saved === "missing") return commandError("Saved map preset not found.", 404);
-  if (saved === "limit") return commandError("This scenario has reached its saved-map limit. Delete a preset before saving another.", 409);
-  await finish(context, requestedId ? "map_preset_updated" : "map_preset_saved", { presetId, name });
-  return success(context, { saved: true, presetId });
+  const prepared = await preparedMapDraft(context);
+  if ("error" in prepared) return prepared.error;
+  await context.repository.saveMapDraft(context.encounter.id, prepared.mapImage.id, prepared.setupJson, context.now);
+  await finish(context, "map_draft_saved", { mapImageId: prepared.mapImage.id });
+  return success(context, { saved: true });
 }
 
-export async function deleteMapPreset(context: ScenarioMapCommandContext<"delete-map-preset">): Promise<CommandOutcome> {
+export async function discardMapDraft(context: ScenarioMapCommandContext<"discard-map-draft">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const presetId = cleanId(context.payload.presetId);
-  if (!presetId) return commandError("Saved map preset is required.", 400);
-  if (!await context.repository.deleteMapPreset(context.encounter.id, presetId)) {
-    return commandError("Saved map preset not found.", 404);
-  }
-  if (context.encounter.activeMapPresetId === presetId) {
-    await context.repository.clearActivePreset(context.encounter.id);
-  }
-  await finish(context, "map_preset_deleted", { presetId });
-  return success(context, { deleted: true });
+  await context.repository.discardMapDraft(context.encounter.id, context.now);
+  await finish(context, "map_draft_discarded", {});
+  return success(context, { discarded: true });
 }
 
-export async function applyMapPackage(context: ScenarioMapCommandContext<"apply-map-package">): Promise<CommandOutcome> {
+export async function applyMapDraft(context: ScenarioMapCommandContext<"apply-map-draft">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const presetId = cleanId(context.payload.presetId) || null;
-  let map = cleanMapPackage(context.payload.mapPackage);
-  let appliedPresetId: string | null = null;
-  if (presetId) {
-    const savedText = await context.repository.loadMapPreset(context.encounter.id, presetId);
-    if (!savedText) return commandError("Saved map preset not found.", 404);
-    const saved = cleanMapPackage(savedText);
-    if (!map) map = saved;
-    if (saved && map && JSON.stringify(saved) === JSON.stringify(map)) appliedPresetId = presetId;
-  }
-  if (!map) return commandError("That map package is invalid or too large.", 400);
+  const prepared = await preparedMapDraft(context);
+  if ("error" in prepared) return prepared.error;
+  const { mapImage, setupJson } = prepared;
   const tokens = await context.repository.listTokenPositions(context.encounter.id);
-  await context.repository.applyMapPackage({
+  await context.repository.applyMapDraft({
     encounterId: context.encounter.id,
-    packageJson: JSON.stringify(map),
-    activePresetId: appliedPresetId,
-    width: map.width,
-    height: map.height,
+    mapImageId: mapImage.id,
+    setupJson,
+    width: mapImage.gridWidth,
+    height: mapImage.gridHeight,
     tokenPositions: tokens.map((token) => ({
       id: token.id,
-      x: clampCoordinate(token.x, map!.width, token.size),
-      y: clampCoordinate(token.y, map!.height, token.size),
+      x: clampCoordinate(token.x, mapImage.gridWidth, token.size),
+      y: clampCoordinate(token.y, mapImage.gridHeight, token.size),
     })),
     now: context.now,
   });
-  await finish(context, "map_package_applied", {
-    presetId: appliedPresetId,
-    mapId: map.id,
-    name: map.name,
-    previousMapPresetId: context.encounter.activeMapPresetId,
+  await finish(context, "map_draft_applied", {
+    mapImageId: mapImage.id,
+    name: mapImage.name,
     previousGrid: { width: context.encounter.gridWidth, height: context.encounter.gridHeight },
-    nextGrid: { width: map.width, height: map.height },
+    nextGrid: { width: mapImage.gridWidth, height: mapImage.gridHeight },
   });
   return success(context, { applied: true });
+}
+
+async function preparedMapDraft(
+  context: ScenarioMapCommandContext<"save-map-draft" | "apply-map-draft">,
+): Promise<{ error: CommandOutcome } | { mapImage: MapImage; setupJson: string }> {
+  const map = cleanMapPackage(context.payload.mapPackage);
+  if (!map) return { error: commandError("That map draft is invalid or too large.", 400) };
+  const mapImage = await context.repository.findMapImage(map.id);
+  if (!mapImage) return { error: commandError("That base map is no longer available.", 404) };
+  const setup = parseMapSetup(mapSetupFromPackage(map), mapImage.gridWidth, mapImage.gridHeight);
+  if (!setup) return { error: commandError("That map draft contains geometry outside the selected base map.", 400) };
+  return { mapImage, setupJson: JSON.stringify(setup) };
 }
 
 export async function configureEncounter(context: ScenarioMapCommandContext<"configure-encounter">): Promise<CommandOutcome> {
@@ -233,10 +216,6 @@ function cleanMapPackage(value: unknown) {
 
 function cleanText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
-}
-
-function cleanId(value: unknown) {
-  return typeof value === "string" ? value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64) : "";
 }
 
 function clampCoordinate(

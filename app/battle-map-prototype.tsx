@@ -659,9 +659,9 @@ export default function BattleMapPrototype() {
 
   if (participant.role === "dm" && workshopOpen) return <MapWorkshop
     activeMapPackage={state.encounter.mapPackage}
-    activeMapPresetId={state.encounter.activeMapPresetId}
-    savedPresets={state.savedMapPresets}
-    onCommand={async (name, extra) => sendCommand<{ state: EncounterState; presetId?: string }>(name, extra)}
+    draftMapPackage={state.encounter.mapDraft}
+    mapImages={state.mapImages}
+    onCommand={async (name, extra) => sendCommand<{ state: EncounterState }>(name, extra)}
     onClose={() => setWorkshopOpen(false)}
   />;
 

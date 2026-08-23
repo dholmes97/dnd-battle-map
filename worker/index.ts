@@ -9,7 +9,7 @@ import {
   type CreatureSize,
   isCreatureSize,
 } from "../shared/creature-library";
-import { parseMapPackage, type MapPackage } from "../shared/map-package";
+import { hydrateMapPackage, parseMapSetup } from "../shared/map-package";
 import {
   baseTokenControllerName,
   identityControlsToken,
@@ -71,7 +71,7 @@ import {
   MAX_CATALOG_FAMILIES,
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
-  MAX_MAP_PRESETS_PER_ENCOUNTER,
+  MAX_MAP_IMAGES,
   MAX_PARTICIPANTS_PER_ENCOUNTER,
   MAX_SCENARIOS,
   MAX_TOKENS_PER_ENCOUNTER,
@@ -96,15 +96,16 @@ import {
 } from "./commands/annotation-fog-commands";
 import { createD1AnnotationFogRepository } from "./adapters/d1-annotation-fog-repository";
 import {
-  applyMapPackage,
+  applyMapDraft,
   configureEncounter,
   createScenario,
-  deleteMapPreset,
+  discardMapDraft,
   renameScenario,
-  saveMapPreset,
+  saveMapDraft,
   type ScenarioMapCommandContext,
 } from "./commands/scenario-map-commands";
 import { createD1ScenarioMapRepository } from "./adapters/d1-scenario-map-repository";
+import { hydrateStoredMap, legacyMapPackage, mapImageFromRow } from "./map-images.ts";
 import {
   advanceTurn,
   correctTurn,
@@ -158,7 +159,7 @@ import type {
   EncounterRow,
   Env,
   HandoutRow,
-  MapPresetRow,
+  MapImageRow,
   ParticipantRow,
   TokenRow,
   WorkerExecutionContext,
@@ -174,29 +175,8 @@ const PRODUCTION_BACKUP_PAGE_SIZE = 100;
 
 let schemaReady: Promise<void> | null = null;
 
-const MAP_ASSET_KEYS = new Set([
-  "ancient-forest-clearing-02.jpg",
-  "ruined-underground-temple-02.jpg",
-  "storm-coast-ruins-02.jpg",
-  "moonlit-fey-glade-01.jpg",
-  "crystal-cavern-crossing-01.jpg",
-  "sunken-swamp-shrine-01.jpg",
-  "desert-caravanserai-ruin-01.jpg",
-  "frozen-mountain-pass-01.jpg",
-  "volcanic-forge-caldera-01.jpg",
-  "abandoned-village-square-01.jpg",
-  "goblin-mineworks-01.jpg",
-  "river-gorge-bridge-01.jpg",
-  "haunted-graveyard-chapel-01.jpg",
-  "cliffside-switchbacks-01.jpg",
-  "cliffside-switchbacks-02.jpg",
-  "underwater-ruins-01.jpg",
-  "underwater-ruins-02.jpg",
-  "grandfather-tree-roots-01.jpg",
-  "ravenloft-grand-dining-hall-01.jpg",
-]);
-
 async function handleMapAsset(request: Request, env: Env, key: string): Promise<Response> {
+  await ensureSchema(env);
   const provisioned = key.match(/^provisioned\/([a-zA-Z0-9-]{1,64})\/([a-zA-Z0-9._-]{1,96})\.jpg$/);
   if (provisioned) {
     const asset = await createD1ScenarioProvisioningRepository(env.DB)
@@ -214,7 +194,11 @@ async function handleMapAsset(request: Request, env: Env, key: string): Promise<
       },
     });
   }
-  if (!MAP_ASSET_KEYS.has(key)) return new Response("Not found", { status: 404 });
+  if (!/^[a-z0-9/_-]+\.(?:jpg|png)$/i.test(key)) return new Response("Not found", { status: 404 });
+  const registered = await env.DB.prepare(
+    "SELECT 1 AS found FROM map_images WHERE asset_path = ? LIMIT 1",
+  ).bind(`/map-assets/${key}`).first();
+  if (!registered) return new Response("Not found", { status: 404 });
   const headers = new Headers({
     "cache-control": "public, max-age=31536000, immutable",
     "content-type": key.endsWith(".jpg") ? "image/jpeg" : "image/png",
@@ -366,7 +350,7 @@ type ProjectionTelemetry = {
     annotations: number;
     chatMessages: number;
     handouts: number;
-    mapPresets: number;
+    mapImages: number;
   };
 };
 
@@ -654,8 +638,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0026_state_integrity_outbox.sql";
-const REQUIRED_SCHEMA_MARKER = "state-integrity-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0028_volatile_bruce_banner.sql";
+const REQUIRED_SCHEMA_MARKER = "map-images-and-drafts-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -900,12 +884,22 @@ async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
 async function findEncounter(env: Env, code: string): Promise<EncounterRow | null> {
   return env.DB.prepare(
     `SELECT id, code, name, dm_briefing, version, status, map_asset, map_package_json,
-            active_map_preset_id, grid_width, grid_height, current_round,
+            active_map_preset_id, active_map_image_id, active_map_setup_json,
+            draft_map_image_id, draft_map_setup_json, draft_updated_at,
+            grid_width, grid_height, current_round,
             active_initiative_order, strict_movement, updated_at
      FROM encounters WHERE code = ?`,
   )
     .bind(code)
     .first<EncounterRow>();
+}
+
+function parseStoredMapSetup(serialized: string, width: number, height: number) {
+  try {
+    return parseMapSetup(JSON.parse(serialized), width, height);
+  } catch {
+    return null;
+  }
 }
 
 async function handleEncounterList(request: Request, env: Env): Promise<Response> {
@@ -1272,16 +1266,34 @@ async function encounterState(
   const availableHistory = viewer
     ? await historyStacks(env, encounter!.id, viewer.id)
     : { undo: [], redo: [] };
-  const savedMapPresets = viewer?.role === "dm"
+  const mapImageRows = viewer?.role === "dm"
     ? await env.DB.prepare(
-        `SELECT id, name, description, source_prompt, package_json, created_at, updated_at
-         FROM map_presets WHERE encounter_id = ? ORDER BY updated_at DESC, name LIMIT ?`,
-      ).bind(encounter!.id, MAX_MAP_PRESETS_PER_ENCOUNTER).all<MapPresetRow>()
-    : { results: [] as MapPresetRow[] };
-  let activeMapPackage: MapPackage | null = null;
-  if (encounter!.map_package_json) {
-    try { activeMapPackage = parseMapPackage(JSON.parse(encounter!.map_package_json)); } catch { activeMapPackage = null; }
-  }
+        `SELECT id, name, description, biome, mood, asset_path, grid_width, grid_height,
+                pixel_width, pixel_height, source_kind, source_prompt, is_active,
+                created_at, updated_at
+         FROM map_images
+         WHERE is_active = 1 OR id = ? OR id = ?
+         ORDER BY is_active DESC, name, id LIMIT ?`,
+      ).bind(encounter!.active_map_image_id, encounter!.draft_map_image_id, MAX_MAP_IMAGES).all<MapImageRow>()
+    : encounter!.active_map_image_id
+      ? await env.DB.prepare(
+          `SELECT id, name, description, biome, mood, asset_path, grid_width, grid_height,
+                  pixel_width, pixel_height, source_kind, source_prompt, is_active,
+                  created_at, updated_at
+           FROM map_images WHERE id = ? LIMIT 1`,
+        ).bind(encounter!.active_map_image_id).all<MapImageRow>()
+      : { results: [] as MapImageRow[] };
+  const mapImageById = new Map(mapImageRows.results.map((row) => [row.id, row]));
+  const activeMapPackage = hydrateStoredMap(
+    encounter!.active_map_image_id ? mapImageById.get(encounter!.active_map_image_id) ?? null : null,
+    encounter!.active_map_setup_json,
+  ) ?? legacyMapPackage(encounter!.map_package_json);
+  const draftMapPackage = viewer?.role === "dm"
+    ? hydrateStoredMap(
+        encounter!.draft_map_image_id ? mapImageById.get(encounter!.draft_map_image_id) ?? null : null,
+        encounter!.draft_map_setup_json,
+      ) ?? activeMapPackage
+    : null;
 
   const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
   const effectsByToken = indexRowsByKey(effects.results, (effect) => effect.token_id);
@@ -1313,7 +1325,8 @@ async function encounterState(
       version: encounter!.version,
       status: encounter!.status,
       mapPackage: mapPackageForViewer(activeMapPackage, viewer),
-      activeMapPresetId: encounter!.active_map_preset_id,
+      mapDraft: draftMapPackage,
+      draftUpdatedAt: viewer?.role === "dm" ? encounter!.draft_updated_at : null,
       currentRound: encounter!.current_round,
       activeInitiativeOrder: encounter!.active_initiative_order,
       strictMovement: Boolean(encounter!.strict_movement),
@@ -1430,20 +1443,12 @@ async function encounterState(
       createdAt: handout.created_at,
       updatedAt: handout.updated_at,
     })),
-    savedMapPresets: savedMapPresets.results.flatMap((preset) => {
-      try {
-        const mapPackage = parseMapPackage(JSON.parse(preset.package_json));
-        return mapPackage ? [{
-          id: preset.id,
-          name: preset.name,
-          description: preset.description,
-          sourcePrompt: preset.source_prompt,
-          mapPackage,
-          createdAt: preset.created_at,
-          updatedAt: preset.updated_at,
-        }] : [];
-      } catch { return []; }
-    }),
+    mapImages: viewer?.role === "dm"
+      ? mapImageRows.results.flatMap((row) => {
+          const image = mapImageFromRow(row);
+          return image ? [image] : [];
+        })
+      : [],
     availableArt: [...new Set([
       ...CHARACTER_ART_ASSETS,
       ...visibleTokens.flatMap((token) => token.art_asset ? [token.art_asset] : []),
@@ -1452,14 +1457,14 @@ async function encounterState(
   if (telemetry) {
     telemetry.projection = {
       durationMs: Math.max(0, performance.now() - projectionStartedAt),
-      collectionReads: 3 + (viewer ? 2 : 0) + (viewer?.role === "dm" ? 2 : 0),
+      collectionReads: 4 + (viewer ? 2 : 0) + (viewer?.role === "dm" ? 1 : 0),
       rows: {
         tokens: tokens.results.length,
         effects: effects.results.length,
         annotations: annotations.results.length,
         chatMessages: recentChatMessages.results.length,
         handouts: handouts.results.length,
-        mapPresets: savedMapPresets.results.length,
+        mapImages: mapImageRows.results.length,
       },
     };
   }
@@ -1574,6 +1579,16 @@ async function handleCommand(
   const request = parsed.request;
   const unitOfWork = createD1MutationUnitOfWork(env.DB);
   const mutationDb = unitOfWork.database;
+  const scenarioMapRepository = createD1ScenarioMapRepository(mutationDb);
+  const activeMapImage = encounter.active_map_image_id
+    ? await scenarioMapRepository.findMapImage(encounter.active_map_image_id)
+    : null;
+  const activeMapSetup = activeMapImage && encounter.active_map_setup_json
+    ? parseStoredMapSetup(encounter.active_map_setup_json, activeMapImage.gridWidth, activeMapImage.gridHeight)
+    : null;
+  const activeMapPackage = activeMapImage && activeMapSetup
+    ? hydrateMapPackage(activeMapImage, activeMapSetup)
+    : legacyMapPackage(encounter.map_package_json);
   const state = () => encounterState(env, code, participant, telemetry);
   const commandEncounter = {
     id: encounter.id,
@@ -1581,9 +1596,11 @@ async function handleCommand(
     name: encounter.name,
     version: encounter.version,
     status: encounter.status,
-    mapAsset: encounter.map_asset,
-    mapPackageJson: encounter.map_package_json,
-    activeMapPresetId: encounter.active_map_preset_id,
+    activeMapImageId: encounter.active_map_image_id,
+    activeMapSetupJson: encounter.active_map_setup_json,
+    activeMapPackageJson: activeMapPackage ? JSON.stringify(activeMapPackage) : null,
+    draftMapImageId: encounter.draft_map_image_id,
+    draftMapSetupJson: encounter.draft_map_setup_json,
     gridWidth: encounter.grid_width,
     gridHeight: encounter.grid_height,
     currentRound: encounter.current_round,
@@ -1637,11 +1654,11 @@ async function handleCommand(
     repository: createD1AnnotationFogRepository(mutationDb),
   });
   const scenarioMapContext = <Name extends
-    "rename-scenario" | "create-scenario" | "save-map-preset" |
-    "delete-map-preset" | "apply-map-package" | "configure-encounter"
+    "rename-scenario" | "create-scenario" | "save-map-draft" |
+    "discard-map-draft" | "apply-map-draft" | "configure-encounter"
   >(payload: CommandPayload<Name>): ScenarioMapCommandContext<Name> => ({
     ...baseContext(payload),
-    repository: createD1ScenarioMapRepository(mutationDb),
+    repository: scenarioMapRepository,
     loadScenarioState: async (scenarioCode, participantId) =>
       encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }, telemetry),
   });
@@ -1683,9 +1700,9 @@ async function handleCommand(
     case "redo": outcome = await redo(historyContext(request.payload)); break;
     case "rename-scenario": outcome = await renameScenario(scenarioMapContext(request.payload)); break;
     case "create-scenario": outcome = await createScenario(scenarioMapContext(request.payload)); break;
-    case "save-map-preset": outcome = await saveMapPreset(scenarioMapContext(request.payload)); break;
-    case "delete-map-preset": outcome = await deleteMapPreset(scenarioMapContext(request.payload)); break;
-    case "apply-map-package": outcome = await applyMapPackage(scenarioMapContext(request.payload)); break;
+    case "save-map-draft": outcome = await saveMapDraft(scenarioMapContext(request.payload)); break;
+    case "discard-map-draft": outcome = await discardMapDraft(scenarioMapContext(request.payload)); break;
+    case "apply-map-draft": outcome = await applyMapDraft(scenarioMapContext(request.payload)); break;
     case "configure-encounter": outcome = await configureEncounter(scenarioMapContext(request.payload)); break;
     case "set-initiative": outcome = await setInitiative(initiativeCombatContext(request.payload)); break;
     case "set-initiative-group": outcome = await setInitiativeGroup(initiativeCombatContext(request.payload)); break;

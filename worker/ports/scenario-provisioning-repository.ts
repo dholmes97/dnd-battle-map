@@ -62,7 +62,7 @@ export type ScenarioProvisioningFinalizeResult = {
   jobId: string;
   status: "ready";
   scenario: { id: string; code: string; name: string };
-  presetId: string | null;
+  mapImageId: string | null;
   handoutIds: string[];
   placedTokenIds: string[];
   createdCatalogIds: string[];

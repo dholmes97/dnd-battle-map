@@ -14,9 +14,7 @@
     },
     "scenario": {
       "name": "Scenario name",
-      "briefing": "DM-only briefing",
-      "presetName": "Scenario name",
-      "presetDescription": "Prepared map and visibility setup"
+      "briefing": "DM-only briefing"
     },
     "settings": {
       "strictMovement": null

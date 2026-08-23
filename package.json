@@ -31,8 +31,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --max-warnings 0",
     "audit:dependencies": "npm audit --omit=dev --audit-level=low && npm audit --audit-level=high",
     "verify": "npm run typecheck && npm run lint && npm run build && npm run test:node && npm run test:components && npm run test:browser",
-    "db:generate": "drizzle-kit generate",
-    "db:generate-bootstrap": "node scripts/generate-bootstrap-migration.mjs"
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

@@ -8,6 +8,8 @@ export const MAX_TOKENS_PER_ENCOUNTER = 256;
 export const MAX_EFFECTS_PER_TOKEN = 32;
 export const MAX_EFFECTS_PER_ENCOUNTER = 1_024;
 export const MAX_ANNOTATIONS_PER_ENCOUNTER = 500;
+export const MAX_MAP_IMAGES = 500;
+// Legacy rollout archive only. New map preparation uses one durable draft per encounter.
 export const MAX_MAP_PRESETS_PER_ENCOUNTER = 60;
 export const MAX_HANDOUT_ROWS_PER_ENCOUNTER = 200;
 export const MAX_CHAT_MESSAGES_PER_ENCOUNTER = 2_000;

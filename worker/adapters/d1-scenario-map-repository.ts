@@ -1,9 +1,10 @@
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
 import type { TokenRow } from "../types.ts";
 import {
-  MAX_MAP_PRESETS_PER_ENCOUNTER,
   MAX_TOKENS_PER_ENCOUNTER,
 } from "../../shared/resource-limits.ts";
+import { mapImageFromRow } from "../map-images.ts";
+import type { MapImageRow } from "../types.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
@@ -37,14 +38,19 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         db.prepare(
           `INSERT INTO encounters
            (id, code, name, version, status, map_asset, map_package_json, active_map_preset_id,
-            grid_width, grid_height, current_round, active_initiative_order, strict_movement, updated_at)
-           VALUES (?, ?, ?, 1, 'setup', ?, ?, NULL, ?, ?, 0, NULL, ?, ?)`,
+            active_map_image_id, active_map_setup_json, draft_map_image_id, draft_map_setup_json,
+            draft_updated_at, grid_width, grid_height, current_round, active_initiative_order,
+            strict_movement, updated_at)
+           VALUES (?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
         ).bind(
           input.id,
           input.code,
           input.name,
-          input.mapAsset,
-          input.mapPackageJson,
+          input.activeMapImageId,
+          input.activeMapSetupJson,
+          input.draftMapImageId,
+          input.draftMapSetupJson,
+          input.draftMapSetupJson ? input.now : null,
           input.width,
           input.height,
           input.strictMovement ? 1 : 0,
@@ -87,71 +93,26 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         ).bind(input.participantId, input.id, input.sessionSecret, input.now, input.now),
       ]);
     },
-    async saveMapPreset(input, update) {
-      if (update) {
-        const exists = await db.prepare(
-          "SELECT 1 AS found FROM map_presets WHERE id = ? AND encounter_id = ?",
-        ).bind(input.id, input.encounterId).first();
-        if (!exists) return "missing";
-        const result = await db.prepare(
-          `UPDATE map_presets SET name = ?, description = ?, source_prompt = ?,
-           package_json = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
-        ).bind(
-          input.name,
-          input.description,
-          input.sourcePrompt,
-          input.packageJson,
-          input.now,
-          input.id,
-          input.encounterId,
-        ).run();
-        return (result.meta.changes ?? 0) === 1 ? "saved" : "missing";
-      }
-      const count = await db.prepare(
-        "SELECT COUNT(*) AS value FROM map_presets WHERE encounter_id = ?",
-      ).bind(input.encounterId).first<{ value: number }>();
-      if ((Number(count?.value) || 0) >= MAX_MAP_PRESETS_PER_ENCOUNTER) return "limit";
-      const result = await db.prepare(
-        `INSERT INTO map_presets
-         (id, encounter_id, name, description, source_prompt, package_json,
-          created_by, created_at, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
-         WHERE (SELECT COUNT(*) FROM map_presets WHERE encounter_id = ?) < ?`,
-      ).bind(
-        input.id,
-        input.encounterId,
-        input.name,
-        input.description,
-        input.sourcePrompt,
-        input.packageJson,
-        input.participantId,
-        input.now,
-        input.now,
-        input.encounterId,
-        MAX_MAP_PRESETS_PER_ENCOUNTER,
-      ).run();
-      return (result.meta.changes ?? 0) === 1 ? "saved" : "limit";
-    },
-    async deleteMapPreset(encounterId, presetId) {
-      const exists = await db.prepare(
-        "SELECT 1 AS found FROM map_presets WHERE id = ? AND encounter_id = ?",
-      ).bind(presetId, encounterId).first();
-      if (!exists) return false;
-      const result = await db.prepare(
-        "DELETE FROM map_presets WHERE id = ? AND encounter_id = ?",
-      ).bind(presetId, encounterId).run();
-      return (result.meta.changes ?? 0) === 1;
-    },
-    async clearActivePreset(encounterId) {
-      await db.prepare(
-        "UPDATE encounters SET active_map_preset_id = NULL WHERE id = ?",
-      ).bind(encounterId).run();
-    },
-    async loadMapPreset(encounterId, presetId) {
+    async findMapImage(mapImageId) {
       const row = await db.prepare(
-        "SELECT package_json FROM map_presets WHERE id = ? AND encounter_id = ?",
-      ).bind(presetId, encounterId).first<{ package_json: string }>();
-      return row?.package_json ?? null;
+        `SELECT id, name, description, biome, mood, asset_path, grid_width, grid_height,
+                pixel_width, pixel_height, source_kind, source_prompt, is_active,
+                created_at, updated_at
+         FROM map_images WHERE id = ? AND is_active = 1`,
+      ).bind(mapImageId).first<MapImageRow>();
+      return row ? mapImageFromRow(row) : null;
+    },
+    async saveMapDraft(encounterId, mapImageId, setupJson, now) {
+      await db.prepare(
+        `UPDATE encounters SET draft_map_image_id = ?, draft_map_setup_json = ?,
+         draft_updated_at = ? WHERE id = ?`,
+      ).bind(mapImageId, setupJson, now, encounterId).run();
+    },
+    async discardMapDraft(encounterId, now) {
+      await db.prepare(
+        `UPDATE encounters SET draft_map_image_id = active_map_image_id,
+         draft_map_setup_json = active_map_setup_json, draft_updated_at = ? WHERE id = ?`,
+      ).bind(now, encounterId).run();
     },
     async listTokenPositions(encounterId) {
       const rows = await db.prepare(
@@ -164,14 +125,18 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
       }>();
       return rows.results;
     },
-    async applyMapPackage(input) {
+    async applyMapDraft(input) {
       await db.batch([
         db.prepare(
-          `UPDATE encounters SET map_package_json = ?, active_map_preset_id = ?,
+          `UPDATE encounters SET active_map_image_id = ?, active_map_setup_json = ?,
+           draft_map_image_id = ?, draft_map_setup_json = ?, draft_updated_at = ?,
            grid_width = ?, grid_height = ?, updated_at = ? WHERE id = ?`,
         ).bind(
-          input.packageJson,
-          input.activePresetId,
+          input.mapImageId,
+          input.setupJson,
+          input.mapImageId,
+          input.setupJson,
+          input.now,
           input.width,
           input.height,
           input.now,

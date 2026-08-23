@@ -8,7 +8,7 @@ function context(overrides = {}) {
   return {
     calls,
     value: {
-      encounter: { id: "encounter-1", code: "TEST", name: "Test", version: 1, status: "setup", mapPackageJson: null, activeMapPresetId: null, gridWidth: 24, gridHeight: 16, currentRound: 0, activeInitiativeOrder: null, strictMovement: true, updatedAt: 1 },
+      encounter: { id: "encounter-1", code: "TEST", name: "Test", version: 1, status: "setup", activeMapImageId: null, activeMapSetupJson: null, activeMapPackageJson: null, draftMapImageId: null, draftMapSetupJson: null, gridWidth: 24, gridHeight: 16, currentRound: 0, activeInitiativeOrder: null, strictMovement: true, updatedAt: 1 },
       participant: { id: "participant-1", name: "Kevin", role: "dm" },
       payload: {},
       now: 1234,

@@ -2,6 +2,23 @@ import { defaultSharedFogPolygon } from "./fog-of-war.ts";
 
 export type MapBiome = "forest" | "dungeon" | "cave" | "ruins" | "swamp" | "desert" | "tundra" | "volcanic" | "coast";
 export type MapMood = "daylight" | "overcast" | "moonlight" | "torchlight";
+export type MapImage = {
+  id: string;
+  name: string;
+  description: string;
+  biome: MapBiome;
+  mood: MapMood;
+  assetPath: string;
+  gridWidth: number;
+  gridHeight: number;
+  pixelWidth: number;
+  pixelHeight: number;
+  sourceKind: "built-in" | "generated" | "imported";
+  sourcePrompt: string | null;
+  createdAt: number;
+  updatedAt: number;
+  active: boolean;
+};
 export type FullSceneVisual = {
   kind: "generated-scene";
   assetUrl: string;
@@ -73,6 +90,16 @@ export type MapPackage = {
   fog: FogConfig;
   source: { kind: "generated-scene" | "imported" };
   createdAt: number;
+};
+
+export type MapSetup = {
+  format: "dnd-map-setup";
+  version: 1;
+  walls: WallSegment[];
+  portals: Portal[];
+  labels: MapLabel[];
+  notes: MapNote[];
+  fog: FogConfig;
 };
 
 const BIOMES = new Set<MapBiome>(["forest", "dungeon", "cave", "ruins", "swamp", "desert", "tundra", "volcanic", "coast"]);
@@ -211,4 +238,77 @@ export function parseMapPackage(value: unknown): MapPackage | null {
 
 export function cloneMapPackage(map: MapPackage): MapPackage {
   return JSON.parse(JSON.stringify(map)) as MapPackage;
+}
+
+export function mapSetupFromPackage(map: MapPackage): MapSetup {
+  return {
+    format: "dnd-map-setup",
+    version: 1,
+    walls: map.walls,
+    portals: map.portals,
+    labels: map.labels,
+    notes: map.notes,
+    fog: map.fog,
+  };
+}
+
+export function parseMapSetup(value: unknown, width: number, height: number): MapSetup | null {
+  const legacyPackage = parseMapPackage(value);
+  if (legacyPackage) return mapSetupFromPackage(legacyPackage);
+  const item = record(value);
+  if (!item || item.format !== "dnd-map-setup" || item.version !== 1) return null;
+  const walls = parsedList(item.walls, (entry) => parseWall(entry, width, height));
+  const portals = parsedList(item.portals, (entry) => parsePortal(entry, width, height));
+  const labels = parsedList(item.labels, (entry) => parseLabel(entry, width, height));
+  const notes = parsedList(item.notes, (entry) => parseNote(entry, width, height));
+  const fog = parseFog(item.fog, width, height);
+  return walls && portals && labels && notes && fog
+    ? { format: "dnd-map-setup", version: 1, walls, portals, labels, notes, fog }
+    : null;
+}
+
+export function hydrateMapPackage(image: MapImage, setup: MapSetup): MapPackage {
+  return {
+    format: "dnd-battle-map",
+    version: 1,
+    id: image.id,
+    name: image.name,
+    description: image.description,
+    biome: image.biome,
+    mood: image.mood,
+    seed: image.id.toUpperCase(),
+    width: image.gridWidth,
+    height: image.gridHeight,
+    visual: {
+      kind: "generated-scene",
+      assetUrl: image.assetPath,
+      pixelWidth: image.pixelWidth,
+      pixelHeight: image.pixelHeight,
+    },
+    walls: setup.walls,
+    portals: setup.portals,
+    labels: setup.labels,
+    notes: setup.notes,
+    fog: setup.fog,
+    source: { kind: image.sourceKind === "imported" ? "imported" : "generated-scene" },
+    createdAt: image.createdAt,
+  };
+}
+
+export function createMapPackageForImage(image: MapImage): MapPackage {
+  return hydrateMapPackage(image, {
+    format: "dnd-map-setup",
+    version: 1,
+    walls: [],
+    portals: [],
+    labels: [],
+    notes: [],
+    fog: {
+      mode: "off",
+      sharedPolygon: defaultSharedFogPolygon(image.gridWidth, image.gridHeight),
+      walls: [],
+      doors: [],
+      circles: [],
+    },
+  });
 }

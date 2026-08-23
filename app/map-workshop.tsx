@@ -15,9 +15,8 @@ import {
 } from "react";
 import { fitGridGeometry } from "@/shared/battle-map-geometry.ts";
 import { distanceToSegment, dragFogBlocker, ensureSharedFogPolygon, fogBlockerHandleAtPoint } from "@/shared/fog-of-war.ts";
-import { FULL_SCENE_MAPS, createFullSceneMap } from "@/shared/full-scene-maps";
-import { cloneMapPackage, type MapPackage } from "@/shared/map-package";
-import type { CommandName, CommandPayload, CommandResponse, SavedMapPreset } from "@/shared/contracts";
+import { cloneMapPackage, createMapPackageForImage, type MapImage, type MapPackage } from "@/shared/map-package";
+import type { CommandName, CommandPayload, CommandResponse } from "@/shared/contracts";
 import {
   mapNoteAt,
   mapThumbnailUrl,
@@ -32,9 +31,9 @@ import {
 
 type Props = {
   activeMapPackage: MapPackage | null;
-  activeMapPresetId: string | null;
-  savedPresets: SavedMapPreset[];
-  onCommand: <Name extends CommandName>(name: Name, extra: CommandPayload<Name>) => Promise<CommandResponse & { presetId?: string }>;
+  draftMapPackage: MapPackage | null;
+  mapImages: MapImage[];
+  onCommand: <Name extends CommandName>(name: Name, extra: CommandPayload<Name>) => Promise<CommandResponse>;
   onClose: () => void;
 };
 
@@ -49,13 +48,7 @@ type FogBlockerTarget = SelectedFogBlocker & { handle: "start" | "end" | "body" 
 type FogBlockerDrag = { pointerId: number; target: FogBlockerTarget; start: Point; before: MapPackage };
 type KeyboardAnchor = { tool: "vision-wall" | "vision-door" | "vision-circle"; point: Point };
 
-const DEFAULT_SCENE = FULL_SCENE_MAPS[0];
 const HISTORY_LIMIT = 50;
-
-function withCanonicalBaseMapName(map: MapPackage): MapPackage {
-  const baseName = FULL_SCENE_MAPS.find((scene) => scene.assetUrl === map.visual.assetUrl)?.name;
-  return baseName && baseName !== map.name ? { ...map, name: baseName } : map;
-}
 
 function WorkshopHistoryIcon({ direction }: { direction: "undo" | "redo" }) {
   const path = direction === "undo"
@@ -124,9 +117,8 @@ function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
   return match;
 }
 
-export default function MapWorkshop({ activeMapPackage, activeMapPresetId, savedPresets, onCommand, onClose }: Props) {
-  const initial = useMemo(() => withCanonicalBaseMapName(cloneMapPackage(activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE))), [activeMapPackage]);
-  const initialPresetName = savedPresets.find((preset) => preset.id === activeMapPresetId)?.name ?? initial.name;
+export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImages, onCommand, onClose }: Props) {
+  const initial = useMemo(() => cloneMapPackage(draftMapPackage ?? activeMapPackage ?? createMapPackageForImage(mapImages[0])), [activeMapPackage, draftMapPackage, mapImages]);
   const [map, setMap] = useState(initial);
   const [dirty, setDirty] = useState(false);
   const [tool, setTool] = useState<Tool>("select");
@@ -134,9 +126,7 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const [labelText, setLabelText] = useState("");
   const [labelVisibility, setLabelVisibility] = useState<"dm" | "everyone">("everyone");
   const [noteText, setNoteText] = useState("");
-  const [presetName, setPresetName] = useState(initialPresetName);
-  const savedDraftRef = useRef(`${initialPresetName}\n${JSON.stringify(initial)}`);
-  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(activeMapPresetId);
+  const savedDraftRef = useRef(JSON.stringify(initial));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [baseMapChooserOpen, setBaseMapChooserOpen] = useState(false);
@@ -164,7 +154,8 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
   const selectedFogDoor = selectedFogBlocker?.kind === "door" ? map.fog.doors.find((door) => door.id === selectedFogBlocker.id) ?? null : null;
   const selectedFogWall = selectedFogBlocker?.kind === "wall" ? map.fog.walls.find((wall) => wall.id === selectedFogBlocker.id) ?? null : null;
   const selectedFogCircle = selectedFogBlocker?.kind === "circle" ? map.fog.circles.find((circle) => circle.id === selectedFogBlocker.id) ?? null : null;
-  const baseMap = FULL_SCENE_MAPS.find((definition) => definition.assetUrl === map.visual.assetUrl) ?? DEFAULT_SCENE;
+  const baseMap = mapImages.find((image) => image.id === map.id) ?? mapImages[0];
+  const availableMapImages = mapImages.filter((image) => image.active);
   const assetPaths = useMemo(() => [map.visual.assetUrl], [map.visual.assetUrl]);
 
   useEffect(() => {
@@ -268,10 +259,10 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     undoRef.current = [...undoRef.current.slice(-(HISTORY_LIMIT - 1)), cloneMapPackage(before)]; redoRef.current = []; setHistoryCounts({ undo: undoRef.current.length, redo: 0 });
   };
   const commit = (update: (current: MapPackage) => MapPackage) => setMap((current) => { const next = update(current); remember(current); setDirty(true); return next; });
-  const replaceDraft = (next: MapPackage, changed: boolean, nextPresetName = next.name, saved = true) => {
-    const canonical = withCanonicalBaseMapName(cloneMapPackage(next));
-    setMap(canonical); setDirty(changed); setPresetName(nextPresetName); setSelectedAnnotation(null); setSelectedFogVertex(null); setSelectedFogBlocker(null); setBaseMapChooserOpen(false); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
-    if (saved) savedDraftRef.current = `${nextPresetName}\n${JSON.stringify(canonical)}`;
+  const replaceDraft = (next: MapPackage, changed: boolean, saved = true) => {
+    const copy = cloneMapPackage(next);
+    setMap(copy); setDirty(changed); setSelectedAnnotation(null); setSelectedFogVertex(null); setSelectedFogBlocker(null); setBaseMapChooserOpen(false); setTool("select"); undoRef.current = []; redoRef.current = []; setHistoryCounts({ undo: 0, redo: 0 });
+    if (saved) savedDraftRef.current = JSON.stringify(copy);
   };
   const undo = useCallback(() => {
     const previous = undoRef.current.pop(); if (!previous) return;
@@ -304,11 +295,11 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     finally { setBusy(false); }
   };
 
-  const chooseScene = (definition: (typeof FULL_SCENE_MAPS)[number]) => {
-    if (definition.assetUrl === map.visual.assetUrl) return;
-    const hasUnsavedPresetWork = savedDraftRef.current !== `${presetName}\n${JSON.stringify(map)}`;
-    if (hasUnsavedPresetWork && !window.confirm("Change the base map? Your current workshop changes have not been saved to a preset and will be lost. Save or update the preset first if you want to keep its vision walls, doors, blockers, labels, and notes.")) return;
-    const next = createFullSceneMap(definition); replaceDraft(next, true, next.name, false); setLoadedPresetId(null);
+  const chooseScene = (image: MapImage) => {
+    if (image.id === map.id) return;
+    const hasUnsavedDraftWork = savedDraftRef.current !== JSON.stringify(map);
+    if (hasUnsavedDraftWork && !window.confirm("Change the base map? Your current changes have not been saved to the encounter draft and will be lost. Save the draft first if you want to keep its vision walls, doors, blockers, labels, and notes.")) return;
+    const next = createMapPackageForImage(image); replaceDraft(next, true, false);
     setMessage(`Loaded “${next.name}” as a private draft.`);
   };
 
@@ -605,25 +596,28 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
     commit((current) => ({ ...current, fog: { ...current.fog, [collection]: current.fog[collection].map((line) => line.id === selectedFogBlocker.id ? { ...line, [field]: Math.max(0, Math.min(field.startsWith("x") ? current.width : current.height, value)) } : line) } }));
   };
 
-  const savePreset = async () => {
-    const name = presetName.trim() || map.name; const result = await runCommand("save-map-preset", { presetId: loadedPresetId || undefined, name, description: map.description, mapPackage: map }, loadedPresetId ? `Updated “${name}”.` : `Saved “${name}”.`);
-    setPresetName(name);
-    if (!loadedPresetId && result?.presetId) setLoadedPresetId(result.presetId);
-    if (result) savedDraftRef.current = `${name}\n${JSON.stringify(map)}`;
+  const saveDraft = async () => {
+    const result = await runCommand("save-map-draft", { mapPackage: map }, "Draft saved. Players still see the applied map.");
+    if (result) { savedDraftRef.current = JSON.stringify(map); setDirty(false); }
   };
-  const deletePreset = async (preset: SavedMapPreset) => {
-    const warning = `Delete “${preset.name}”? This permanently removes its prepared vision walls, doors, round blockers, labels, and notes from the preset library. This cannot be undone.`;
-    if (!window.confirm(warning)) return;
-    const result = await runCommand("delete-map-preset", { presetId: preset.id }, `Deleted “${preset.name}”.`);
-    if (result && loadedPresetId === preset.id) { setLoadedPresetId(null); setPresetName(map.name); }
+  const apply = async () => {
+    const result = await runCommand("apply-map-draft", { mapPackage: map }, `Applied “${map.name}”. Players now receive this map.`);
+    if (result) { savedDraftRef.current = JSON.stringify(map); setDirty(false); }
+    return Boolean(result);
   };
-  const apply = async () => { const result = await runCommand("apply-map-package", { mapPackage: map, presetId: loadedPresetId || undefined }, `Applied “${map.name}”. Players now receive this scene.`); if (result) setDirty(false); return Boolean(result); };
-  const discard = () => { const next = activeMapPackage ?? createFullSceneMap(DEFAULT_SCENE); const activePresetName = savedPresets.find((preset) => preset.id === activeMapPresetId)?.name ?? next.name; replaceDraft(next, false, activePresetName); setLoadedPresetId(activeMapPresetId); setMessage("Discarded private changes and restored the applied scene."); };
-  const requestDiscard = () => { if (dirty) setExitPrompt("discard"); };
+  const discard = async () => {
+    const result = await runCommand("discard-map-draft", {}, "Discarded the draft and restored the applied map.");
+    if (!result) return false;
+    const next = activeMapPackage ?? createMapPackageForImage(mapImages[0]);
+    replaceDraft(next, false);
+    return true;
+  };
+  const draftMatchesApplied = Boolean(activeMapPackage) && JSON.stringify(map) === JSON.stringify(activeMapPackage);
+  const hasDraftChanges = dirty || !draftMatchesApplied;
+  const requestDiscard = () => { if (hasDraftChanges) setExitPrompt("discard"); };
   const requestReturn = () => { if (dirty) { setMessage(""); setExitPrompt("return"); } else onClose(); };
-  const discardAndReturn = () => { discard(); setExitPrompt(null); onClose(); };
+  const discardAndReturn = async () => { if (await discard()) { setExitPrompt(null); onClose(); } };
   const applyAndReturn = async () => { if (await apply()) { setExitPrompt(null); onClose(); } };
-  const loadPreset = (preset: SavedMapPreset) => { replaceDraft(preset.mapPackage, preset.id !== activeMapPresetId, preset.name); setLoadedPresetId(preset.id); setMessage(`Loaded “${preset.name}” into the private workshop.`); };
   return <main className="workshop-shell">
     <header className="workshop-header">
       <div className="workshop-header-tools">
@@ -648,13 +642,13 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         </div>
         <div className="workshop-history-tools" role="group" aria-label="Draft history"><button className="workshop-icon-tool" aria-label="Undo draft change" data-tooltip="Undo — Ctrl/Cmd + Z" disabled={!historyCounts.undo} onClick={undo}><WorkshopHistoryIcon direction="undo" /></button><button className="workshop-icon-tool" aria-label="Redo draft change" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" disabled={!historyCounts.redo} onClick={redo}><WorkshopHistoryIcon direction="redo" /></button></div>
       </div>
-      <div className="workshop-header-title"><strong>{presetName.trim() || map.name}</strong><span>Map workshop</span></div>
-      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Private changes" : "Matches players"}</span><div className="workshop-action-tools" role="group" aria-label="Workshop actions"><button className="workshop-icon-tool" aria-label="Discard private changes" data-tooltip="Discard private changes" disabled={!dirty || busy} onClick={requestDiscard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply to players" data-tooltip="Apply this map to players" disabled={busy} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to battle map" data-tooltip="Return to battle map" disabled={busy} onClick={requestReturn}><WorkshopActionIcon action="return" /></button></div></div>
+      <div className="workshop-header-title"><strong>{map.name}</strong><span>Map Workshop · Draft</span></div>
+      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Unsaved draft" : draftMatchesApplied ? "Applied" : "Draft saved"}</span><div className="workshop-action-tools" role="group" aria-label="Workshop actions"><button className="workshop-icon-tool" aria-label="Discard draft" data-tooltip="Discard the draft and restore the applied map" disabled={!hasDraftChanges || busy} onClick={requestDiscard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply draft" data-tooltip="Apply this draft to the encounter" disabled={busy} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to battle map" data-tooltip="Return to battle map" disabled={busy} onClick={requestReturn}><WorkshopActionIcon action="return" /></button></div></div>
     </header>
     <div className="workshop-layout">
       <aside className="workshop-controls" aria-label="Map Workshop controls">
-        <section className="map-library-panel"><div className="workshop-section-heading"><small>Map presets</small><strong>Save and load</strong></div><label>Preset name<input value={presetName} maxLength={72} onChange={(event) => setPresetName(event.target.value)} /></label><label>Description<textarea value={map.description} maxLength={500} rows={2} onChange={(event) => commit((current) => ({ ...current, description: event.target.value }))} /></label><div className="button-row"><button className="primary-button" disabled={busy} onClick={() => void savePreset()}>{loadedPresetId ? "Update preset" : "Save preset"}</button></div><div className="saved-map-list">{savedPresets.map((preset) => <article className={preset.id === loadedPresetId ? "is-selected" : ""} key={preset.id}><button className="saved-map-load" onClick={() => loadPreset(preset)}><strong>{preset.name}</strong><small>{withCanonicalBaseMapName(preset.mapPackage).name} · {preset.mapPackage.width} × {preset.mapPackage.height}{preset.id === activeMapPresetId ? " · applied" : ""}</small></button><IconActionButton className="saved-map-delete" variant="delete" label={`Delete ${preset.name}`} onClick={() => void deletePreset(preset)} /></article>)}</div></section>
-        <section className="base-map-panel"><div className="workshop-section-heading"><strong>Base map</strong></div><div className="current-base-map"><NextImage src={mapThumbnailUrl(baseMap.assetUrl)} alt="" width={96} height={64} unoptimized /><span><strong>{baseMap.name}</strong><small>{baseMap.biome} · {baseMap.width ?? 24} × {baseMap.height ?? 16}</small></span></div><button className="secondary-button" onClick={() => setBaseMapChooserOpen((open) => !open)}>{baseMapChooserOpen ? "Cancel change" : "Change base map"}</button>{baseMapChooserOpen ? <div className="full-scene-list" aria-label="Choose a different base map">{FULL_SCENE_MAPS.map((definition) => <button key={definition.id} className={map.visual.assetUrl === definition.assetUrl ? "is-active" : ""} onClick={() => chooseScene(definition)}><NextImage src={mapThumbnailUrl(definition.assetUrl)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{definition.name}</strong><small>{definition.biome} · {definition.width ?? 24} × {definition.height ?? 16}</small></span></button>)}</div> : null}</section>
+        <section className="map-library-panel"><div className="workshop-section-heading"><small>Encounter map</small><strong>Draft</strong></div><p className="workshop-help">Save your preparation without changing the battle map. Apply the draft when it is ready for the encounter.</p><div className="button-row"><button className="primary-button" disabled={busy || !dirty} onClick={() => void saveDraft()}>{busy ? "Saving…" : "Save draft"}</button></div></section>
+        <section className="base-map-panel"><div className="workshop-section-heading"><strong>Base map</strong></div><div className="current-base-map"><NextImage src={mapThumbnailUrl(baseMap.assetPath)} alt="" width={96} height={64} unoptimized /><span><strong>{baseMap.name}</strong><small>{baseMap.biome} · {baseMap.gridWidth} × {baseMap.gridHeight}</small></span></div><button className="secondary-button" onClick={() => setBaseMapChooserOpen((open) => !open)}>{baseMapChooserOpen ? "Cancel change" : "Change base map"}</button>{baseMapChooserOpen ? <div className="full-scene-list" aria-label="Choose a different base map">{availableMapImages.map((image) => <button key={image.id} className={map.id === image.id ? "is-active" : ""} onClick={() => chooseScene(image)}><NextImage src={mapThumbnailUrl(image.assetPath)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{image.name}</strong><small>{image.biome} · {image.gridWidth} × {image.gridHeight}</small></span></button>)}</div> : null}</section>
         {tool === "label" || tool === "note" ? <section><div className="workshop-section-heading"><small>Active tool</small><strong>{tool === "label" ? "Add label" : "Add DM note"}</strong></div>
           {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene or focus the map and press Enter.</p></div> : null}
           {tool === "note" ? <div className="structure-options"><label>Private note<textarea value={noteText} onChange={(event) => setNoteText(event.target.value)} rows={3} /></label><p className="workshop-help">Enter a note, then click its location or focus the map and press Enter.</p></div> : null}
@@ -674,9 +668,9 @@ export default function MapWorkshop({ activeMapPackage, activeMapPresetId, saved
         {selectedFogWall || selectedFogDoor ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected vision {selectedFogDoor ? "door" : "wall"}</small><strong>Endpoint geometry</strong></div><div className="geometry-fields is-four"><label>Start X<input aria-label="Selected blocker start X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x1 ?? selectedFogDoor?.x1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x1", event.currentTarget.valueAsNumber)} /></label><label>Start Y<input aria-label="Selected blocker start Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y1 ?? selectedFogDoor?.y1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y1", event.currentTarget.valueAsNumber)} /></label><label>End X<input aria-label="Selected blocker end X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x2 ?? selectedFogDoor?.x2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x2", event.currentTarget.valueAsNumber)} /></label><label>End Y<input aria-label="Selected blocker end Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y2 ?? selectedFogDoor?.y2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y2", event.currentTarget.valueAsNumber)} /></label></div>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
         {selectedFogCircle ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected round blocker</small><strong>Center and radius</strong></div><div className="geometry-fields is-three"><label>Center X<input aria-label="Selected round blocker X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogCircle.x} onChange={(event) => updateSelectedBlockerCoordinate("x", event.currentTarget.valueAsNumber)} /></label><label>Center Y<input aria-label="Selected round blocker Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogCircle.y} onChange={(event) => updateSelectedBlockerCoordinate("y", event.currentTarget.valueAsNumber)} /></label><label>Radius<input aria-label="Selected round blocker radius" type="number" min={0.25} max={Math.min(map.width, map.height) / 2} step={0.25} value={selectedFogCircle.radius} onChange={(event) => updateSelectedBlockerCoordinate("radius", event.currentTarget.valueAsNumber)} /></label></div><button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
       </aside>
-      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Map preset draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Private until applied" : "Matches players"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><p id="workshop-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the selected workshop tool. Space grabs or drops a selected object. Delete removes a selected object. Escape cancels a staged shape or move. Exact geometry is also editable in the controls sidebar.</p><canvas ref={canvasRef} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-describedby="workshop-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Delete Escape" aria-label={`${map.name} editable map draft`} role="application" tabIndex={0} /></div><div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>Focus the map for keyboard editing; exact geometry is available in the sidebar</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
+      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Encounter map draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Unsaved changes" : draftMatchesApplied ? "Applied" : "Saved privately"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><p id="workshop-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the selected workshop tool. Space grabs or drops a selected object. Delete removes a selected object. Escape cancels a staged shape or move. Exact geometry is also editable in the controls sidebar.</p><canvas ref={canvasRef} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-describedby="workshop-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Delete Escape" aria-label={`${map.name} editable map draft`} role="application" tabIndex={0} /></div><div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>Focus the map for keyboard editing; exact geometry is available in the sidebar</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>
-    {exitPrompt === "discard" ? <ModalDialog labelledBy="discard-workshop-title" describedBy="discard-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="discard-workshop-title">Discard private changes?</h2><p id="discard-workshop-description">This restores the map currently applied to players and permanently removes the draft’s unsaved vision geometry, fog corners, labels, and notes.</p><div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => { discard(); setExitPrompt(null); }}>Discard changes</button></div></ModalDialog> : null}
-    {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Private map draft</div><h2 id="return-workshop-title">Return without applying?</h2><p id="return-workshop-description">Your private workshop changes are not visible to players. Keep editing, discard the draft and return, or apply it to everyone before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={discardAndReturn}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}
+    {exitPrompt === "discard" ? <ModalDialog labelledBy="discard-workshop-title" describedBy="discard-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Encounter map draft</div><h2 id="discard-workshop-title">Discard the draft?</h2><p id="discard-workshop-description">This restores the map currently applied to the encounter and permanently removes the draft’s vision geometry, fog corners, labels, and notes.</p><div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" disabled={busy} onClick={() => void discard().then((discarded) => { if (discarded) setExitPrompt(null); })}>Discard draft</button></div></ModalDialog> : null}
+    {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Encounter map draft</div><h2 id="return-workshop-title">Return with unsaved changes?</h2><p id="return-workshop-description">These latest draft changes have not been saved. Keep editing, discard the draft and return, or apply it to the encounter before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => void discardAndReturn()}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}
   </main>;
 }

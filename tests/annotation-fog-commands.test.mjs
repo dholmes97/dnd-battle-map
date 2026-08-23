@@ -9,11 +9,11 @@ import {
   setStrictMovement,
   setVisionDoorOpen,
 } from "../worker/commands/annotation-fog-commands.ts";
-import { createFullSceneMap, FULL_SCENE_MAPS } from "../shared/full-scene-maps.ts";
+import { testMapPackage } from "./fixtures/map-fixture.ts";
 
 function fixture(overrides = {}) {
   const calls = [];
-  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const map = testMapPackage();
   map.fog.doors = [{ id: "door-1", x1: 1, y1: 2, x2: 3, y2: 4, open: false }];
   return {
     calls,
@@ -24,8 +24,11 @@ function fixture(overrides = {}) {
         name: "Test",
         version: 1,
         status: "setup",
-        mapPackageJson: JSON.stringify(map),
-        activeMapPresetId: null,
+        activeMapImageId: map.id,
+        activeMapSetupJson: null,
+        activeMapPackageJson: JSON.stringify(map),
+        draftMapImageId: map.id,
+        draftMapSetupJson: null,
         gridWidth: map.width,
         gridHeight: map.height,
         currentRound: 0,
@@ -38,7 +41,7 @@ function fixture(overrides = {}) {
       now: 1000,
       repository: {
         updateStrictMovement: async (...args) => calls.push(["strict", ...args]),
-        updateMapPackage: async (...args) => calls.push(["map", ...args]),
+        updateActiveMapSetup: async (...args) => calls.push(["map", ...args]),
         insertAnnotation: async (...args) => { calls.push(["insert", ...args]); return true; },
         listDurableAnnotations: async () => [{ id: "line-1", annotationType: "drawing", x: 1, y: 1, x2: 2, y2: 2, color: "#fff", label: null, createdBy: "player-1", expiresAt: null, createdAt: 10 }],
         clearDurableAnnotations: async (...args) => calls.push(["clear", ...args]),

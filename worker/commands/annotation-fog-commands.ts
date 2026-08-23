@@ -1,6 +1,6 @@
 import { annotationGeometryIsBounded } from "../../shared/annotation-geometry.ts";
 import { ensureSharedFogPolygon } from "../../shared/fog-of-war.ts";
-import { parseMapPackage } from "../../shared/map-package.ts";
+import { mapSetupFromPackage, parseMapPackage } from "../../shared/map-package.ts";
 import type { SharedAnnotation } from "../../shared/contracts.ts";
 import type { AnnotationFogRepository } from "../ports/annotation-fog-repository.ts";
 import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
@@ -29,7 +29,7 @@ export async function setFogMode(context: AnnotationFogCommandContext<"set-fog-m
   const denied = requireDm(context);
   if (denied) return denied;
   const mode = context.payload.mode;
-  const map = mapPackage(context.encounter.mapPackageJson);
+  const map = mapPackage(context.encounter.activeMapPackageJson);
   if (!map) return commandError("Apply a map before enabling fog of war.", 400);
   const previousMode = map.fog.mode;
   const next = {
@@ -42,7 +42,7 @@ export async function setFogMode(context: AnnotationFogCommandContext<"set-fog-m
         : map.fog.sharedPolygon,
     },
   };
-  await context.repository.updateMapPackage(context.encounter.id, JSON.stringify(next), context.now);
+  await context.repository.updateActiveMapSetup(context.encounter.id, JSON.stringify(mapSetupFromPackage(next)), context.now);
   await finish(context, "fog_mode_changed", { from: previousMode, to: mode });
   return success(context, { updated: true });
 }
@@ -52,7 +52,7 @@ export async function setVisionDoorOpen(context: AnnotationFogCommandContext<"se
   if (denied) return denied;
   const doorId = cleanId(context.payload.doorId);
   if (!doorId) return commandError("Choose a vision door and whether it is open.", 400);
-  const map = mapPackage(context.encounter.mapPackageJson);
+  const map = mapPackage(context.encounter.activeMapPackageJson);
   if (!map) return commandError("Apply a map before changing vision doors.", 400);
   if (!map.fog.doors.some((door) => door.id === doorId)) return commandError("That vision door no longer exists.", 404);
   const next = {
@@ -62,7 +62,7 @@ export async function setVisionDoorOpen(context: AnnotationFogCommandContext<"se
       doors: map.fog.doors.map((door) => door.id === doorId ? { ...door, open: context.payload.open } : door),
     },
   };
-  await context.repository.updateMapPackage(context.encounter.id, JSON.stringify(next), context.now);
+  await context.repository.updateActiveMapSetup(context.encounter.id, JSON.stringify(mapSetupFromPackage(next)), context.now);
   await finish(context, "vision_door_changed", { doorId, open: context.payload.open });
   return success(context, { updated: true });
 }
@@ -70,11 +70,11 @@ export async function setVisionDoorOpen(context: AnnotationFogCommandContext<"se
 export async function updateSharedFog(context: AnnotationFogCommandContext<"update-shared-fog">): Promise<CommandOutcome> {
   const denied = requireDm(context);
   if (denied) return denied;
-  const map = mapPackage(context.encounter.mapPackageJson);
+  const map = mapPackage(context.encounter.activeMapPackageJson);
   if (!map) return commandError("Apply a map before changing shared fog.", 400);
   const candidate = mapPackage(JSON.stringify({ ...map, fog: { ...map.fog, sharedPolygon: context.payload.polygon } }));
   if (!candidate || candidate.fog.sharedPolygon.length < 3) return commandError("Shared fog needs at least three valid corners inside the map.", 400);
-  await context.repository.updateMapPackage(context.encounter.id, JSON.stringify(candidate), context.now);
+  await context.repository.updateActiveMapSetup(context.encounter.id, JSON.stringify(mapSetupFromPackage(candidate)), context.now);
   await finish(context, "shared_fog_changed", { cornerCount: candidate.fog.sharedPolygon.length });
   return success(context, { updated: true });
 }

@@ -17,7 +17,7 @@ export type DurableAnnotation = {
 
 export interface AnnotationFogRepository {
   updateStrictMovement(encounterId: string, enabled: boolean, updatedAt: number): Promise<void>;
-  updateMapPackage(encounterId: string, serialized: string, updatedAt: number): Promise<void>;
+  updateActiveMapSetup(encounterId: string, serialized: string, updatedAt: number): Promise<void>;
   insertAnnotation(encounterId: string, annotation: DurableAnnotation): Promise<boolean>;
   listDurableAnnotations(encounterId: string): Promise<DurableAnnotation[]>;
   clearDurableAnnotations(encounterId: string): Promise<void>;

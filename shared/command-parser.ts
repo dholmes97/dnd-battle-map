@@ -20,8 +20,8 @@ export type CommandParseResult =
 const PARSED_COMMANDS = [
   "send-chat-message", "delete-handout", "undo", "redo", "rename-scenario",
   "create-scenario", "set-initiative", "set-initiative-group", "end-turn",
-  "advance-turn", "start-combat", "correct-turn", "save-map-preset",
-  "delete-map-preset", "apply-map-package", "configure-encounter",
+  "advance-turn", "start-combat", "correct-turn", "save-map-draft",
+  "discard-map-draft", "apply-map-draft", "configure-encounter",
   "set-strict-movement", "set-fog-mode", "set-vision-door-open",
   "update-shared-fog", "create-spell-effect", "create-token",
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
@@ -75,6 +75,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     case "advance-turn":
     case "start-combat":
     case "clear-annotations":
+    case "discard-map-draft":
       return { command, payload: {} };
     case "rename-scenario":
       return requiredString(body.name) ? { command, payload: { name: body.name } } : null;
@@ -96,28 +97,10 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
       return finiteNumber(body.round) && finiteNumber(body.activeOrder)
         ? { command, payload: { round: body.round, activeOrder: body.activeOrder } }
         : null;
-    case "save-map-preset": {
+    case "save-map-draft":
+    case "apply-map-draft": {
       const mapPackage = parseSubmittedMap(body.mapPackage);
-      if (!mapPackage || !optionalString(body.presetId) || !optionalString(body.name) ||
-          !optionalString(body.description) || !optionalString(body.sourcePrompt)) return null;
-      return { command, payload: compact<"save-map-preset">({
-        presetId: body.presetId,
-        name: body.name,
-        description: body.description,
-        sourcePrompt: body.sourcePrompt,
-        mapPackage,
-      }) };
-    }
-    case "delete-map-preset":
-      return requiredString(body.presetId) ? { command, payload: { presetId: body.presetId } } : null;
-    case "apply-map-package": {
-      if (!optionalString(body.presetId)) return null;
-      const mapPackage = body.mapPackage === undefined ? undefined : parseSubmittedMap(body.mapPackage);
-      if (body.mapPackage !== undefined && !mapPackage) return null;
-      if (typeof body.presetId !== "string" && !mapPackage) return null;
-      return typeof body.presetId === "string"
-        ? { command, payload: mapPackage ? { presetId: body.presetId, mapPackage } : { presetId: body.presetId } }
-        : { command, payload: { mapPackage: mapPackage! } };
+      return mapPackage ? { command, payload: { mapPackage } } as CommandRequest : null;
     }
     case "configure-encounter":
       return encounterStatus(body.status) ? { command, payload: { status: body.status } } : null;

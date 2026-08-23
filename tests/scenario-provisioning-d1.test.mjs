@@ -70,7 +70,11 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
     assert.deepEqual(result.createdCatalogIds, ["email-shadow-bat"]);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM encounters WHERE code = ?", result.scenario.code), 1);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM tokens WHERE encounter_id = ?", result.scenario.id), 4);
-    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM map_presets WHERE encounter_id = ?", result.scenario.id), 1);
+    assert.equal(result.mapImageId !== null, true);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM map_images WHERE id = ?", result.mapImageId), 1);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM map_presets WHERE encounter_id = ?", result.scenario.id), 0);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM encounters WHERE id = ? AND active_map_image_id = draft_map_image_id", result.scenario.id), 1);
+    assert.equal(await scalar(db, "SELECT json_extract(active_map_setup_json, '$.format') AS value FROM encounters WHERE id = ?", result.scenario.id), "dnd-map-setup");
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_assets WHERE committed_at IS NOT NULL", undefined), 3);
     assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM scenario_provisioning_jobs WHERE status = 'ready'", undefined), 1);
     assert.equal((await createD1ScenarioProvisioningRepository(db).findAsset(created.job.id, "map-main")).r2Key, initialMap.r2Key);
@@ -237,7 +241,7 @@ function manifest() {
     operation: "create",
     targetScenarioCode: null,
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "kevin@example.com" },
-    scenario: { name: "Sunken Chapel", briefing: "Test the flooded nave.", presetName: "Sunken Chapel", presetDescription: "Vision ready" },
+    scenario: { name: "Sunken Chapel", briefing: "Test the flooded nave." },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: {
@@ -279,7 +283,7 @@ function revisionManifest(code, name) {
     operation: "revise",
     targetScenarioCode: code,
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-2", threadId: "thread-1", sender: "kevin@example.com" },
-    scenario: { name, briefing: "", presetName: name, presetDescription: "" },
+    scenario: { name, briefing: "" },
     settings: { strictMovement: true },
     party: { include: false, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: null,

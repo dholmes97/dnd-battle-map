@@ -22,7 +22,8 @@ function context(rows, overrides = {}) {
     calls,
     encounter: {
       id: "encounter", code: "CODE", name: "Scenario", version: 4, status: "active",
-      mapAsset: "", mapPackageJson: null, activeMapPresetId: null,
+      activeMapImageId: null, activeMapSetupJson: null, activeMapPackageJson: null,
+      draftMapImageId: null, draftMapSetupJson: null,
       gridWidth: 24, gridHeight: 16, currentRound: 2,
       activeInitiativeOrder: 0, strictMovement: true, updatedAt: 0,
     },

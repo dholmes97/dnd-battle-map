@@ -118,7 +118,7 @@ function manifest(overrides = {}) {
     revision: 1,
     operation: "create",
     source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-human-1", threadId: "self-thread", sender: "dan@example.com" },
-    scenario: { name: "Sunken Chapel", briefing: "Briefing", presetName: "Sunken Chapel", presetDescription: "" },
+    scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: {

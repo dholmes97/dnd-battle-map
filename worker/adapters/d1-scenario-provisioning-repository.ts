@@ -1,6 +1,8 @@
 import { HANDOUT_MAX_PER_SCENARIO } from "../../shared/handout-domain.ts";
 import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
+import { mapSetupFromPackage } from "../../shared/map-package.ts";
+import { MAX_MAP_IMAGES } from "../../shared/resource-limits.ts";
 import type { ScenarioProvisioningManifest } from "../../shared/scenario-provisioning.ts";
 import type {
   ScenarioProvisioningAssetRecord,
@@ -338,31 +340,55 @@ async function finalizeProvisioning(
      VALUES (?, ?, 'Kevin', 'dm', ?, ?, ?)`,
   ).bind(dmParticipantId, scenarioId, input.createId(), input.now, input.now));
 
-  const presetId = mapPackage ? input.createId() : null;
+  const mapImageId = mapPackage ? input.createId() : null;
+  const mapSetupJson = mapPackage ? JSON.stringify(mapSetupFromPackage(mapPackage)) : null;
+  let mapImageStatement: D1PreparedStatement | null = null;
+  if (mapPackage) {
+    const mapImageCount = await db.prepare("SELECT COUNT(*) AS value FROM map_images").first<{ value: number }>();
+    if ((Number(mapImageCount?.value) || 0) >= MAX_MAP_IMAGES) {
+      throw new ScenarioProvisioningWriteError("map_image_limit", "The campaign map-image limit has been reached.");
+    }
+    mapImageStatement = db.prepare(
+      `INSERT INTO map_images
+       (id, name, description, biome, mood, asset_path, grid_width, grid_height,
+        pixel_width, pixel_height, source_kind, source_prompt, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+    ).bind(
+      mapImageId, mapPackage.name, mapPackage.description, mapPackage.biome, mapPackage.mood,
+      mapPackage.visual.assetUrl, mapPackage.width, mapPackage.height,
+      mapPackage.visual.pixelWidth, mapPackage.visual.pixelHeight,
+      mapPackage.source.kind === "imported" ? "imported" : "generated",
+      input.manifest.map?.sourcePrompt ?? null, input.now, input.now,
+    );
+  }
   if (!target) {
-    statements.unshift(db.prepare(
+    const encounterStatement = db.prepare(
       `INSERT INTO encounters
        (id, code, name, dm_briefing, version, status, map_asset, map_package_json,
-        active_map_preset_id, grid_width, grid_height, current_round,
-        active_initiative_order, strict_movement, updated_at)
-       VALUES (?, ?, ?, ?, 1, 'setup', ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
+        active_map_preset_id, active_map_image_id, active_map_setup_json,
+        draft_map_image_id, draft_map_setup_json, draft_updated_at,
+        grid_width, grid_height, current_round, active_initiative_order, strict_movement, updated_at)
+       VALUES (?, ?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
     ).bind(
       scenarioId, scenarioCode, scenarioName, input.manifest.scenario.briefing,
-      mapPackage!.visual.assetUrl, JSON.stringify(mapPackage), presetId,
+      mapImageId, mapSetupJson, mapImageId, mapSetupJson, input.now,
       mapPackage!.width, mapPackage!.height,
       (input.manifest.settings.strictMovement ?? true) ? 1 : 0,
       input.now,
-    ));
+    );
+    statements.unshift(mapImageStatement!, encounterStatement);
   } else {
     const briefing = input.manifest.scenario.briefing;
     if (mapPackage) {
+      statements.push(mapImageStatement!);
       statements.push(db.prepare(
         `UPDATE encounters SET name = ?, dm_briefing = CASE WHEN ? = '' THEN dm_briefing ELSE ? END,
-         map_asset = ?, map_package_json = ?, active_map_preset_id = ?,
+         active_map_image_id = ?, active_map_setup_json = ?,
+         draft_map_image_id = ?, draft_map_setup_json = ?, draft_updated_at = ?,
          strict_movement = COALESCE(?, strict_movement), version = version + 1, updated_at = ?
          WHERE id = ? AND version = ?`,
       ).bind(
-        scenarioName, briefing, briefing, mapPackage.visual.assetUrl, JSON.stringify(mapPackage), presetId,
+        scenarioName, briefing, briefing, mapImageId, mapSetupJson, mapImageId, mapSetupJson, input.now,
         booleanInteger(input.manifest.settings.strictMovement), input.now, scenarioId, input.job.baseScenarioVersion,
       ));
     } else {
@@ -381,16 +407,6 @@ async function finalizeProvisioning(
       ));
     }
   }
-  if (mapPackage && presetId) statements.push(db.prepare(
-    `INSERT INTO map_presets
-     (id, encounter_id, name, description, source_prompt, package_json, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    presetId, scenarioId, input.manifest.scenario.presetName,
-    input.manifest.scenario.presetDescription, input.manifest.map?.sourcePrompt ?? null,
-    JSON.stringify(mapPackage), dmParticipantId, input.now, input.now,
-  ));
-
   const dimensions = mapPackage
     ? { width: mapPackage.width, height: mapPackage.height }
     : { width: target!.grid_width, height: target!.grid_height };
@@ -444,7 +460,7 @@ async function finalizeProvisioning(
     jobId: input.job.id,
     status: "ready",
     scenario: { id: scenarioId, code: scenarioCode, name: scenarioName },
-    presetId,
+    mapImageId,
     handoutIds,
     placedTokenIds,
     createdCatalogIds: catalog.created,
@@ -469,7 +485,7 @@ async function finalizeProvisioning(
     scenarioId,
     dmParticipantId,
     target ? "scenario_revised" : "scenario_provisioned",
-    JSON.stringify({ jobId: input.job.id, presetId, handoutIds, placedTokenIds }),
+    JSON.stringify({ jobId: input.job.id, mapImageId, handoutIds, placedTokenIds }),
     input.now,
   ));
   statements.push(db.prepare(

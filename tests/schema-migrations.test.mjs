@@ -13,6 +13,7 @@ import {
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_EFFECTS_PER_TOKEN,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
+  MAX_MAP_IMAGES,
   MAX_MAP_PRESETS_PER_ENCOUNTER,
   MAX_PARTICIPANTS_PER_ENCOUNTER,
   MAX_SCENARIOS,
@@ -51,7 +52,12 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "12");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "13");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "17");
+  assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE code = 'EMBER-KEEP';"), "grandfather-tree-roots-v1");
+  assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
+  assert.equal(await query(database, "SELECT json_extract(draft_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'map-images-and-drafts-v1';"), "1");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -183,6 +189,9 @@ test("bootstrap migration preserves customized existing records", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");
+  assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE id = 'custom-encounter';"), "encounter-custom-encounter");
+  assert.equal(await query(database, "SELECT draft_map_image_id FROM encounters WHERE id = 'custom-encounter';"), "encounter-custom-encounter");
+  assert.equal(await query(database, "SELECT asset_path FROM map_images WHERE id = 'encounter-custom-encounter';"), "/map-assets/custom.jpg");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });
 
@@ -250,6 +259,10 @@ test("large-map migration upgrades only visual metadata and preserves prepared g
     await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
   }
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'large-encounter';"), "");
+  assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE id = 'large-encounter';"), "cliffside-switchbacks-v2");
+  assert.equal(await query(database, "SELECT draft_map_image_id FROM encounters WHERE id = 'large-encounter';"), "cliffside-switchbacks-v2");
+  assert.equal(await query(database, "SELECT json_array_length(json_extract(draft_map_setup_json, '$.fog.walls')) FROM encounters WHERE id = 'large-encounter';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM map_presets WHERE id = 'large-preset';"), "1", "legacy preset rows remain available as rollout recovery data");
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
 });
 
@@ -257,7 +270,7 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /state-integrity-v1/);
+  assert.match(block, /map-images-and-drafts-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
 });
 
@@ -278,6 +291,8 @@ test("resource-limit migration constants stay aligned with application policies"
   assert.match(migration, new RegExp("FROM `effects` WHERE `encounter_id` = NEW\\.`encounter_id`\\) >= " + MAX_EFFECTS_PER_ENCOUNTER));
   assert.match(migration, new RegExp("AND `token_id` = NEW\\.`token_id`\\) >= " + MAX_EFFECTS_PER_TOKEN));
   assert.match(migration, new RegExp("FROM `creature_catalog`\\) >= " + MAX_CATALOG_ENTRIES));
+  const mapMigration = await readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8");
+  assert.match(mapMigration, new RegExp("FROM `map_images`\\) >= " + MAX_MAP_IMAGES));
 });
 
 test("state-integrity migration aligns atomic quotas and outbox schema", async () => {
@@ -311,7 +326,7 @@ test("Drizzle snapshots form a complete no-op generation baseline", async () => 
 
   const actualMigrations = (await readdir(output)).filter((name) => /^\d{4}_.+\.sql$/.test(name)).sort();
   assert.deepEqual(actualMigrations, expectedMigrations);
-  const snapshots = await Promise.all([22, 23, 24, 25, 26].map(async (index) =>
+  const snapshots = await Promise.all([24, 25, 26, 27, 28].map(async (index) =>
     JSON.parse(await readFile(join(output, "meta", `${String(index).padStart(4, "0")}_snapshot.json`), "utf8"))
   ));
   for (let index = 1; index < snapshots.length; index += 1) {

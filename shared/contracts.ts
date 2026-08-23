@@ -1,5 +1,5 @@
 import type { CreatureSize } from "./creature-library";
-import type { MapPackage } from "./map-package";
+import type { MapImage, MapPackage } from "./map-package";
 import type { HealthBand } from "./health";
 import type { SpellAreaSize, SpellEffectDefinition } from "./spell-effects";
 
@@ -91,16 +91,6 @@ export type SharedHandout = {
   updatedAt: number;
 };
 
-export type SavedMapPreset = {
-  id: string;
-  name: string;
-  description: string;
-  sourcePrompt: string | null;
-  mapPackage: MapPackage;
-  createdAt: number;
-  updatedAt: number;
-};
-
 export type FogVisibility = {
   mode: "off" | "shared" | "dynamic";
   polygons: MapPoint[][];
@@ -117,7 +107,8 @@ export type EncounterState = {
     version: number;
     status: EncounterStatus;
     mapPackage: MapPackage | null;
-    activeMapPresetId: string | null;
+    mapDraft: MapPackage | null;
+    draftUpdatedAt: number | null;
     currentRound: number;
     activeInitiativeOrder: number | null;
     strictMovement: boolean;
@@ -131,7 +122,7 @@ export type EncounterState = {
   annotations: SharedAnnotation[];
   chatMessages: SharedChatMessage[];
   handouts: SharedHandout[];
-  savedMapPresets: SavedMapPreset[];
+  mapImages: MapImage[];
   availableArt: string[];
 };
 
@@ -140,8 +131,8 @@ export type ParticipantSession = { id: string; name: string; role: Role; session
 export const COMMAND_NAMES = [
   "send-chat-message", "delete-handout", "undo", "redo", "rename-scenario",
   "create-scenario", "set-initiative", "set-initiative-group", "end-turn",
-  "advance-turn", "start-combat", "correct-turn", "save-map-preset",
-  "delete-map-preset", "apply-map-package", "configure-encounter",
+  "advance-turn", "start-combat", "correct-turn", "save-map-draft",
+  "discard-map-draft", "apply-map-draft", "configure-encounter",
   "set-strict-movement", "set-fog-mode", "set-vision-door-open",
   "update-shared-fog", "create-spell-effect", "create-token",
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
@@ -151,10 +142,6 @@ export const COMMAND_NAMES = [
 
 export type CommandName = typeof COMMAND_NAMES[number];
 type EmptyCommandPayload = Record<string, never>;
-type MapApplicationPayload =
-  | { presetId: string; mapPackage?: MapPackage }
-  | { presetId?: string; mapPackage: MapPackage };
-
 export type CommandPayloadMap = {
   "send-chat-message": {
     recipientName?: string | null;
@@ -173,15 +160,9 @@ export type CommandPayloadMap = {
   "advance-turn": EmptyCommandPayload;
   "start-combat": EmptyCommandPayload;
   "correct-turn": { round: number; activeOrder: number };
-  "save-map-preset": {
-    presetId?: string;
-    name?: string;
-    description?: string;
-    sourcePrompt?: string;
-    mapPackage: MapPackage;
-  };
-  "delete-map-preset": { presetId: string };
-  "apply-map-package": MapApplicationPayload;
+  "save-map-draft": { mapPackage: MapPackage };
+  "discard-map-draft": EmptyCommandPayload;
+  "apply-map-draft": { mapPackage: MapPackage };
   "configure-encounter": { status: EncounterStatus };
   "set-strict-movement": { enabled: boolean };
   "set-fog-mode": { mode: MapPackage["fog"]["mode"] };

@@ -74,6 +74,32 @@ export const storageCleanupOutbox = sqliteTable(
   (table) => [index("idx_storage_cleanup_outbox_pending").on(table.completedAt, table.availableAt)],
 );
 
+export const mapImages = sqliteTable(
+  "map_images",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    biome: text("biome").notNull(),
+    mood: text("mood").notNull(),
+    assetPath: text("asset_path").notNull(),
+    gridWidth: integer("grid_width").notNull(),
+    gridHeight: integer("grid_height").notNull(),
+    pixelWidth: integer("pixel_width").notNull(),
+    pixelHeight: integer("pixel_height").notNull(),
+    sourceKind: text("source_kind").notNull(),
+    sourcePrompt: text("source_prompt"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_map_images_asset_path").on(table.assetPath),
+    index("idx_map_images_active_name").on(table.isActive, table.name, table.id),
+    index("idx_map_images_biome_mood").on(table.biome, table.mood),
+  ],
+);
+
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),
@@ -81,11 +107,18 @@ export const encounters = sqliteTable("encounters", {
   dmBriefing: text("dm_briefing").notNull().default(""),
   version: integer("version").notNull().default(1),
   status: text("status").notNull().default("setup"),
-  mapAsset: text("map_asset")
+  legacyMapAsset: text("map_asset")
     .notNull()
     .default(""),
-  mapPackageJson: text("map_package_json"),
-  activeMapPresetId: text("active_map_preset_id"),
+  legacyMapPackageJson: text("map_package_json"),
+  legacyActiveMapPresetId: text("active_map_preset_id"),
+  activeMapImageId: text("active_map_image_id")
+    .references(() => mapImages.id),
+  activeMapSetupJson: text("active_map_setup_json"),
+  draftMapImageId: text("draft_map_image_id")
+    .references(() => mapImages.id),
+  draftMapSetupJson: text("draft_map_setup_json"),
+  draftUpdatedAt: integer("draft_updated_at"),
   gridWidth: integer("grid_width").notNull().default(16),
   gridHeight: integer("grid_height").notNull().default(11),
   currentRound: integer("current_round").notNull().default(0),
@@ -184,7 +217,8 @@ export const scenarioProvisioningMailMessages = sqliteTable(
   ],
 );
 
-export const mapPresets = sqliteTable(
+// Rollout recovery only. Current map commands use the encounter active/draft fields above.
+export const legacyMapPresets = sqliteTable(
   "map_presets",
   {
     id: text("id").primaryKey(),

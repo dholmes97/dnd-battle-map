@@ -13,7 +13,7 @@ return plain data, and have direct Node unit tests.
 - `initiative-domain.ts`: roster grouping, initiative groups, and turn transitions.
 - `map-workshop-domain.ts`: map-thumbnail paths, grid snapping, and note hit-testing.
 - `encounter-domain.ts`: scenario codes, viewer-safe map projection, and history conflict messages.
-- Existing health, token-control, action-history, map-package, spell-effect, creature, and full-scene modules follow the same boundary.
+- Existing health, token-control, action-history, map-package, spell-effect, and creature modules follow the same boundary.
 
 Domain modules must not import React, DOM APIs, Worker APIs, D1, R2, or networking code. If a rule needs the current time, randomness, persistence, or identity, pass that information in as data.
 
@@ -54,6 +54,24 @@ New work should extend the existing feature boundary, command family,
 repository port, or shared transition that owns the behavior instead of adding
 new root-component or request-router branches.
 
+## Encounter maps
+
+`map_images` is the canonical catalog for immutable image identity and metadata:
+name, description, biome, mood, asset path, grid and pixel dimensions, and
+source provenance. Each entry represents one cohesive high-resolution full-scene
+map. Encounter rows reference that catalog separately for their active map and
+their private Map Workshop draft. Each reference has a compact
+`MapSetup` JSON document containing only prepared walls, portals, labels, notes,
+and fog geometry. The Worker hydrates a full `MapPackage` transport DTO at the
+adapter boundary so the canvas does not need to join persistence records.
+
+Applying a draft atomically replaces the active image/setup pair, keeps the
+draft aligned with it, resizes the encounter grid, and clamps tokens to the new
+footprint. Saving a draft does not change player state; discarding it replaces
+the draft pair with the active pair. Legacy package columns and preset rows are
+retained as rollout recovery data. Current map commands never write them; the
+Worker reads the old active package only as a bounded migration fallback.
+
 ## Live synchronization
 
 Clients use short conditional requests keyed by encounter version. Unchanged
@@ -71,6 +89,22 @@ Browser requests use a composed default deadline through response
 consumption, with caller cancellation preserved. For optimistic operations the
 deadline begins when the reducer paints, so time spent waiting in the serialized
 request queue consumes the same bounded budget instead of restarting it.
+
+Unchanged visible polls use deterministic participant-specific jitter and an
+activity-aware ceiling: approximately three seconds during active combat and
+eight seconds during setup or a deliberate DM pause. A changed encounter
+version, page focus, or restored visibility returns the client to the fast 250ms
+cadence. This keeps active play responsive without making every idle participant
+spend one Worker request and D1 version lookup per second.
+
+Every browser encounter request carries a bounded operation ID and every Worker
+response carries a server-generated request ID, echoes the operation ID, and
+reports total and projection duration through `Server-Timing`. The Worker emits
+privacy-safe structured completion records that classify conflicts, rate limits,
+client and server failures, bounded projection collection sizes, and latency.
+Unchanged polls are deterministically sampled at 1:32; changed responses and
+failures remain observable. Unexpected client notices include a short server
+reference so a report can be correlated without exposing sensitive state.
 
 This polling adapter is deliberate for the current small trusted group. Earlier
 production trials found that the hosting path buffered Server-Sent Events and

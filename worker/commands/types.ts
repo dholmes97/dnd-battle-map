@@ -11,9 +11,11 @@ export type CommandEncounter = {
   name: string;
   version: number;
   status: "setup" | "active" | "paused";
-  mapAsset: string;
-  mapPackageJson: string | null;
-  activeMapPresetId: string | null;
+  activeMapImageId: string | null;
+  activeMapSetupJson: string | null;
+  activeMapPackageJson: string | null;
+  draftMapImageId: string | null;
+  draftMapSetupJson: string | null;
   gridWidth: number;
   gridHeight: number;
   currentRound: number;

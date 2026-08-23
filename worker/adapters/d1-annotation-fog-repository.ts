@@ -15,9 +15,9 @@ export function createD1AnnotationFogRepository(db: D1Database): AnnotationFogRe
       ).bind(enabled ? 1 : 0, updatedAt, encounterId).run();
     },
 
-    async updateMapPackage(encounterId, serialized, updatedAt) {
+    async updateActiveMapSetup(encounterId, serialized, updatedAt) {
       await db.prepare(
-        "UPDATE encounters SET map_package_json = ?, updated_at = ? WHERE id = ?",
+        "UPDATE encounters SET active_map_setup_json = ?, updated_at = ? WHERE id = ?",
       ).bind(serialized, updatedAt, encounterId).run();
     },
 

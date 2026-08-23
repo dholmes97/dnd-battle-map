@@ -1,41 +1,47 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { parseMapPackage } from "../shared/map-package.ts";
-import { FULL_SCENE_MAPS, MAP_SOURCE_PIXELS_PER_CELL, createFullSceneMap } from "../shared/full-scene-maps.ts";
+import { createMapPackageForImage, parseMapPackage } from "../shared/map-package.ts";
+import { testMapPackage } from "./fixtures/map-fixture.ts";
+
+const MAP_SOURCE_PIXELS_PER_CELL = 128;
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
-  assert.equal(FULL_SCENE_MAPS.length, 17);
-  for (const definition of FULL_SCENE_MAPS) {
-    const map = createFullSceneMap(definition);
+  const migration = await readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8");
+  const mapImages = builtInMapImagesFromMigration(migration);
+  assert.equal(mapImages.length, 17);
+  for (const mapImage of mapImages) {
+    const map = createMapPackageForImage(mapImage);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
     assert.equal(parsed?.visual.pixelWidth, parsed?.width * MAP_SOURCE_PIXELS_PER_CELL);
     assert.equal(parsed?.visual.pixelHeight, parsed?.height * MAP_SOURCE_PIXELS_PER_CELL);
-    assert.equal(parsed?.width, definition.width ?? 24);
-    assert.equal(parsed?.height, definition.height ?? 16);
-    assert.equal(parsed?.visual.assetUrl, definition.assetUrl);
+    assert.equal(parsed?.width, mapImage.gridWidth);
+    assert.equal(parsed?.height, mapImage.gridHeight);
+    assert.equal(parsed?.visual.assetUrl, mapImage.assetPath);
     assert.equal(parsed?.fog.sharedPolygon.length, 8);
     assert.equal("terrain" in map, false);
     assert.equal("stamps" in map, false);
 
-    const jpg = await readFile(new URL(`../public/assets/full-map-seeds/${definition.assetUrl.split("/").pop()}`, import.meta.url));
-    assert.deepEqual([...jpg.subarray(0, 3)], [255, 216, 255], `${definition.id} JPEG signature`);
-    assert.ok(jpg.length > 1_000_000, `${definition.id} should retain production detail`);
-    assert.deepEqual(jpegDimensions(jpg), { width: map.visual.pixelWidth, height: map.visual.pixelHeight }, `${definition.id} source dimensions`);
-    const thumbnail = await readFile(new URL(`../public/assets/full-map-thumbnails/${definition.assetUrl.split("/").pop()}`, import.meta.url));
-    assert.deepEqual([...thumbnail.subarray(0, 3)], [255, 216, 255], `${definition.id} thumbnail JPEG signature`);
-    assert.ok(thumbnail.length > 10_000 && thumbnail.length < 100_000, `${definition.id} should use a compact decoded-memory preview`);
-    assert.match(workerSource, new RegExp(`"${definition.assetUrl.split("/").pop()}"`), `${definition.id} should be publicly served`);
+    const filename = mapImage.assetPath.split("/").pop();
+    const jpg = await readFile(new URL(`../public/assets/full-map-seeds/${filename}`, import.meta.url));
+    assert.deepEqual([...jpg.subarray(0, 3)], [255, 216, 255], `${mapImage.id} JPEG signature`);
+    assert.ok(jpg.length > 1_000_000, `${mapImage.id} should retain production detail`);
+    assert.deepEqual(jpegDimensions(jpg), { width: map.visual.pixelWidth, height: map.visual.pixelHeight }, `${mapImage.id} source dimensions`);
+    const thumbnail = await readFile(new URL(`../public/assets/full-map-thumbnails/${filename}`, import.meta.url));
+    assert.deepEqual([...thumbnail.subarray(0, 3)], [255, 216, 255], `${mapImage.id} thumbnail JPEG signature`);
+    assert.ok(thumbnail.length > 10_000 && thumbnail.length < 100_000, `${mapImage.id} should use a compact decoded-memory preview`);
   }
-  assert.deepEqual(FULL_SCENE_MAPS.filter((definition) => definition.width === 45).map((definition) => [definition.id, definition.width, definition.height, createFullSceneMap(definition).visual.pixelWidth, createFullSceneMap(definition).visual.pixelHeight]), [
+  assert.match(workerSource, /FROM map_images WHERE asset_path = \?/, "the durable catalog should authorize map assets without a second filename list");
+  for (const mapImage of mapImages) assert.doesNotMatch(workerSource, new RegExp(`"${mapImage.assetPath.split("/").pop()}"`));
+  assert.deepEqual(mapImages.filter((image) => image.gridWidth === 45).map((image) => [image.id, image.gridWidth, image.gridHeight, image.pixelWidth, image.pixelHeight]), [
     ["cliffside-switchbacks-v2", 45, 30, 5760, 3840],
     ["underwater-ruins-v2", 45, 30, 5760, 3840],
   ]);
 });
 
 test("full-scene packages round-trip with map annotations", () => {
-  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const map = testMapPackage();
   map.walls.push({ id: "wall-1", x1: 1, y1: 1, x2: 5, y2: 1, style: "stone" });
   map.portals.push({ id: "door-1", x: 3, y: 1, orientation: "horizontal", kind: "door", open: false });
   map.labels.push({ id: "label-1", x: 8, y: 5, text: "Old trail", visibility: "everyone" });
@@ -45,7 +51,7 @@ test("full-scene packages round-trip with map annotations", () => {
 });
 
 test("validation rejects old editor packages, external images, and oversized data", () => {
-  const valid = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const valid = testMapPackage();
   assert.equal(parseMapPackage({ ...valid, visual: undefined, terrain: Array(384).fill("grass"), stamps: [] }), null);
   assert.equal(parseMapPackage({ ...valid, visual: { ...valid.visual, assetUrl: "https://example.com/map.jpg" } }), null);
   assert.equal(parseMapPackage({ ...valid, width: 49 }), null);
@@ -55,7 +61,7 @@ test("validation rejects old editor packages, external images, and oversized dat
 });
 
 test("legacy sticker fields are accepted but discarded", () => {
-  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const map = testMapPackage();
   const parsed = parseMapPackage({
     ...map,
     visual: { ...map.visual, sceneKitId: "forest" },
@@ -67,7 +73,7 @@ test("legacy sticker fields are accepted but discarded", () => {
 });
 
 test("map packages preserve deliberately simplified shared-fog polygons", () => {
-  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const map = testMapPackage();
   map.fog.sharedPolygon = [
     { x: 0, y: 0 },
     { x: map.width, y: 0 },
@@ -76,6 +82,31 @@ test("map packages preserve deliberately simplified shared-fog polygons", () => 
   ];
   assert.equal(parseMapPackage(JSON.parse(JSON.stringify(map)))?.fog.sharedPolygon.length, 4);
 });
+
+function builtInMapImagesFromMigration(sql) {
+  const rows = [];
+  const rowPattern = /^\s*\('([^']+)', '((?:''|[^'])*)', '((?:''|[^'])*)', '([^']+)', '([^']+)', '([^']+)', (\d+), (\d+), (\d+), (\d+), 'built-in', NULL, 1, (\d+), (\d+)\)[,;]/gm;
+  for (const match of sql.matchAll(rowPattern)) {
+    rows.push({
+      id: match[1],
+      name: match[2].replaceAll("''", "'"),
+      description: match[3].replaceAll("''", "'"),
+      biome: match[4],
+      mood: match[5],
+      assetPath: match[6],
+      gridWidth: Number(match[7]),
+      gridHeight: Number(match[8]),
+      pixelWidth: Number(match[9]),
+      pixelHeight: Number(match[10]),
+      sourceKind: "built-in",
+      sourcePrompt: null,
+      active: true,
+      createdAt: Number(match[11]),
+      updatedAt: Number(match[12]),
+    });
+  }
+  return rows;
+}
 
 function jpegDimensions(buffer) {
   let offset = 2;

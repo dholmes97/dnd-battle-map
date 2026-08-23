@@ -490,26 +490,28 @@ test("the last accepted move wins when two authorized clients move the same toke
   }
 });
 
-test("map presets persist privately and applied packages resize the shared authoritative grid", async () => {
+test("map drafts persist privately and applying a draft resizes the shared authoritative grid", async () => {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const dm = (await joinIdentity(FIXED_IDENTITIES.kevin)).participant;
   const player = (await joinIdentity(FIXED_IDENTITIES.scott)).participant;
   const initial = await viewerState(dm);
   const originalPackage = initial.body.encounter.mapPackage;
-  const width = 18;
-  const height = 12;
+  const targetImage = initial.body.mapImages.find((image) => image.gridWidth === 45 && image.id !== originalPackage?.id);
+  assert.ok(targetImage, "the durable map catalog should include a large-map fixture");
+  const width = targetImage.gridWidth;
+  const height = targetImage.gridHeight;
   const mapPackage = {
     format: "dnd-battle-map",
     version: 1,
-    id: `api-map-${suffix}`,
-    name: `Haunted API Ruins ${suffix}`,
-    description: "A durable map-package verification fixture.",
-    biome: "ruins",
-    mood: "moonlight",
-    seed: `API-${suffix}`,
+    id: targetImage.id,
+    name: targetImage.name,
+    description: targetImage.description,
+    biome: targetImage.biome,
+    mood: targetImage.mood,
+    seed: targetImage.id.toUpperCase(),
     width,
     height,
-    visual: { kind: "generated-scene", assetUrl: "/map-assets/storm-coast-ruins-02.jpg", pixelWidth: 3072, pixelHeight: 2048 },
+    visual: { kind: "generated-scene", assetUrl: targetImage.assetPath, pixelWidth: targetImage.pixelWidth, pixelHeight: targetImage.pixelHeight },
     walls: [{ id: `wall-${suffix}`, x1: 2, y1: 2, x2: 8, y2: 2, style: "ruined" }],
     portals: [],
     labels: [
@@ -517,25 +519,24 @@ test("map presets persist privately and applied packages resize the shared autho
       { id: `dm-label-${suffix}`, x: 6, y: 6, text: "Secret door", visibility: "dm" },
     ],
     notes: [{ id: `dm-note-${suffix}`, x: 5, y: 5, text: "The floor gives way here." }],
-    source: { kind: "generated-scene" },
-    createdAt: Date.now(),
+    source: { kind: targetImage.sourceKind === "imported" ? "imported" : "generated-scene" },
+    createdAt: targetImage.createdAt,
   };
-  let presetId;
   try {
-    const saved = await command(dm, "save-map-preset", { name: mapPackage.name, mapPackage });
+    const saved = await command(dm, "save-map-draft", { mapPackage });
     assert.equal(saved.response.status, 200);
-    assert.match(saved.body.presetId, /^[a-f0-9-]{36}$/);
-    presetId = saved.body.presetId;
-    assert.equal(saved.body.state.savedMapPresets.some((preset) => preset.id === presetId), true);
+    assert.equal(saved.body.state.encounter.mapPackage.id, originalPackage.id, "saving a draft must not change the active map");
+    assert.equal(saved.body.state.encounter.mapDraft.id, targetImage.id);
 
     const privatePlayerState = await viewerState(player);
-    assert.deepEqual(privatePlayerState.body.savedMapPresets, []);
+    assert.equal(privatePlayerState.body.encounter.mapDraft, null);
+    assert.deepEqual(privatePlayerState.body.mapImages, [], "players must not receive map catalog metadata or source prompts");
 
-    const applied = await command(dm, "apply-map-package", { presetId });
+    const applied = await command(dm, "apply-map-draft", { mapPackage });
     assert.equal(applied.response.status, 200);
     assert.deepEqual(applied.body.state.grid, { width, height, feetPerCell: 5 });
     assert.equal(applied.body.state.encounter.mapPackage.id, mapPackage.id);
-    assert.equal(applied.body.state.encounter.activeMapPresetId, presetId);
+    assert.deepEqual(applied.body.state.encounter.mapDraft, applied.body.state.encounter.mapPackage);
 
     const shared = await viewerState(player);
     assert.equal(shared.body.encounter.mapPackage.name, mapPackage.name);
@@ -545,23 +546,26 @@ test("map presets persist privately and applied packages resize the shared autho
     assert.equal(applied.body.state.encounter.mapPackage.notes[0].text, "The floor gives way here.", "the DM keeps the complete package");
     assert.equal(applied.body.state.encounter.mapPackage.labels.length, 2);
 
-    const editedDraft = { ...mapPackage, name: `${mapPackage.name} · Edited`, description: "The currently edited workshop draft must win over its older saved preset." };
-    const editedApplication = await command(dm, "apply-map-package", { presetId, mapPackage: editedDraft });
+    const editedDraft = { ...mapPackage, notes: [...mapPackage.notes, { id: `edited-note-${suffix}`, x: 7, y: 7, text: "Draft-only preparation" }] };
+    const resaved = await command(dm, "save-map-draft", { mapPackage: editedDraft });
+    assert.equal(resaved.response.status, 200);
+    assert.equal(resaved.body.state.encounter.mapPackage.notes.length, mapPackage.notes.length);
+    assert.equal(resaved.body.state.encounter.mapDraft.notes.at(-1).text, "Draft-only preparation");
+
+    const editedApplication = await command(dm, "apply-map-draft", { mapPackage: editedDraft });
     assert.equal(editedApplication.response.status, 200);
-    assert.equal(editedApplication.body.state.encounter.mapPackage.name, editedDraft.name);
-    assert.equal(editedApplication.body.state.encounter.activeMapPresetId, null, "An edited draft must not masquerade as the older saved preset");
+    assert.equal(editedApplication.body.state.encounter.mapPackage.notes.at(-1).text, "Draft-only preparation");
 
     const editedShared = await viewerState(player);
-    assert.equal(editedShared.body.encounter.mapPackage.description, editedDraft.description);
+    assert.deepEqual(editedShared.body.encounter.mapPackage.notes, [], "players must not receive private DM-note text or markers");
 
-    const deleted = await command(dm, "delete-map-preset", { presetId });
-    assert.equal(deleted.response.status, 200);
-    presetId = null;
-    assert.equal(deleted.body.state.encounter.mapPackage.name, editedDraft.name, "Deleting a preset must not erase the already-applied map");
-    assert.equal(deleted.body.state.encounter.activeMapPresetId, null);
+    const newerDraft = { ...editedDraft, notes: [...editedDraft.notes, { id: `discard-note-${suffix}`, x: 8, y: 8, text: "Discard me" }] };
+    await command(dm, "save-map-draft", { mapPackage: newerDraft });
+    const discarded = await command(dm, "discard-map-draft", {});
+    assert.equal(discarded.response.status, 200);
+    assert.deepEqual(discarded.body.state.encounter.mapDraft, discarded.body.state.encounter.mapPackage);
   } finally {
-    if (presetId) await command(dm, "delete-map-preset", { presetId }).catch(() => null);
-    if (originalPackage) await command(dm, "apply-map-package", { mapPackage: originalPackage }).catch(() => null);
+    if (originalPackage) await command(dm, "apply-map-draft", { mapPackage: originalPackage }).catch(() => null);
     else await command(dm, "configure-encounter", { status: initial.body.encounter.status }).catch(() => null);
   }
 });

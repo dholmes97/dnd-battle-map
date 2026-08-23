@@ -121,8 +121,6 @@ export type ScenarioProvisioningManifest = {
   scenario: {
     name: string;
     briefing: string;
-    presetName: string;
-    presetDescription: string;
   };
   settings: { strictMovement: boolean | null };
   party: {
@@ -433,8 +431,6 @@ export function parseScenarioProvisioningManifest(value: unknown): ScenarioProvi
   const scenario = {
     name: scenarioName,
     briefing: cleanMultilineText(scenarioValue?.briefing, 8_000),
-    presetName: cleanText(scenarioValue?.presetName, 72) || scenarioName,
-    presetDescription: cleanMultilineText(scenarioValue?.presetDescription, 500),
   };
   const settingsValue = record(item.settings) ?? {};
   const strictMovement = typeof settingsValue.strictMovement === "boolean" ? settingsValue.strictMovement : null;

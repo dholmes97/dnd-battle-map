@@ -140,7 +140,7 @@ function cleanSiteUrl(value) {
 function printResult(result) {
   if (!result?.scenario?.code) fail("The provisioning API did not return a completed scenario.");
   console.log(`Scenario ready: ${result.scenario.name} (${result.scenario.code}).`);
-  console.log(`Preset: ${result.presetId ?? "unchanged"}; handouts: ${result.handoutIds?.length ?? 0}; tokens: ${result.placedTokenIds?.length ?? 0}.`);
+  console.log(`Map image: ${result.mapImageId ?? "unchanged"}; handouts: ${result.handoutIds?.length ?? 0}; tokens: ${result.placedTokenIds?.length ?? 0}.`);
   if (result.createdCatalogIds?.length) console.log(`Created creatures: ${result.createdCatalogIds.join(", ")}.`);
   if (result.reusedCatalogIds?.length) console.log(`Reused creatures: ${result.reusedCatalogIds.join(", ")}.`);
   for (const warning of result.reviewWarnings ?? []) console.log(`Review: ${warning}`);

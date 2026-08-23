@@ -55,7 +55,8 @@ function createState(tokens: SharedToken[] = [], mapPackage: MapPackage | null =
       version: 1,
       status: "active",
       mapPackage,
-      activeMapPresetId: null,
+      mapDraft: null,
+      draftUpdatedAt: null,
       currentRound: 1,
       activeInitiativeOrder: 0,
       strictMovement: false,
@@ -69,7 +70,7 @@ function createState(tokens: SharedToken[] = [], mapPackage: MapPackage | null =
     annotations: [],
     chatMessages: [],
     handouts: [],
-    savedMapPresets: [],
+    mapImages: [],
     availableArt: [],
   };
 }

@@ -15,9 +15,9 @@ columns, seed records, backfill data, or perform retired-feature cleanup.
 5. Run `npm test` and `npm run lint`.
 
 The initial production seed and the historical request-time maintenance were
-captured in `0017_blushing_moondragon.sql`. Its deterministic data SQL can be
-regenerated with `npm run db:generate-bootstrap` when reviewing that migration;
-it is not an ordinary command for future migrations.
+captured in `0017_blushing_moondragon.sql`. That checked-in migration is the
+immutable record of the original bootstrap; future catalog changes belong in
+new numbered migrations instead of a source-code seed catalog.
 
 ## Local development
 

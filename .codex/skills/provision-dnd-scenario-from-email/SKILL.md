@@ -109,7 +109,7 @@ npm run scenario:provision -- /absolute/path/to/private-job/envelope.json
 
 This is the only production mutation allowed by this skill. Do not call generic APIs, SQL, Wrangler D1/R2 commands, catalog import, backup, deployment, or arbitrary curl commands. A normal job does not require a production backup.
 
-After the client reports ready, query the public scenario list and the secret-protected job status. Confirm scenario code/name, preset, handout count, placed tokens, created/reused creatures, assumptions, and warnings. Do not start combat or send scenario chat messages.
+After the client reports ready, query the public scenario list and the secret-protected job status. Confirm scenario code/name, map image and encounter draft, handout count, placed tokens, created/reused creatures, assumptions, and warnings. Do not start combat or send scenario chat messages.
 
 ### 8. Reply and label
 

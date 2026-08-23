@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import MapWorkshop from "@/app/map-workshop";
-import { createFullSceneMap, FULL_SCENE_MAPS } from "@/shared/full-scene-maps";
+import { TEST_MAP_IMAGE, testMapPackage } from "../fixtures/map-fixture";
 
 vi.mock("next/image", () => ({
   default: () => <span aria-hidden="true" />,
@@ -32,21 +32,21 @@ afterAll(() => {
 });
 
 function setup(command = vi.fn(async () => ({ state: {} }))) {
-  const map = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const map = testMapPackage();
   const onClose = vi.fn();
   const view = render(<MapWorkshop
     activeMapPackage={map}
-    activeMapPresetId={null}
-    savedPresets={[]}
+    draftMapPackage={map}
+    mapImages={[TEST_MAP_IMAGE]}
     onCommand={command as never}
     onClose={onClose}
   />);
   return { command, map, onClose, unmount: view.unmount };
 }
 
-async function makeDirty(description = "A revised private map") {
-  fireEvent.change(screen.getByLabelText("Description"), { target: { value: description } });
-  await waitFor(() => expect(screen.getByText("Private changes")).toBeTruthy());
+async function makeDirty() {
+  await userEvent.selectOptions(screen.getByLabelText("Visibility mode"), "dynamic");
+  await waitFor(() => expect(screen.getByText("Unsaved draft")).toBeTruthy());
 }
 
 describe("MapWorkshop exit safeguards", () => {
@@ -64,23 +64,23 @@ describe("MapWorkshop exit safeguards", () => {
     await makeDirty();
     const returnButton = screen.getByRole("button", { name: "Return to battle map" });
     await user.click(returnButton);
-    expect(screen.getByRole("dialog", { name: "Return without applying?" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "Return with unsaved changes?" })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Keep editing" }));
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText("Private changes")).toBeTruthy();
+    expect(screen.getByText("Unsaved draft")).toBeTruthy();
     expect(document.activeElement).toBe(returnButton);
   });
 
   it("confirms header discard and restores the authoritative draft without leaving", async () => {
     const user = userEvent.setup();
-    const { map, onClose } = setup();
+    const { onClose } = setup();
     await makeDirty();
-    await user.click(screen.getByRole("button", { name: "Discard private changes" }));
-    expect(screen.getByRole("dialog", { name: "Discard private changes?" })).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Discard changes" }));
-    expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe(map.description);
-    expect(screen.getByText("Matches players")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Discard draft" }));
+    expect(screen.getByRole("dialog", { name: "Discard the draft?" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Discard draft" }));
+    await waitFor(() => expect((screen.getByLabelText("Visibility mode") as unknown as { value: string }).value).toBe("off"));
+    expect(screen.getByText("Applied")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -90,7 +90,7 @@ describe("MapWorkshop exit safeguards", () => {
     await makeDirty();
     await user.click(screen.getByRole("button", { name: "Return to battle map" }));
     await user.click(screen.getByRole("button", { name: "Discard and return" }));
-    expect(command).not.toHaveBeenCalled();
+    expect(command).toHaveBeenCalledWith("discard-map-draft", {});
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -98,23 +98,23 @@ describe("MapWorkshop exit safeguards", () => {
     const user = userEvent.setup();
     const accepted = vi.fn(async () => ({ state: {} }));
     const success = setup(accepted);
-    await makeDirty("Published description");
+    await makeDirty();
     await user.click(screen.getByRole("button", { name: "Return to battle map" }));
     await user.click(screen.getByRole("button", { name: "Apply and return" }));
     await waitFor(() => expect(success.onClose).toHaveBeenCalledOnce());
-    expect(accepted).toHaveBeenCalledWith("apply-map-package", expect.objectContaining({
-      mapPackage: expect.objectContaining({ description: "Published description" }),
+    expect(accepted).toHaveBeenCalledWith("apply-map-draft", expect.objectContaining({
+      mapPackage: expect.objectContaining({ fog: expect.objectContaining({ mode: "dynamic" }) }),
     }));
     success.unmount();
 
     const rejected = vi.fn(async () => { throw new Error("Server kept the applied map unchanged."); });
     const failure = setup(rejected);
-    await makeDirty("Rejected description");
+    await makeDirty();
     await user.click(screen.getByRole("button", { name: "Return to battle map" }));
     await user.click(screen.getByRole("button", { name: "Apply and return" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Server kept the applied map unchanged."));
     expect(failure.onClose).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Return without applying?" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "Return with unsaved changes?" })).toBeTruthy();
   });
 });
 
@@ -138,7 +138,7 @@ describe("MapWorkshop keyboard-equivalent authoring", () => {
     canvas.focus();
     await user.keyboard("{Delete}");
     expect(screen.queryByRole("button", { name: /Keyboard waypoint.*everyone/i })).toBeNull();
-    expect(screen.getByText("Private changes")).toBeTruthy();
+    expect(screen.getByText("Unsaved draft")).toBeTruthy();
   });
 
   it("creates a vision wall and edits both endpoints without a pointer", async () => {

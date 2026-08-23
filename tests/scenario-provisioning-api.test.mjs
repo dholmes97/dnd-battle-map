@@ -55,7 +55,7 @@ function manifest(sender = "kevin@example.com") {
     revision: 1,
     operation: "create",
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender },
-    scenario: { name: "Sunken Chapel", briefing: "Briefing", presetName: "Sunken Chapel", presetDescription: "" },
+    scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: {

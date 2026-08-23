@@ -105,9 +105,10 @@ test("packages production backup and storage-preserving release tooling", async 
 });
 
 test("does not restore retired fragmented map authoring", async () => {
-  const [workshop, maps, architecture] = await Promise.all([source("app/map-workshop.tsx"), source("shared/full-scene-maps.ts"), source("docs/ARCHITECTURE.md")]);
+  const [workshop, migration, architecture] = await Promise.all([source("app/map-workshop.tsx"), source("drizzle/0028_volatile_bruce_banner.sql"), source("docs/ARCHITECTURE.md")]);
   assert.match(workshop, /Base map/);
-  assert.match(maps, /generated-scene/);
+  assert.match(workshop, /mapImages/);
+  assert.match(migration, /CREATE TABLE `map_images`/);
   assert.doesNotMatch(workshop, /generic terrain|scene-kit-panel/i);
   assert.match(architecture, /full-scene/i);
 });

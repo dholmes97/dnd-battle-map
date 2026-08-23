@@ -26,6 +26,8 @@ export interface WorkerExecutionContext {
 export type EncounterRow = {
   id: string; code: string; name: string; dm_briefing: string; version: number; status: EncounterStatus;
   map_asset: string; map_package_json: string | null; active_map_preset_id: string | null;
+  active_map_image_id: string | null; active_map_setup_json: string | null;
+  draft_map_image_id: string | null; draft_map_setup_json: string | null; draft_updated_at: number | null;
   grid_width: number; grid_height: number; current_round: number;
   active_initiative_order: number | null; strict_movement: number; updated_at: number;
 };
@@ -48,5 +50,10 @@ export type AnnotationRow = { id: string; annotation_type: SharedAnnotation["typ
 export type ActionRow = { id: string; action_type: string; payload_json: string; created_at: number };
 export type ChatMessageRow = { id: string; sender_name: string; sender_role: "dm" | "player"; recipient_name: string | null; body: string; handout_id: string | null; handout_title: string | null; handout_width: number | null; handout_height: number | null; handout_updated_at: number | null; handout_deleted_at: number | null; show_immediately: number; created_at: number };
 export type HandoutRow = { id: string; title: string; display_key: string; thumbnail_key: string; mime_type: string; width: number; height: number; display_bytes: number; thumbnail_bytes: number; created_by: string; created_at: number; updated_at: number; deleted_at: number | null; message_count?: number };
-export type MapPresetRow = { id: string; name: string; description: string; source_prompt: string | null; package_json: string; created_at: number; updated_at: number };
+export type MapImageRow = {
+  id: string; name: string; description: string; biome: string; mood: string;
+  asset_path: string; grid_width: number; grid_height: number;
+  pixel_width: number; pixel_height: number; source_kind: string;
+  source_prompt: string | null; is_active: number; created_at: number; updated_at: number;
+};
 export type CreatureCatalogRow = { id: string; name: string; family: string; creature_type: string; size: CreatureSize; default_hp: number; hit_dice: string | null; armor_class: number; challenge_rating: string | null; default_speed: number; walk_speed: number; fly_speed: number | null; swim_speed: number | null; climb_speed: number | null; burrow_speed: number | null; token_asset: string; thumbnail_asset: string; sort_order: number };

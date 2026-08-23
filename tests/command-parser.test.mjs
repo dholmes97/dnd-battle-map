@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { commandParserCoverage, commandRequest, parseCommandRequest } from "../shared/command-parser.ts";
-import { createFullSceneMap, FULL_SCENE_MAPS } from "../shared/full-scene-maps.ts";
+import { testMapPackage } from "./fixtures/map-fixture.ts";
 
 test("command parser narrows valid payloads and strips transport fields", () => {
   const parsed = parseCommandRequest({
@@ -53,16 +53,16 @@ test("command parser bounds collection-valued writes before command execution", 
 });
 
 test("command parser accepts empty, map, and optional payload variants", () => {
-  const mapPackage = createFullSceneMap(FULL_SCENE_MAPS[0]);
+  const mapPackage = testMapPackage();
   assert.deepEqual(parseCommandRequest({ command: "undo", ignored: true }), {
     ok: true,
     request: { command: "undo", payload: {} },
   });
-  const applied = parseCommandRequest({ command: "apply-map-package", mapPackage });
+  const applied = parseCommandRequest({ command: "apply-map-draft", mapPackage });
   assert.equal(applied.ok, true);
-  assert.equal(applied.ok && applied.request.command, "apply-map-package");
+  assert.equal(applied.ok && applied.request.command, "apply-map-draft");
   assert.equal(applied.ok && applied.request.payload.mapPackage.id, mapPackage.id);
-  assert.equal(parseCommandRequest({ command: "apply-map-package" }).ok, false);
+  assert.equal(parseCommandRequest({ command: "apply-map-draft" }).ok, false);
   assert.equal(parseCommandRequest({ command: "send-chat-message", message: "Hello", handoutId: null }).ok, true);
   const creature = parseCommandRequest({
     command: "create-token", name: "Dragon", kind: "monster", size: "large", speed: 40,

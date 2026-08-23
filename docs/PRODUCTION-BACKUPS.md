@@ -5,7 +5,10 @@ migrations, bulk data or asset mutations, persistence refactors with a credible
 data-loss risk, and deliberate disaster-recovery checkpoints:
 
 ```bash
-PRODUCTION_BACKUP_TOKEN="…" npm run backup:production
+PRODUCTION_BACKUP_TOKEN="$(security find-generic-password \
+  -a dnd-battle-map \
+  -s dnd-battle-map-production-backup \
+  -w)" npm run backup:production
 ```
 
 Re-verify the newest completed snapshot independently at any time:
@@ -20,6 +23,12 @@ The production Worker and the local command must share the dedicated
 `PRODUCTION_BACKUP_TOKEN`. The catalog import secret is a separate credential
 and cannot authorize a production backup. If `PRODUCTION_BACKUP_TOKEN` is
 missing, the backup endpoint fails closed with `401 Unauthorized`.
+
+The local copy is stored in macOS Keychain under service
+`dnd-battle-map-production-backup` and account `dnd-battle-map`. Codex must run
+that Keychain lookup outside its filesystem sandbox; a failed sandboxed lookup
+does not mean the credential is absent and must not be used as a reason to
+rotate it.
 
 By default, snapshots are written outside this repository to its sibling
 directory:

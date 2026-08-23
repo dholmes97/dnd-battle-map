@@ -182,19 +182,19 @@ test("blocking dialogs contain focus, inert the map, close on Escape, and restor
 test("dirty workshop exits are explicit and preserve the draft when cancelled", async ({ page }) => {
   await enterFirstScenarioAsDm(page);
   await page.getByRole("button", { name: "Open Map Workshop" }).click();
-  await expect(page.getByText("Map workshop", { exact: true })).toBeVisible();
-  const description = page.getByLabel("Description");
-  await description.fill("Browser-only unsaved draft");
-  await expect(page.getByText("Private changes", { exact: true })).toBeVisible();
+  await expect(page.getByText("Map Workshop · Draft", { exact: true })).toBeVisible();
+  const visibilityMode = page.getByLabel("Visibility mode");
+  await visibilityMode.selectOption("dynamic");
+  await expect(page.getByText("Unsaved draft", { exact: true })).toBeVisible();
 
   const returnButton = page.getByRole("button", { name: "Return to battle map" });
   await returnButton.click();
-  const guard = page.getByRole("dialog", { name: "Return without applying?" });
+  const guard = page.getByRole("dialog", { name: "Return with unsaved changes?" });
   await expect(guard).toBeVisible();
   await expect(page.getByRole("button", { name: "Keep editing" })).toBeFocused();
   await page.getByRole("button", { name: "Keep editing" }).click();
   await expect(returnButton).toBeFocused();
-  await expect(description).toHaveValue("Browser-only unsaved draft");
+  await expect(visibilityMode).toHaveValue("dynamic");
 
   await returnButton.click();
   await page.getByRole("button", { name: "Discard and return" }).click();

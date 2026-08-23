@@ -19,7 +19,7 @@ from participant, catalog-import, and production-backup credentials.
 A trusted DM can describe a scenario in natural-language email and receive a
 ready-to-test production scenario. Supported requests may include:
 
-- a new cohesive base map and reusable map preset;
+- a new cohesive map image and a durable encounter map draft;
 - one of the existing fog modes and starter vision geometry;
 - scenario briefing, strict-movement setting, labels, and DM notes;
 - generated image handouts;
@@ -80,7 +80,7 @@ non-secret marker and never resent or interpreted as a revision.
 
 ## Scenario outcome invariants
 
-- Scenario, base-map, and preset names remain distinct.
+- Scenario and map-image names remain distinct; email preparation writes the encounter draft directly.
 - A new scenario starts in setup and copies the established party at full
   health; combat, initiative, effects, movement, completion tracking, and
   history start clear.

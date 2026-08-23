@@ -58,9 +58,9 @@ function renderSidebar(initiative: number | null, controlledByViewer = true, sel
   const token = { ...tokenWithInitiative(initiative), controlledByViewer };
   const selectedToken = selectedOverride ?? token;
   const state = {
-    encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
+    encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
     grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: participant.id, role: participant.role }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
-    tokens: selectedToken.id === token.id ? [token] : [token, selectedToken], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
+    tokens: selectedToken.id === token.id ? [token] : [token, selectedToken], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
   } as EncounterState;
   const controls = tokenControls(hpAmount);
   const onSelectToken = vi.fn();
@@ -204,9 +204,9 @@ describe("EncounterSidebar initiative disclosure", () => {
     const first = { ...tokenWithInitiative(6), id: "bat-1", name: "Cave Bat" };
     const second = { ...tokenWithInitiative(6), id: "bat-2", name: "Cave Bat" };
     const state = {
-      encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
+      encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
       grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
-      tokens: [first, second], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
+      tokens: [first, second], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
       participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" }, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "group", key: "cave-bat", label: "Cave Bat", tokens: [first, second], expanded: false }], selectedToken: null, selectedSpell: null, selectedMapNote: null,
@@ -228,9 +228,9 @@ describe("EncounterSidebar initiative disclosure", () => {
   it("does not offer pause or reset while combat is still in setup", () => {
     const token = tokenWithInitiative(17);
     const state = {
-      encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, activeMapPresetId: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
+      encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
       grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
-      tokens: [token], annotations: [], chatMessages: [], handouts: [], savedMapPresets: [], availableArt: [],
+      tokens: [token], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
       participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" },

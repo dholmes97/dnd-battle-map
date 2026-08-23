@@ -10,7 +10,7 @@ function manifest(overrides = {}) {
     revision: 1,
     operation: "create",
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "kevin@example.com" },
-    scenario: { name: "Sunken Chapel", briefing: "Briefing", presetName: "Vision Ready", presetDescription: "" },
+    scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: {
@@ -80,7 +80,7 @@ function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com",
         jobId: job.id,
         status: "ready",
         scenario: { id: "scenario-1", code: "SUNKEN-CHAPEL", name: value.scenario.name },
-        presetId: "preset-1",
+        mapImageId: "map-image-1",
         handoutIds: [],
         placedTokenIds: [],
         createdCatalogIds: [],
@@ -120,7 +120,7 @@ test("job creation is idempotent and rejects key reuse for another manifest", as
   assert.equal(replay.created, false);
   assert.equal(replay.job.id, first.job.id);
   await assert.rejects(
-    service.createJob(manifest({ scenario: { name: "Different", briefing: "", presetName: "Different", presetDescription: "" } })),
+    service.createJob(manifest({ scenario: { name: "Different", briefing: "" } })),
     (error) => error.code === "idempotency_conflict",
   );
 });

@@ -54,7 +54,7 @@ test("scenario client stages only parser-derived assets and finalizes the return
       calls.push({ url, init });
       if (url.endsWith("/api/scenario-provisioning/jobs")) return response({ created: true, job: { id: "job-1", status: "received" } }, 201);
       if (url.endsWith("/assets/map-main")) return response({ asset: { id: "map-main" } });
-      if (url.endsWith("/finalize")) return response({ result: { scenario: { name: "Sunken Chapel", code: "SUNKEN-CHAPEL" }, presetId: "preset-1", handoutIds: [], placedTokenIds: [], createdCatalogIds: [], reusedCatalogIds: [], reviewWarnings: [] } });
+      if (url.endsWith("/finalize")) return response({ result: { scenario: { name: "Sunken Chapel", code: "SUNKEN-CHAPEL" }, mapImageId: "map-image-1", handoutIds: [], placedTokenIds: [], createdCatalogIds: [], reusedCatalogIds: [], reviewWarnings: [] } });
       if (url.endsWith("/jobs/job-1")) return response({ job: { id: "job-1", status: "validating" } });
       throw new Error(`Unexpected request ${url}`);
     };
@@ -86,7 +86,7 @@ function manifest() {
   return {
     version: 1, idempotencyKey: "gmail-primary-message-1-revision-1", revision: 1, operation: "create", targetScenarioCode: null,
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "kevin@example.com" },
-    scenario: { name: "Sunken Chapel", briefing: "Briefing", presetName: "Sunken Chapel", presetDescription: "" },
+    scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false }, party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
     map: { id: "sunken-chapel-v1", assetId: "map-main", name: "Sunken Chapel", description: "Flooded chapel", biome: "dungeon", mood: "torchlight", width: 24, height: 16, fog: { mode: "off", sharedPolygon: [{ x: 0, y: 0 }, { x: 24, y: 0 }, { x: 24, y: 16 }, { x: 0, y: 16 }], walls: [], doors: [], circles: [] }, labels: [], notes: [] },
     handouts: [], creatures: [], assumptions: [], reviewWarnings: [],

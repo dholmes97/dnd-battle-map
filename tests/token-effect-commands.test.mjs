@@ -64,7 +64,8 @@ function context(overrides = {}) {
     encounter: {
       id: "encounter", code: "CODE", name: "Scenario", status: "active",
       version: 1,
-      mapAsset: "", mapPackageJson: null, activeMapPresetId: null,
+      activeMapImageId: null, activeMapSetupJson: null, activeMapPackageJson: null,
+      draftMapImageId: null, draftMapSetupJson: null,
       gridWidth: 24, gridHeight: 16, currentRound: 2, activeInitiativeOrder: 0,
       strictMovement: true, updatedAt: 0,
     },
