@@ -667,6 +667,21 @@ export default function BattleMapPrototype() {
   const activeOwnTurnToken = activeTurnMembers.find((token) =>
     token.controlledByViewer && !token.turnComplete) ?? null;
   const activeOwnTurnIsGroup = activeTurnMembers.length > 1;
+  const mapInteractionDescription = !movementEnabled
+    ? "Movement and placement are currently unavailable. Click any visible token to inspect it; scroll to zoom."
+    : armedCreatureId
+      ? "Click to place the selected creature."
+      : armedSpellId
+        ? "Click to manifest the selected spell effect."
+        : annotationMode === "erase"
+          ? "Erase mode. Click a drawn line to remove it."
+          : selectedToken && canMoveToken(selectedToken)
+            ? `Selected ${selectedToken.name}. Click any visible token to inspect it, drag a permitted token to move it, or drag empty map space to pan.`
+            : participant.role === "dm" || !state.encounter.strictMovement
+              ? "Click any visible token to inspect it, drag a permitted token to move it, or drag empty map space to pan."
+              : selectedToken
+                ? `Selected ${selectedToken.name}. Click any visible token to inspect it; drag your character or summons to move them, or drag empty map space to pan.`
+                : "Click any visible token to inspect it; drag your character or summons to move them, or drag empty map space to pan.";
 
   return (
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
@@ -697,7 +712,7 @@ export default function BattleMapPrototype() {
         <section className="map-panel" aria-label="Shared battle map">
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${armedCreatureId ? "Click to place the selected creature." : armedSpellId ? "Click to manifest the selected spell effect." : annotationMode === "erase" ? "Erase mode. Click a drawn line to remove it." : participant.role === "dm" || !state.encounter.strictMovement ? "Drag any visible token to move it, or drag empty map space to pan." : selectedToken ? `Selected ${selectedToken.name}. Drag the token to move it, or drag empty map space to pan.` : "Scroll to zoom and drag empty map space to pan."}`} role="img" />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="img" />
             {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeSharedFogPoint}>Remove selected</button><button type="button" onClick={finishSharedFogEditing}>Done</button></div> : null}
             {paletteOpen ? <CreaturePalette
               participant={participant} tokens={state.tokens} playerCharacter={playerCharacter}

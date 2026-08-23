@@ -568,10 +568,10 @@ input:focus {
   cursor: grab;
 }
 
-.map-canvas.is-blocked { cursor: not-allowed; }
 .map-canvas.is-dragging, .map-canvas.is-panning { cursor: grabbing; }
 .map-canvas.is-placing { cursor: copy; }
 .map-canvas.is-erasing { cursor: cell; }
+.map-canvas.is-blocked { cursor: default; }
 .map-canvas.is-editing-fog { cursor: crosshair; }
 
 .fog-live-controls {

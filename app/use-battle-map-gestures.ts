@@ -398,7 +398,10 @@ export function useBattleMapGestures({
       return;
     }
     if (!movementEnabled) {
-      if (hitToken?.kind === SPELL_EFFECT_KIND) onSelectToken(hitToken.id);
+      if (hitToken) {
+        event.preventDefault();
+        onSelectToken(hitToken.id);
+      }
       return;
     }
     const armedCreature = participant.role === "dm" || playerCharacter ? paletteCreature(armedCreatureId) : null;

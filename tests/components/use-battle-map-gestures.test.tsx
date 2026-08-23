@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { viewportGeometry } from "@/shared/battle-map-geometry";
 import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
+import { SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 
 const participant: ParticipantSession = {
   id: "participant-1",
@@ -75,6 +76,31 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
   return { ...renderHook(() => useBattleMapGestures(inputs)), onSelectToken, onUpdateSharedFog };
 }
 
+function pointerDownAtToken(
+  viewport: ReturnType<typeof renderGestures>["result"]["current"]["viewport"],
+  currentState: EncounterState,
+  target: SharedToken,
+  pointerId = 1,
+) {
+  const rect = { left: 0, top: 0, width: 1200, height: 800 } as DOMRect;
+  const canvas = {
+    getBoundingClientRect: () => rect,
+    setPointerCapture: vi.fn(),
+    hasPointerCapture: () => false,
+    releasePointerCapture: vi.fn(),
+  } as unknown as HTMLCanvasElement;
+  const geometry = viewportGeometry(viewport, currentState, rect.width, rect.height);
+  const event = {
+    button: 0,
+    pointerId,
+    clientX: rect.left + geometry.offsetX + (target.x - geometry.panX) * geometry.cellSize,
+    clientY: rect.top + geometry.offsetY + (target.y - geometry.panY) * geometry.cellSize,
+    currentTarget: canvas,
+    preventDefault: vi.fn(),
+  } as unknown as React.PointerEvent<HTMLCanvasElement>;
+  return { canvas, event };
+}
+
 describe("useBattleMapGestures", () => {
   it("zooms from a Safari trackpad pinch without double-applying wheel zoom", () => {
     const canvas = document.createElement("canvas");
@@ -131,25 +157,82 @@ describe("useBattleMapGestures", () => {
 
   it("routes a canvas token hit through the selection port", () => {
     const { result, onSelectToken } = renderGestures();
-    const rect = { left: 0, top: 0, width: 1200, height: 800 } as DOMRect;
-    const canvas = {
-      getBoundingClientRect: () => rect,
-      setPointerCapture: vi.fn(),
-      hasPointerCapture: () => false,
-      releasePointerCapture: vi.fn(),
-    } as unknown as HTMLCanvasElement;
-    const geometry = viewportGeometry(result.current.viewport, state, rect.width, rect.height);
-    const event = {
-      button: 0,
-      pointerId: 1,
-      clientX: rect.left + geometry.offsetX + (token.x - geometry.panX) * geometry.cellSize,
-      clientY: rect.top + geometry.offsetY + (token.y - geometry.panY) * geometry.cellSize,
-      currentTarget: canvas,
-      preventDefault: vi.fn(),
-    } as unknown as React.PointerEvent<HTMLCanvasElement>;
+    const { event } = pointerDownAtToken(result.current.viewport, state, token);
 
     act(() => result.current.onCanvasPointerDown(event));
     expect(onSelectToken).toHaveBeenCalledWith(token.id);
+  });
+
+  it.each(["paused", "reconnecting", "busy"])("keeps ordinary-token inspection available while movement is unavailable because the app is %s", (reason) => {
+    const unavailableState = reason === "paused"
+      ? { ...state, encounter: { ...state.encounter, status: "paused" } } as EncounterState
+      : state;
+    const canMoveToken = vi.fn(() => true);
+    const onMoveToken = vi.fn();
+    const { result, onSelectToken } = renderGestures({
+      state: unavailableState,
+      movementEnabled: false,
+      canMoveToken,
+      onMoveToken,
+    });
+    const { canvas, event } = pointerDownAtToken(result.current.viewport, unavailableState, token);
+
+    act(() => result.current.onCanvasPointerDown(event));
+
+    expect(onSelectToken).toHaveBeenCalledWith(token.id);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(canMoveToken).not.toHaveBeenCalled();
+    expect(canvas.setPointerCapture).not.toHaveBeenCalled();
+    expect(result.current.dragging).toBe(false);
+    expect(result.current.preview).toBeNull();
+    expect(onMoveToken).not.toHaveBeenCalled();
+  });
+
+  it("selects a foreign token under strict movement without starting a drag", () => {
+    const foreignToken = {
+      ...token,
+      id: "token-foreign",
+      name: "Owlbear",
+      kind: "monster",
+      controlledByViewer: false,
+    } as SharedToken;
+    const strictState = {
+      ...state,
+      encounter: { ...state.encounter, strictMovement: true },
+      tokens: [foreignToken],
+    } as EncounterState;
+    const canMoveToken = vi.fn(() => false);
+    const { result, onSelectToken } = renderGestures({ state: strictState, canMoveToken });
+    const { canvas, event } = pointerDownAtToken(result.current.viewport, strictState, foreignToken);
+
+    act(() => result.current.onCanvasPointerDown(event));
+
+    expect(onSelectToken).toHaveBeenCalledWith(foreignToken.id);
+    expect(canMoveToken).toHaveBeenCalledWith(foreignToken);
+    expect(canvas.setPointerCapture).not.toHaveBeenCalled();
+    expect(result.current.dragging).toBe(false);
+  });
+
+  it("keeps persistent spell inspection aligned with ordinary tokens while movement is unavailable", () => {
+    const spellToken = {
+      ...token,
+      id: "spell-1",
+      name: "Spell Circle",
+      kind: SPELL_EFFECT_KIND,
+      size: "large",
+      artAsset: "shape:generic-circle",
+      controlledByViewer: false,
+      x: 8,
+    } as SharedToken;
+    const spellState = { ...state, tokens: [spellToken] } as EncounterState;
+    const { result, onSelectToken } = renderGestures({ state: spellState, movementEnabled: false });
+    const { canvas, event } = pointerDownAtToken(result.current.viewport, spellState, spellToken);
+
+    act(() => result.current.onCanvasPointerDown(event));
+
+    expect(onSelectToken).toHaveBeenCalledWith(spellToken.id);
+    expect(canvas.setPointerCapture).not.toHaveBeenCalled();
+    expect(result.current.dragging).toBe(false);
   });
 
   it("publishes a completed token drag through the movement port", () => {
