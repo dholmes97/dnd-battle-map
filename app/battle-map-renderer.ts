@@ -6,6 +6,10 @@ import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shar
 import { displayHealth } from "@/shared/health";
 import { SPELL_EFFECT_KIND, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
 import { annotationGeometryIsBounded } from "@/shared/annotation-geometry";
+import { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
+import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "@/shared/token-label-layout";
+
+export { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 
 export type TokenPreview = MapPoint & { tokenId: string; altitude: number };
 export type PlacementPreview = MapPoint & { creature: CreatureTemplate };
@@ -15,10 +19,7 @@ export type BattleMapViewport = { zoom: number; centerX: number; centerY: number
 const fogMaskCanvases = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
 const TOKEN_COLORS = ["#c97546", "#639a72", "#8c72b8", "#628aaa", "#a16b75"];
 const TOKEN_LABEL_MIN_CELL_PX = 30;
-const PING_PULSE_COUNT = 3;
 const PING_PULSE_MS = 420;
-export const PING_DURATION_MS = PING_PULSE_COUNT * PING_PULSE_MS;
-export const SPOTLIGHT_DURATION_MS = 6_500;
 
 function tokenInitial(token: SharedToken) {
   return token.name.trim().charAt(0).toUpperCase() || "?";
@@ -668,6 +669,19 @@ export function drawMap(
     }
   }
 
+  const tokenLabelRequests: TokenLabelRequest[] = [];
+  const tokenLabelStyles = new Map<string, { active: boolean; owned: boolean; hidden: boolean }>();
+  const reservedLabelRectangles: LabelRectangle[] = [];
+  const tokenLabelObstacles = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND).map((token) => {
+    const position = preview?.tokenId === token.id ? preview : token;
+    return {
+      tokenId: token.id,
+      x: screenX(position.x),
+      y: screenY(position.y),
+      radius: Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size),
+    };
+  });
+
   state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND).forEach((token, index) => {
     const position = preview?.tokenId === token.id ? preview : token;
     const owned = token.controller.name.toLocaleLowerCase() === participant.name.toLocaleLowerCase();
@@ -763,21 +777,22 @@ export function drawMap(
       context.setLineDash([]);
     }
 
-    if (geometry.cellSize >= TOKEN_LABEL_MIN_CELL_PX) {
+    if (geometry.cellSize >= TOKEN_LABEL_MIN_CELL_PX || selected) {
       const label = token.name.length > 16 ? `${token.name.slice(0, 15)}…` : token.name;
       const fontSize = Math.max(9, Math.min(13, geometry.cellSize * 0.23));
-      context.globalAlpha = token.hidden ? 0.6 : 1;
       context.font = `650 ${fontSize}px ui-sans-serif, system-ui`;
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      const labelY = y + radius * 1.12 + fontSize * 0.95;
-      const labelWidth = context.measureText(label).width + fontSize * 0.7;
-      context.fillStyle = "rgba(14, 13, 12, 0.78)";
-      context.beginPath();
-      context.roundRect(x - labelWidth / 2, labelY - fontSize * 0.72, labelWidth, fontSize * 1.44, fontSize * 0.36);
-      context.fill();
-      context.fillStyle = active ? "#f7dc9d" : owned ? "#efe6d6" : "#c8bfb1";
-      context.fillText(label, x, labelY);
+      tokenLabelRequests.push({
+        tokenId: token.id,
+        text: label,
+        tokenX: x,
+        tokenY: y,
+        radius: radius * 1.12,
+        width: context.measureText(label).width + fontSize * 0.7,
+        height: fontSize * 1.44,
+        priority: selected ? 300 : active ? 200 : owned ? 100 : 0,
+        selected,
+      });
+      tokenLabelStyles.set(token.id, { active, owned, hidden: token.hidden });
     }
     const altitude = preview?.tokenId === token.id ? preview.altitude : token.altitude;
     if (altitude > 0) {
@@ -789,6 +804,12 @@ export function drawMap(
       context.textBaseline = "middle";
       const labelY = y - radius - fontSize * 0.8;
       const labelWidth = context.measureText(label).width + fontSize * 0.9;
+      reservedLabelRectangles.push({
+        x: x - labelWidth / 2,
+        y: labelY - fontSize * 0.72,
+        width: labelWidth,
+        height: fontSize * 1.44,
+      });
       context.fillStyle = "rgba(16, 28, 38, 0.94)";
       context.strokeStyle = preview?.tokenId === token.id ? "#f5c65c" : "rgba(150, 211, 235, 0.9)";
       context.lineWidth = 1.25;
@@ -801,6 +822,45 @@ export function drawMap(
     }
     context.restore();
   });
+
+  const mapBounds = {
+    x: geometry.offsetX,
+    y: geometry.offsetY,
+    width: geometry.visibleWidth * geometry.cellSize,
+    height: geometry.visibleHeight * geometry.cellSize,
+  };
+  for (const placement of layoutTokenLabels(tokenLabelRequests, tokenLabelObstacles, mapBounds, reservedLabelRectangles)) {
+    const style = tokenLabelStyles.get(placement.tokenId);
+    if (!style) continue;
+    const centerX = placement.x + placement.width / 2;
+    const centerY = placement.y + placement.height / 2;
+    const fontSize = placement.height / 1.44;
+    context.save();
+    context.globalAlpha = style.hidden ? 0.6 : 1;
+    if (placement.leader) {
+      context.strokeStyle = "rgba(245, 198, 92, 0.78)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(placement.tokenX, placement.tokenY);
+      context.lineTo(centerX, centerY);
+      context.stroke();
+    }
+    context.fillStyle = placement.selected ? "rgba(14, 13, 12, 0.94)" : "rgba(14, 13, 12, 0.78)";
+    context.beginPath();
+    context.roundRect(placement.x, placement.y, placement.width, placement.height, fontSize * 0.36);
+    context.fill();
+    if (placement.selected) {
+      context.strokeStyle = "rgba(245, 198, 92, 0.9)";
+      context.lineWidth = 1;
+      context.stroke();
+    }
+    context.font = `650 ${fontSize}px ui-sans-serif, system-ui`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = style.active ? "#f7dc9d" : style.owned ? "#efe6d6" : "#c8bfb1";
+    context.fillText(placement.text, centerX, centerY);
+    context.restore();
+  }
 
   if (placementPreview) {
     const x = screenX(placementPreview.x);
