@@ -1,3 +1,9 @@
+import {
+  errorReference,
+  OPERATION_ID_HEADER,
+  REQUEST_ID_HEADER,
+} from "@/shared/request-correlation";
+
 export const DEFAULT_API_TIMEOUT_MS = 12_000;
 export const API_TIMEOUT_MESSAGE = "The request timed out. Please try again.";
 
@@ -24,8 +30,11 @@ export async function battleMapRequest<T>(
       }, timeoutMs)
     : null;
   try {
+    const headers = new Headers(requestOptions.headers);
+    if (!headers.has(OPERATION_ID_HEADER)) headers.set(OPERATION_ID_HEADER, crypto.randomUUID());
     const response = await fetch(url, {
       ...requestOptions,
+      headers,
       signal: controller.signal,
     });
     return await consume(response);
@@ -44,7 +53,12 @@ export async function battleMapApi<T>(url: string, options: BattleMapApiOptions 
     headers: { "content-type": "application/json", ...(options.headers ?? {}) },
   }, async (response) => {
     const data = (await response.json()) as T & { error?: string };
-    if (!response.ok) throw new Error(data.error ?? "Request failed.");
+    if (!response.ok) {
+      const reference = response.status >= 500
+        ? errorReference(response.headers.get(REQUEST_ID_HEADER))
+        : "";
+      throw new Error(`${data.error ?? "Request failed."}${reference}`);
+    }
     return data;
   });
 }

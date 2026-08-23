@@ -190,7 +190,8 @@ export async function applyHp(context: TokenEffectCommandContext<"apply-hp">): P
     return commandError("Enter non-zero damage or healing.", 400);
   }
   const { from, hp } = transitionHp(token.hp, token.max_hp, delta);
-  const concentrationCheckRequired = delta < 0 && await context.repository.hasConcentration(tokenId);
+  const concentrationCheckRequired = delta < 0 &&
+    await context.repository.hasConcentration(context.encounter.id, tokenId);
   await context.repository.updateHp(context.encounter.id, tokenId, hp, context.now);
   await finish(context, "hp_changed", { tokenId, from, to: hp, concentrationCheckRequired });
   return success(context, { updated: true, concentrationCheckRequired });

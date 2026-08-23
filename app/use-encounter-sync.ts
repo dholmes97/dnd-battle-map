@@ -10,7 +10,7 @@ import {
 } from "@/app/battle-map-api";
 import { commandRequest } from "@/shared/command-parser";
 import { transitionTokenMove } from "@/shared/encounter-transitions";
-import { scheduleAfterPoll, shouldRunLiveRequests } from "@/shared/live-polling";
+import { livePollingMode, scheduleAfterPoll, shouldRunLiveRequests } from "@/shared/live-polling";
 import type {
   CommandName,
   CommandPayload,
@@ -232,7 +232,12 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
           if (disposed) return;
           if (received.status === 204) {
             markLive();
-            const schedule = scheduleAfterPoll(unchangedPolls, false);
+            const schedule = scheduleAfterPoll(
+              unchangedPolls,
+              false,
+              livePollingMode(authoritativeStateRef.current?.encounter.status ?? "active"),
+              participant.id,
+            );
             unchangedPolls = schedule.unchangedPolls;
             await wait(schedule.delayMs);
             continue;
@@ -242,7 +247,12 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
           acceptAuthoritativeState(next);
           lastVersion = next.encounter.version;
           markLive();
-          const schedule = scheduleAfterPoll(unchangedPolls, true);
+          const schedule = scheduleAfterPoll(
+            unchangedPolls,
+            true,
+            livePollingMode(next.encounter.status),
+            participant.id,
+          );
           unchangedPolls = schedule.unchangedPolls;
           await wait(schedule.delayMs);
         } catch {

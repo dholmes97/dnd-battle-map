@@ -587,6 +587,22 @@ describe("useEncounterSync optimistic interleavings", () => {
 });
 
 describe("battleMapApi deadlines", () => {
+  it("correlates requests and includes server references on unexpected failures", async () => {
+    let operationId = "";
+    vi.stubGlobal("fetch", vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      operationId = new Headers(init?.headers).get("x-operation-id") ?? "";
+      return Promise.resolve(Response.json(
+        { error: "The encounter service is temporarily unavailable." },
+        { status: 500, headers: { "x-request-id": "server-request-1234" } },
+      ));
+    }));
+
+    await expect(battleMapApi("/api/test")).rejects.toThrow(
+      "The encounter service is temporarily unavailable. Reference: server-r.",
+    );
+    expect(operationId).toMatch(/^[a-f0-9-]{36}$/);
+  });
+
   it("preserves caller cancellation while composing the default deadline", async () => {
     const caller = new AbortController();
     let receivedSignal: AbortSignal | undefined;

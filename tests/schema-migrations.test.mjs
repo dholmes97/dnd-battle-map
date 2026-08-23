@@ -64,6 +64,18 @@ test("numbered migrations build and seed a fresh database", async () => {
     await query(database, "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM scenario_provisioning_jobs WHERE created_at >= 1800000000000 - 3600000;"),
     /USING COVERING INDEX idx_scenario_provisioning_jobs_created/,
   );
+  assert.match(
+    await query(database, "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM effects WHERE encounter_id = 'encounter' AND token_id = 'token' AND effect_type = 'concentration';"),
+    /USING COVERING INDEX idx_effects_encounter_token_type/,
+  );
+  assert.match(
+    await query(database, "EXPLAIN QUERY PLAN SELECT sender_name FROM chat_messages WHERE encounter_id = 'encounter' AND handout_id = 'handout' ORDER BY created_at DESC LIMIT 1;"),
+    /USING INDEX idx_chat_messages_encounter_handout_created/,
+  );
+  assert.match(
+    await query(database, "EXPLAIN QUERY PLAN SELECT id FROM actions WHERE encounter_id = 'encounter' AND participant_id = 'participant' ORDER BY created_at DESC, id DESC LIMIT 200;"),
+    /USING COVERING INDEX idx_actions_encounter_participant_created/,
+  );
   assert.equal(await query(database, "SELECT name FROM encounters WHERE code = 'EMBER-KEEP';"), "Swamp Battle");
   assert.deepEqual(
     (await query(database, "SELECT name FROM tokens ORDER BY name;")).split("\n"),

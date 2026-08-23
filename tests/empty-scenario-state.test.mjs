@@ -29,12 +29,18 @@ test("an existing encounter projects normally when its token collection is empty
 
     const response = await worker.fetch(
       new Request(`http://localhost/api/encounters/${encounter.code}/state`, {
-        headers: { "CF-Connecting-IP": "192.0.2.1" },
+        headers: {
+          "CF-Connecting-IP": "192.0.2.1",
+          "x-operation-id": "empty-scenario-check",
+        },
       }),
       { DB: db },
       { waitUntil() {}, passThroughOnException() {} },
     );
     assert.equal(response.status, 200);
+    assert.match(response.headers.get("x-request-id"), /^[a-f0-9-]{36}$/);
+    assert.equal(response.headers.get("x-operation-id"), "empty-scenario-check");
+    assert.match(response.headers.get("server-timing"), /request;dur=.*projection;dur=/);
     const state = await response.json();
     assert.equal(state.encounter.code, encounter.code);
     assert.deepEqual(state.tokens, []);

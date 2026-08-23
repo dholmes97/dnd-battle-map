@@ -44,7 +44,7 @@ export interface TokenEffectRepository {
     now: number,
   ): Promise<void>;
   updateToken(input: TokenWrite): Promise<void>;
-  hasConcentration(tokenId: string): Promise<boolean>;
+  hasConcentration(encounterId: string, tokenId: string): Promise<boolean>;
   updateHp(encounterId: string, tokenId: string, hp: number, now: number): Promise<void>;
   addEffect(input: {
     id: string;

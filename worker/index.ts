@@ -50,6 +50,14 @@ import { parseCommandRequest } from "../shared/command-parser.ts";
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
 import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
 import { inspectCatalogPng, type CatalogImageVariant } from "../shared/catalog-image.ts";
+import { indexRowsByKey } from "../shared/projection-index.ts";
+import {
+  cleanCorrelationId,
+  correlationSampleSelected,
+  OPERATION_ID_HEADER,
+  REQUEST_ID_HEADER,
+  requestOutcome,
+} from "../shared/request-correlation.ts";
 import {
   API_JSON_BODY_MAX_BYTES,
   CATALOG_IMAGE_MAX_BYTES,
@@ -349,6 +357,71 @@ function json(data: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
+type ProjectionTelemetry = {
+  durationMs: number;
+  collectionReads: number;
+  rows: {
+    tokens: number;
+    effects: number;
+    annotations: number;
+    chatMessages: number;
+    handouts: number;
+    mapPresets: number;
+  };
+};
+
+type ApiRequestTelemetry = {
+  requestId: string;
+  operationId: string | null;
+  route: string;
+  method: string;
+  startedAt: number;
+  projection: ProjectionTelemetry | null;
+};
+
+function createApiRequestTelemetry(request: Request, route: string): ApiRequestTelemetry {
+  return {
+    requestId: crypto.randomUUID(),
+    operationId: cleanCorrelationId(request.headers.get(OPERATION_ID_HEADER)),
+    route,
+    method: request.method,
+    startedAt: performance.now(),
+    projection: null,
+  };
+}
+
+function finishApiRequest(response: Response, telemetry: ApiRequestTelemetry): Response {
+  const durationMs = Math.max(0, performance.now() - telemetry.startedAt);
+  const headers = new Headers(response.headers);
+  headers.set(REQUEST_ID_HEADER, telemetry.requestId);
+  if (telemetry.operationId) headers.set(OPERATION_ID_HEADER, telemetry.operationId);
+  const timings = [`request;dur=${durationMs.toFixed(1)}`];
+  if (telemetry.projection) timings.push(`projection;dur=${telemetry.projection.durationMs.toFixed(1)}`);
+  headers.set("server-timing", timings.join(", "));
+
+  const unchangedPoll = telemetry.route === "events" && response.status === 204;
+  const sampleDenominator = unchangedPoll ? 32 : 1;
+  if (!unchangedPoll || correlationSampleSelected(telemetry.requestId, sampleDenominator)) {
+    console.info(JSON.stringify({
+      event: "api_request_completed",
+      requestId: telemetry.requestId,
+      operationId: telemetry.operationId,
+      route: telemetry.route,
+      method: telemetry.method,
+      status: response.status,
+      outcome: requestOutcome(response.status),
+      durationMs: Math.round(durationMs * 10) / 10,
+      sampleDenominator,
+      projection: telemetry.projection,
+    }));
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function knownRequestFailure(error: unknown): Response | null {
   if (error instanceof RequestBodyError) {
     return json({ error: error.message, code: error.code }, { status: error.status });
@@ -363,10 +436,22 @@ function knownRequestFailure(error: unknown): Response | null {
   return null;
 }
 
-function apiFailure(error: unknown, label: string, fallback: string): Response {
+function apiFailure(
+  error: unknown,
+  label: string,
+  fallback: string,
+  telemetry?: ApiRequestTelemetry,
+): Response {
   const known = knownRequestFailure(error);
   if (known) return known;
-  console.error(label, error);
+  console.error(JSON.stringify({
+    event: "api_request_failed",
+    requestId: telemetry?.requestId ?? null,
+    operationId: telemetry?.operationId ?? null,
+    route: telemetry?.route ?? null,
+    label,
+    errorType: error instanceof Error ? error.name : typeof error,
+  }));
   return json({ error: fallback }, { status: 500 });
 }
 
@@ -1123,7 +1208,9 @@ async function encounterState(
   env: Env,
   code: string,
   viewer: ParticipantRow | null = null,
+  telemetry?: ApiRequestTelemetry,
 ): Promise<EncounterState | null> {
+  const projectionStartedAt = performance.now();
   let encounter = await findEncounter(env, code);
   if (!encounter) return null;
   await expireAnnotations(env, encounter);
@@ -1197,12 +1284,7 @@ async function encounterState(
   }
 
   const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
-  const effectsByToken = new Map<string, EffectRow[]>();
-  for (const effect of effects.results) {
-    const tokenEffects = effectsByToken.get(effect.token_id);
-    if (tokenEffects) tokenEffects.push(effect);
-    else effectsByToken.set(effect.token_id, [effect]);
-  }
+  const effectsByToken = indexRowsByKey(effects.results, (effect) => effect.token_id);
   const controllerNames = new Map<string, string>();
   const controllerName = (token: TokenRow): string => {
     const cached = controllerNames.get(token.id);
@@ -1367,6 +1449,20 @@ async function encounterState(
       ...visibleTokens.flatMap((token) => token.art_asset ? [token.art_asset] : []),
     ])],
   };
+  if (telemetry) {
+    telemetry.projection = {
+      durationMs: Math.max(0, performance.now() - projectionStartedAt),
+      collectionReads: 3 + (viewer ? 2 : 0) + (viewer?.role === "dm" ? 2 : 0),
+      rows: {
+        tokens: tokens.results.length,
+        effects: effects.results.length,
+        annotations: annotations.results.length,
+        chatMessages: recentChatMessages.results.length,
+        handouts: handouts.results.length,
+        mapPresets: savedMapPresets.results.length,
+      },
+    };
+  }
   return projectedState;
 }
 
@@ -1410,6 +1506,7 @@ async function handleStatePoll(
   request: Request,
   env: Env,
   code: string,
+  telemetry: ApiRequestTelemetry,
 ): Promise<Response> {
   const requestedVersion = Number(new URL(request.url).searchParams.get("since"));
   const lastVersion = Number.isFinite(requestedVersion) ? requestedVersion : 0;
@@ -1432,7 +1529,7 @@ async function handleStatePoll(
       headers: { "cache-control": "no-store" },
     });
   }
-  const state = await encounterState(env, code, viewer);
+  const state = await encounterState(env, code, viewer, telemetry);
   if (!state) return json({ error: "Encounter not found." }, { status: 404 });
   return json(state);
 }
@@ -1470,13 +1567,14 @@ async function handleCommand(
   participant: ParticipantRow,
   body: Record<string, unknown>,
   now: number,
+  telemetry: ApiRequestTelemetry,
 ): Promise<Response> {
   const parsed = parseCommandRequest(body);
   if (!parsed.ok) return json({ error: parsed.error }, { status: 400 });
   const request = parsed.request;
   const unitOfWork = createD1MutationUnitOfWork(env.DB);
   const mutationDb = unitOfWork.database;
-  const state = () => encounterState(env, code, participant);
+  const state = () => encounterState(env, code, participant, telemetry);
   const commandEncounter = {
     id: encounter.id,
     code: encounter.code,
@@ -1545,7 +1643,7 @@ async function handleCommand(
     ...baseContext(payload),
     repository: createD1ScenarioMapRepository(mutationDb),
     loadScenarioState: async (scenarioCode, participantId) =>
-      encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }),
+      encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }, telemetry),
   });
   type InitiativeCommandName =
     | "set-initiative" | "set-initiative-group" | "start-combat"
@@ -1629,6 +1727,7 @@ async function handleApi(
   env: Env,
   code: string,
   action: string,
+  telemetry: ApiRequestTelemetry,
 ): Promise<Response> {
   await ensureSchema(env);
   const expectedMethod = action === "state" || action === "events" ? "GET" : "POST";
@@ -1653,13 +1752,13 @@ async function handleApi(
       viewer?.id,
     );
     if (rateLimited) return rateLimited;
-    const state = await encounterState(env, code, viewer);
+    const state = await encounterState(env, code, viewer, telemetry);
     return state
       ? json(state)
       : json({ error: "Encounter not found." }, { status: 404 });
   }
   if (action === "events") {
-    return handleStatePoll(request, env, code);
+    return handleStatePoll(request, env, code, telemetry);
   }
 
   const encounter = await findEncounter(env, code);
@@ -1734,7 +1833,7 @@ async function handleApi(
       participantId,
       sessionSecret,
       role: participantRole,
-      state: await encounterState(env, code, joinedParticipant),
+      state: await encounterState(env, code, joinedParticipant, telemetry),
     });
   }
 
@@ -1763,7 +1862,7 @@ async function handleApi(
   }
 
   if (action === "command") {
-    return handleCommand(env, code, encounter, participant, body, now);
+    return handleCommand(env, code, encounter, participant, body, now, telemetry);
   }
 
   const tokenId = cleanTokenId(body.tokenId);
@@ -1794,7 +1893,7 @@ async function handleApi(
     });
     if (policyDenial) {
       return json(
-        { error: policyDenial.error, state: await encounterState(env, code, participant) },
+        { error: policyDenial.error, state: await encounterState(env, code, participant, telemetry) },
         { status: policyDenial.status },
       );
     }
@@ -1838,7 +1937,7 @@ async function handleApi(
       .run();
     if ((result.meta.changes ?? 0) !== 1) {
       return json(
-        { error: "The token could not be moved.", state: await encounterState(env, code, participant) },
+        { error: "The token could not be moved.", state: await encounterState(env, code, participant, telemetry) },
         { status: 409 },
       );
     }
@@ -1868,12 +1967,12 @@ async function handleApi(
         return json({
           error: error.message,
           code: "shared_state_conflict",
-          state: await encounterState(env, code, participant),
+          state: await encounterState(env, code, participant, telemetry),
         }, { status: 409 });
       }
       throw error;
     }
-    return json({ moved: true, distance, movementUsed, overBudget, state: await encounterState(env, code, participant) });
+    return json({ moved: true, distance, movementUsed, overBudget, state: await encounterState(env, code, participant, telemetry) });
   }
 
   return json({ error: "Method not allowed." }, { status: 405 });
@@ -1952,15 +2051,21 @@ const worker = {
 
     const apiMatch = url.pathname.match(API_ROUTE);
     if (apiMatch) {
+      const telemetry = createApiRequestTelemetry(request, apiMatch[2]);
       try {
-        return await handleApi(
+        const response = await handleApi(
           request,
           env,
           cleanCode(apiMatch[1]),
           apiMatch[2],
+          telemetry,
         );
+        return finishApiRequest(response, telemetry);
       } catch (error) {
-        return apiFailure(error, "Battle map API error", "The encounter service is temporarily unavailable.");
+        return finishApiRequest(
+          apiFailure(error, "Battle map API error", "The encounter service is temporarily unavailable.", telemetry),
+          telemetry,
+        );
       }
     }
 

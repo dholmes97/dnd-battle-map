@@ -319,6 +319,11 @@ export const effects = sqliteTable(
   },
   (table) => [
     index("idx_effects_encounter_token").on(table.encounterId, table.tokenId),
+    index("idx_effects_encounter_token_type").on(
+      table.encounterId,
+      table.tokenId,
+      table.effectType,
+    ),
   ],
 );
 
@@ -364,6 +369,12 @@ export const actions = sqliteTable(
     index("idx_actions_encounter_created_at").on(
       table.encounterId,
       table.createdAt,
+    ),
+    index("idx_actions_encounter_participant_created").on(
+      table.encounterId,
+      table.participantId,
+      table.createdAt,
+      table.id,
     ),
   ],
 );
@@ -418,5 +429,11 @@ export const chatMessages = sqliteTable(
       table.createdAt,
       table.id,
     ),
+    index("idx_chat_messages_encounter_handout_created").on(
+      table.encounterId,
+      table.handoutId,
+      table.createdAt,
+      table.id,
+    ).where(sql`${table.handoutId} IS NOT NULL`),
   ],
 );

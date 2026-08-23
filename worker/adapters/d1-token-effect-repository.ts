@@ -92,10 +92,11 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.encounterId,
       ).run();
     },
-    async hasConcentration(tokenId) {
+    async hasConcentration(encounterId, tokenId) {
       const row = await db.prepare(
-        "SELECT count(*) AS count FROM effects WHERE token_id = ? AND effect_type = 'concentration'",
-      ).bind(tokenId).first<{ count: number }>();
+        `SELECT count(*) AS count FROM effects
+         WHERE encounter_id = ? AND token_id = ? AND effect_type = 'concentration'`,
+      ).bind(encounterId, tokenId).first<{ count: number }>();
       return (row?.count ?? 0) > 0;
     },
     async updateHp(encounterId, tokenId, hp, now) {
