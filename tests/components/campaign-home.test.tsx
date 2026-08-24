@@ -13,50 +13,62 @@ const dm: JoinIdentity = { participantName: "Kevin", label: "Dungeon Master", ro
 
 function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof CampaignHome>[0]> = {}) {
   const props: Parameters<typeof CampaignHome>[0] = {
-    identity, encounters, loading: false, openingCode: null, renamingCode: null, error: "", notice: "", creating: false,
-    onOpenScenario: vi.fn(), onCreateScenario: vi.fn(async () => true), onRenameScenario: vi.fn(async () => true), onSignOut: vi.fn(), ...overrides,
+    identity, encounters, loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false,
+    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onSignOut: vi.fn(), ...overrides,
   };
   render(<CampaignHome {...props} />); return props;
 }
 
 describe("CampaignHome", () => {
-  it("gives a player a personal landing page with scenario entry and no creation controls", async () => {
+  it("gives a player a personal landing page with encounter entry and no creation controls", async () => {
     const props = home(player);
     expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Scenarios" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /New scenario/ })).toBeNull();
-    await userEvent.click(screen.getAllByRole("button", { name: /Enter scenario/ })[0]);
-    expect(props.onOpenScenario).toHaveBeenCalledWith("EMBER-KEEP");
+    expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
+    await userEvent.click(screen.getAllByRole("button", { name: /Enter encounter/ })[0]);
+    expect(props.onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
   });
 
-  it("lets the DM create a fresh scenario from campaign home", async () => {
-    const onCreateScenario = vi.fn(async () => true);
-    home(dm, { onCreateScenario });
-    await userEvent.click(screen.getByRole("button", { name: /New scenario/ }));
-    await userEvent.type(screen.getByLabelText("Scenario name"), "Ashes Below");
-    await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
-    expect(onCreateScenario).toHaveBeenCalledWith({ name: "Ashes Below", mode: "party", sourceCode: "EMBER-KEEP" });
+  it("lets the DM create a fresh encounter from campaign home", async () => {
+    const onCreateEncounter = vi.fn(async () => true);
+    home(dm, { onCreateEncounter });
+    await userEvent.click(screen.getByRole("button", { name: /New encounter/ }));
+    await userEvent.type(screen.getByLabelText("Encounter name"), "Ashes Below");
+    await userEvent.click(screen.getByRole("button", { name: "Create encounter" }));
+    expect(onCreateEncounter).toHaveBeenCalledWith({ name: "Ashes Below", mode: "party", sourceCode: "EMBER-KEEP" });
   });
 
-  it("offers an existing scenario as the source for duplication", async () => {
-    const onCreateScenario = vi.fn(async () => true);
-    home(dm, { onCreateScenario });
-    await userEvent.click(screen.getByRole("button", { name: /New scenario/ }));
-    await userEvent.type(screen.getByLabelText("Scenario name"), "Ember Keep II");
+  it("offers an existing encounter as the source for duplication", async () => {
+    const onCreateEncounter = vi.fn(async () => true);
+    home(dm, { onCreateEncounter });
+    await userEvent.click(screen.getByRole("button", { name: /New encounter/ }));
+    await userEvent.type(screen.getByLabelText("Encounter name"), "Ember Keep II");
     await userEvent.selectOptions(screen.getByLabelText("Starting point"), "duplicate");
-    await userEvent.selectOptions(screen.getByLabelText("Scenario to duplicate"), "SUNLESS");
-    await userEvent.click(screen.getByRole("button", { name: "Create scenario" }));
-    expect(onCreateScenario).toHaveBeenCalledWith({ name: "Ember Keep II", mode: "duplicate", sourceCode: "SUNLESS" });
+    await userEvent.selectOptions(screen.getByLabelText("Encounter to duplicate"), "SUNLESS");
+    await userEvent.click(screen.getByRole("button", { name: "Create encounter" }));
+    expect(onCreateEncounter).toHaveBeenCalledWith({ name: "Ember Keep II", mode: "duplicate", sourceCode: "SUNLESS" });
   });
 
-  it("lets the DM rename a scenario without opening the battle map", async () => {
-    const onRenameScenario = vi.fn(async () => true);
-    home(dm, { onRenameScenario });
+  it("lets the DM rename an encounter without opening the battle map", async () => {
+    const onRenameEncounter = vi.fn(async () => true);
+    home(dm, { onRenameEncounter });
     await userEvent.click(screen.getByRole("button", { name: "Rename Ember Keep" }));
-    const input = screen.getByLabelText("Scenario name");
+    const input = screen.getByLabelText("Encounter name");
     await userEvent.clear(input);
     await userEvent.type(input, "Ember Keep Reforged");
     await userEvent.click(screen.getByRole("button", { name: "Save name" }));
-    expect(onRenameScenario).toHaveBeenCalledWith("EMBER-KEEP", "Ember Keep Reforged");
+    expect(onRenameEncounter).toHaveBeenCalledWith("EMBER-KEEP", "Ember Keep Reforged");
+  });
+
+  it("gives the DM separate setup and live-map actions", async () => {
+    const onSetupEncounter = vi.fn();
+    const onOpenEncounter = vi.fn();
+    home(dm, { onSetupEncounter, onOpenEncounter });
+
+    expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getAllByRole("button", { name: "Set up" })[0]);
+    expect(onSetupEncounter).toHaveBeenCalledWith("EMBER-KEEP");
+    await userEvent.click(screen.getAllByRole("button", { name: "Battle map" })[0]);
+    expect(onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
   });
 });

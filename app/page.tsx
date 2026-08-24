@@ -3,7 +3,7 @@ import BattleMapPrototype from "./battle-map-prototype";
 
 export const metadata: Metadata = {
   description:
-    "Plan scenarios, share handouts, and run live tactical encounters with the Friday Lunch Crew.",
+    "Prepare encounters, share handouts, and run live tactical battles with the Friday Lunch Crew.",
 };
 
 export default function Home() {

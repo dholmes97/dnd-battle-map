@@ -1000,7 +1000,7 @@ async function persistHandoutUpload(
       "SELECT COUNT(*) AS value FROM handouts WHERE encounter_id = ? AND deleted_at IS NULL",
     ).bind(encounter.id).first<{ value: number }>();
     if ((Number(existing?.value) || 0) >= HANDOUT_MAX_PER_SCENARIO) {
-      return json({ error: `This scenario already has ${HANDOUT_MAX_PER_SCENARIO} handouts.` }, { status: 409 });
+      return json({ error: `This encounter already has ${HANDOUT_MAX_PER_SCENARIO} handouts.` }, { status: 409 });
     }
   }
   if (display.size > HANDOUT_DISPLAY_MAX_BYTES || thumbnail.size > HANDOUT_THUMBNAIL_MAX_BYTES) {
@@ -1111,7 +1111,7 @@ async function persistHandoutUpload(
     }
     if (String(error).includes("resource_limit:active_handouts")) {
       return json({
-        error: `This scenario already has ${HANDOUT_MAX_PER_SCENARIO} handouts.`,
+        error: `This encounter already has ${HANDOUT_MAX_PER_SCENARIO} handouts.`,
       }, { status: 409 });
     }
     throw error;

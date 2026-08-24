@@ -147,11 +147,11 @@ export function ChatPanel({
           {participant.role === "dm" ? <button type="button" className={handoutPickerOpen ? "is-active" : ""} onClick={onToggleHandoutPicker}>Attach image</button> : null}
         </div>
         {participant.role === "dm" && handoutPickerOpen ? <div className="chat-handout-picker">
-          <div className="chat-handout-picker-head"><strong>Scenario handouts</strong><label className={handoutUploading ? "is-disabled" : ""}>{handoutUploading ? "Preparing…" : "Upload new"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={handoutUploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) onUploadNew(file); }} /></label></div>
+          <div className="chat-handout-picker-head"><strong>Encounter handouts</strong><label className={handoutUploading ? "is-disabled" : ""}>{handoutUploading ? "Preparing…" : "Upload new"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={handoutUploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) onUploadNew(file); }} /></label></div>
           {state.handouts.length ? <div className="chat-handout-options">{state.handouts.map((handout) => <button type="button" key={handout.id} className={selectedHandout?.id === handout.id ? "is-selected" : ""} onClick={() => onSelectHandout(handout.id)}>
             <ProtectedHandoutImage participant={participant} encounterCode={state.encounter.code} handoutId={handout.id} variant="thumbnail" revision={handout.updatedAt} alt="" />
             <span>{handout.title}</span>
-          </button>)}</div> : <p>No prepared handouts yet. Upload one here or in Scenario Setup.</p>}
+          </button>)}</div> : <p>No prepared handouts yet. Upload one here or in Encounter Setup.</p>}
           {handoutUploadError ? <div className="form-error" role="alert">{handoutUploadError}</div> : null}
         </div> : null}
         {selectedHandout ? <div className="chat-selected-handout"><span><small>Attached image</small><strong>{selectedHandout.title}</strong></span><IconActionButton variant="remove" label="Remove attached handout" onClick={onRemoveHandout} /><label className="chat-show-immediately"><input type="checkbox" checked={showImmediately} onChange={(event) => onShowImmediatelyChange(event.target.checked)} /><span><strong>Show immediately</strong><small>Opens for connected recipients without marking chat read.</small></span></label></div> : null}
@@ -179,7 +179,7 @@ export function ChatPanel({
   </section>;
 }
 
-type ScenarioHandoutsProps = {
+type EncounterHandoutsProps = {
   participant: ParticipantSession;
   encounterCode: string;
   handouts: SharedHandout[];
@@ -193,14 +193,14 @@ type ScenarioHandoutsProps = {
   onDelete: (handout: SharedHandout) => void;
 };
 
-export function ScenarioHandouts({ participant, encounterCode, handouts, title, uploading, uploadError, deletingId, onTitleChange, onUpload, onPreview, onDelete }: ScenarioHandoutsProps) {
+export function EncounterHandouts({ participant, encounterCode, handouts, title, uploading, uploadError, deletingId, onTitleChange, onUpload, onPreview, onDelete }: EncounterHandoutsProps) {
   return <section className="scenario-handouts" aria-labelledby="scenario-handouts-title">
     <div className="scenario-create-heading"><strong id="scenario-handouts-title">Prepared handouts</strong><small>Images are resized and compressed in your browser. Only a bounded display copy and thumbnail are stored.</small></div>
     <div className="handout-upload-row">
       <label>Title<input maxLength={80} value={title} onChange={(event) => onTitleChange(event.target.value)} placeholder="Strahd's invitation" disabled={uploading} /></label>
       <label className={`handout-upload-button${uploading ? " is-disabled" : ""}`}>{uploading ? "Preparing image…" : "Add image"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) onUpload(file, title); }} /></label>
     </div>
-    <p className="handout-storage-note">JPEG, PNG, or WebP · source under 12 MB and 24 megapixels · up to {HANDOUT_MAX_PER_SCENARIO} handouts per scenario</p>
+    <p className="handout-storage-note">JPEG, PNG, or WebP · source under 12 MB and 24 megapixels · up to {HANDOUT_MAX_PER_SCENARIO} handouts per encounter</p>
     {uploadError ? <div className="form-error" role="alert">{uploadError}</div> : null}
     {handouts.length ? <div className="scenario-handout-list">{handouts.map((handout) => <article key={handout.id}>
       <button type="button" className="scenario-handout-preview" onClick={() => onPreview(handout)} aria-label={`Preview ${handout.title}`}>
@@ -211,7 +211,7 @@ export function ScenarioHandouts({ participant, encounterCode, handouts, title, 
         <label className={uploading ? "is-disabled" : ""}>Replace<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) onUpload(file, handout.title, handout.id); }} /></label>
         <IconActionButton variant="delete" label={`Delete ${handout.title}`} disabled={deletingId === handout.id || uploading} onClick={() => onDelete(handout)} />
       </div>
-    </article>)}</div> : <div className="scenario-handout-empty">No handouts prepared for this scenario.</div>}
+    </article>)}</div> : <div className="scenario-handout-empty">No handouts prepared for this encounter.</div>}
   </section>;
 }
 

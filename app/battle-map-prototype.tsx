@@ -15,10 +15,12 @@ import { battleMapApi as api } from "@/app/battle-map-api";
 import { useEncounterSync } from "@/app/use-encounter-sync";
 import {
   ChatPanel,
+  HandoutLightbox,
 } from "@/app/chat-handouts-ui";
+import { EncounterSetupDetails } from "@/app/encounter-setup-details";
 import { useChatHandouts } from "@/app/use-chat-handouts";
 import { useTokenControls } from "@/app/use-token-controls";
-import { useScenarioControls, type EncounterSummary } from "@/app/use-scenario-controls";
+import type { EncounterSummary } from "@/app/encounter-summary";
 import { useCreatureCatalog } from "@/app/use-creature-catalog";
 import { useEncounterActions } from "@/app/use-encounter-actions";
 import { useMapAssets } from "@/app/use-map-assets";
@@ -84,6 +86,7 @@ export default function BattleMapPrototype() {
   const [signedInIdentity, setSignedInIdentity] = useState<JoinIdentity | null>(null);
   const [appView, setAppView] = useState<"login" | "dashboard" | "map">("login");
   const [openingCode, setOpeningCode] = useState<string | null>(null);
+  const [openingDestination, setOpeningDestination] = useState<"map" | "setup" | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
   const [renamingScenarioCode, setRenamingScenarioCode] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -179,7 +182,6 @@ export default function BattleMapPrototype() {
     onDockPointerMove: onChatDockPointerMove,
     onDockPointerEnd: onChatDockPointerEnd,
   } = useChatHandouts({ participant, state, sync: encounterSync, canvasRef, setNotice });
-  const scenarioControls = useScenarioControls();
   const uiSettingsRef = useRef<HTMLDetailsElement>(null);
   const pingStartedAtRef = useRef<Map<string, number>>(new Map());
   const pingAudioContextRef = useRef<AudioContext | null>(null);
@@ -247,17 +249,17 @@ export default function BattleMapPrototype() {
         if (disposed) return;
         setEncounters(items);
       })
-      .catch(() => { if (!disposed) setError("Your scenarios could not be loaded. Please try again."); })
+      .catch(() => { if (!disposed) setError("Your encounters could not be loaded. Please try again."); })
       .finally(() => { if (!disposed) setEncountersLoading(false); });
     return () => { disposed = true; };
   }, []);
 
-  const join = async (identity: JoinIdentity, code: string) => {
+  const join = async (identity: JoinIdentity, code: string, destination: "map" | "setup" = "map") => {
     const name = identity.participantName;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), JOIN_TIMEOUT_MS);
     enablePingAudio();
-    setOpeningCode(code); setBusy(true); setError("");
+    setOpeningCode(code); setOpeningDestination(destination); setBusy(true); setError("");
     try {
       const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(code)}/join`,
@@ -266,7 +268,9 @@ export default function BattleMapPrototype() {
       const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
       personalUiSettings.loadForIdentity(name, result.role);
       resetChatForParticipant(name, result.role, result.state.encounter.code);
-      startSession(joined, result.state); setAppView("map");
+      startSession(joined, result.state);
+      setWorkshopOpen(destination === "setup");
+      setAppView("map");
     } catch (joinError) {
       setError(joinError instanceof DOMException && joinError.name === "AbortError"
         ? "The encounter took too long to respond. Please try again."
@@ -274,6 +278,7 @@ export default function BattleMapPrototype() {
     } finally {
       window.clearTimeout(timeout);
       setOpeningCode(null);
+      setOpeningDestination(null);
       setBusy(false);
     }
   };
@@ -294,7 +299,7 @@ export default function BattleMapPrototype() {
       setNotice(`${result.scenario.name} created.`);
       return true;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The scenario could not be created.");
+      setError(caught instanceof Error ? caught.message : "The encounter could not be created.");
       return false;
     } finally { setCreatingScenarioFromHome(false); }
   };
@@ -315,7 +320,7 @@ export default function BattleMapPrototype() {
       setNotice(`${result.scenario.name} saved.`);
       return true;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The scenario name could not be saved.");
+      setError(caught instanceof Error ? caught.message : "The encounter name could not be saved.");
       return false;
     } finally { setRenamingScenarioCode(null); }
   };
@@ -636,11 +641,12 @@ export default function BattleMapPrototype() {
   if (appView === "dashboard") {
     return <CampaignHome
       identity={signedInIdentity} encounters={encounters} loading={encountersLoading}
-      openingCode={openingCode} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
-      onOpenScenario={(code) => void join(signedInIdentity, code)}
-      onCreateScenario={createScenarioFromHome}
-      onRenameScenario={renameScenarioFromHome}
-      onSignOut={() => { clearSession(); setSignedInIdentity(null); setError(""); setNotice(""); setAppView("login"); }}
+      openingCode={openingCode} openingDestination={openingDestination} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
+      onOpenEncounter={(code) => void join(signedInIdentity, code, "map")}
+      onSetupEncounter={(code) => void join(signedInIdentity, code, "setup")}
+      onCreateEncounter={createScenarioFromHome}
+      onRenameEncounter={renameScenarioFromHome}
+      onSignOut={() => { clearSession(); setWorkshopOpen(false); setSignedInIdentity(null); setError(""); setNotice(""); setAppView("login"); }}
     />;
   }
 
@@ -657,13 +663,30 @@ export default function BattleMapPrototype() {
   const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
   const durableAnnotationCount = state.annotations.filter((annotation) => annotation.type === "drawing").length;
 
-  if (participant.role === "dm" && workshopOpen) return <MapWorkshop
-    activeMapPackage={state.encounter.mapPackage}
-    draftMapPackage={state.encounter.mapDraft}
-    mapImages={state.mapImages}
-    onCommand={async (name, extra) => sendCommand<{ state: EncounterState }>(name, extra)}
-    onClose={() => setWorkshopOpen(false)}
-  />;
+  if (participant.role === "dm" && workshopOpen) return <>
+    <MapWorkshop
+      activeMapPackage={state.encounter.mapPackage}
+      draftMapPackage={state.encounter.mapDraft}
+      mapImages={state.mapImages}
+      sidebarDetails={<EncounterSetupDetails
+        participant={participant}
+        encounterCode={state.encounter.code}
+        dmBriefing={state.encounter.dmBriefing}
+        handouts={state.handouts}
+        title={handoutTitle}
+        uploading={handoutUploading}
+        uploadError={handoutUploadError}
+        deletingId={handoutDeletingId}
+        onTitleChange={setHandoutTitle}
+        onUpload={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId ?? null)}
+        onPreview={(handout) => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }}
+        onDelete={(handout) => void deleteHandout(handout)}
+      />}
+      onCommand={async (name, extra) => sendCommand<{ state: EncounterState }>(name, extra)}
+      onClose={() => { clearSession(); setWorkshopOpen(false); setError(""); setAppView("dashboard"); }}
+    />
+    {lightboxHandout?.available ? <HandoutLightbox participant={participant} encounterCode={state.encounter.code} handout={lightboxHandout} fitMode={handoutFitMode} onFitModeChange={setHandoutFitMode} onClose={() => setLightboxHandout(null)} /> : null}
+  </>;
 
   const inCombat = state.encounter.status === "active";
   const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups) as RosterRow[];
@@ -703,7 +726,6 @@ export default function BattleMapPrototype() {
         onToggleChat={() => { if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; } else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; } else { markChatChannelRead(activeChatChannel); setChatOpen(false); } }}
         onToggleCreatures={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); clearSpellPlacementPreview(); setAnnotationMode("move"); }}
         onToggleSpells={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); clearCreaturePlacementPreview(); setAnnotationMode("move"); }}
-        onOpenWorkshop={() => setWorkshopOpen(true)} onManageScenarios={scenarioControls.show}
         onOpenDashboard={() => { clearSession(); setError(""); setAppView("dashboard"); }}
         onHistory={(direction) => void history.run(direction)} onFit={fitViewport} onZoom={changeZoom}
         onResetZoom={resetViewport}
@@ -804,18 +826,13 @@ export default function BattleMapPrototype() {
         participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
         clearAnnotationsOpen={clearAnnotationsConfirmOpen} clearAnnotationCount={durableAnnotationCount}
         concentrationReminder={tokenControls.concentrationReminder}
-        scenario={scenarioControls} handoutTitle={handoutTitle} handoutUploading={handoutUploading}
-        handoutUploadError={handoutUploadError} handoutDeletingId={handoutDeletingId}
         lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
         onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen} onClearAnnotationsOpen={setClearAnnotationsConfirmOpen}
         onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
         onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
         onClearAnnotations={() => { setClearAnnotationsConfirmOpen(false); void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: current.annotations.filter((annotation) => annotation.type !== "drawing") }), `${durableAnnotationCount} ${durableAnnotationCount === 1 ? "drawing" : "drawings"} cleared. Use Undo to restore.`); }}
         onDismissConcentrationReminder={tokenControls.dismissConcentrationReminder}
-        onHandoutTitle={setHandoutTitle}
-        onUploadHandout={(file, title, replaceId) => void uploadHandout(file, title, false, replaceId)}
-        onPreviewHandout={(handout) => { setLightboxHandout({ id: handout.id, title: handout.title, width: handout.width, height: handout.height, updatedAt: handout.updatedAt, available: true }); setHandoutFitMode(true); }}
-        onDeleteHandout={(handout) => void deleteHandout(handout)} onHandoutFitMode={setHandoutFitMode}
+        onHandoutFitMode={setHandoutFitMode}
         onCloseLightbox={() => setLightboxHandout(null)}
       />
     </main>

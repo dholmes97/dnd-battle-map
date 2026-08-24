@@ -136,9 +136,13 @@ export function useMapAssets({ active, state, participant, preview, placementPre
     redraw();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const observer = new ResizeObserver(() => redraw());
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    let frameId = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => redraw());
+    });
+    observer.observe(canvas.parentElement ?? canvas);
+    return () => { observer.disconnect(); window.cancelAnimationFrame(frameId); };
   }, [active, canvasRef, redraw]);
   useEffect(() => {
     const animationIsActive = (now: number) => Boolean(state && battleMapAnimationIsActive({

@@ -5,8 +5,10 @@ import IconActionButton from "@/app/icon-action-button";
 import { ModalDialog } from "@/app/modal-dialog";
 import { renderMapPackageToContext } from "@/app/map-scene-renderer";
 import {
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -33,6 +35,7 @@ type Props = {
   activeMapPackage: MapPackage | null;
   draftMapPackage: MapPackage | null;
   mapImages: MapImage[];
+  sidebarDetails?: ReactNode;
   onCommand: <Name extends CommandName>(name: Name, extra: CommandPayload<Name>) => Promise<CommandResponse>;
   onClose: () => void;
 };
@@ -47,6 +50,8 @@ type SelectedFogBlocker = { kind: "wall" | "door" | "circle"; id: string };
 type FogBlockerTarget = SelectedFogBlocker & { handle: "start" | "end" | "body" | "radius" };
 type FogBlockerDrag = { pointerId: number; target: FogBlockerTarget; start: Point; before: MapPackage };
 type KeyboardAnchor = { tool: "vision-wall" | "vision-door" | "vision-circle"; point: Point };
+type PendingLabel = { labelId: string | null; location: Point; leftPercent: number; topPercent: number; controlsBelow: boolean; fontSize: number };
+type PendingNote = { noteId: string | null; location: Point; leftPercent: number; topPercent: number; controlsBelow: boolean; horizontalAlign: "left" | "center" | "right"; markerSize: number };
 
 const HISTORY_LIMIT = 50;
 
@@ -117,7 +122,7 @@ function labelAt(canvas: HTMLCanvasElement, map: MapPackage, point: Point) {
   return match;
 }
 
-export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImages, onCommand, onClose }: Props) {
+export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImages, sidebarDetails, onCommand, onClose }: Props) {
   const initial = useMemo(() => cloneMapPackage(draftMapPackage ?? activeMapPackage ?? createMapPackageForImage(mapImages[0])), [activeMapPackage, draftMapPackage, mapImages]);
   const [map, setMap] = useState(initial);
   const [dirty, setDirty] = useState(false);
@@ -125,7 +130,9 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
   const [selectedAnnotation, setSelectedAnnotation] = useState<SelectedAnnotation | null>(null);
   const [labelText, setLabelText] = useState("");
   const [labelVisibility, setLabelVisibility] = useState<"dm" | "everyone">("everyone");
+  const [pendingLabel, setPendingLabel] = useState<PendingLabel | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [pendingNote, setPendingNote] = useState<PendingNote | null>(null);
   const savedDraftRef = useRef(JSON.stringify(initial));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -133,6 +140,8 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
   const [images, setImages] = useState<Map<string, HTMLImageElement>>(new Map());
   const [wallPreview, setWallPreview] = useState<{ start: Point; end: Point } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const labelEditorRef = useRef<HTMLInputElement>(null);
+  const noteEditorRef = useRef<HTMLTextAreaElement>(null);
   const wallDragRef = useRef<WallDrag | null>(null);
   const fogVertexDragRef = useRef<FogVertexDrag | null>(null);
   const fogCircleDragRef = useRef<FogCircleDrag | null>(null);
@@ -159,6 +168,11 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
   const assetPaths = useMemo(() => [map.visual.assetUrl], [map.visual.assetUrl]);
 
   useEffect(() => {
+    if (pendingLabel) labelEditorRef.current?.focus();
+    else if (pendingNote) noteEditorRef.current?.focus();
+  }, [pendingLabel, pendingNote]);
+
+  useEffect(() => {
     let disposed = false;
     queueMicrotask(() => { if (!disposed) setImages(new Map()); });
     void Promise.all(assetPaths.map(loadImage)).then((entries) => {
@@ -171,7 +185,8 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.max(1, Math.round(rect.width * dpr)); canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    const width = Math.max(1, Math.round(rect.width * dpr)); const height = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     const context = canvas.getContext("2d"); if (!context) return;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, rect.width, rect.height);
@@ -180,7 +195,12 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
     const cellWidth = geometry.cellSize; const cellHeight = geometry.cellSize;
     const screenX = (x: number) => geometry.offsetX + x * cellWidth;
     const screenY = (y: number) => geometry.offsetY + y * cellHeight;
-    renderMapPackageToContext(context, map, images, cellWidth, cellHeight, geometry.offsetX, geometry.offsetY, true);
+    const renderedMap = {
+      ...map,
+      labels: pendingLabel?.labelId ? map.labels.filter((label) => label.id !== pendingLabel.labelId) : map.labels,
+      notes: pendingNote?.noteId ? map.notes.filter((note) => note.id !== pendingNote.noteId) : map.notes,
+    };
+    renderMapPackageToContext(context, renderedMap, images, cellWidth, cellHeight, geometry.offsetX, geometry.offsetY, true);
     context.strokeStyle = "rgba(241, 229, 198, 0.2)"; context.lineWidth = 1;
     for (let x = 0; x <= map.width; x += 1) { context.beginPath(); context.moveTo(screenX(x), geometry.offsetY); context.lineTo(screenX(x), geometry.offsetY + map.height * cellHeight); context.stroke(); }
     for (let y = 0; y <= map.height; y += 1) { context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + map.width * cellWidth, screenY(y)); context.stroke(); }
@@ -219,7 +239,7 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
       if (fogCirclePreview) { context.strokeStyle = "#f5c65c"; context.setLineDash([7, 5]); context.beginPath(); context.arc(screenX(fogCirclePreview.center.x), screenY(fogCirclePreview.center.y), fogCirclePreview.radius * cellWidth, 0, Math.PI * 2); context.stroke(); }
       context.restore();
     }
-    if (selectedLabel) {
+    if (selectedLabel && selectedLabel.id !== pendingLabel?.labelId) {
       context.save();
       context.font = `700 ${Math.max(11, cellWidth * 0.24)}px ui-sans-serif, system-ui`;
       const width = context.measureText(selectedLabel.text).width + 22;
@@ -227,7 +247,7 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
       context.strokeRect(screenX(selectedLabel.x) - width / 2, screenY(selectedLabel.y) - 15, width, 30);
       context.restore();
     }
-    if (selectedNote) {
+    if (selectedNote && selectedNote.id !== pendingNote?.noteId) {
       context.save();
       context.strokeStyle = "#f5c65c"; context.lineWidth = 2; context.setLineDash([8, 5]);
       context.beginPath(); context.arc(screenX(selectedNote.x), screenY(selectedNote.y), Math.max(12, cellWidth * 0.3), 0, Math.PI * 2); context.stroke();
@@ -244,15 +264,19 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
       context.strokeStyle = "#f5c65c"; context.lineWidth = 3; context.setLineDash([7, 5]);
       context.beginPath(); context.moveTo(screenX(wallPreview.start.x), screenY(wallPreview.start.y)); context.lineTo(screenX(wallPreview.end.x), screenY(wallPreview.end.y)); context.stroke(); context.setLineDash([]);
     }
-  }, [fogCirclePreview, images, keyboardCursor, map, selectedFogBlocker, selectedFogVertex, selectedLabel, selectedNote, wallPreview]);
+  }, [fogCirclePreview, images, keyboardCursor, map, pendingLabel, pendingNote, selectedFogBlocker, selectedFogVertex, selectedLabel, selectedNote, wallPreview]);
 
   useEffect(() => {
     draw();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const observer = new ResizeObserver(() => draw());
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    let frameId = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => draw());
+    });
+    observer.observe(canvas.parentElement ?? canvas);
+    return () => { observer.disconnect(); window.cancelAnimationFrame(frameId); };
   }, [draw]);
 
   const remember = (before: MapPackage) => {
@@ -303,7 +327,92 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
     setMessage(`Loaded “${next.name}” as a private draft.`);
   };
 
+  const beginLabelAt = (canvas: HTMLCanvasElement, location: Point, label: MapPackage["labels"][number] | null = null) => {
+    const rect = canvas.getBoundingClientRect();
+    const geometry = fitGridGeometry(map.width, map.height, rect.width, rect.height);
+    const leftPercent = rect.width > 0 ? ((geometry.offsetX + location.x * geometry.cellSize) / rect.width) * 100 : 50;
+    const topPercent = rect.height > 0 ? ((geometry.offsetY + location.y * geometry.cellSize) / rect.height) * 100 : 50;
+    setLabelText(label?.text ?? "");
+    setPendingNote(null);
+    setNoteText("");
+    if (label) { setLabelVisibility(label.visibility); setSelectedAnnotation({ kind: "label", id: label.id }); }
+    setPendingLabel({ labelId: label?.id ?? null, location, leftPercent, topPercent, controlsBelow: topPercent < 14, fontSize: Math.max(11, geometry.cellSize * 0.24) });
+    setKeyboardStatus(`${label ? "Edit" : "Type"} the label at ${spatialCoordinateAnnouncement(location)}, then press Enter. Escape cancels.`);
+  };
+
+  const cancelPendingLabel = () => {
+    setPendingLabel(null);
+    setLabelText("");
+    setKeyboardStatus("Label entry cancelled. The private draft was not changed.");
+  };
+
+  const finishPendingLabel = () => {
+    if (!pendingLabel) return false;
+    const text = labelText.trim().slice(0, 120);
+    if (!text) { setKeyboardStatus("Enter label text, or press Escape to cancel."); return false; }
+    const existing = pendingLabel.labelId ? map.labels.find((label) => label.id === pendingLabel.labelId) ?? null : null;
+    if (existing && existing.text === text && existing.visibility === labelVisibility) {
+      setPendingLabel(null); setLabelText(""); setKeyboardStatus("Label editing finished without changes."); return true;
+    }
+    const id = existing?.id ?? crypto.randomUUID();
+    commit((current) => ({ ...current, labels: existing
+      ? current.labels.map((label) => label.id === existing.id ? { ...label, text, visibility: labelVisibility } : label)
+      : [...current.labels, { id, ...pendingLabel.location, text, visibility: labelVisibility }] }));
+    setSelectedAnnotation({ kind: "label", id });
+    setPendingLabel(null);
+    setLabelText("");
+    setKeyboardStatus(`Label created at ${spatialCoordinateAnnouncement(pendingLabel.location)}. The label tool remains active.`);
+    return true;
+  };
+
+  const beginNoteAt = (canvas: HTMLCanvasElement, location: Point, note: MapPackage["notes"][number] | null = null) => {
+    const rect = canvas.getBoundingClientRect();
+    const geometry = fitGridGeometry(map.width, map.height, rect.width, rect.height);
+    const leftPercent = rect.width > 0 ? ((geometry.offsetX + location.x * geometry.cellSize) / rect.width) * 100 : 50;
+    const topPercent = rect.height > 0 ? ((geometry.offsetY + location.y * geometry.cellSize) / rect.height) * 100 : 50;
+    setPendingLabel(null);
+    setLabelText("");
+    setNoteText(note?.text ?? "");
+    if (note) setSelectedAnnotation({ kind: "note", id: note.id });
+    setPendingNote({
+      noteId: note?.id ?? null,
+      location,
+      leftPercent,
+      topPercent,
+      controlsBelow: topPercent < 24,
+      horizontalAlign: leftPercent < 18 ? "left" : leftPercent > 82 ? "right" : "center",
+      markerSize: Math.max(16, geometry.cellSize * 0.44),
+    });
+    setKeyboardStatus(`${note ? "Edit" : "Type"} the private DM note at ${spatialCoordinateAnnouncement(location)}. Enter saves; Shift plus Enter adds a line; Escape cancels.`);
+  };
+
+  const cancelPendingNote = () => {
+    setPendingNote(null);
+    setNoteText("");
+    setKeyboardStatus("DM note entry cancelled. The private draft was not changed.");
+  };
+
+  const finishPendingNote = () => {
+    if (!pendingNote) return false;
+    const text = noteText.trim().slice(0, 500);
+    if (!text) { setKeyboardStatus("Enter DM note text, or press Escape to cancel."); return false; }
+    const existing = pendingNote.noteId ? map.notes.find((note) => note.id === pendingNote.noteId) ?? null : null;
+    if (existing && existing.text === text) {
+      setPendingNote(null); setNoteText(""); setKeyboardStatus("DM note editing finished without changes."); return true;
+    }
+    const id = existing?.id ?? crypto.randomUUID();
+    commit((current) => ({ ...current, notes: existing
+      ? current.notes.map((note) => note.id === existing.id ? { ...note, text } : note)
+      : [...current.notes, { id, ...pendingNote.location, text }] }));
+    setSelectedAnnotation({ kind: "note", id });
+    setPendingNote(null);
+    setNoteText("");
+    setKeyboardStatus(`DM note saved at ${spatialCoordinateAnnouncement(pendingNote.location)}. The note tool remains active.`);
+    return true;
+  };
+
   const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
+    setKeyboardCursor(null);
     const point = canvasPoint(event.currentTarget, map, event.clientX, event.clientY);
     if (tool === "select" && map.fog.mode === "shared") {
       const index = map.fog.sharedPolygon.reduce((best, vertex, current) => Math.hypot(point.x - vertex.x, point.y - vertex.y) < Math.hypot(point.x - map.fog.sharedPolygon[best].x, point.y - map.fog.sharedPolygon[best].y) ? current : best, 0);
@@ -342,15 +451,25 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
       const note = mapNoteAt(map, point);
       const label = note ? null : labelAt(event.currentTarget, map, point);
       if (note || label) {
-        setSelectedAnnotation({ kind: note ? "note" : "label", id: (note ?? label)!.id });
+        if (label) { event.preventDefault(); beginLabelAt(event.currentTarget, { x: label.x, y: label.y }, label); }
+        else { event.preventDefault(); beginNoteAt(event.currentTarget, { x: note!.x, y: note!.y }, note); }
         return;
       }
       setSelectedAnnotation(null);
       return;
     }
-    const location = snapMapPoint(point); const id = crypto.randomUUID();
-    if (tool === "label" && labelText.trim()) commit((current) => ({ ...current, labels: [...current.labels, { id, x: location.x, y: location.y, text: labelText.trim().slice(0, 120), visibility: labelVisibility }] }));
-    if (tool === "note" && noteText.trim()) commit((current) => ({ ...current, notes: [...current.notes, { id, x: location.x, y: location.y, text: noteText.trim().slice(0, 500) }] }));
+    const location = snapMapPoint(point);
+    if (tool === "label") {
+      const label = labelAt(event.currentTarget, map, point);
+      event.preventDefault();
+      beginLabelAt(event.currentTarget, label ? { x: label.x, y: label.y } : location, label);
+      return;
+    }
+    if (tool === "note") {
+      const note = mapNoteAt(map, point);
+      event.preventDefault();
+      beginNoteAt(event.currentTarget, note ? { x: note.x, y: note.y } : location, note);
+    }
   };
 
   const onPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -395,6 +514,8 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
   const deleteObject = (collection: "walls" | "portals" | "labels" | "notes", id: string) => {
     commit((current) => ({ ...current, [collection]: current[collection].filter((item) => item.id !== id) }));
     if (selectedAnnotation?.id === id) setSelectedAnnotation(null);
+    if (pendingLabel?.labelId === id) { setPendingLabel(null); setLabelText(""); }
+    if (pendingNote?.noteId === id) { setPendingNote(null); setNoteText(""); }
   };
   const deleteSelectedAnnotation = () => {
     if (!selectedAnnotation) return;
@@ -434,9 +555,13 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
     }
     const note = mapNoteAt(map, point);
     const label = note ? null : labelAt(canvas, map, point);
-    if (note || label) {
-      setSelectedAnnotation({ kind: note ? "note" : "label", id: (note ?? label)!.id });
-      setKeyboardStatus(`${note ? "DM note" : `Label ${(label?.text ?? "").slice(0, 40)}`} selected. Press Space to grab it, or Delete to remove it.`);
+    if (note) {
+      beginNoteAt(canvas, { x: note.x, y: note.y }, note);
+      return;
+    }
+    if (label) {
+      setSelectedAnnotation({ kind: "label", id: label.id });
+      setKeyboardStatus(`Label ${label.text.slice(0, 40)} selected. Press Space to grab it, or Delete to remove it.`);
       return;
     }
     setKeyboardStatus(`No editable object is at ${spatialCoordinateAnnouncement(point)}.`);
@@ -486,9 +611,9 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
   };
 
   const onCanvasFocus = () => {
-    const point = keyboardCursor ?? { x: Math.floor(map.width / 2) + 0.5, y: Math.floor(map.height / 2) + 0.5 };
-    setKeyboardCursor(point);
-    setKeyboardStatus(`Workshop keyboard active at ${spatialCoordinateAnnouncement(point)}. Arrow keys move the cursor; Enter activates the current tool; Space grabs or drops a selected object; Escape cancels.`);
+    setKeyboardStatus(keyboardCursor
+      ? `Workshop keyboard active at ${spatialCoordinateAnnouncement(keyboardCursor)}. Arrow keys move the cursor; Enter activates the current tool; Space grabs or drops a selected object; Escape cancels.`
+      : "Workshop keyboard active. Press an arrow key to reveal and move the map cursor, or Enter to use the current tool at the map center.");
   };
 
   const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
@@ -555,13 +680,9 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
       return;
     }
     if (tool === "select") { selectAtKeyboardCursor(point, event.currentTarget); return; }
-    if (tool === "label" || tool === "note") {
-      const text = tool === "label" ? labelText.trim().slice(0, 120) : noteText.trim().slice(0, 500);
-      if (!text) { setKeyboardStatus(`Enter ${tool === "label" ? "label text" : "a private note"} before placing it.`); return; }
-      const location = snapMapPoint(point); const id = crypto.randomUUID();
-      if (tool === "label") { commit((current) => ({ ...current, labels: [...current.labels, { id, ...location, text, visibility: labelVisibility }] })); setSelectedAnnotation({ kind: "label", id }); }
-      else { commit((current) => ({ ...current, notes: [...current.notes, { id, ...location, text }] })); setSelectedAnnotation({ kind: "note", id }); }
-      setKeyboardStatus(`${tool === "label" ? "Label" : "DM note"} created at ${spatialCoordinateAnnouncement(location)}. The tool remains active.`);
+    if (tool === "label") { beginLabelAt(event.currentTarget, snapMapPoint(point)); return; }
+    if (tool === "note") {
+      beginNoteAt(event.currentTarget, snapMapPoint(point));
       return;
     }
     if (tool === "fog-add" && map.fog.mode === "shared") {
@@ -637,27 +758,24 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
           {map.fog.mode === "dynamic" && selectedFogBlocker ? <div className="workshop-visibility-actions is-selection"><span>Selected {selectedFogBlocker.kind}</span>{selectedFogDoor ? <button onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="is-danger" onClick={deleteSelectedFogItem}>Delete</button></div> : null}
         </div>
         <div className="workshop-annotation-tools" role="toolbar" aria-label="Map labels and notes">
-          <button className={tool === "label" ? "workshop-icon-tool is-active" : "workshop-icon-tool"} aria-label="Add map label" aria-pressed={tool === "label"} data-tooltip="Add a label" onClick={() => setTool("label")}><WorkshopToolIcon tool="label" /></button>
-          <button className={tool === "note" ? "workshop-icon-tool is-active" : "workshop-icon-tool"} aria-label="Add DM note" aria-pressed={tool === "note"} data-tooltip="Add a private DM note" onClick={() => setTool("note")}><WorkshopToolIcon tool="note" /></button>
+          <button className={tool === "label" ? "workshop-icon-tool is-active" : "workshop-icon-tool"} aria-label="Add map label" aria-pressed={tool === "label"} data-tooltip="Add a label: click the map, then type" onClick={() => { setPendingLabel(null); setPendingNote(null); setLabelText(""); setNoteText(""); setTool("label"); }}><WorkshopToolIcon tool="label" /></button>
+          <button className={tool === "note" ? "workshop-icon-tool is-active" : "workshop-icon-tool"} aria-label="Add DM note" aria-pressed={tool === "note"} data-tooltip="Add a private DM note" onClick={() => { setPendingLabel(null); setLabelText(""); setTool("note"); }}><WorkshopToolIcon tool="note" /></button>
         </div>
         <div className="workshop-history-tools" role="group" aria-label="Draft history"><button className="workshop-icon-tool" aria-label="Undo draft change" data-tooltip="Undo — Ctrl/Cmd + Z" disabled={!historyCounts.undo} onClick={undo}><WorkshopHistoryIcon direction="undo" /></button><button className="workshop-icon-tool" aria-label="Redo draft change" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" disabled={!historyCounts.redo} onClick={redo}><WorkshopHistoryIcon direction="redo" /></button></div>
       </div>
-      <div className="workshop-header-title"><strong>{map.name}</strong><span>Map Workshop · Draft</span></div>
-      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Unsaved draft" : draftMatchesApplied ? "Applied" : "Draft saved"}</span><div className="workshop-action-tools" role="group" aria-label="Workshop actions"><button className="workshop-icon-tool" aria-label="Discard draft" data-tooltip="Discard the draft and restore the applied map" disabled={!hasDraftChanges || busy} onClick={requestDiscard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply draft" data-tooltip="Apply this draft to the encounter" disabled={busy} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to battle map" data-tooltip="Return to battle map" disabled={busy} onClick={requestReturn}><WorkshopActionIcon action="return" /></button></div></div>
+      <div className="workshop-header-title"><strong>{map.name}</strong><span>Encounter Setup · Draft</span></div>
+      <div className="workshop-header-actions"><span className={dirty ? "draft-status is-dirty" : "draft-status"}>{dirty ? "Unsaved draft" : draftMatchesApplied ? "Applied" : "Draft saved"}</span><div className="workshop-action-tools" role="group" aria-label="Encounter setup actions"><button className="workshop-icon-tool" aria-label="Discard draft" data-tooltip="Discard the draft and restore the applied map" disabled={!hasDraftChanges || busy} onClick={requestDiscard}><WorkshopActionIcon action="discard" /></button><button className="workshop-icon-tool is-primary" aria-label="Apply draft" data-tooltip="Apply this draft to the encounter" disabled={busy || draftMatchesApplied} onClick={() => void apply()}><WorkshopActionIcon action="apply" /></button><button className="workshop-icon-tool" aria-label="Return to encounters" data-tooltip="Return to encounters" disabled={busy} onClick={requestReturn}><WorkshopActionIcon action="return" /></button></div></div>
     </header>
     <div className="workshop-layout">
-      <aside className="workshop-controls" aria-label="Map Workshop controls">
+      <aside className="workshop-controls" aria-label="Encounter Setup controls">
         <section className="map-library-panel"><div className="workshop-section-heading"><small>Encounter map</small><strong>Draft</strong></div><p className="workshop-help">Save your preparation without changing the battle map. Apply the draft when it is ready for the encounter.</p><div className="button-row"><button className="primary-button" disabled={busy || !dirty} onClick={() => void saveDraft()}>{busy ? "Saving…" : "Save draft"}</button></div></section>
+        {sidebarDetails}
         <section className="base-map-panel"><div className="workshop-section-heading"><strong>Base map</strong></div><div className="current-base-map"><NextImage src={mapThumbnailUrl(baseMap.assetPath)} alt="" width={96} height={64} unoptimized /><span><strong>{baseMap.name}</strong><small>{baseMap.biome} · {baseMap.gridWidth} × {baseMap.gridHeight}</small></span></div><button className="secondary-button" onClick={() => setBaseMapChooserOpen((open) => !open)}>{baseMapChooserOpen ? "Cancel change" : "Change base map"}</button>{baseMapChooserOpen ? <div className="full-scene-list" aria-label="Choose a different base map">{availableMapImages.map((image) => <button key={image.id} className={map.id === image.id ? "is-active" : ""} onClick={() => chooseScene(image)}><NextImage src={mapThumbnailUrl(image.assetPath)} alt="" width={96} height={64} loading="lazy" unoptimized /><span><strong>{image.name}</strong><small>{image.biome} · {image.gridWidth} × {image.gridHeight}</small></span></button>)}</div> : null}</section>
-        {tool === "label" || tool === "note" ? <section><div className="workshop-section-heading"><small>Active tool</small><strong>{tool === "label" ? "Add label" : "Add DM note"}</strong></div>
-          {tool === "label" ? <div className="structure-options"><label>Text<input value={labelText} onChange={(event) => setLabelText(event.target.value)} /></label><label>Visible to<select value={labelVisibility} onChange={(event) => setLabelVisibility(event.target.value as "dm" | "everyone")}><option value="everyone">Everyone</option><option value="dm">DM only</option></select></label><p className="workshop-help">Enter text, then click the scene or focus the map and press Enter.</p></div> : null}
-          {tool === "note" ? <div className="structure-options"><label>Private note<textarea value={noteText} onChange={(event) => setNoteText(event.target.value)} rows={3} /></label><p className="workshop-help">Enter a note, then click its location or focus the map and press Enter.</p></div> : null}
-        </section> : null}
         <details className="map-object-list"><summary>Map details <span>{map.walls.length + map.portals.length + map.labels.length + map.notes.length}</span></summary>
           {map.walls.map((wall, index) => <div key={wall.id}><span>Wall {index + 1}</span><IconActionButton variant="delete" label={`Delete wall ${index + 1}`} onClick={() => deleteObject("walls", wall.id)} /></div>)}
           {map.portals.map((portal, index) => <div key={portal.id}><span>{portal.kind} {index + 1}<small>{portal.orientation}</small></span><IconActionButton variant="delete" label={`Delete ${portal.kind} ${index + 1}`} onClick={() => deleteObject("portals", portal.id)} /></div>)}
-          {map.labels.map((label, index) => <div key={label.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "label" && selectedAnnotation.id === label.id} onClick={() => { setSelectedAnnotation({ kind: "label", id: label.id }); setSelectedFogVertex(null); setSelectedFogBlocker(null); }}><span>{label.text}<small>{label.visibility} · x {label.x}, y {label.y}</small></span></button><IconActionButton variant="delete" label={`Delete label ${index + 1}`} onClick={() => deleteObject("labels", label.id)} /></div>)}
-          {map.notes.map((note, index) => <div key={note.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "note" && selectedAnnotation.id === note.id} onClick={() => { setSelectedAnnotation({ kind: "note", id: note.id }); setSelectedFogVertex(null); setSelectedFogBlocker(null); }}><span>DM note {index + 1}<small>{note.text} · x {note.x}, y {note.y}</small></span></button><IconActionButton variant="delete" label={`Delete note ${index + 1}`} onClick={() => deleteObject("notes", note.id)} /></div>)}
+          {map.labels.map((label, index) => <div key={label.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "label" && selectedAnnotation.id === label.id} onClick={() => { const canvas = canvasRef.current; setSelectedFogVertex(null); setSelectedFogBlocker(null); if (canvas) beginLabelAt(canvas, { x: label.x, y: label.y }, label); else setSelectedAnnotation({ kind: "label", id: label.id }); }}><span>{label.text}<small>{label.visibility} · x {label.x}, y {label.y}</small></span></button><IconActionButton variant="delete" label={`Delete label ${index + 1}`} onClick={() => deleteObject("labels", label.id)} /></div>)}
+          {map.notes.map((note, index) => <div key={note.id}><button className="map-object-select" aria-pressed={selectedAnnotation?.kind === "note" && selectedAnnotation.id === note.id} onClick={() => { const canvas = canvasRef.current; setSelectedFogVertex(null); setSelectedFogBlocker(null); if (canvas) beginNoteAt(canvas, { x: note.x, y: note.y }, note); else setSelectedAnnotation({ kind: "note", id: note.id }); }}><span>DM note {index + 1}<small>{note.text} · x {note.x}, y {note.y}</small></span></button><IconActionButton variant="delete" label={`Delete note ${index + 1}`} onClick={() => deleteObject("notes", note.id)} /></div>)}
         </details>
         <details className="map-object-list vision-object-list"><summary>Vision geometry <span>{map.fog.mode === "shared" ? map.fog.sharedPolygon.length : map.fog.walls.length + map.fog.doors.length + map.fog.circles.length}</span></summary>
           {map.fog.mode === "shared" ? map.fog.sharedPolygon.map((point, index) => <div key={`fog-corner-${index}`}><button className="map-object-select" aria-pressed={selectedFogVertex === index} onClick={() => { setSelectedFogVertex(index); setSelectedAnnotation(null); setSelectedFogBlocker(null); }}><span>Fog corner {index + 1}<small>x {point.x}, y {point.y}</small></span></button></div>) : null}
@@ -668,9 +786,9 @@ export default function MapWorkshop({ activeMapPackage, draftMapPackage, mapImag
         {selectedFogWall || selectedFogDoor ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected vision {selectedFogDoor ? "door" : "wall"}</small><strong>Endpoint geometry</strong></div><div className="geometry-fields is-four"><label>Start X<input aria-label="Selected blocker start X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x1 ?? selectedFogDoor?.x1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x1", event.currentTarget.valueAsNumber)} /></label><label>Start Y<input aria-label="Selected blocker start Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y1 ?? selectedFogDoor?.y1 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y1", event.currentTarget.valueAsNumber)} /></label><label>End X<input aria-label="Selected blocker end X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogWall?.x2 ?? selectedFogDoor?.x2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("x2", event.currentTarget.valueAsNumber)} /></label><label>End Y<input aria-label="Selected blocker end Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogWall?.y2 ?? selectedFogDoor?.y2 ?? 0} onChange={(event) => updateSelectedBlockerCoordinate("y2", event.currentTarget.valueAsNumber)} /></label></div>{selectedFogDoor ? <button className="secondary-button" onClick={toggleSelectedVisionDoor}>{selectedFogDoor.open ? "Close door" : "Open door"}</button> : null}<button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
         {selectedFogCircle ? <section className="selected-scene-panel"><div className="workshop-section-heading"><small>Selected round blocker</small><strong>Center and radius</strong></div><div className="geometry-fields is-three"><label>Center X<input aria-label="Selected round blocker X coordinate" type="number" min={0} max={map.width} step={0.25} value={selectedFogCircle.x} onChange={(event) => updateSelectedBlockerCoordinate("x", event.currentTarget.valueAsNumber)} /></label><label>Center Y<input aria-label="Selected round blocker Y coordinate" type="number" min={0} max={map.height} step={0.25} value={selectedFogCircle.y} onChange={(event) => updateSelectedBlockerCoordinate("y", event.currentTarget.valueAsNumber)} /></label><label>Radius<input aria-label="Selected round blocker radius" type="number" min={0.25} max={Math.min(map.width, map.height) / 2} step={0.25} value={selectedFogCircle.radius} onChange={(event) => updateSelectedBlockerCoordinate("radius", event.currentTarget.valueAsNumber)} /></label></div><button className="danger-button" onClick={deleteSelectedFogItem}>Delete</button></section> : null}
       </aside>
-      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Encounter map draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Unsaved changes" : draftMatchesApplied ? "Applied" : "Saved privately"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><p id="workshop-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the selected workshop tool. Space grabs or drops a selected object. Delete removes a selected object. Escape cancels a staged shape or move. Exact geometry is also editable in the controls sidebar.</p><canvas ref={canvasRef} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-describedby="workshop-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Delete Escape" aria-label={`${map.name} editable map draft`} role="application" tabIndex={0} /></div><div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>Focus the map for keyboard editing; exact geometry is available in the sidebar</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
+      <section className="workshop-canvas-panel" aria-label="Editable map"><div className="workshop-canvas-heading"><div><small>Encounter map draft</small><strong>{map.name} · {map.width} × {map.height}</strong></div><span>{map.visual.pixelWidth} × {map.visual.pixelHeight} base · {dirty ? "Unsaved changes" : draftMatchesApplied ? "Applied" : "Saved privately"}</span></div><div className="workshop-canvas-frame" style={{ aspectRatio: `${map.width} / ${map.height}` }}><p id="workshop-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the selected workshop tool. Space grabs or drops a selected object. Delete removes a selected object. Escape cancels a staged shape or move. Exact geometry is also editable in the controls sidebar.</p><canvas ref={canvasRef} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishPointer} onPointerCancel={finishPointer} aria-describedby="workshop-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Delete Escape" aria-label={`${map.name} editable map draft`} role="application" tabIndex={0} />{pendingLabel ? <form className={`workshop-inline-label-editor${pendingLabel.controlsBelow ? " has-controls-below" : ""}${labelVisibility === "dm" ? " is-private" : ""}`} aria-label={pendingLabel.labelId ? "Edit map label" : "New map label"} style={{ left: `${pendingLabel.leftPercent}%`, top: `${pendingLabel.topPercent}%`, "--label-font-size": `${pendingLabel.fontSize}px` } as CSSProperties} onSubmit={(event) => { event.preventDefault(); finishPendingLabel(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelPendingLabel(); canvasRef.current?.focus(); } else if (event.key === "Enter" && event.target === labelEditorRef.current) { event.preventDefault(); finishPendingLabel(); } }} onBlur={(event) => { if (event.currentTarget.contains(event.relatedTarget as Node | null)) return; if (labelText.trim()) finishPendingLabel(); else cancelPendingLabel(); }}><label className="workshop-inline-label-field"><span aria-hidden="true">{labelText || "Label"}</span><input ref={labelEditorRef} aria-label="Label text" maxLength={120} value={labelText} placeholder="Label" onChange={(event) => setLabelText(event.target.value)} /></label><div className="workshop-inline-label-visibility" role="group" aria-label="Label visibility"><button type="button" aria-pressed={labelVisibility === "everyone"} onPointerDown={(event) => event.preventDefault()} onClick={() => { setLabelVisibility("everyone"); labelEditorRef.current?.focus(); }}>Everyone</button><button type="button" aria-pressed={labelVisibility === "dm"} onPointerDown={(event) => event.preventDefault()} onClick={() => { setLabelVisibility("dm"); labelEditorRef.current?.focus(); }}>DM only</button></div></form> : null}{pendingNote ? <form className={`workshop-inline-note-editor align-${pendingNote.horizontalAlign}${pendingNote.controlsBelow ? " has-controls-below" : ""}`} aria-label={pendingNote.noteId ? "Edit DM note" : "New DM note"} style={{ left: `${pendingNote.leftPercent}%`, top: `${pendingNote.topPercent}%`, "--note-marker-size": `${pendingNote.markerSize}px` } as CSSProperties} onSubmit={(event) => { event.preventDefault(); finishPendingNote(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelPendingNote(); canvasRef.current?.focus(); } else if (event.key === "Enter" && !event.shiftKey && event.target === noteEditorRef.current) { event.preventDefault(); finishPendingNote(); } }} onBlur={(event) => { if (event.currentTarget.contains(event.relatedTarget as Node | null)) return; if (noteText.trim()) finishPendingNote(); else cancelPendingNote(); }}><span className="workshop-inline-note-anchor" aria-hidden="true">{pendingNote.noteId ? map.notes.findIndex((note) => note.id === pendingNote.noteId) + 1 : map.notes.length + 1}</span><div className="workshop-inline-note-panel"><span>DM only</span><textarea ref={noteEditorRef} aria-label="DM note text" maxLength={500} rows={3} value={noteText} placeholder="Private note" onChange={(event) => setNoteText(event.target.value)} /><small>Enter saves · Shift + Enter adds a line</small></div></form> : null}</div><div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div><div className="workshop-legend"><span><i className="legend-grid" />Labels and notes align to the grid</span><span>Focus the map for keyboard editing; exact geometry is available in the sidebar</span></div>{message ? <div className="workshop-message" role="status">{message}</div> : null}</section>
     </div>
     {exitPrompt === "discard" ? <ModalDialog labelledBy="discard-workshop-title" describedBy="discard-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Encounter map draft</div><h2 id="discard-workshop-title">Discard the draft?</h2><p id="discard-workshop-description">This restores the map currently applied to the encounter and permanently removes the draft’s vision geometry, fog corners, labels, and notes.</p><div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" disabled={busy} onClick={() => void discard().then((discarded) => { if (discarded) setExitPrompt(null); })}>Discard draft</button></div></ModalDialog> : null}
-    {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Encounter map draft</div><h2 id="return-workshop-title">Return with unsaved changes?</h2><p id="return-workshop-description">These latest draft changes have not been saved. Keep editing, discard the draft and return, or apply it to the encounter before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => void discardAndReturn()}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}
+    {exitPrompt === "return" ? <ModalDialog labelledBy="return-workshop-title" describedBy="return-workshop-description" closeOnBackdrop onDismiss={() => setExitPrompt(null)}><div className="eyebrow">Encounter map draft</div><h2 id="return-workshop-title">Return to encounters with unsaved changes?</h2><p id="return-workshop-description">These latest draft changes have not been saved. Keep editing, discard the draft and return to the encounter list, or apply it before returning.</p>{message ? <div className="workshop-message is-error" role="alert">{message}</div> : null}<div className="button-row workshop-return-options"><button className="secondary-button" data-dialog-initial-focus onClick={() => setExitPrompt(null)}>Keep editing</button><button className="danger-button" onClick={() => void discardAndReturn()}>Discard and return</button><button className="primary-button" disabled={busy} onClick={() => void applyAndReturn()}>{busy ? "Applying…" : "Apply and return"}</button></div></ModalDialog> : null}
   </main>;
 }

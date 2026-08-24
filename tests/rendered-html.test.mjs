@@ -54,7 +54,7 @@ test("ships the split browser adapter instead of one monolithic feature componen
     "app/battle-map-renderer.ts", "app/use-encounter-sync.ts", "app/use-map-assets.ts",
     "app/use-chat-handouts.ts", "app/chat-handouts-ui.tsx", "app/use-token-controls.ts",
     "app/use-creature-catalog.ts", "app/battle-map-palettes.tsx", "app/encounter-sidebar.tsx",
-    "app/use-scenario-controls.ts", "app/use-encounter-actions.ts", "app/use-personal-ui-settings.ts",
+    "app/encounter-summary.ts", "app/encounter-setup-details.tsx", "app/use-encounter-actions.ts", "app/use-personal-ui-settings.ts",
     "app/use-battle-map-gestures.ts",
     "app/campaign-home.tsx",
   ]) await access(new URL(path, root));
@@ -65,11 +65,19 @@ test("ships the split browser adapter instead of one monolithic feature componen
   assert.doesNotMatch(client, /const onCanvasPointerDown/);
 });
 
-test("repaints the cached battle map when returning from Map Workshop", async () => {
-  const [client, assets] = await Promise.all([
+test("opens Encounter Setup from campaign home instead of the live map", async () => {
+  const [client, assets, commandBar, workshop] = await Promise.all([
     source("app/battle-map-prototype.tsx"),
     source("app/use-map-assets.ts"),
+    source("app/battle-map-command-bar.tsx"),
+    source("app/map-workshop.tsx"),
   ]);
+  assert.match(client, /onSetupEncounter=.*join\(signedInIdentity, code, "setup"\)/);
+  assert.match(client, /<EncounterSetupDetails/);
+  assert.doesNotMatch(commandBar, /Open Map Workshop|onOpenWorkshop/);
+  assert.doesNotMatch(commandBar, /Manage current encounter|Encounter details/);
+  assert.match(workshop, /Encounter Setup · Draft/);
+  assert.match(workshop, /Return to encounters/);
   assert.match(client, /active: !workshopOpen/);
   assert.match(assets, /if \(!active\) return;\s*redraw\(\)/);
 });

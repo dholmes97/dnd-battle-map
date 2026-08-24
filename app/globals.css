@@ -1229,9 +1229,6 @@ input:focus {
 .confirm-dialog .danger-button { margin-top: 0; }
 .workshop-return-options { flex-wrap: wrap; }
 .workshop-return-options > * { min-width: 7.5rem; }
-.scenario-dialog { width: min(100%, 42rem); max-height: calc(100vh - 2rem); overflow-y: auto; }
-.scenario-dialog label { margin: 0.85rem 0 0; }
-.scenario-dialog .button-row { margin-top: 1rem; }
 .scenario-create-heading { display: grid; gap: 0.2rem; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #403b34; }
 .scenario-create-heading strong { color: #d9d0c1; font-size: 0.78rem; }
 .scenario-create-heading small { color: #8f887d; font-size: 0.66rem; line-height: 1.4; }
@@ -1239,8 +1236,8 @@ input:focus {
 .scenario-handouts { margin-top: 0.2rem; }
 .handout-upload-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.55rem; }
 .handout-upload-row > label { min-width: 0; }
-.scenario-dialog .handout-upload-button { min-height: 2.25rem; margin-top: 0.85rem; padding: 0.48rem 0.72rem; display: grid; place-items: center; border: 1px solid #d2aa56; border-radius: 0.45rem; background: rgba(210, 170, 86, 0.1); color: #e3c77f; cursor: pointer; font-size: 0.65rem; font-weight: 800; }
-.scenario-dialog .handout-upload-button.is-disabled { opacity: 0.45; cursor: wait; }
+.encounter-setup-details .handout-upload-button { min-height: 2.25rem; padding: 0.48rem 0.72rem; display: grid; place-items: center; border: 1px solid #d2aa56; border-radius: 0.45rem; background: rgba(210, 170, 86, 0.1); color: #e3c77f; cursor: pointer; font-size: 0.65rem; font-weight: 800; }
+.encounter-setup-details .handout-upload-button.is-disabled { opacity: 0.45; cursor: wait; }
 .handout-storage-note { margin-top: 0.38rem !important; color: #716a60 !important; font-size: 0.58rem !important; }
 .scenario-handout-list { max-height: 13rem; margin-top: 0.58rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.42rem; overflow-y: auto; }
 .scenario-handout-list article { min-width: 0; min-height: 4.4rem; display: grid; grid-template-columns: 4.8rem minmax(0, 1fr) 3.2rem; align-items: stretch; overflow: hidden; border: 1px solid #3d3932; border-radius: 0.48rem; background: #171614; }
@@ -1251,9 +1248,9 @@ input:focus {
 .scenario-handout-list article > span strong { overflow: hidden; color: #cec3b3; font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
 .scenario-handout-list article > span small { color: #777067; font-size: 0.54rem; }
 .handout-item-actions { padding: 0.28rem; display: grid; place-content: center; gap: 0.24rem; border-left: 1px solid #343029; }
-.scenario-dialog .handout-item-actions label { min-height: 1.25rem; margin: 0; padding: 0.18rem; display: grid; place-items: center; border: 1px solid #4a4337; border-radius: 0.3rem; color: #9e8e70; cursor: pointer; font-size: 0.48rem; font-weight: 750; }
-.scenario-dialog .handout-item-actions label:hover { border-color: #8e774e; color: #d2b97e; }
-.scenario-dialog .handout-item-actions label.is-disabled { opacity: 0.4; cursor: wait; }
+.encounter-setup-details .handout-item-actions label { min-height: 1.25rem; margin: 0; padding: 0.18rem; display: grid; place-items: center; border: 1px solid #4a4337; border-radius: 0.3rem; color: #9e8e70; cursor: pointer; font-size: 0.48rem; font-weight: 750; }
+.encounter-setup-details .handout-item-actions label:hover { border-color: #8e774e; color: #d2b97e; }
+.encounter-setup-details .handout-item-actions label.is-disabled { opacity: 0.4; cursor: wait; }
 .scenario-handout-list .icon-action-button { justify-self: center; }
 .scenario-handout-empty { margin-top: 0.55rem; padding: 0.7rem; border: 1px dashed #3c3831; border-radius: 0.45rem; color: #756e64; font-size: 0.62rem; text-align: center; }
 
@@ -1386,6 +1383,15 @@ input:focus {
 .workshop-controls input, .workshop-controls select { padding: 0.48rem 0.52rem; border-radius: 0.38rem; font-size: 0.68rem; }
 .workshop-controls .button-row { margin-top: 0.55rem; }
 .workshop-controls .primary-button, .workshop-controls .secondary-button, .workshop-controls .danger-button { min-height: 2.1rem; font-size: 0.67rem; }
+.workshop-controls .encounter-setup-details .scenario-briefing,
+.workshop-controls .encounter-setup-details .scenario-handouts { padding: 0; border-bottom: 0; }
+.encounter-setup-details .scenario-create-heading { margin-top: 0.7rem; padding-top: 0.7rem; }
+.encounter-setup-details .scenario-briefing p { font-size: 0.65rem; line-height: 1.45; }
+.encounter-setup-details .scenario-briefing p.is-empty { color: #a9a196; font-style: italic; }
+.encounter-setup-details .handout-storage-note,
+.encounter-setup-details .scenario-handout-empty { color: #a9a196 !important; }
+.encounter-setup-details .handout-storage-note { font-size: 0.625rem !important; }
+.encounter-setup-details .scenario-handout-list { max-height: none; grid-template-columns: 1fr; }
 .workshop-control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
 .workshop-control-grid label { min-width: 0; }
 
@@ -1476,8 +1482,30 @@ input:focus {
 .workshop-canvas-heading small { color: #69645b; font-size: 0.56rem; font-weight: 750; letter-spacing: 0.09em; text-transform: uppercase; }
 .workshop-canvas-heading strong { color: #bcb4a7; font-family: var(--font-geist-mono), monospace; font-size: 0.66rem; }
 .workshop-canvas-heading > span { color: #665f56; font-size: 0.58rem; }
-.workshop-canvas-frame { width: 100%; min-height: 0; overflow: hidden; border: 1px solid #3b3b34; border-radius: 0.42rem; background: #344128; box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32); }
+.workshop-canvas-frame { position: relative; width: 100%; min-height: 0; overflow: hidden; border: 1px solid #3b3b34; border-radius: 0.42rem; background: #344128; box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32); }
 .workshop-canvas-frame canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.workshop-inline-label-editor { --label-font-size: 11px; position: absolute; z-index: 4; width: 1px; height: 1px; }
+.workshop-inline-label-field { position: absolute; left: 0; top: 0; min-width: 14px; margin: 0; transform: translate(-50%, -50%); display: grid; }
+.workshop-inline-label-field > * { grid-area: 1 / 1; box-sizing: border-box; min-width: 100%; height: 22px; padding: 0 7px; font: 700 var(--label-font-size) / 22px ui-sans-serif, system-ui; letter-spacing: normal; white-space: pre; }
+.workshop-inline-label-field > span { width: max-content; visibility: hidden; }
+.workshop-inline-label-field input { appearance: none; border: 0; border-radius: 0; outline: 2px solid #d2aa56; outline-offset: 1px; background: rgba(15, 14, 12, 0.78); color: #f3e4bb; text-align: center; }
+.workshop-inline-label-editor.is-private .workshop-inline-label-field input { color: #c1a6d8; }
+.workshop-inline-label-visibility { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; padding: 2px; border: 1px solid #5d5547; border-radius: 0.38rem; background: rgba(18, 17, 14, 0.97); white-space: nowrap; box-shadow: 0 0.45rem 1rem rgba(0, 0, 0, 0.42); }
+.workshop-inline-label-visibility button { min-height: 1.65rem; padding: 0.3rem 0.48rem; border: 0; border-radius: 0.26rem; background: transparent; color: #8f887d; font-size: 0.625rem; font-weight: 750; }
+.workshop-inline-label-visibility button:hover { color: #e4d8bc; }
+.workshop-inline-label-visibility button[aria-pressed="true"] { background: #5d4b29; color: #fff1c8; box-shadow: inset 0 0 0 1px #9b7c40; }
+.workshop-inline-label-visibility button:focus-visible { outline: 2px solid #f0c768; outline-offset: 1px; }
+.workshop-inline-label-editor.has-controls-below .workshop-inline-label-visibility { top: 18px; bottom: auto; }
+.workshop-inline-note-editor { --note-marker-size: 16px; position: absolute; z-index: 5; width: 1px; height: 1px; }
+.workshop-inline-note-anchor { position: absolute; left: 0; top: 0; width: var(--note-marker-size); height: var(--note-marker-size); transform: translate(-50%, -50%); display: grid; place-items: center; border-radius: 50%; background: #75508f; color: #fff; font-size: max(10px, calc(var(--note-marker-size) * 0.45)); font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px #d7b7ed, 0 0.35rem 0.8rem rgba(0, 0, 0, 0.42); }
+.workshop-inline-note-panel { position: absolute; left: 0; bottom: calc(var(--note-marker-size) / 2 + 8px); width: min(16rem, calc(100vw - 3rem)); transform: translateX(-50%); padding: 0.42rem; display: grid; gap: 0.3rem; border: 1px solid #80649a; border-radius: 0.45rem; background: rgba(22, 18, 25, 0.97); box-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.48); }
+.workshop-inline-note-panel > span { color: #c6a5dd; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.workshop-inline-note-panel textarea { width: 100%; min-height: 4.25rem; resize: vertical; padding: 0.48rem 0.55rem; border: 1px solid #6c557d; border-radius: 0.32rem; outline: 0; background: #121013; color: #eee3f4; font: 650 0.72rem/1.45 ui-sans-serif, system-ui; }
+.workshop-inline-note-panel textarea:focus { border-color: #c49cde; box-shadow: 0 0 0 2px rgba(196, 156, 222, 0.22); }
+.workshop-inline-note-panel small { color: #817487; font-size: 0.56rem; }
+.workshop-inline-note-editor.has-controls-below .workshop-inline-note-panel { top: calc(var(--note-marker-size) / 2 + 8px); bottom: auto; }
+.workshop-inline-note-editor.align-left .workshop-inline-note-panel { transform: translateX(0); }
+.workshop-inline-note-editor.align-right .workshop-inline-note-panel { transform: translateX(-100%); }
 .workshop-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; padding: 0.55rem 0.1rem 0; color: #625d55; font-size: 0.56rem; }
 .workshop-legend span { display: inline-flex; align-items: center; gap: 0.32rem; }
 .workshop-legend i { width: 0.75rem; height: 0.75rem; display: inline-block; }
@@ -1503,7 +1531,7 @@ input:focus {
 .creature-tile small, .roster-effects, .player-card-layer.is-character::before,
 .panel-round, .turn-correction-details summary, .initiative-save-status, .altitude-input,
 .handout-storage-note, .scenario-handout-list article > span small, .scenario-handout-empty,
-.scenario-dialog .handout-item-actions label, .concentration-reminder-shadowbox header small,
+.encounter-setup-details .handout-item-actions label, .concentration-reminder-shadowbox header small,
 .handout-lightbox header small, .handout-lightbox footer, .token-config-toolbar small,
 .token-config label, .workshop-header-title span, .workshop-header [data-tooltip]::after,
 .workshop-visibility-mode select, .workshop-visibility-actions span, .workshop-visibility-actions button,
@@ -1644,7 +1672,7 @@ input:focus {
   .chat-message strong, .chat-empty span, .chat-compose .chat-compose-heading > button, .chat-selected-handout strong, .chat-show-immediately > span strong { font-size: 0.72rem; }
   .scenario-handout-list { grid-template-columns: 1fr; }
   .handout-upload-row { grid-template-columns: 1fr; }
-  .scenario-dialog .handout-upload-button { margin-top: 0; }
+  .encounter-setup-details .handout-upload-button { margin-top: 0; }
   .handout-lightbox { padding: 0; }
   .handout-lightbox > section { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
   .handout-lightbox-image { padding: 0.5rem; }

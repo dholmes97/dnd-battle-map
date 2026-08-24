@@ -260,7 +260,7 @@ export function useChatHandouts({ participant, state, sync, canvasRef, setNotice
     if (!participant || participant.role !== "dm" || handoutDeletingId) return;
     const warning = handout.messageCount > 0
       ? `Delete “${handout.title}”? It appears in ${handout.messageCount} chat ${handout.messageCount === 1 ? "message" : "messages"}; those messages will keep their captions but show that the image is unavailable.`
-      : `Delete “${handout.title}” from this scenario?`;
+      : `Delete “${handout.title}” from this encounter?`;
     if (!window.confirm(warning)) return;
     setHandoutDeletingId(handout.id);
     if (selectedHandoutId === handout.id) setSelectedHandoutId(null);

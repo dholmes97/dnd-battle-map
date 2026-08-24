@@ -49,12 +49,21 @@ async function openHydratedApplication(page: Page) {
   await encounterList;
 }
 
-async function enterFirstScenarioAsDm(page: Page) {
+async function enterFirstEncounterAsDm(page: Page) {
   await openHydratedApplication(page);
   await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
   await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
-  await page.getByRole("button", { name: "Open scenario" }).first().click();
+  await page.getByRole("button", { name: "Battle map" }).first().click();
   await expect(page.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
+}
+
+async function setupFirstEncounterAsDm(page: Page) {
+  await openHydratedApplication(page);
+  await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
+  await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
+  await page.getByRole("button", { name: "Set up" }).first().click();
+  await expect(page.getByText("Encounter Setup · Draft", { exact: true })).toBeVisible();
+  await expect(page.getByText("Briefing & handouts", { exact: true })).toBeVisible();
 }
 
 async function visibleTokenCount(page: Page) {
@@ -95,7 +104,7 @@ test("fixed-identity login is keyboard-accessible and production-branded", async
 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Welcome back, Dan." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Scenarios" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Encounters" })).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
 });
 
@@ -110,16 +119,18 @@ test("mobile login and campaign home do not overflow the viewport", async ({ pag
   await expectNoSeriousAccessibilityViolations(page);
 });
 
-test("the DM can enter a scenario and reach an accessible battle-map shell", async ({ page }) => {
-  await enterFirstScenarioAsDm(page);
+test("the DM can enter an encounter and reach an accessible battle-map shell", async ({ page }) => {
+  await enterFirstEncounterAsDm(page);
   await expect(page.getByLabel("Map tools and encounter status")).toBeVisible();
   await page.locator("summary[aria-label='UI Settings']").click();
   await expect(page.getByLabel("Colored token centers")).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
 });
 
-test("the main map and workshop support a complete no-pointer spatial flow", async ({ page }) => {
-  await enterFirstScenarioAsDm(page);
+test("the main map and encounter setup support a complete no-pointer spatial flow", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await enterFirstEncounterAsDm(page);
   const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
   await map.focus();
   await expect(map).toBeFocused();
@@ -137,17 +148,19 @@ test("the main map and workshop support a complete no-pointer spatial flow", asy
   await page.keyboard.press("Enter");
   await expect(page.getByText("Tactical line shared.").first()).toBeVisible();
 
-  const workshopLauncher = page.getByRole("button", { name: "Open Map Workshop" });
-  await workshopLauncher.focus();
+  await page.getByRole("button", { name: "Back to campaign home" }).click();
+  const setupLauncher = page.getByRole("button", { name: "Set up" }).first();
+  await setupLauncher.focus();
   await page.keyboard.press("Enter");
   const labelTool = page.getByRole("button", { name: "Add map label" });
   await labelTool.focus();
   await page.keyboard.press("Enter");
-  const labelText = page.getByLabel("Text");
-  await labelText.focus();
-  await page.keyboard.type("Keyboard browser marker");
   const workshop = page.getByRole("application", { name: /editable map draft/i });
   await workshop.focus();
+  await page.keyboard.press("Enter");
+  const labelText = page.getByLabel("Label text");
+  await expect(labelText).toBeFocused();
+  await page.keyboard.type("Keyboard browser marker");
   await page.keyboard.press("Enter");
   await page.getByText("Map details").focus();
   await page.keyboard.press("Enter");
@@ -158,20 +171,48 @@ test("the main map and workshop support a complete no-pointer spatial flow", asy
   await workshop.focus();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: /Keyboard browser marker.*everyone/i })).toBeHidden();
-  const returnButton = page.getByRole("button", { name: "Return to battle map" });
+
+  const workshopBounds = await workshop.boundingBox();
+  expect(workshopBounds).not.toBeNull();
+  await workshop.click({ position: { x: workshopBounds!.width * 0.62, y: workshopBounds!.height * 0.48 } });
+  await expect(labelText).toBeFocused();
+  await page.keyboard.type("Pointer browser marker");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: /Pointer browser marker.*everyone/i })).toBeVisible();
+  await workshop.click({ position: { x: workshopBounds!.width * 0.62, y: workshopBounds!.height * 0.48 } });
+  await expect(page.getByRole("form", { name: "Edit map label" })).toBeVisible();
+  await expect(labelText).toHaveValue("Pointer browser marker");
+  await labelText.fill("Revised browser marker");
+  await page.getByRole("group", { name: "Label visibility" }).getByRole("button", { name: "DM only" }).click();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: /Revised browser marker.*dm/i })).toBeVisible();
+  await workshop.focus();
+  await page.keyboard.press("Delete");
+  const returnButton = page.getByRole("button", { name: "Return to encounters" });
   await returnButton.focus();
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Discard and return" }).focus();
   await page.keyboard.press("Enter");
+  expect(pageErrors).toEqual([]);
 });
 
 test("blocking dialogs contain focus, inert the map, close on Escape, and restore the launcher", async ({ page }) => {
-  await enterFirstScenarioAsDm(page);
-  const launcher = page.getByRole("button", { name: "Manage current scenario" });
+  await enterFirstEncounterAsDm(page);
+  if (await durableDrawingCount(page) === 0) {
+    const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
+    await map.focus();
+    await page.keyboard.press("l");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => durableDrawingCount(page)).toBe(1);
+  }
+  const drawingCount = await durableDrawingCount(page);
+  const launcher = page.locator("button[data-tooltip='Clear durable drawings']");
   await launcher.click();
-  const dialog = page.getByRole("dialog", { name: "Scenario details" });
+  const dialog = page.getByRole("dialog", { name: `Clear ${drawingCount} ${drawingCount === 1 ? "drawing" : "drawings"}?` });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toBeFocused();
+  await expect(page.getByRole("button", { name: "Keep drawings" })).toBeFocused();
   expect(await page.locator(".workspace").evaluate((element) => (element as HTMLElement).inert)).toBe(true);
   await expectNoSeriousAccessibilityViolations(page);
   await page.keyboard.press("Escape");
@@ -179,17 +220,15 @@ test("blocking dialogs contain focus, inert the map, close on Escape, and restor
   await expect(launcher).toBeFocused();
 });
 
-test("dirty workshop exits are explicit and preserve the draft when cancelled", async ({ page }) => {
-  await enterFirstScenarioAsDm(page);
-  await page.getByRole("button", { name: "Open Map Workshop" }).click();
-  await expect(page.getByText("Map Workshop · Draft", { exact: true })).toBeVisible();
+test("dirty encounter-setup exits are explicit and preserve the draft when cancelled", async ({ page }) => {
+  await setupFirstEncounterAsDm(page);
   const visibilityMode = page.getByLabel("Visibility mode");
   await visibilityMode.selectOption("dynamic");
   await expect(page.getByText("Unsaved draft", { exact: true })).toBeVisible();
 
-  const returnButton = page.getByRole("button", { name: "Return to battle map" });
+  const returnButton = page.getByRole("button", { name: "Return to encounters" });
   await returnButton.click();
-  const guard = page.getByRole("dialog", { name: "Return with unsaved changes?" });
+  const guard = page.getByRole("dialog", { name: "Return to encounters with unsaved changes?" });
   await expect(guard).toBeVisible();
   await expect(page.getByRole("button", { name: "Keep editing" })).toBeFocused();
   await page.getByRole("button", { name: "Keep editing" }).click();
@@ -198,11 +237,11 @@ test("dirty workshop exits are explicit and preserve the draft when cancelled", 
 
   await returnButton.click();
   await page.getByRole("button", { name: "Discard and return" }).click();
-  await expect(page.getByLabel("Map tools and encounter status")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Encounters" })).toBeVisible();
 });
 
 test("clear drawings confirms, supports undo and redo, and preserves unrelated map state", async ({ page }) => {
-  await enterFirstScenarioAsDm(page);
+  await enterFirstEncounterAsDm(page);
   const originalCount = await durableDrawingCount(page);
   const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
   const bounds = await map.boundingBox();
@@ -243,7 +282,7 @@ test.describe("mobile playability", () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 
   test("settings and toolbar remain bounded at every supported narrow width", async ({ page }) => {
-    await enterFirstScenarioAsDm(page);
+    await enterFirstEncounterAsDm(page);
     await page.locator("summary[aria-label='UI Settings']").click();
 
     for (const width of [320, 375, 560, 768]) {
@@ -268,7 +307,7 @@ test.describe("mobile playability", () => {
 
   test("chat is a usable dynamic-viewport bottom sheet", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 320, height: 667 });
-    await enterFirstScenarioAsDm(page);
+    await enterFirstEncounterAsDm(page);
     await page.getByRole("button", { name: "Chat" }).click();
     await expectInsideViewport(page, ".chat-panel");
     const history = await page.locator(".chat-messages").boundingBox();
@@ -296,7 +335,7 @@ test.describe("mobile playability", () => {
 
   test("creature and spell drawers reveal the map for placement and clean up their test entities", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await enterFirstScenarioAsDm(page);
+    await enterFirstEncounterAsDm(page);
     const originalCount = await visibleTokenCount(page);
 
     await page.getByRole("button", { name: "Creature palette" }).click();

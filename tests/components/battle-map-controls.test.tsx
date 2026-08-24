@@ -17,7 +17,7 @@ function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]
     connection: "live", connectionLabel: "Live", connectionTooltip: "Live connection", uiSettingsRef: { current: null }, gridOpacity: 0.17,
     showColoredTokenCenters: true, showHealthRings: true, sidebarOpen: true, presenting: false,
     durableAnnotationCount: 0,
-    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onRequestClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenWorkshop: vi.fn(), onManageScenarios: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
+    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onRequestClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
   };
   render(<BattleMapCommandBar {...props} />); return props;
 }
@@ -40,6 +40,11 @@ describe("BattleMapCommandBar", () => {
     const onOpenDashboard = vi.fn(); commandBar({ participant: player, onOpenDashboard });
     await userEvent.click(screen.getByRole("button", { name: "Back to campaign home" }));
     expect(onOpenDashboard).toHaveBeenCalledOnce();
+  });
+  it("keeps encounter setup off the live battle map", () => {
+    commandBar();
+    expect(screen.queryByRole("button", { name: /Map Workshop|Encounter Setup/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Manage current encounter|Encounter details/i })).toBeNull();
   });
   it("shows the effective zoom percentage while Fit remains active", async () => {
     const props = commandBar({

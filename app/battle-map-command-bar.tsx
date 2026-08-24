@@ -37,8 +37,6 @@ type CommandBarProps = {
   onToggleChat: () => void;
   onToggleCreatures: () => void;
   onToggleSpells: () => void;
-  onOpenWorkshop: () => void;
-  onManageScenarios: () => void;
   onOpenDashboard: () => void;
   onHistory: (direction: "undo" | "redo") => void;
   onFit: () => void;
@@ -69,8 +67,6 @@ export function BattleMapCommandBar(props: CommandBarProps) {
       <button className={`icon-tool chat-launcher${props.chatOpen ? " tool-active" : ""}`} aria-label={props.chatUnreadTotal > 0 ? `Chat, ${props.chatUnreadTotal} unread messages` : "Chat"} data-tooltip="Chat" aria-pressed={props.chatOpen} onClick={props.onToggleChat}><Icon name="chat" />{props.chatUnreadTotal > 0 ? <span className="chat-unread-badge" aria-hidden="true">{Math.min(99, props.chatUnreadTotal)}</span> : null}</button>
       <button className={`icon-tool${props.paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={props.paletteOpen} onClick={props.onToggleCreatures}><Icon name="creatures" /></button>
       <button className={`icon-tool${props.spellPaletteOpen ? " tool-active" : ""}`} aria-label="Spell effects" data-tooltip="Spell effects" aria-pressed={props.spellPaletteOpen} onClick={props.onToggleSpells}><Icon name="spells" /></button>
-      {participant.role === "dm" ? <button className="icon-tool" aria-label="Open Map Workshop" data-tooltip="Map Workshop" onClick={props.onOpenWorkshop}><Icon name="workshop" /></button> : null}
-      {participant.role === "dm" ? <button className="icon-tool" aria-label="Manage current scenario" data-tooltip="Scenario details" onClick={props.onManageScenarios}><Icon name="scenarios" /></button> : null}
     </div>
     <div className="map-tool-group" role="group" aria-label="Action history"><button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => props.onHistory("undo")} disabled={props.busy || state.undo.available === 0}><Icon name="undo" /></button><button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => props.onHistory("redo")} disabled={props.busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button></div>
     <div className="encounter-identity"><strong>{state.encounter.name}</strong><span>{state.encounter.status}</span></div>

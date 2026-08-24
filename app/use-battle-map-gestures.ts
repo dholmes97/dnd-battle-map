@@ -250,9 +250,13 @@ export function useBattleMapGestures({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(updateEffectiveZoom);
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    let frameId = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateEffectiveZoom);
+    });
+    observer.observe(canvas.parentElement ?? canvas);
+    return () => { observer.disconnect(); window.cancelAnimationFrame(frameId); };
   }, [canvasRef, updateEffectiveZoom]);
 
   useEffect(() => {
