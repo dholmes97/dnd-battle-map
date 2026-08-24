@@ -7,6 +7,7 @@ import type {
 
 export type CommandEncounter = {
   id: string;
+  campaignId: string;
   code: string;
   name: string;
   version: number;
@@ -28,6 +29,8 @@ export type CommandParticipant = {
   id: string;
   name: string;
   role: Role;
+  identityId?: string | null;
+  campaignMembershipId?: string | null;
 };
 
 export type CommandOutcome = {

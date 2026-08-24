@@ -140,6 +140,9 @@ button:disabled { cursor: not-allowed; }
 .campaign-section-actions { display: flex; align-items: center; gap: 0.55rem; }
 .campaign-section-actions > span { padding: 0.35rem 0.55rem; border: 1px solid #3a3631; border-radius: 999px; color: #91897e; font-size: 0.64rem; font-weight: 700; }
 .scenario-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.campaign-list-section { max-width: 52rem; }
+.campaign-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.campaign-card { min-height: 14rem; }
 .scenario-card { min-height: 17rem; padding: 1.2rem; display: flex; flex-direction: column; border: 1px solid #39352f; border-radius: 0.85rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.97), rgba(23, 22, 20, 0.97)); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18); transition: border-color 140ms ease, transform 140ms ease; }
 .scenario-card:hover { border-color: #645948; transform: translateY(-2px); }
 .scenario-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; }

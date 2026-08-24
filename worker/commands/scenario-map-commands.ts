@@ -1,7 +1,6 @@
 import { tokenRadiusCells } from "../../shared/creature-library.ts";
 import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { mapSetupFromPackage, parseMapPackage, parseMapSetup, type MapImage } from "../../shared/map-package.ts";
-import { baseTokenControllerName } from "../../shared/token-control.ts";
 import { MAX_SCENARIOS } from "../../shared/resource-limits.ts";
 import { combatStatusTransitionError } from "../../shared/encounter-transitions.ts";
 import type { ScenarioMapRepository } from "../ports/scenario-map-repository.ts";
@@ -50,7 +49,7 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
   const name = cleanText(context.payload.name, 64);
   const mode = context.payload.mode;
   if (name.length < 3) return commandError("Scenario name must be at least three characters.", 400);
-  if (await context.repository.countScenarios() >= MAX_SCENARIOS) {
+  if (await context.repository.countScenarios(context.encounter.campaignId) >= MAX_SCENARIOS) {
     return commandError("The campaign has reached its scenario limit.", 409);
   }
   const code = await uniqueScenarioCode(context.repository, name);
@@ -58,7 +57,7 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
   const selected = mode === "duplicate"
     ? sourceTokens
     : sourceTokens.filter((token) =>
-      !token.summoner_token_id && baseTokenControllerName(token) !== "Kevin"
+      !token.summoner_token_id && Boolean(token.campaign_character_id)
     );
   if (!selected.length) {
     return commandError("The current encounter has no player characters to seed the new scenario.", 409);
@@ -68,8 +67,12 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
   const participantId = context.services.createId();
   const sessionSecret = context.services.createId();
   const copiedIds = new Map(selected.map((token) => [token.id, context.services.createId()]));
+  if (!context.participant.identityId || !context.participant.campaignMembershipId) {
+    return commandError("Your campaign membership could not be verified.", 403);
+  }
   await context.repository.createScenario({
     id: scenarioId,
+    campaignId: context.encounter.campaignId,
     code,
     name,
     activeMapImageId: duplicate ? context.encounter.activeMapImageId : null,
@@ -80,6 +83,9 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
     height: context.encounter.gridHeight,
     strictMovement: duplicate ? context.encounter.strictMovement : true,
     participantId,
+    participantIdentityId: context.participant.identityId,
+    participantMembershipId: context.participant.campaignMembershipId,
+    participantName: context.participant.name,
     sessionSecret,
     now: context.now,
     tokens: selected.map((token) => ({

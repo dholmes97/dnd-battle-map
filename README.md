@@ -7,8 +7,8 @@ clients converge through short conditional requests. Browser state is temporary.
 
 The application currently supports:
 
-- four fixed identities: Dan, Barry, Scott, and DM Kevin;
-- durable scenarios with independent maps, tokens, chat, handouts, combat state,
+- four fixed human identities with campaign-scoped roles and characters;
+- a Force of Nature campaign containing durable encounters with independent maps, tokens, chat, handouts, combat state,
   and history;
 - initiative groups, summons, movement tracking, HP, effects, and concentration
   reminders;
@@ -34,8 +34,8 @@ npm run db:bootstrap
 npm run dev
 ```
 
-Open the printed local URL in multiple browser windows, choose a scenario, and
-join with different fixed identities.
+Open the printed local URL in multiple browser windows, choose different human
+identities, enter Force of Nature, and open an encounter.
 
 Useful checks:
 

@@ -31,12 +31,14 @@ import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
+import { CampaignList } from "@/app/campaign-list";
 import { CampaignHome } from "@/app/campaign-home";
 import { CreaturePalette, SpellPalette } from "@/app/battle-map-palettes";
 import { EncounterSidebar, type RosterRow } from "@/app/encounter-sidebar";
 import {
   type CreatureTemplate,
 } from "@/shared/creature-library";
+import { TRUSTED_IDENTITIES, type CampaignAccessResponse, type CampaignAccessSummary } from "@/shared/campaigns";
 import type {
   EncounterState,
   MapPoint,
@@ -53,12 +55,7 @@ import {
   type SpellEffectDefinition,
 } from "@/shared/spell-effects";
 
-const JOIN_IDENTITIES: JoinIdentity[] = [
-  { label: "Dar'eleth · Paladin", participantName: "Dan", role: "player" },
-  { label: "Jelton · Druid", participantName: "Barry", role: "player" },
-  { label: "Malichar · Rogue", participantName: "Scott", role: "player" },
-  { label: "Dungeon Master", participantName: "Kevin", role: "dm" },
-];
+const JOIN_IDENTITIES: JoinIdentity[] = [...TRUSTED_IDENTITIES];
 const JOIN_TIMEOUT_MS = 12_000;
 
 function playPingSound(context: AudioContext) {
@@ -81,10 +78,11 @@ function playPingSound(context: AudioContext) {
 }
 
 export default function BattleMapPrototype() {
-  const [encounters, setEncounters] = useState<EncounterSummary[]>([]);
-  const [encountersLoading, setEncountersLoading] = useState(true);
+  const [campaigns, setCampaigns] = useState<CampaignAccessSummary[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [signedInIdentity, setSignedInIdentity] = useState<JoinIdentity | null>(null);
-  const [appView, setAppView] = useState<"login" | "dashboard" | "map">("login");
+  const [appView, setAppView] = useState<"login" | "campaigns" | "dashboard" | "map">("login");
   const [openingCode, setOpeningCode] = useState<string | null>(null);
   const [openingDestination, setOpeningDestination] = useState<"map" | "setup" | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
@@ -242,32 +240,39 @@ export default function BattleMapPrototype() {
     if (pingAudioContextRef.current.state === "suspended") void pingAudioContextRef.current.resume().catch(() => undefined);
   };
 
-  useEffect(() => {
-    let disposed = false;
-    void api<{ items: EncounterSummary[] }>("/api/encounters")
-      .then(({ items }) => {
-        if (disposed) return;
-        setEncounters(items);
-      })
-      .catch(() => { if (!disposed) setError("Your encounters could not be loaded. Please try again."); })
-      .finally(() => { if (!disposed) setEncountersLoading(false); });
-    return () => { disposed = true; };
-  }, []);
+  const loadCampaigns = async (identity: JoinIdentity) => {
+    setCampaignsLoading(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>(`/api/campaigns?identityId=${encodeURIComponent(identity.id)}`);
+      setCampaigns(result.items);
+    } catch (caught) {
+      setCampaigns([]);
+      setError(caught instanceof Error ? caught.message : "Your campaigns could not be loaded. Please try again.");
+    } finally { setCampaignsLoading(false); }
+  };
 
-  const join = async (identity: JoinIdentity, code: string, destination: "map" | "setup" = "map") => {
-    const name = identity.participantName;
+  const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
+
+  const updateCampaignEncounter = (scenario: EncounterSummary) => {
+    if (!selectedCampaignId) return;
+    setCampaigns((current) => current.map((campaign) => campaign.id === selectedCampaignId
+      ? { ...campaign, encounters: [scenario, ...campaign.encounters.filter((encounter) => encounter.code !== scenario.code)] }
+      : campaign));
+  };
+
+  const join = async (identity: JoinIdentity, campaign: CampaignAccessSummary, code: string, destination: "map" | "setup" = "map") => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), JOIN_TIMEOUT_MS);
     enablePingAudio();
     setOpeningCode(code); setOpeningDestination(destination); setBusy(true); setError("");
     try {
-      const result = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
+      const result = await api<{ participantId: string; participantName: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(code)}/join`,
-        { method: "POST", signal: controller.signal, body: JSON.stringify({ participantName: name, role: identity.role }) },
+        { method: "POST", signal: controller.signal, body: JSON.stringify({ identityId: identity.id, campaignId: campaign.id }) },
       );
-      const joined = { id: result.participantId, name, role: result.role, sessionSecret: result.sessionSecret };
-      personalUiSettings.loadForIdentity(name, result.role);
-      resetChatForParticipant(name, result.role, result.state.encounter.code);
+      const joined = { id: result.participantId, name: result.participantName, role: result.role, sessionSecret: result.sessionSecret };
+      personalUiSettings.loadForIdentity(result.participantName, result.role);
+      resetChatForParticipant(result.participantName, result.role, result.state.encounter.code);
       startSession(joined, result.state);
       setWorkshopOpen(destination === "setup");
       setAppView("map");
@@ -284,18 +289,18 @@ export default function BattleMapPrototype() {
   };
 
   const createScenarioFromHome = async ({ name, mode, sourceCode }: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => {
-    if (!signedInIdentity || signedInIdentity.role !== "dm" || creatingScenarioFromHome) return false;
+    if (!signedInIdentity || !selectedCampaign || selectedCampaign.role !== "dm" || creatingScenarioFromHome) return false;
     setCreatingScenarioFromHome(true); setError("");
     try {
       const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(sourceCode)}/join`,
-        { method: "POST", body: JSON.stringify({ participantName: signedInIdentity.participantName, role: signedInIdentity.role }) },
+        { method: "POST", body: JSON.stringify({ identityId: signedInIdentity.id, campaignId: selectedCampaign.id }) },
       );
       const result = await api<{ scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(sourceCode)}/command`, {
         method: "POST",
         body: JSON.stringify({ participantId: joined.participantId, sessionSecret: joined.sessionSecret, ...commandRequest("create-scenario", { name, mode }) }),
       });
-      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
+      updateCampaignEncounter(result.scenario);
       setNotice(`${result.scenario.name} created.`);
       return true;
     } catch (caught) {
@@ -305,18 +310,18 @@ export default function BattleMapPrototype() {
   };
 
   const renameScenarioFromHome = async (code: string, name: string) => {
-    if (!signedInIdentity || signedInIdentity.role !== "dm" || renamingScenarioCode) return false;
+    if (!signedInIdentity || !selectedCampaign || selectedCampaign.role !== "dm" || renamingScenarioCode) return false;
     setRenamingScenarioCode(code); setError("");
     try {
       const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(code)}/join`,
-        { method: "POST", body: JSON.stringify({ participantName: signedInIdentity.participantName, role: signedInIdentity.role }) },
+        { method: "POST", body: JSON.stringify({ identityId: signedInIdentity.id, campaignId: selectedCampaign.id }) },
       );
       const result = await api<{ renamed: boolean; scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(code)}/command`, {
         method: "POST",
         body: JSON.stringify({ participantId: joined.participantId, sessionSecret: joined.sessionSecret, ...commandRequest("rename-scenario", { name }) }),
       });
-      setEncounters((current) => [result.scenario, ...current.filter((encounter) => encounter.code !== result.scenario.code)]);
+      updateCampaignEncounter(result.scenario);
       setNotice(`${result.scenario.name} saved.`);
       return true;
     } catch (caught) {
@@ -638,19 +643,40 @@ export default function BattleMapPrototype() {
   }, [participant?.role, presenting, togglePresenting, state]);
 
   if (appView === "login" || !signedInIdentity) {
-    return <JoinScreen error={error} identities={JOIN_IDENTITIES} onLogin={(identity) => { setSignedInIdentity(identity); setError(""); setAppView("dashboard"); }} />;
+    return <JoinScreen error={error} identities={JOIN_IDENTITIES} onLogin={(identity) => {
+      setSignedInIdentity(identity); setSelectedCampaignId(null); setCampaigns([]); setError(""); setAppView("campaigns");
+      void loadCampaigns(identity);
+    }} />;
+  }
+
+  const signOut = () => {
+    clearSession(); setWorkshopOpen(false); setSignedInIdentity(null); setSelectedCampaignId(null);
+    setCampaigns([]); setError(""); setNotice(""); setAppView("login");
+  };
+
+  if (appView === "campaigns") {
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} loading={campaignsLoading} error={error}
+      onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
+      onSignOut={signOut} />;
+  }
+
+  if (appView === "dashboard" && selectedCampaign) {
+    return <CampaignHome
+      identity={signedInIdentity} campaign={selectedCampaign} loading={campaignsLoading}
+      openingCode={openingCode} openingDestination={openingDestination} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
+      onOpenEncounter={(code) => void join(signedInIdentity, selectedCampaign, code, "map")}
+      onSetupEncounter={(code) => void join(signedInIdentity, selectedCampaign, code, "setup")}
+      onCreateEncounter={createScenarioFromHome}
+      onRenameEncounter={renameScenarioFromHome}
+      onBackToCampaigns={() => { setError(""); setNotice(""); setAppView("campaigns"); }}
+      onSignOut={signOut}
+    />;
   }
 
   if (appView === "dashboard") {
-    return <CampaignHome
-      identity={signedInIdentity} encounters={encounters} loading={encountersLoading}
-      openingCode={openingCode} openingDestination={openingDestination} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
-      onOpenEncounter={(code) => void join(signedInIdentity, code, "map")}
-      onSetupEncounter={(code) => void join(signedInIdentity, code, "setup")}
-      onCreateEncounter={createScenarioFromHome}
-      onRenameEncounter={renameScenarioFromHome}
-      onSignOut={() => { clearSession(); setWorkshopOpen(false); setSignedInIdentity(null); setError(""); setNotice(""); setAppView("login"); }}
-    />;
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} loading={campaignsLoading} error={error}
+      onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
+      onSignOut={signOut} />;
   }
 
   if (!participant || !state) return null;

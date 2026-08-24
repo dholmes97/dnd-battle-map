@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { JoinIdentity } from "@/app/join-screen";
 import type { EncounterSummary } from "@/app/encounter-summary";
+import type { CampaignAccessSummary } from "@/shared/campaigns";
 
 function formatUpdatedAt(updatedAt: number) {
   if (!updatedAt) return "Ready to prepare";
@@ -15,9 +16,9 @@ function statusLabel(status: EncounterSummary["status"]) {
   return "Ready";
 }
 
-export function CampaignHome({ identity, encounters, loading, openingCode, openingDestination, renamingCode, error, notice, creating, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onSignOut }: {
+export function CampaignHome({ identity, campaign, loading, openingCode, openingDestination, renamingCode, error, notice, creating, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onBackToCampaigns, onSignOut }: {
   identity: JoinIdentity;
-  encounters: EncounterSummary[];
+  campaign: CampaignAccessSummary;
   loading: boolean;
   openingCode: string | null;
   openingDestination: "map" | "setup" | null;
@@ -29,15 +30,17 @@ export function CampaignHome({ identity, encounters, loading, openingCode, openi
   onSetupEncounter: (code: string) => void;
   onCreateEncounter: (input: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => Promise<boolean>;
   onRenameEncounter: (code: string, name: string) => Promise<boolean>;
+  onBackToCampaigns: () => void;
   onSignOut: () => void;
 }) {
+  const encounters = campaign.encounters;
   const [showCreator, setShowCreator] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"party" | "duplicate">("party");
   const [sourceCode, setSourceCode] = useState(encounters[0]?.code ?? "");
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
-  const isDm = identity.role === "dm";
+  const isDm = campaign.role === "dm";
   const submit = async () => {
     const source = sourceCode || encounters[0]?.code || "";
     if (!source || name.trim().length < 3) return;
@@ -48,12 +51,12 @@ export function CampaignHome({ identity, encounters, loading, openingCode, openi
 
   return <main className="campaign-home-shell">
     <header className="campaign-home-header">
-      <div><div className="eyebrow">Friday Lunch Crew</div><strong>Campaign Home</strong></div>
-      <div className="campaign-person"><span><strong>{identity.participantName}</strong><small>{isDm ? "Dungeon Master" : "Player"}</small></span><button type="button" onClick={onSignOut}>Switch person</button></div>
+      <div><div className="eyebrow">Friday Lunch Crew</div><strong>{campaign.name}</strong></div>
+      <div className="campaign-person"><button type="button" onClick={onBackToCampaigns}>All campaigns</button><span><strong>{identity.displayName}</strong><small>{isDm ? "Dungeon Master" : "Player"}</small></span><button type="button" onClick={onSignOut}>Switch person</button></div>
     </header>
     <div className="campaign-home-content">
       <section className="campaign-welcome">
-        <div><div className="eyebrow">{isDm ? "Behind the screen" : "Your place at the table"}</div><h1>Welcome back, {identity.participantName}.</h1><p>{isDm ? "Prepare an encounter or return to one already underway." : "Choose an encounter to return to the battle map. This campaign home will grow with the things your character needs between sessions."}</p></div>
+        <div><div className="eyebrow">{isDm ? "Behind the screen" : campaign.characters.map((character) => character.name).join(" · ") || "Your place at the table"}</div><h1>{campaign.name}</h1><p>{isDm ? "Prepare an encounter or return to one already underway." : "Choose an encounter to return to the battle map. This campaign home will grow with the things your character needs between sessions."}</p></div>
       </section>
 
       {error ? <div className="form-error" role="alert">{error}</div> : null}
@@ -63,7 +66,7 @@ export function CampaignHome({ identity, encounters, loading, openingCode, openi
         {isDm && showCreator ? <section className="campaign-create-panel" aria-labelledby="create-encounter-title">
           <div><div className="eyebrow">New encounter</div><h2 id="create-encounter-title">Create an encounter</h2><p>Start with the established party, or duplicate an encounter as a preparation shortcut.</p></div>
           <div className="campaign-create-fields"><label>Encounter name<input autoFocus maxLength={64} value={name} onChange={(event) => setName(event.target.value)} placeholder="The Sunken Observatory" disabled={creating} /></label><label>Starting point<select value={mode} onChange={(event) => setMode(event.target.value === "duplicate" ? "duplicate" : "party")} disabled={creating}><option value="party">Fresh encounter — current party only</option><option value="duplicate">Duplicate an existing encounter</option></select></label>{mode === "duplicate" ? <label>Encounter to duplicate<select value={sourceCode || encounters[0]?.code || ""} onChange={(event) => setSourceCode(event.target.value)} disabled={creating}>{encounters.map((encounter) => <option key={encounter.code} value={encounter.code}>{encounter.name}</option>)}</select></label> : null}</div>
-          <div className="campaign-create-footer"><p>{mode === "duplicate" ? "Map and tokens are copied; combat, initiative, effects, movement, and history start clean." : "Dar'eleth, Jelton, and Malichar begin at full health. Map and encounter preparation come next."}</p><button className="primary-button" type="button" disabled={creating || name.trim().length < 3 || encounters.length === 0} onClick={() => void submit()}>{creating ? "Creating…" : "Create encounter"}</button></div>
+          <div className="campaign-create-footer"><p>{mode === "duplicate" ? "Map and tokens are copied; combat, initiative, effects, movement, and history start clean." : `${campaign.characters.map((character) => character.name).join(", ")} begin at full health. Map and encounter preparation come next.`}</p><button className="primary-button" type="button" disabled={creating || name.trim().length < 3 || encounters.length === 0} onClick={() => void submit()}>{creating ? "Creating…" : "Create encounter"}</button></div>
         </section> : null}
         {loading ? <div className="campaign-empty">Gathering your encounters…</div> : encounters.length === 0 ? <div className="campaign-empty">No encounters are ready for this seat yet.</div> : <div className="scenario-card-grid">{encounters.map((encounter) => {
           const editing = editingCode === encounter.code;

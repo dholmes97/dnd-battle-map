@@ -54,6 +54,28 @@ New work should extend the existing feature boundary, command family,
 repository port, or shared transition that owns the behavior instead of adding
 new root-component or request-router branches.
 
+## Human identity and campaigns
+
+The selectable one-click identities represent humans, not characters or global
+roles. `identities` is the future authentication seam. `campaign_memberships`
+assigns each human a role inside a `campaign`, while `campaign_characters`
+assigns the campaign's active characters to those memberships. Encounters
+belong to campaigns, and encounter participant sessions retain the resolved
+identity and membership that created them.
+
+The browser submits only the selected identity and campaign when entering an
+encounter. The Worker resolves display name and role from D1 and rejects a human
+without membership; it never authorizes the browser's requested role. Token
+control follows a token's durable campaign-character reference and recursively
+inherits through summons. Tokens without a player-character root belong to the
+campaign's DM. This lets the same human eventually DM one campaign and play a
+different character in another without additional logins.
+
+Force of Nature is the initial campaign. Its one party is represented by Kevin's
+DM membership plus Dan/Dar'eleth, Barry/Jelton, and Scott/Malichar membership and
+character relationships. Party remains a derived roster rather than a separate
+1:1 persistence record.
+
 ## Encounter maps
 
 `map_images` is the canonical catalog for immutable image identity and metadata:

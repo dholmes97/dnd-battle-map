@@ -8,7 +8,7 @@ import type { MapImageRow } from "../types.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
-  summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
+  summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
 export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapRepository {
@@ -18,8 +18,9 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         "UPDATE encounters SET name = ?, updated_at = ? WHERE id = ?",
       ).bind(name, now, encounterId).run();
     },
-    async countScenarios() {
-      const row = await db.prepare("SELECT COUNT(*) AS value FROM encounters").first<{ value: number }>();
+    async countScenarios(campaignId) {
+      const row = await db.prepare("SELECT COUNT(*) AS value FROM encounters WHERE campaign_id = ?")
+        .bind(campaignId).first<{ value: number }>();
       return Number(row?.value) || 0;
     },
     async scenarioCodeExists(code) {
@@ -37,13 +38,14 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
       await db.batch([
         db.prepare(
           `INSERT INTO encounters
-           (id, code, name, version, status, map_asset, map_package_json, active_map_preset_id,
+           (id, campaign_id, code, name, version, status, map_asset, map_package_json, active_map_preset_id,
             active_map_image_id, active_map_setup_json, draft_map_image_id, draft_map_setup_json,
             draft_updated_at, grid_width, grid_height, current_round, active_initiative_order,
             strict_movement, updated_at)
-           VALUES (?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
+           VALUES (?, ?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
         ).bind(
           input.id,
+          input.campaignId,
           input.code,
           input.name,
           input.activeMapImageId,
@@ -60,10 +62,10 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
           `INSERT INTO tokens
            (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
             climb_speed, burrow_speed, armor_class, hp, max_hp,
-            is_hidden, summoner_token_id, initiative, initiative_group_id, initiative_order,
+            is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order,
             turn_complete, movement_used, altitude, movement_origin_x, movement_origin_y,
             owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, ?, NULL, NULL, NULL, NULL, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, ?, NULL, NULL, NULL, NULL, ?)`,
         ).bind(
           token.copiedId,
           input.id,
@@ -83,14 +85,16 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
           token.max_hp,
           token.copiedHidden ? 1 : 0,
           token.copiedSummonerId,
+          token.campaign_character_id,
           token.copiedAltitude,
           input.now,
         )),
         db.prepare(
           `INSERT INTO participants
-           (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
-           VALUES (?, ?, 'Kevin', 'dm', ?, ?, ?)`,
-        ).bind(input.participantId, input.id, input.sessionSecret, input.now, input.now),
+           (id, encounter_id, identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, 'dm', ?, ?, ?)`,
+        ).bind(input.participantId, input.id, input.participantIdentityId, input.participantMembershipId,
+          input.participantName, input.sessionSecret, input.now, input.now),
       ]);
     },
     async findMapImage(mapImageId) {

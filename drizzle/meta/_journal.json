@@ -204,6 +204,20 @@
       "when": 1787522828141,
       "tag": "0028_volatile_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1787606653242,
+      "tag": "0029_wonderful_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1787606710384,
+      "tag": "0030_aspiring_calypso",
+      "breakpoints": true
     }
   ]
 }

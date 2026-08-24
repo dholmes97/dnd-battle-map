@@ -100,8 +100,60 @@ export const mapImages = sqliteTable(
   ],
 );
 
+export const identities = sqliteTable("identities", {
+  id: text("id").primaryKey(),
+  displayName: text("display_name").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_identities_display_name").on(table.displayName)]);
+
+export const campaigns = sqliteTable("campaigns", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_campaigns_slug").on(table.slug)]);
+
+export const campaignMemberships = sqliteTable(
+  "campaign_memberships",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+    identityId: text("identity_id").notNull().references(() => identities.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_campaign_memberships_campaign_identity").on(table.campaignId, table.identityId),
+    index("idx_campaign_memberships_identity_campaign").on(table.identityId, table.campaignId),
+  ],
+);
+
+export const campaignCharacters = sqliteTable(
+  "campaign_characters",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+    controllerMembershipId: text("controller_membership_id").notNull().references(() => campaignMemberships.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    className: text("class_name").notNull().default(""),
+    artAsset: text("art_asset"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_campaign_characters_campaign_name").on(table.campaignId, table.name),
+    index("idx_campaign_characters_controller").on(table.controllerMembershipId, table.sortOrder),
+  ],
+);
+
 export const encounters = sqliteTable("encounters", {
   id: text("id").primaryKey(),
+  campaignId: text("campaign_id").references(() => campaigns.id),
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   dmBriefing: text("dm_briefing").notNull().default(""),
@@ -125,7 +177,7 @@ export const encounters = sqliteTable("encounters", {
   activeInitiativeOrder: integer("active_initiative_order"),
   strictMovement: integer("strict_movement", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at").notNull(),
-});
+}, (table) => [index("idx_encounters_campaign_updated").on(table.campaignId, table.updatedAt)]);
 
 export const scenarioProvisioningJobs = sqliteTable(
   "scenario_provisioning_jobs",
@@ -280,13 +332,19 @@ export const participants = sqliteTable(
     encounterId: text("encounter_id")
       .notNull()
       .references(() => encounters.id, { onDelete: "cascade" }),
+    identityId: text("identity_id").references(() => identities.id),
+    campaignMembershipId: text("campaign_membership_id").references(() => campaignMemberships.id),
     name: text("name").notNull(),
     role: text("role").notNull().default("player"),
     sessionSecret: text("session_secret").notNull().unique(),
     joinedAt: integer("joined_at").notNull(),
     lastSeenAt: integer("last_seen_at").notNull(),
   },
-  (table) => [index("idx_participants_encounter_id").on(table.encounterId)],
+  (table) => [
+    index("idx_participants_encounter_id").on(table.encounterId),
+    index("idx_participants_identity_encounter").on(table.identityId, table.encounterId),
+    index("idx_participants_membership_encounter").on(table.campaignMembershipId, table.encounterId),
+  ],
 );
 
 export const tokens = sqliteTable(
@@ -312,6 +370,7 @@ export const tokens = sqliteTable(
     maxHp: integer("max_hp"),
     isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
     summonerTokenId: text("summoner_token_id"),
+    campaignCharacterId: text("campaign_character_id").references(() => campaignCharacters.id),
     initiative: integer("initiative"),
     initiativeGroupId: text("initiative_group_id"),
     initiativeOrder: integer("initiative_order"),
@@ -329,6 +388,7 @@ export const tokens = sqliteTable(
   },
   (table) => [
     index("idx_tokens_encounter_id").on(table.encounterId),
+    index("idx_tokens_campaign_character_id").on(table.campaignCharacterId),
     index("idx_tokens_owner_participant_id").on(table.ownerParticipantId),
   ],
 );

@@ -12,6 +12,7 @@ export type ScenarioSeedToken = TokenRow & {
 
 export type NewScenarioWrite = {
   id: string;
+  campaignId: string;
   code: string;
   name: string;
   activeMapImageId: string | null;
@@ -22,6 +23,9 @@ export type NewScenarioWrite = {
   height: number;
   strictMovement: boolean;
   participantId: string;
+  participantIdentityId: string;
+  participantMembershipId: string;
+  participantName: string;
   sessionSecret: string;
   tokens: ScenarioSeedToken[];
   now: number;
@@ -29,7 +33,7 @@ export type NewScenarioWrite = {
 
 export interface ScenarioMapRepository {
   renameScenario(encounterId: string, name: string, now: number): Promise<void>;
-  countScenarios(): Promise<number>;
+  countScenarios(campaignId: string): Promise<number>;
   scenarioCodeExists(code: string): Promise<boolean>;
   listScenarioTokens(encounterId: string): Promise<TokenRow[]>;
   createScenario(input: NewScenarioWrite): Promise<void>;

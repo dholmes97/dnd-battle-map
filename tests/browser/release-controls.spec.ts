@@ -43,24 +43,31 @@ async function expectReadableText(page: Page, rootSelector: string) {
 }
 
 async function openHydratedApplication(page: Page) {
-  const encounterList = page.waitForResponse((response) =>
-    response.url().endsWith("/api/encounters") && response.request().method() === "GET");
   await page.goto("/");
-  await encounterList;
+  await expect(page.getByRole("heading", { name: "Choose your seat" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Dan.*Continue as this person/ })).toBeEnabled();
+}
+
+async function openCampaignAs(page: Page, person: "Dan" | "Kevin") {
+  const campaigns = page.waitForResponse((response) =>
+    response.url().includes("/api/campaigns?") && response.request().method() === "GET");
+  await page.getByRole("button", { name: new RegExp(`${person}.*Continue as this person`) }).click();
+  await campaigns;
+  await expect(page.getByRole("heading", { name: "Campaigns" })).toBeVisible();
+  await page.getByRole("button", { name: /Open campaign/ }).click();
+  await expect(page.getByRole("heading", { name: "Force of Nature" })).toBeVisible();
 }
 
 async function enterFirstEncounterAsDm(page: Page) {
   await openHydratedApplication(page);
-  await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
-  await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
+  await openCampaignAs(page, "Kevin");
   await page.getByRole("button", { name: "Battle map" }).first().click();
   await expect(page.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
 }
 
 async function setupFirstEncounterAsDm(page: Page) {
   await openHydratedApplication(page);
-  await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
-  await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
+  await openCampaignAs(page, "Kevin");
   await page.getByRole("button", { name: "Set up" }).first().click();
   await expect(page.getByText("Encounter Setup · Draft", { exact: true })).toBeVisible();
   await expect(page.getByText("Briefing & handouts", { exact: true })).toBeVisible();
@@ -98,12 +105,15 @@ test("fixed-identity login is keyboard-accessible and production-branded", async
 
   await expect(page).toHaveTitle("D&D Battle Map");
   await expect(page.getByRole("heading", { name: "Choose your seat" })).toBeVisible();
-  const dan = page.getByRole("button", { name: /Dan.*Dar'eleth.*Paladin/ });
+  const dan = page.getByRole("button", { name: /Dan.*Continue as this person/ });
   await expect(dan).toBeFocused();
   await expectNoSeriousAccessibilityViolations(page);
 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Welcome back, Dan." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Campaigns" })).toBeVisible();
+  await expect(page.getByText("Dar'eleth · Paladin")).toBeVisible();
+  await page.getByRole("button", { name: /Open campaign/ }).click();
   await expect(page.getByRole("heading", { name: "Encounters" })).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
 });
@@ -113,8 +123,7 @@ test("mobile login and campaign home do not overflow the viewport", async ({ pag
   await openHydratedApplication(page);
 
   await expectNoPageOverflow(page);
-  await page.getByRole("button", { name: /Kevin.*Dungeon Master/ }).click();
-  await expect(page.getByRole("heading", { name: "Welcome back, Kevin." })).toBeVisible();
+  await openCampaignAs(page, "Kevin");
   await expectNoPageOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
 });

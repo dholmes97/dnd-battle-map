@@ -24,7 +24,7 @@ export interface WorkerExecutionContext {
 }
 
 export type EncounterRow = {
-  id: string; code: string; name: string; dm_briefing: string; version: number; status: EncounterStatus;
+  id: string; campaign_id: string; code: string; name: string; dm_briefing: string; version: number; status: EncounterStatus;
   map_asset: string; map_package_json: string | null; active_map_preset_id: string | null;
   active_map_image_id: string | null; active_map_setup_json: string | null;
   draft_map_image_id: string | null; draft_map_setup_json: string | null; draft_updated_at: number | null;
@@ -38,13 +38,20 @@ export type TokenRow = {
   climb_speed: number | null; burrow_speed: number | null;
   armor_class: number | null; hp: number | null; max_hp: number | null; is_hidden: number;
   summoner_token_id: string | null; initiative: number | null; initiative_group_id: string | null;
+  campaign_character_id: string | null;
   initiative_order: number | null; turn_complete: number; movement_used: number;
   altitude: number;
   movement_origin_x?: number | null; movement_origin_y?: number | null;
   owner_participant_id: string | null; owner_name: string | null;
 };
 
-export type ParticipantRow = { id: string; name: string; role: "dm" | "player" };
+export type ParticipantRow = {
+  id: string;
+  name: string;
+  role: "dm" | "player";
+  identity_id?: string | null;
+  campaign_membership_id?: string | null;
+};
 export type EffectRow = { id: string; token_id: string; name: string; effect_type: string; duration_rounds: number | null; expires_round: number | null; reminder_timing: string };
 export type AnnotationRow = { id: string; annotation_type: SharedAnnotation["type"]; x: number; y: number; x2: number | null; y2: number | null; color: string; label: string | null; created_by: string; expires_at: number | null };
 export type ActionRow = { id: string; action_type: string; payload_json: string; created_at: number };

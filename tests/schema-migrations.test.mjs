@@ -8,6 +8,10 @@ import test from "node:test";
 import {
   MAX_ACTIONS_PER_ENCOUNTER,
   MAX_ANNOTATIONS_PER_ENCOUNTER,
+  MAX_CAMPAIGNS,
+  MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN,
+  MAX_CAMPAIGN_MEMBERS_PER_CAMPAIGN,
+  MAX_IDENTITIES,
   MAX_CHAT_MESSAGES_PER_ENCOUNTER,
   MAX_CATALOG_ENTRIES,
   MAX_EFFECTS_PER_ENCOUNTER,
@@ -52,12 +56,18 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "13");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "17");
   assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "17");
   assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE code = 'EMBER-KEEP';"), "grandfather-tree-roots-v1");
   assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
   assert.equal(await query(database, "SELECT json_extract(draft_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'map-images-and-drafts-v1';"), "1");
+  assert.equal(await query(database, "SELECT name FROM campaigns WHERE id = 'campaign-force-of-nature';"), "Force of Nature");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM campaign_memberships WHERE campaign_id = 'campaign-force-of-nature';"), "4");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM campaign_characters WHERE campaign_id = 'campaign-force-of-nature';"), "3");
+  assert.equal(await query(database, "SELECT campaign_id FROM encounters WHERE code = 'EMBER-KEEP';"), "campaign-force-of-nature");
+  assert.equal(await query(database, "SELECT campaign_character_id FROM tokens WHERE name = 'Dar''eleth';"), "character-dareleth");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'campaign-memberships-v1';"), "1");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -270,7 +280,7 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /map-images-and-drafts-v1/);
+  assert.match(block, /campaign-memberships-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
 });
 
@@ -293,6 +303,13 @@ test("resource-limit migration constants stay aligned with application policies"
   assert.match(migration, new RegExp("FROM `creature_catalog`\\) >= " + MAX_CATALOG_ENTRIES));
   const mapMigration = await readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8");
   assert.match(mapMigration, new RegExp("FROM `map_images`\\) >= " + MAX_MAP_IMAGES));
+  const campaignMigration = await readFile(new URL("../drizzle/0029_wonderful_sentinel.sql", import.meta.url), "utf8");
+  for (const [table, limit] of [
+    ["campaigns", MAX_CAMPAIGNS],
+    ["identities", MAX_IDENTITIES],
+    ["campaign_memberships", MAX_CAMPAIGN_MEMBERS_PER_CAMPAIGN],
+    ["campaign_characters", MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN],
+  ]) assert.match(campaignMigration, new RegExp("FROM `" + table + "`[^;]+>= " + limit));
 });
 
 test("state-integrity migration aligns atomic quotas and outbox schema", async () => {

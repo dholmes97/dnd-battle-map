@@ -114,10 +114,10 @@ async function insertToken(
   await db.prepare(
     `INSERT INTO tokens
      (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-      climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden, summoner_token_id,
+      climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden, summoner_token_id, campaign_character_id,
       initiative, initiative_order, turn_complete, movement_used, altitude,
       owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?)`,
   ).bind(
     tokenId, encounterId, cleanText(token.name, 48), Number(token.x), Number(token.y),
     token.artAsset ?? null, cleanText(token.kind, 16) || "monster",

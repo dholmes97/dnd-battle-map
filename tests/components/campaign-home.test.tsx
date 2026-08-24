@@ -3,18 +3,25 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { CampaignHome } from "@/app/campaign-home";
 import type { JoinIdentity } from "@/app/join-screen";
+import type { CampaignAccessSummary } from "@/shared/campaigns";
 
 const encounters = [
   { code: "EMBER-KEEP", name: "Ember Keep", status: "active" as const, updatedAt: 1_782_000_000_000 },
   { code: "SUNLESS", name: "The Sunless Hall", status: "setup" as const, updatedAt: 1_781_000_000_000 },
 ];
-const player: JoinIdentity = { participantName: "Dan", label: "Dar'eleth · Paladin", role: "player" };
-const dm: JoinIdentity = { participantName: "Kevin", label: "Dungeon Master", role: "dm" };
+const player: JoinIdentity = { id: "identity-dan", displayName: "Dan" };
+const dm: JoinIdentity = { id: "identity-kevin", displayName: "Kevin" };
+const campaign = (role: "player" | "dm"): CampaignAccessSummary => ({
+  id: "campaign-force-of-nature", slug: "force-of-nature", name: "Force of Nature",
+  membershipId: role === "dm" ? "membership-kevin" : "membership-dan", role,
+  characters: role === "player" ? [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: null }] : [],
+  encounters,
+});
 
 function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof CampaignHome>[0]> = {}) {
   const props: Parameters<typeof CampaignHome>[0] = {
-    identity, encounters, loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false,
-    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onSignOut: vi.fn(), ...overrides,
+    identity, campaign: campaign(identity.id === "identity-kevin" ? "dm" : "player"), loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false,
+    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onBackToCampaigns: vi.fn(), onSignOut: vi.fn(), ...overrides,
   };
   render(<CampaignHome {...props} />); return props;
 }
@@ -22,7 +29,8 @@ function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof Campa
 describe("CampaignHome", () => {
   it("gives a player a personal landing page with encounter entry and no creation controls", async () => {
     const props = home(player);
-    expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
+    expect(screen.getByText("Dar'eleth")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
     await userEvent.click(screen.getAllByRole("button", { name: /Enter encounter/ })[0]);

@@ -33,6 +33,7 @@ function context(overrides = {}) {
     repository,
     encounter: {
       id: "encounter-1",
+      campaignId: "campaign-force-of-nature",
       code: "OLD-CODE",
       name: "Old name",
       version: 1,
@@ -49,7 +50,10 @@ function context(overrides = {}) {
       strictMovement: true,
       updatedAt: 1,
     },
-    participant: { id: "dm-1", name: "Kevin", role: "dm" },
+    participant: {
+      id: "dm-1", name: "Kevin", role: "dm",
+      identityId: "identity-kevin", campaignMembershipId: "membership-force-of-nature-kevin",
+    },
     payload: {},
     now: 100,
     loadScenarioState: async (code, participantId) => ({ code, participantId }),
@@ -95,6 +99,7 @@ test("party scenario creation resets state and records history on the new scenar
     max_hp: 42,
     is_hidden: 1,
     summoner_token_id: null,
+    campaign_character_id: "character-dareleth",
     initiative: 18,
     initiative_group_id: "old-group",
     initiative_order: 0,

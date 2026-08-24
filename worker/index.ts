@@ -10,11 +10,7 @@ import {
   isCreatureSize,
 } from "../shared/creature-library";
 import { hydrateMapPackage, parseMapSetup } from "../shared/map-package";
-import {
-  baseTokenControllerName,
-  identityControlsToken,
-  resolveTokenControllerName,
-} from "../shared/token-control.ts";
+import { identityControlsToken, resolveTokenController } from "../shared/token-control.ts";
 import { deriveHistoryActionIds, isReversibleHistoryRow } from "../shared/action-history.ts";
 import { healthBand } from "../shared/health.ts";
 import { movementPolicyDenial } from "../shared/battle-map-policies.ts";
@@ -71,6 +67,8 @@ import {
   MAX_CATALOG_FAMILIES,
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
+  MAX_CAMPAIGNS,
+  MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN,
   MAX_MAP_IMAGES,
   MAX_PARTICIPANTS_PER_ENCOUNTER,
   MAX_SCENARIOS,
@@ -628,18 +626,14 @@ function cleanTokenId(value: unknown): string {
     : "";
 }
 
-function cleanRole(value: unknown): "dm" | "player" {
-  return value === "dm" ? "dm" : "player";
-}
-
 function cleanText(value: unknown, max = 64): string {
   return typeof value === "string"
     ? value.trim().replace(/\s+/g, " ").slice(0, max)
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0028_volatile_bruce_banner.sql";
-const REQUIRED_SCHEMA_MARKER = "map-images-and-drafts-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0029_wonderful_sentinel.sql";
+const REQUIRED_SCHEMA_MARKER = "campaign-memberships-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -883,7 +877,7 @@ async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
 
 async function findEncounter(env: Env, code: string): Promise<EncounterRow | null> {
   return env.DB.prepare(
-    `SELECT id, code, name, dm_briefing, version, status, map_asset, map_package_json,
+    `SELECT id, campaign_id, code, name, dm_briefing, version, status, map_asset, map_package_json,
             active_map_preset_id, active_map_image_id, active_map_setup_json,
             draft_map_image_id, draft_map_setup_json, draft_updated_at,
             grid_width, grid_height, current_round,
@@ -921,6 +915,76 @@ async function handleEncounterList(request: Request, env: Env): Promise<Response
   })) });
 }
 
+async function handleCampaignList(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
+  }
+  await ensureSchema(env);
+  const rateLimited = await enforceRateLimit(request, env, "campaign-list", RATE_LIMIT_POLICIES.publicRead);
+  if (rateLimited) return rateLimited;
+  const identityId = cleanParticipantId(new URL(request.url).searchParams.get("identityId"));
+  if (!identityId) return json({ error: "Choose a person to see their campaigns." }, { status: 400 });
+  const identity = await env.DB.prepare(
+    "SELECT id, display_name FROM identities WHERE id = ? LIMIT 1",
+  ).bind(identityId).first<{ id: string; display_name: string }>();
+  if (!identity) return json({ error: "That person is not available." }, { status: 404 });
+
+  const memberships = await env.DB.prepare(
+    `SELECT c.id, c.slug, c.name, cm.id AS membership_id, cm.role
+     FROM campaign_memberships cm
+     JOIN campaigns c ON c.id = cm.campaign_id
+     WHERE cm.identity_id = ?
+     ORDER BY c.name, c.id LIMIT ?`,
+  ).bind(identity.id, MAX_CAMPAIGNS).all<{
+    id: string; slug: string; name: string; membership_id: string; role: "dm" | "player";
+  }>();
+  const characters = await env.DB.prepare(
+    `SELECT cc.id, cc.campaign_id, cc.name, cc.class_name, cc.art_asset,
+            controller.identity_id AS controller_identity_id
+     FROM campaign_characters cc
+     JOIN campaign_memberships controller ON controller.id = cc.controller_membership_id
+     JOIN campaign_memberships access ON access.campaign_id = cc.campaign_id
+     WHERE access.identity_id = ? AND cc.is_active = 1
+     ORDER BY cc.campaign_id, cc.sort_order, cc.name, cc.id LIMIT ?`,
+  ).bind(identity.id, MAX_CAMPAIGNS * MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<{
+    id: string; campaign_id: string; name: string; class_name: string; art_asset: string | null;
+    controller_identity_id: string;
+  }>();
+  const encounters = await env.DB.prepare(
+    `SELECT e.campaign_id, e.code, e.name, e.status, e.updated_at
+     FROM encounters e
+     JOIN campaign_memberships cm ON cm.campaign_id = e.campaign_id
+     WHERE cm.identity_id = ?
+     ORDER BY e.updated_at DESC, e.name, e.code LIMIT ?`,
+  ).bind(identity.id, MAX_SCENARIOS).all<{
+    campaign_id: string; code: string; name: string;
+    status: "setup" | "active" | "paused"; updated_at: number;
+  }>();
+  return json({
+    identity: { id: identity.id, displayName: identity.display_name },
+    items: memberships.results.map((membership) => ({
+      id: membership.id,
+      slug: membership.slug,
+      name: membership.name,
+      membershipId: membership.membership_id,
+      role: membership.role,
+      characters: characters.results.filter((character) => character.campaign_id === membership.id
+        && (membership.role === "dm" || character.controller_identity_id === identity.id)).map((character) => ({
+        id: character.id,
+        name: character.name,
+        className: character.class_name,
+        artAsset: character.art_asset,
+      })),
+      encounters: encounters.results.filter((encounter) => encounter.campaign_id === membership.id).map((encounter) => ({
+        code: encounter.code,
+        name: encounter.name,
+        status: encounter.status,
+        updatedAt: encounter.updated_at,
+      })),
+    })),
+  });
+}
+
 async function participantFromHeaders(
   request: Request,
   env: Env,
@@ -934,7 +998,7 @@ async function participantFromHeaders(
   );
   if (!participantId || !sessionSecret) return null;
   return env.DB.prepare(
-    `SELECT id, name, role FROM participants
+    `SELECT id, name, role, identity_id, campaign_membership_id FROM participants
      WHERE id = ? AND encounter_id = ? AND session_secret = ?`,
   )
     .bind(participantId, encounterId, sessionSecret)
@@ -1212,7 +1276,7 @@ async function encounterState(
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
-            t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.initiative,
+            t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative,
             t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used, t.altitude,
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
@@ -1221,6 +1285,23 @@ async function encounterState(
   )
     .bind(encounter!.id, MAX_TOKENS_PER_ENCOUNTER)
     .all<TokenRow>();
+  const characterControllers = await env.DB.prepare(
+    `SELECT cc.id AS character_id, cm.identity_id, i.display_name
+     FROM campaign_characters cc
+     JOIN campaign_memberships cm ON cm.id = cc.controller_membership_id
+     JOIN identities i ON i.id = cm.identity_id
+     WHERE cc.campaign_id = ? AND cc.is_active = 1
+     ORDER BY cc.sort_order, cc.id LIMIT ?`,
+  ).bind(encounter!.campaign_id, MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<{
+    character_id: string; identity_id: string; display_name: string;
+  }>();
+  const dungeonMaster = await env.DB.prepare(
+    `SELECT cm.identity_id, i.display_name
+     FROM campaign_memberships cm
+     JOIN identities i ON i.id = cm.identity_id
+     WHERE cm.campaign_id = ? AND cm.role = 'dm'
+     ORDER BY cm.created_at, cm.id LIMIT 1`,
+  ).bind(encounter!.campaign_id).first<{ identity_id: string; display_name: string }>();
 
   const effects = await env.DB.prepare(
     `SELECT id, token_id, name, effect_type, duration_rounds, expires_round,
@@ -1296,17 +1377,25 @@ async function encounterState(
     : null;
 
   const tokenById = new Map(tokens.results.map((token) => [token.id, token]));
+  const controllerByCharacterId = new Map(characterControllers.results.map((controller) => [
+    controller.character_id,
+    { identityId: controller.identity_id, name: controller.display_name },
+  ]));
   const effectsByToken = indexRowsByKey(effects.results, (effect) => effect.token_id);
-  const controllerNames = new Map<string, string>();
-  const controllerName = (token: TokenRow): string => {
-    const cached = controllerNames.get(token.id);
+  const dungeonMasterController = {
+    identityId: dungeonMaster?.identity_id ?? null,
+    name: dungeonMaster?.display_name ?? "Dungeon Master",
+  };
+  const controllers = new Map<string, { identityId: string | null; name: string }>();
+  const controller = (token: TokenRow): { identityId: string | null; name: string } => {
+    const cached = controllers.get(token.id);
     if (cached) return cached;
-    const resolved = resolveTokenControllerName(token, tokenById);
-    controllerNames.set(token.id, resolved);
-    return resolved;
+    const value = resolveTokenController(token, tokenById, controllerByCharacterId, dungeonMasterController);
+    controllers.set(token.id, value);
+    return value;
   };
   const viewerControls = (token: TokenRow) => Boolean(
-    viewer && identityControlsToken(viewer, controllerName(token)),
+    viewer && identityControlsToken(viewer, controller(token)),
   );
   const visibilityTokens = tokens.results.map((token) => ({
     x: token.x, y: token.y, kind: token.kind, controlledByViewer: viewerControls(token),
@@ -1384,7 +1473,7 @@ async function encounterState(
               effect.expires_round !== null &&
               effect.expires_round <= encounter!.current_round,
           })),
-        controller: { name: controllerName(token) },
+        controller: { name: controller(token).name },
         controlledByViewer,
       };
     }),
@@ -1457,7 +1546,7 @@ async function encounterState(
   if (telemetry) {
     telemetry.projection = {
       durationMs: Math.max(0, performance.now() - projectionStartedAt),
-      collectionReads: 4 + (viewer ? 2 : 0) + (viewer?.role === "dm" ? 1 : 0),
+      collectionReads: 6 + (viewer ? 2 : 0) + (viewer?.role === "dm" ? 1 : 0),
       rows: {
         tokens: tokens.results.length,
         effects: effects.results.length,
@@ -1553,7 +1642,7 @@ async function canControlToken(
     const summoner = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
               climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
-              summoner_token_id, initiative, initiative_order, turn_complete,
+              summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, initiative_group_id
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     )
@@ -1562,7 +1651,21 @@ async function canControlToken(
     if (!summoner) return false;
     current = summoner;
   }
-  return identityControlsToken(participant, baseTokenControllerName(current));
+  if (!current.campaign_character_id) return false;
+  const controller = await env.DB.prepare(
+    `SELECT cm.identity_id, i.display_name
+     FROM campaign_characters cc
+     JOIN campaign_memberships cm ON cm.id = cc.controller_membership_id
+     JOIN identities i ON i.id = cm.identity_id
+     WHERE cc.id = ? AND cc.campaign_id = (
+       SELECT campaign_id FROM encounters WHERE id = ?
+     ) LIMIT 1`,
+  ).bind(current.campaign_character_id, encounterId).first<{ identity_id: string; display_name: string }>();
+  if (!controller) return false;
+  return identityControlsToken(participant, {
+    identityId: controller.identity_id,
+    name: controller.display_name,
+  });
 }
 
 async function handleCommand(
@@ -1592,6 +1695,7 @@ async function handleCommand(
   const state = () => encounterState(env, code, participant, telemetry);
   const commandEncounter = {
     id: encounter.id,
+    campaignId: encounter.campaign_id,
     code: encounter.code,
     name: encounter.name,
     version: encounter.version,
@@ -1607,6 +1711,13 @@ async function handleCommand(
     activeInitiativeOrder: encounter.active_initiative_order,
     strictMovement: Boolean(encounter.strict_movement),
     updatedAt: encounter.updated_at,
+  };
+  const commandParticipant = {
+    id: participant.id,
+    name: participant.name,
+    role: participant.role,
+    identityId: participant.identity_id ?? null,
+    campaignMembershipId: participant.campaign_membership_id ?? null,
   };
   const commandServices = {
     createId: () => crypto.randomUUID(),
@@ -1638,7 +1749,7 @@ async function handleCommand(
     }),
   };
   const baseContext = <Name extends CommandName>(payload: CommandPayload<Name>) =>
-    ({ encounter: commandEncounter, participant, payload, now, services: commandServices });
+    ({ encounter: commandEncounter, participant: commandParticipant, payload, now, services: commandServices });
   const chatHandoutContext = <Name extends "send-chat-message" | "delete-handout">(
     payload: CommandPayload<Name>,
   ): ChatHandoutCommandContext<Name> => ({
@@ -1660,7 +1771,13 @@ async function handleCommand(
     ...baseContext(payload),
     repository: scenarioMapRepository,
     loadScenarioState: async (scenarioCode, participantId) =>
-      encounterState(env, scenarioCode, { id: participantId, name: "Kevin", role: "dm" }, telemetry),
+      encounterState(env, scenarioCode, {
+        id: participantId,
+        name: participant.name,
+        role: "dm",
+        identity_id: participant.identity_id,
+        campaign_membership_id: participant.campaign_membership_id,
+      }, telemetry),
   });
   type InitiativeCommandName =
     | "set-initiative" | "set-initiative-group" | "start-combat"
@@ -1791,11 +1908,34 @@ async function handleApi(
   const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const now = Date.now();
   if (action === "join") {
-    const participantName = cleanName(body.participantName);
-    const participantRole = cleanRole(body.role);
-    if (!participantName) {
-      return json({ error: "Display name is required." }, { status: 400 });
+    const requestedIdentityId = cleanParticipantId(body.identityId);
+    const requestedCampaignId = cleanParticipantId(body.campaignId);
+    const legacyParticipantName = cleanName(body.participantName);
+    if (requestedCampaignId && requestedCampaignId !== encounter.campaign_id) {
+      return json({ error: "That encounter is not part of the selected campaign." }, { status: 403 });
     }
+    const membership = requestedIdentityId
+      ? await env.DB.prepare(
+          `SELECT cm.id AS membership_id, cm.identity_id, cm.role, i.display_name
+           FROM campaign_memberships cm
+           JOIN identities i ON i.id = cm.identity_id
+           WHERE cm.campaign_id = ? AND cm.identity_id = ? LIMIT 1`,
+        ).bind(encounter.campaign_id, requestedIdentityId).first<{
+          membership_id: string; identity_id: string; role: "dm" | "player"; display_name: string;
+        }>()
+      : legacyParticipantName
+        ? await env.DB.prepare(
+            `SELECT cm.id AS membership_id, cm.identity_id, cm.role, i.display_name
+             FROM campaign_memberships cm
+             JOIN identities i ON i.id = cm.identity_id
+             WHERE cm.campaign_id = ? AND lower(i.display_name) = lower(?) LIMIT 1`,
+          ).bind(encounter.campaign_id, legacyParticipantName).first<{
+            membership_id: string; identity_id: string; role: "dm" | "player"; display_name: string;
+          }>()
+        : null;
+    if (!membership) return json({ error: "You do not have access to this campaign." }, { status: 403 });
+    const participantName = membership.display_name;
+    const participantRole = membership.role;
 
     const participantId = crypto.randomUUID();
     const sessionSecret = crypto.randomUUID();
@@ -1810,11 +1950,13 @@ async function handleApi(
       ).bind(encounter.id, encounter.id, MAX_PARTICIPANTS_PER_ENCOUNTER - 1),
       env.DB.prepare(
         `INSERT INTO participants
-        (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (id, encounter_id, identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         participantId,
         encounter.id,
+        membership.identity_id,
+        membership.membership_id,
         participantName,
         participantRole,
         sessionSecret,
@@ -1845,11 +1987,14 @@ async function handleApi(
       id: participantId,
       name: participantName,
       role: participantRole,
+      identity_id: membership.identity_id,
+      campaign_membership_id: membership.membership_id,
     };
     return json({
       participantId,
       sessionSecret,
       role: participantRole,
+      participantName,
       state: await encounterState(env, code, joinedParticipant, telemetry),
     });
   }
@@ -1860,7 +2005,7 @@ async function handleApi(
     return json({ error: "Participant session is required." }, { status: 401 });
   }
   const participant = await env.DB.prepare(
-    `SELECT id, name, role FROM participants
+    `SELECT id, name, role, identity_id, campaign_membership_id FROM participants
      WHERE id = ? AND encounter_id = ? AND session_secret = ?`,
   )
     .bind(participantId, encounter.id, sessionSecret)
@@ -1889,7 +2034,7 @@ async function handleApi(
   const token = await env.DB.prepare(
     `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
             climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
-            summoner_token_id, initiative, initiative_order, turn_complete,
+            summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
             movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,
   )
@@ -2028,6 +2173,14 @@ const worker = {
         return await handleEncounterList(request, env);
       } catch (error) {
         return apiFailure(error, "Encounter list API error", "The scenario list is temporarily unavailable.");
+      }
+    }
+
+    if (url.pathname === "/api/campaigns") {
+      try {
+        return await handleCampaignList(request, env);
+      } catch (error) {
+        return apiFailure(error, "Campaign list API error", "The campaign list is temporarily unavailable.");
       }
     }
 

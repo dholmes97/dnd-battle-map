@@ -9,7 +9,7 @@ import { replayTokenEffectHistory } from "./d1-token-effect-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
   climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
-  summoner_token_id, initiative, initiative_group_id, initiative_order, turn_complete,
+  summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
 export function createD1TokenEffectRepository(db: D1Database): TokenEffectRepository {
@@ -28,9 +28,9 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         `INSERT INTO tokens
          (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
           climb_speed, burrow_speed, armor_class, hp, max_hp,
-          is_hidden, summoner_token_id, initiative, initiative_order, turn_complete,
+          is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
           movement_used, altitude, owner_participant_id, owner_name, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?
          WHERE (SELECT COUNT(*) FROM tokens WHERE encounter_id = ?) < ?`,
       ).bind(
         input.id,
@@ -147,7 +147,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
                 e.expires_round, e.reminder_timing, e.created_by, e.created_at,
                 t.id AS t_id, t.name AS t_name, t.x, t.y, t.art_asset, t.kind, t.size,
                 t.speed, t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
-                t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id,
+                t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.campaign_character_id,
                 t.initiative, t.initiative_group_id, t.initiative_order,
                 t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
                 t.movement_origin_y, t.owner_participant_id, t.owner_name
@@ -162,6 +162,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         swim_speed: number | null; climb_speed: number | null; burrow_speed: number | null;
         armor_class: number | null; hp: number | null;
         max_hp: number | null; is_hidden: number; summoner_token_id: string | null;
+        campaign_character_id: string | null;
         initiative: number | null; initiative_group_id: string | null;
         initiative_order: number | null; turn_complete: number; movement_used: number; altitude: number;
         movement_origin_x: number | null; movement_origin_y: number | null;
@@ -185,6 +186,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
           armor_class: row.armor_class,
           hp: row.hp, max_hp: row.max_hp,
           is_hidden: row.is_hidden, summoner_token_id: row.summoner_token_id,
+          campaign_character_id: row.campaign_character_id,
           initiative: row.initiative, initiative_group_id: row.initiative_group_id,
           initiative_order: row.initiative_order, turn_complete: row.turn_complete,
           movement_used: row.movement_used, altitude: row.altitude, movement_origin_x: row.movement_origin_x,

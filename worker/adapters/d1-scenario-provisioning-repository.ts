@@ -53,7 +53,7 @@ type CatalogRow = {
 };
 
 type EncounterTarget = {
-  id: string; code: string; name: string; version: number; status: string; grid_width: number; grid_height: number;
+  id: string; campaign_id: string; code: string; name: string; version: number; status: string; grid_width: number; grid_height: number;
 };
 
 const JOB_COLUMNS = `id, idempotency_key, revision, operation, status, manifest_json,
@@ -323,10 +323,22 @@ async function finalizeProvisioning(
   const scenarioName = input.manifest.scenario.name;
   const mapPackage = input.mapPackage;
   if (!target && !mapPackage) throw new ScenarioProvisioningWriteError("map_required", "A new scenario requires a prepared map.");
+  const sourceCampaign = target ?? await db.prepare(
+    "SELECT campaign_id FROM encounters WHERE code = ? LIMIT 1",
+  ).bind(input.manifest.party.sourceScenarioCode).first<{ campaign_id: string }>();
+  if (!sourceCampaign?.campaign_id) throw new ScenarioProvisioningWriteError("campaign_not_found", "The source encounter is not attached to a campaign.");
+  const dmMembership = await db.prepare(
+    `SELECT cm.id AS membership_id, cm.identity_id, i.display_name
+     FROM campaign_memberships cm
+     JOIN identities i ON i.id = cm.identity_id
+     WHERE cm.campaign_id = ? AND cm.role = 'dm'
+     ORDER BY cm.created_at, cm.id LIMIT 1`,
+  ).bind(sourceCampaign.campaign_id).first<{ membership_id: string; identity_id: string; display_name: string }>();
+  if (!dmMembership) throw new ScenarioProvisioningWriteError("campaign_dm_missing", "The campaign has no Dungeon Master membership.");
 
   const dmParticipant = target
-    ? await db.prepare("SELECT id FROM participants WHERE encounter_id = ? AND name = 'Kevin' AND role = 'dm' ORDER BY joined_at LIMIT 1")
-        .bind(scenarioId).first<{ id: string }>()
+    ? await db.prepare("SELECT id FROM participants WHERE encounter_id = ? AND campaign_membership_id = ? AND role = 'dm' ORDER BY joined_at LIMIT 1")
+        .bind(scenarioId, dmMembership.membership_id).first<{ id: string }>()
     : null;
   const dmParticipantId = dmParticipant?.id ?? input.createId();
   const statements: D1PreparedStatement[] = [];
@@ -346,9 +358,11 @@ async function finalizeProvisioning(
        ) THEN 1 ELSE 0 END, ?`,
     ).bind(assertionId, input.job.id, input.now));
   if (!dmParticipant) statements.push(db.prepare(
-    `INSERT INTO participants (id, encounter_id, name, role, session_secret, joined_at, last_seen_at)
-     VALUES (?, ?, 'Kevin', 'dm', ?, ?, ?)`,
-  ).bind(dmParticipantId, scenarioId, input.createId(), input.now, input.now));
+    `INSERT INTO participants
+     (id, encounter_id, identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, 'dm', ?, ?, ?)`,
+  ).bind(dmParticipantId, scenarioId, dmMembership.identity_id, dmMembership.membership_id,
+    dmMembership.display_name, input.createId(), input.now, input.now));
 
   const mapImageId = mapPackage ? input.createId() : null;
   const mapSetupJson = mapPackage ? JSON.stringify(mapSetupFromPackage(mapPackage)) : null;
@@ -374,13 +388,13 @@ async function finalizeProvisioning(
   if (!target) {
     const encounterStatement = db.prepare(
       `INSERT INTO encounters
-       (id, code, name, dm_briefing, version, status, map_asset, map_package_json,
+       (id, campaign_id, code, name, dm_briefing, version, status, map_asset, map_package_json,
         active_map_preset_id, active_map_image_id, active_map_setup_json,
         draft_map_image_id, draft_map_setup_json, draft_updated_at,
         grid_width, grid_height, current_round, active_initiative_order, strict_movement, updated_at)
-       VALUES (?, ?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 1, 'setup', '', NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
     ).bind(
-      scenarioId, scenarioCode, scenarioName, input.manifest.scenario.briefing,
+      scenarioId, sourceCampaign.campaign_id, scenarioCode, scenarioName, input.manifest.scenario.briefing,
       mapImageId, mapSetupJson, mapImageId, mapSetupJson, input.now,
       mapPackage!.width, mapPackage!.height,
       (input.manifest.settings.strictMovement ?? true) ? 1 : 0,
@@ -435,7 +449,8 @@ async function finalizeProvisioning(
         artAsset: token.art_asset, kind: token.kind, size: token.size, speed: token.speed,
         flySpeed: token.fly_speed, swimSpeed: token.swim_speed,
         climbSpeed: token.climb_speed, burrowSpeed: token.burrow_speed,
-        armorClass: token.armor_class, hp: token.max_hp, maxHp: token.max_hp, hidden: false, now: input.now,
+        armorClass: token.armor_class, hp: token.max_hp, maxHp: token.max_hp,
+        campaignCharacterId: token.campaign_character_id, hidden: false, now: input.now,
       }));
     });
   }
@@ -651,20 +666,21 @@ function insertToken(db: D1Database, token: {
   kind: string; size: CreatureSize; speed: number; flySpeed: number | null; swimSpeed: number | null;
   climbSpeed: number | null; burrowSpeed: number | null;
   armorClass: number | null; hp: number | null; maxHp: number | null;
-  hidden: boolean; now: number;
+  campaignCharacterId?: string | null; hidden: boolean; now: number;
 }) {
   return db.prepare(
     `INSERT INTO tokens
      (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
       climb_speed, burrow_speed, armor_class, hp, max_hp,
-      is_hidden, summoner_token_id, initiative, initiative_group_id, initiative_order,
+      is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order,
       turn_complete, movement_used, movement_origin_x, movement_origin_y,
       owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, ?)`,
   ).bind(
     token.id, token.encounterId, token.name, token.x, token.y, token.artAsset, token.kind,
     token.size, token.speed, token.flySpeed, token.swimSpeed, token.climbSpeed, token.burrowSpeed,
-    token.armorClass, token.hp, token.maxHp, token.hidden ? 1 : 0, token.now,
+    token.armorClass, token.hp, token.maxHp, token.hidden ? 1 : 0,
+    token.campaignCharacterId ?? null, token.now,
   );
 }
 
@@ -672,7 +688,7 @@ async function loadParty(db: D1Database, code: string): Promise<TokenRow[]> {
   const rows = await db.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed, t.armor_class, t.hp, t.max_hp,
-            t.is_hidden, t.summoner_token_id, t.initiative, t.initiative_group_id,
+            t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative, t.initiative_group_id,
             t.initiative_order, t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
             t.movement_origin_y, t.owner_participant_id, t.owner_name
      FROM tokens t JOIN encounters e ON e.id = t.encounter_id
@@ -684,7 +700,7 @@ async function loadParty(db: D1Database, code: string): Promise<TokenRow[]> {
 
 async function findTargetEncounter(db: D1Database, code: string): Promise<EncounterTarget | null> {
   return db.prepare(
-    "SELECT id, code, name, version, status, grid_width, grid_height FROM encounters WHERE code = ?",
+    "SELECT id, campaign_id, code, name, version, status, grid_width, grid_height FROM encounters WHERE code = ?",
   ).bind(code).first<EncounterTarget>();
 }
 
