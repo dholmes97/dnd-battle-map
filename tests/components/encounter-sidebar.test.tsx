@@ -74,6 +74,21 @@ function renderSidebar(initiative: number | null, controlledByViewer = true, sel
   return { controls, onSelectToken, token };
 }
 
+function dmSidebarProps(tokens: SharedToken[], selectedToken: SharedToken | null = tokens[0] ?? null): Parameters<typeof EncounterSidebar>[0] {
+  const dm: ParticipantSession = { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" };
+  const state = {
+    encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "active", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 1, activeInitiativeOrder: 0, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
+    grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: dm.id, role: dm.role }, undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+    tokens, annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
+  } as EncounterState;
+  return {
+    participant: dm, state, hidden: false, inCombat: true, rosterFilter: "", rosterRows: tokens.map((token) => ({ type: "token" as const, token, grouped: false })), selectedToken, selectedSpell: null, selectedMapNote: null,
+    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: tokens, encounterAction: null, controls: tokenControls(),
+    onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
+    onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+  };
+}
+
 describe("EncounterSidebar initiative disclosure", () => {
   it("shows the selected owned token's AC in the compact stat row", () => {
     renderSidebar(17);
@@ -101,19 +116,24 @@ describe("EncounterSidebar initiative disclosure", () => {
     expect(speed.getAttribute("aria-label")).toBe("Walk 30 ft. Fly 60 ft. Swim 30 ft.");
   });
 
-  it("anchors the player's character below a separately selected creature", () => {
+  it("defaults the player's character lock below a selection and lets the player replace it", async () => {
     const wolf = {
       ...tokenWithInitiative(12), id: "wolf", name: "Wolf", kind: "monster",
       controller: { name: "Kevin" }, controlledByViewer: false,
     };
     renderSidebar(17, true, wolf);
 
-    const stack = screen.getByRole("group", { name: "Your character and selection" });
+    const stack = screen.getByRole("group", { name: "Locked card and selection" });
     const cards = within(stack).getAllByRole("region");
     expect(cards).toHaveLength(2);
     expect(cards[0].getAttribute("aria-label")).toBe("Wolf details");
     expect(cards[1].getAttribute("aria-label")).toBe("Dar'eleth details");
     expect(stack.lastElementChild?.contains(cards[1])).toBe(true);
+    expect(within(stack).getByRole("button", { name: "Unlock Dar'eleth card" })).toBeTruthy();
+
+    await userEvent.click(within(stack).getByRole("button", { name: "Lock Wolf card" }));
+    expect(screen.queryByRole("region", { name: "Dar'eleth details" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Unlock Wolf card" })).toBeTruthy();
   });
 
   it("layers a selected spell card above the persistent character card", () => {
@@ -124,12 +144,45 @@ describe("EncounterSidebar initiative disclosure", () => {
     };
     renderSidebar(17, true, spell, moonbeam);
 
-    const stack = screen.getByRole("group", { name: "Your character and selection" });
+    const stack = screen.getByRole("group", { name: "Locked card and selection" });
     const cards = within(stack).getAllByRole("region");
     expect(cards.map((card) => card.getAttribute("aria-label"))).toEqual([
       "Moonbeam spell effect details",
       "Dar'eleth details",
     ]);
+  });
+
+  it("lets the DM lock one card at the bottom while later selections stack above it", async () => {
+    const villain = { ...tokenWithInitiative(18), id: "villain", name: "Strahd", kind: "monster" as const, controller: { name: "Kevin" }, controlledByViewer: true };
+    const wolf = { ...tokenWithInitiative(12), id: "wolf", name: "Dire Wolf", kind: "monster" as const, controller: { name: "Kevin" }, controlledByViewer: true };
+    const props = dmSidebarProps([villain, wolf], villain);
+    const view = render(<EncounterSidebar {...props} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Lock Strahd card" }));
+    expect(screen.getByRole("button", { name: "Unlock Strahd card" }).getAttribute("aria-pressed")).toBe("true");
+
+    view.rerender(<EncounterSidebar {...dmSidebarProps([villain, wolf], wolf)} />);
+    const stack = screen.getByRole("group", { name: "Locked card and selection" });
+    expect(within(stack).getAllByRole("region").map((card) => card.getAttribute("aria-label"))).toEqual([
+      "Dire Wolf details",
+      "Strahd details",
+    ]);
+
+    await userEvent.click(within(stack).getByRole("button", { name: "Lock Dire Wolf card" }));
+    expect(screen.queryByRole("region", { name: "Strahd details" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Unlock Dire Wolf card" }));
+    expect(screen.queryByRole("group", { name: "Locked card and selection" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Dire Wolf details" })).toBeTruthy();
+  });
+
+  it("keeps the four DM combat actions in one labelled icon group", () => {
+    render(<EncounterSidebar {...dmSidebarProps([tokenWithInitiative(17)])} />);
+    const controls = screen.getByRole("group", { name: "Combat controls" });
+    expect(within(controls).getAllByRole("button")).toHaveLength(4);
+    expect(within(controls).getByRole("button", { name: "Restart combat" }).getAttribute("data-tooltip")).toContain("round 1");
+    expect(within(controls).getByRole("button", { name: "Advance turn" }).getAttribute("data-tooltip")).toContain("next turn");
+    expect(within(controls).getByRole("button", { name: "Pause combat" }).getAttribute("data-tooltip")).toContain("preserving");
+    expect(within(controls).getByRole("button", { name: "Reset combat" }).getAttribute("data-tooltip")).toContain("return to setup");
   });
 
   it("does not show transient destination or distance details in token cards", () => {
@@ -245,7 +298,7 @@ describe("EncounterSidebar initiative disclosure", () => {
       onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
     };
     render(<EncounterSidebar {...props} />);
-    expect((screen.getByRole("button", { name: "Pause" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "Reset" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Pause combat" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Reset combat" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

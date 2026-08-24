@@ -815,7 +815,7 @@ export default function BattleMapPrototype() {
           onDeleteToken={(token) => void deleteToken(token)} canMoveToken={canMoveToken}
           onHideToken={(token) => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}
           onEndTurn={endTurnOptimistically}
-          onStartOrRestart={() => { if (inCombat) setRestartConfirmOpen(true); else startCombatOptimistically(); }}
+          onStartOrRestart={() => { if (state.encounter.status !== "setup") setRestartConfirmOpen(true); else startCombatOptimistically(); }}
           onAdvanceTurn={advanceTurnOptimistically}
           onPauseOrResume={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
           onRequestReset={() => setResetConfirmOpen(true)} onCorrectTurn={correctTurnOptimistically}

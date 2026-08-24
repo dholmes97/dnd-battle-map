@@ -259,6 +259,7 @@ describe("useMapAssets", () => {
   const originalMatchMedia = window.matchMedia;
   const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
   const originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
+  const originalResizeObserver = globalThis.ResizeObserver;
   let images: Array<{ src: string }>;
   let failedSources: Set<string>;
 
@@ -291,9 +292,11 @@ describe("useMapAssets", () => {
     window.matchMedia = originalMatchMedia;
     globalThis.requestAnimationFrame = originalRequestAnimationFrame;
     globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
+    if (originalResizeObserver) globalThis.ResizeObserver = originalResizeObserver;
+    else Reflect.deleteProperty(globalThis, "ResizeObserver");
   });
 
-  function renderAssets(initialState: EncounterState) {
+  function renderAssets(initialState: EncounterState, canvas: HTMLCanvasElement | null = null) {
     const inputs = (state: EncounterState): Parameters<typeof useMapAssets>[0] => ({
       active: true,
       state,
@@ -312,7 +315,7 @@ describe("useMapAssets", () => {
       selectedSharedFogVertex: null,
       keyboardCursor: null,
       pingStartedAtRef: { current: new Map() },
-      canvasRef: { current: null },
+      canvasRef: { current: canvas },
     });
     return renderHook(({ state }) => useMapAssets(inputs(state)), { initialProps: { state: initialState } });
   }
@@ -361,6 +364,39 @@ describe("useMapAssets", () => {
     await waitFor(() => expect(images).toHaveLength(1));
     await act(async () => Promise.resolve());
     expect(view.result.current.tokenArt.size).toBe(0);
+  });
+
+  it("coalesces resize paints into an animation frame and cleans up the observer", () => {
+    const context = contextMock();
+    const parent = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    Object.defineProperty(canvas, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 800, height: 500 }) });
+    Object.defineProperty(canvas, "getContext", { value: () => context });
+    Object.defineProperty(canvas, "parentElement", { value: parent });
+
+    let resizeCallback: ResizeObserverCallback | null = null;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    globalThis.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) { resizeCallback = callback; }
+      observe = observe;
+      unobserve = vi.fn();
+      disconnect = disconnect;
+    };
+
+    const view = renderAssets(createState(), canvas);
+    expect(observe).toHaveBeenCalledWith(parent);
+    const paintsBeforeResize = vi.mocked(context.clearRect).mock.calls.length;
+
+    act(() => resizeCallback?.([], {} as ResizeObserver));
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(0);
+    expect(requestAnimationFrame).toHaveBeenCalledOnce();
+    act(() => vi.mocked(requestAnimationFrame).mock.calls[0][0](1));
+    expect(context.clearRect).toHaveBeenCalledTimes(paintsBeforeResize + 1);
+
+    view.unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(cancelAnimationFrame).toHaveBeenLastCalledWith(1);
   });
 
   it("does not schedule animation frames for a static generic spell", () => {

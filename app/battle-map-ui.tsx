@@ -31,6 +31,13 @@ const ICON_PATHS = {
   check: "M4.5 10.2 8.2 14l7.3-8",
   damage: "M10 2.8 11.5 7l4.2-1.5-2.2 3.8 3.7 2.5-4.4.5.5 4.4-2.8-3.5-2.8 3.5.5-4.4-4.4-.5 3.7-2.5-2.2-3.8L8.5 7z",
   heal: "M7.5 3.5h5v4h4v5h-4v4h-5v-4h-4v-5h4z",
+  play: "M7 4.5 15 10l-8 5.5z",
+  restart: "M5.2 6.3A6.5 6.5 0 1 1 4 12.5M5.2 6.3V2.8M5.2 6.3H8.7",
+  advance: "M4 4.5 11.5 10 4 15.5zM14.5 4.5v11",
+  pause: "M6.5 4.5v11M13.5 4.5v11",
+  reset: "M5 4.5h10v11H5z",
+  lock: "M6 9V6.8a4 4 0 0 1 8 0V9M4.8 9h10.4v8H4.8zM10 12v2",
+  unlock: "M13.8 9V6.8a3.8 3.8 0 0 0-7.2-1.7M4.8 9h10.4v8H4.8zM10 12v2",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
