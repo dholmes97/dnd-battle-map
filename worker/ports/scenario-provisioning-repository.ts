@@ -116,6 +116,7 @@ export interface ScenarioProvisioningRepository {
   findMailReplyByMarker(responseMarker: string): Promise<ScenarioProvisioningMailReplyRecord | null>;
   createMailReply(reply: ScenarioProvisioningMailReplyRecord): Promise<void>;
   findMailMessage(mailboxKey: string, providerMessageId: string): Promise<ScenarioProvisioningMailMessageRecord | null>;
+  findMailMessageByReply(replyId: string): Promise<ScenarioProvisioningMailMessageRecord | null>;
   recordMailMessage(message: ScenarioProvisioningMailMessageRecord): Promise<boolean>;
   finalize(input: {
     job: ScenarioProvisioningJobRecord;

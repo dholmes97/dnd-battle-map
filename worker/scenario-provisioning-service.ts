@@ -206,6 +206,10 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     }
     const existing = await repository.findMailMessage(mailboxKey, providerMessageId);
     if (existing) {
+      const canonical = await repository.findMailMessageByReply(existing.replyId);
+      if (!canonical || canonical.id !== existing.id) {
+        return { automationAuthored: false, recovered: false, reply: null };
+      }
       const reply = await repository.findMailReplyById(existing.replyId);
       return { automationAuthored: true, recovered: false, reply: reply ? publicMailReply(reply) : null };
     }
@@ -216,6 +220,9 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (!marker) throw new ScenarioProvisioningWriteError("mail_response_marker_invalid", "The scenario reply marker is invalid.", 400);
     const reply = await repository.findMailReplyByMarker(marker.marker);
     if (!reply || reply.id !== marker.replyId || reply.jobId !== marker.jobId || reply.mailboxKey !== mailboxKey || reply.threadId !== threadId) {
+      return { automationAuthored: false, recovered: false, reply: null };
+    }
+    if (await repository.findMailMessageByReply(reply.id)) {
       return { automationAuthored: false, recovered: false, reply: null };
     }
     await persistMailMessage(reply, providerMessageId);
@@ -387,6 +394,10 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
       if (existing.replyId !== reply.id) throw new ScenarioProvisioningWriteError("mail_message_conflict", "That Gmail message is already associated with another reply.");
       return { created: false, message: existing };
     }
+    const recordedReplyMessage = await repository.findMailMessageByReply(reply.id);
+    if (recordedReplyMessage) {
+      throw new ScenarioProvisioningWriteError("mail_reply_message_conflict", "That reserved reply already has a different Gmail message ID.");
+    }
     const message: ScenarioProvisioningMailMessageRecord = {
       id: dependencies.createId(),
       replyId: reply.id,
@@ -397,7 +408,12 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     };
     if (await repository.recordMailMessage(message)) return { created: true, message };
     const raced = await repository.findMailMessage(reply.mailboxKey, providerMessageId);
-    if (!raced || raced.replyId !== reply.id) throw new ScenarioProvisioningWriteError("mail_message_conflict", "That Gmail message is already associated with another reply.");
+    if (!raced || raced.replyId !== reply.id) {
+      if (await repository.findMailMessageByReply(reply.id)) {
+        throw new ScenarioProvisioningWriteError("mail_reply_message_conflict", "That reserved reply already has a different Gmail message ID.");
+      }
+      throw new ScenarioProvisioningWriteError("mail_message_conflict", "That Gmail message is already associated with another reply.");
+    }
     return { created: false, message: raced };
   }
 

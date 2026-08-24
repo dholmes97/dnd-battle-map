@@ -69,9 +69,12 @@ function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com",
     findMailReplyByMarker: async (marker) => [...mailReplies.values()].find((reply) => reply.responseMarker === marker) ?? null,
     createMailReply: async (reply) => mailReplies.set(reply.id, reply),
     findMailMessage: async (mailboxKey, messageId) => mailMessages.get(`${mailboxKey}:${messageId}`) ?? null,
+    findMailMessageByReply: async (replyId) => [...mailMessages.values()]
+      .filter((message) => message.replyId === replyId)
+      .sort((left, right) => left.recordedAt - right.recordedAt || left.id.localeCompare(right.id))[0] ?? null,
     recordMailMessage: async (message) => {
       const key = `${message.mailboxKey}:${message.providerMessageId}`;
-      if (mailMessages.has(key)) return false;
+      if (mailMessages.has(key) || [...mailMessages.values()].some((item) => item.replyId === message.replyId)) return false;
       mailMessages.set(key, message);
       return true;
     },
@@ -218,6 +221,66 @@ test("a marker recovers an interrupted message-ID write while a later human self
     map: null,
   }));
   assert.equal(humanRevision.created, true);
+});
+
+test("a quoted marker cannot rebind an already recorded reply to a human follow-up", async () => {
+  const { service, mailMessages } = fixture();
+  const created = await service.createJob(manifest());
+  await service.transition(created.job.id, "needs_clarification", "Need one answer.");
+  const reservation = await service.reserveMailReply(created.job.id, { kind: "clarification" });
+  await service.recordMailReplyMessage(created.job.id, reservation.reply.id, {
+    messageId: "gmail-agent-reply-1",
+    threadId: "thread-1",
+  });
+
+  assert.deepEqual(await service.classifyMailMessage({
+    mailboxKey: "primary",
+    messageId: "gmail-human-follow-up-1",
+    threadId: "thread-1",
+    responseMarker: reservation.reply.responseMarker,
+  }), {
+    automationAuthored: false,
+    recovered: false,
+    reply: null,
+  });
+  assert.equal(mailMessages.size, 1);
+  await assert.rejects(
+    service.recordMailReplyMessage(created.job.id, reservation.reply.id, {
+      messageId: "gmail-human-follow-up-1",
+      threadId: "thread-1",
+    }),
+    (error) => error.code === "mail_reply_message_conflict",
+  );
+});
+
+test("a legacy duplicate marker recovery record does not disqualify the human message", async () => {
+  const { service, mailMessages } = fixture();
+  const created = await service.createJob(manifest());
+  await service.transition(created.job.id, "needs_clarification", "Need one answer.");
+  const reservation = await service.reserveMailReply(created.job.id, { kind: "clarification" });
+  await service.recordMailReplyMessage(created.job.id, reservation.reply.id, {
+    messageId: "gmail-agent-reply-1",
+    threadId: "thread-1",
+  });
+  mailMessages.set("primary:gmail-human-follow-up-legacy", {
+    id: "legacy-duplicate",
+    replyId: reservation.reply.id,
+    mailboxKey: "primary",
+    threadId: "thread-1",
+    providerMessageId: "gmail-human-follow-up-legacy",
+    recordedAt: 9_999,
+  });
+
+  assert.deepEqual(await service.classifyMailMessage({
+    mailboxKey: "primary",
+    messageId: "gmail-human-follow-up-legacy",
+    threadId: "thread-1",
+    responseMarker: reservation.reply.responseMarker,
+  }), {
+    automationAuthored: false,
+    recovered: false,
+    reply: null,
+  });
 });
 
 test("new jobs are rate limited at the authenticated application boundary", async () => {

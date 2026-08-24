@@ -4,7 +4,7 @@
 
 The production foundation and scheduled intake are active. A bounded Gmail poll
 checks the exact `D&D Scenario Requests` label every 30 minutes, processes at
-most one oldest eligible message, and accepts only normalized senders
+most one oldest eligible human message, and accepts only normalized senders
 `uncletev@gmail.com` and `dholmes97@gmail.com`. The default rules source is D&D
 5e 2014 and the canonical application origin is
 `https://dnd.fridaylunchcrew.com`.
@@ -54,6 +54,11 @@ production client. `scripts/scenario-mail-reply.mjs` owns outbound-message
 reservation, recording, and classification. The orchestration skill's envelope
 template and manifest guide own local envelope assembly.
 
+A routine scenario request is an API-based content operation, not a code
+release. Validate its envelope and bounded assets, but do not run repository
+lint, build, or test suites unless source code changed. Full verification is a
+separate pre-publication requirement for project changes.
+
 ## Orchestration invariants
 
 The orchestration skill owns the exact intake, generation, validation,
@@ -71,8 +76,15 @@ invariants it must preserve are:
 - verify production before claiming that a scenario is ready;
 - reserve, mark, send, and durably record every bounded reply before another
   intake scan; and
-- move a message to the processed label only after durable job/reply acceptance,
+- move both the source message and recorded outbound reply to the processed label in the same run after durable job/reply acceptance,
   without changing unread state.
+
+An automation-authored message encountered before the oldest eligible human
+message is provenance housekeeping, not the run's human intake unit. A poll may
+classify and relabel up to five such messages before processing one human
+message, then must stop. Marker recovery is allowed only while a reserved reply
+has no recorded Gmail message ID; quoted markers never rebind an already
+recorded reply or disqualify a later human follow-up.
 
 Failures before a safe durable checkpoint remain labeled for retry. A sent reply
 whose outbound ID was not recorded must be reconciled by its deterministic

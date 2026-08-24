@@ -222,15 +222,25 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
       ).bind(mailboxKey, providerMessageId).first<MailMessageRow>();
       return row ? mapMailMessage(row) : null;
     },
+    async findMailMessageByReply(replyId) {
+      const row = await db.prepare(
+        `SELECT ${MAIL_MESSAGE_COLUMNS} FROM scenario_provisioning_mail_messages
+         WHERE reply_id = ? ORDER BY recorded_at ASC, id ASC LIMIT 1`,
+      ).bind(replyId).first<MailMessageRow>();
+      return row ? mapMailMessage(row) : null;
+    },
     async recordMailMessage(message) {
       const result = await db.prepare(
         `INSERT INTO scenario_provisioning_mail_messages
          (id, reply_id, mailbox_key, thread_id, provider_message_id, recorded_at)
-         VALUES (?, ?, ?, ?, ?, ?)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE NOT EXISTS (
+           SELECT 1 FROM scenario_provisioning_mail_messages WHERE reply_id = ?
+         )
          ON CONFLICT(mailbox_key, provider_message_id) DO NOTHING`,
       ).bind(
         message.id, message.replyId, message.mailboxKey, message.threadId,
-        message.providerMessageId, message.recordedAt,
+        message.providerMessageId, message.recordedAt, message.replyId,
       ).run();
       return (result.meta.changes ?? 0) === 1;
     },
