@@ -593,8 +593,11 @@ export default function BattleMapPrototype() {
     setPresenting((current) => {
       const next = !current;
       // Browser fullscreen is a bonus, not the mechanism: the class alone
-      // already hides every panel, so a rejected request still presents.
-      if (next) void document.documentElement.requestFullscreen?.().catch(() => undefined);
+      // already hides every panel. Mobile Safari's fullscreen transition can
+      // unwind immediately, so phones use the app-owned presentation state.
+      const mobilePresentation = window.innerWidth <= 560
+        || window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+      if (next && !mobilePresentation) void document.documentElement.requestFullscreen?.().catch(() => undefined);
       else if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
       return next;
     });
@@ -797,7 +800,7 @@ export default function BattleMapPrototype() {
             /> : null}
             {error ? <div className="map-message is-error" role="alert">{error}</div> : notice ? <div className="map-message" role="status">{notice}</div> : null}
             {connection !== "live" || state.encounter.status === "paused" ? <div className="map-safety-overlay"><strong>{state.encounter.status === "paused" ? "Encounter paused" : connectionLabel}</strong><span>{state.encounter.status === "paused" ? "The DM paused the encounter. Movement and turn advancement are temporarily disabled." : "Movement is paused until shared state is current."}</span></div> : null}
-            {presenting ? <button className="present-exit" onClick={togglePresenting}>Exit presentation · Esc</button> : null}
+            {presenting ? <button className="present-exit" onClick={togglePresenting}>Exit presentation</button> : null}
           </div>
           </div>
         </section>

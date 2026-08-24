@@ -119,6 +119,23 @@ test("mobile login and campaign home do not overflow the viewport", async ({ pag
   await expectNoSeriousAccessibilityViolations(page);
 });
 
+test("mobile presentation mode keeps an obvious exit action", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await enterFirstEncounterAsDm(page);
+
+  await page.getByRole("button", { name: "Presentation mode" }).click();
+  const exit = page.getByRole("button", { name: "Exit presentation" });
+  await expect(exit).toBeVisible();
+  const box = await exit.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  await expectNoPageOverflow(page);
+
+  await exit.click();
+  await expect(exit).toBeHidden();
+  await expect(page.getByLabel("Map tools and encounter status")).toBeVisible();
+});
+
 test("the DM can enter an encounter and reach an accessible battle-map shell", async ({ page }) => {
   await enterFirstEncounterAsDm(page);
   await expect(page.getByLabel("Map tools and encounter status")).toBeVisible();

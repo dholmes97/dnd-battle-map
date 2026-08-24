@@ -97,6 +97,22 @@ type SafariZoomGesture = {
   focusY: number;
 };
 
+type TouchPoint = {
+  clientX: number;
+  clientY: number;
+};
+
+type TouchZoomGesture = {
+  pointerIds: [number, number];
+  viewport: Viewport;
+  zoom: number;
+  width: number;
+  height: number;
+  distance: number;
+  focusX: number;
+  focusY: number;
+};
+
 type UseBattleMapGesturesInput = {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   state: EncounterState | null;
@@ -208,8 +224,28 @@ export function useBattleMapGestures({
   const annotationStartRef = useRef<{ pointerId: number; point: MapPoint } | null>(null);
   const fogVertexGestureRef = useRef<FogVertexGesture | null>(null);
   const safariZoomGestureRef = useRef<SafariZoomGesture | null>(null);
+  const touchPointersRef = useRef(new Map<number, TouchPoint>());
+  const touchZoomGestureRef = useRef<TouchZoomGesture | null>(null);
+  const suppressTouchUntilReleaseRef = useRef(false);
   const viewportRef = useRef(viewport);
   const stateRef = useRef(state);
+
+  const clearKeyboardInteraction = useCallback(() => {
+    setKeyboardCursor(null);
+    setKeyboardMove(null);
+    setKeyboardDrawStart(null);
+    setKeyboardFogEditing(false);
+    setKeyboardStatus("");
+    setPreview(null);
+    setDragOrigin(null);
+    setDragging(false);
+  }, []);
+
+  useEffect(() => {
+    const onPointerInput = () => clearKeyboardInteraction();
+    document.addEventListener("pointerdown", onPointerInput, true);
+    return () => document.removeEventListener("pointerdown", onPointerInput, true);
+  }, [clearKeyboardInteraction]);
 
   const adjustDragAltitude = useCallback((direction: number) => {
     const gesture = dragGestureRef.current;
@@ -266,6 +302,7 @@ export function useBattleMapGestures({
     const startGesture = (rawEvent: Event) => {
       const event = rawEvent as SafariGestureEvent;
       event.preventDefault();
+      if (touchZoomGestureRef.current) return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const geometry = viewportGeometry(viewportRef.current, state, rect.width, rect.height);
@@ -377,6 +414,40 @@ export function useBattleMapGestures({
 
   const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!state || !participant || event.button !== 0) return;
+    if (event.pointerType === "touch") {
+      clearKeyboardInteraction();
+      touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
+      const pointers = [...touchPointersRef.current.entries()];
+      if (pointers.length >= 2) {
+        const [first, second] = pointers.slice(-2);
+        const rect = event.currentTarget.getBoundingClientRect();
+        const distance = Math.max(1, Math.hypot(second[1].clientX - first[1].clientX, second[1].clientY - first[1].clientY));
+        const geometry = viewportGeometry(viewportRef.current, state, rect.width, rect.height);
+        touchZoomGestureRef.current = {
+          pointerIds: [first[0], second[0]],
+          viewport: viewportRef.current,
+          zoom: geometry.fit ? 1 : geometry.zoom,
+          width: rect.width,
+          height: rect.height,
+          distance,
+          focusX: Math.max(0, Math.min(1, ((first[1].clientX + second[1].clientX) / 2 - rect.left) / rect.width)),
+          focusY: Math.max(0, Math.min(1, ((first[1].clientY + second[1].clientY) / 2 - rect.top) / rect.height)),
+        };
+        suppressTouchUntilReleaseRef.current = true;
+        dragGestureRef.current = null;
+        panGestureRef.current = null;
+        annotationStartRef.current = null;
+        fogVertexGestureRef.current = null;
+        setPreview(null);
+        setDragOrigin(null);
+        setDragging(false);
+        setPanning(false);
+        setSharedFogPreview(state.encounter.mapPackage?.fog.sharedPolygon ?? null);
+        event.preventDefault();
+        return;
+      }
+    }
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
@@ -505,6 +576,41 @@ export function useBattleMapGestures({
   };
 
   const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      const point = touchPointersRef.current.get(event.pointerId);
+      if (point) touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      const pinch = touchZoomGestureRef.current;
+      if (pinch?.pointerIds.includes(event.pointerId) && state) {
+        event.preventDefault();
+        const first = touchPointersRef.current.get(pinch.pointerIds[0]);
+        const second = touchPointersRef.current.get(pinch.pointerIds[1]);
+        if (!first || !second) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const distance = Math.max(1, Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY));
+        const currentFocusX = Math.max(0, Math.min(1, ((first.clientX + second.clientX) / 2 - rect.left) / pinch.width));
+        const currentFocusY = Math.max(0, Math.min(1, ((first.clientY + second.clientY) / 2 - rect.top) / pinch.height));
+        const zoomed = zoomViewportAt(
+          pinch.viewport,
+          state,
+          pinch.width,
+          pinch.height,
+          pinch.zoom * distance / pinch.distance,
+          pinch.focusX,
+          pinch.focusY,
+        );
+        const geometry = viewportGeometry(zoomed, state, pinch.width, pinch.height);
+        setViewport(clampViewport({
+          ...zoomed,
+          centerX: geometry.centerX - (currentFocusX - pinch.focusX) * geometry.visibleWidth,
+          centerY: geometry.centerY - (currentFocusY - pinch.focusY) * geometry.visibleHeight,
+        }, state, pinch.width, pinch.height));
+        return;
+      }
+      if (suppressTouchUntilReleaseRef.current) {
+        event.preventDefault();
+        return;
+      }
+    }
     const fogGesture = fogVertexGestureRef.current;
     if (fogGesture?.pointerId === event.pointerId && state) {
       event.preventDefault();
@@ -533,6 +639,16 @@ export function useBattleMapGestures({
   };
 
   const onCanvasPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      touchPointersRef.current.delete(event.pointerId);
+      if (suppressTouchUntilReleaseRef.current) {
+        event.preventDefault();
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        if (touchPointersRef.current.size < 2) touchZoomGestureRef.current = null;
+        if (touchPointersRef.current.size === 0) suppressTouchUntilReleaseRef.current = false;
+        return;
+      }
+    }
     const fogGesture = fogVertexGestureRef.current;
     if (fogGesture?.pointerId === event.pointerId) {
       event.preventDefault();
@@ -579,6 +695,11 @@ export function useBattleMapGestures({
   };
 
   const onCanvasPointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      touchPointersRef.current.delete(event.pointerId);
+      if (touchPointersRef.current.size < 2) touchZoomGestureRef.current = null;
+      if (touchPointersRef.current.size === 0) suppressTouchUntilReleaseRef.current = false;
+    }
     annotationStartRef.current = null;
     if (fogVertexGestureRef.current?.pointerId === event.pointerId) {
       fogVertexGestureRef.current = null;
@@ -604,7 +725,7 @@ export function useBattleMapGestures({
   const onCanvasWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     if (!state) return;
     event.preventDefault();
-    if (safariZoomGestureRef.current) return;
+    if (safariZoomGestureRef.current || touchZoomGestureRef.current) return;
     if (dragGestureRef.current) {
       adjustDragAltitude(-event.deltaY);
       return;
@@ -725,9 +846,7 @@ export function useBattleMapGestures({
 
   const onCanvasFocus = () => {
     if (!state) return;
-    const point = resolvedKeyboardCursor();
-    paintKeyboardCursor(point);
-    setKeyboardStatus(`Map keyboard active at ${spatialCoordinateAnnouncement(point, state.grid.feetPerCell)}. Arrow keys move the cursor; Enter activates; Space grabs or drops a token; Alt plus arrows pans; plus and minus zoom.`);
+    setKeyboardStatus("Map focused. Use an arrow key or another map shortcut to activate keyboard navigation.");
   };
 
   const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
@@ -735,6 +854,7 @@ export function useBattleMapGestures({
     const intent = spatialKeyboardIntent(event);
     if (!intent) return;
     const currentPoint = resolvedKeyboardCursor();
+    if (!keyboardCursor) setKeyboardCursor(currentPoint);
 
     if (intent.kind === "move") {
       event.preventDefault();

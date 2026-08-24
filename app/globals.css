@@ -386,7 +386,7 @@ input:focus {
   color: #c8bfb1;
   font-size: 0.68rem;
   font-weight: 650;
-  opacity: 0.25;
+  opacity: 0.72;
   transform: translateX(-50%);
   transition: opacity 140ms ease;
 }
@@ -1612,6 +1612,21 @@ input:focus {
   .connection-pill { flex: 0 0 auto; }
   .command-bar { width: 100%; min-width: 0; box-sizing: border-box; overflow-x: clip; }
   .command-bar [data-tooltip]::after { display: none; content: none; }
+  .present-exit {
+    position: fixed;
+    top: max(0.65rem, env(safe-area-inset-top));
+    right: max(0.65rem, env(safe-area-inset-right));
+    left: auto;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.9rem;
+    border-color: rgba(245, 198, 92, 0.72);
+    background: rgba(20, 19, 17, 0.96);
+    color: #f1d693;
+    font-size: 0.75rem;
+    opacity: 1;
+    transform: none;
+    box-shadow: 0 0.45rem 1.4rem rgba(0, 0, 0, 0.52);
+  }
   .ui-settings-panel {
     position: fixed;
     z-index: 40;

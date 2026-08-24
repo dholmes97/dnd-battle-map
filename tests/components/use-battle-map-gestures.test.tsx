@@ -156,6 +156,8 @@ describe("useBattleMapGestures", () => {
     const onAddAnnotation = vi.fn();
     const { result } = renderGestures({ annotationMode: "drawing", onAddAnnotation });
     act(() => result.current.onCanvasFocus());
+    expect(result.current.keyboardCursor).toBeNull();
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowRight")));
     const start = result.current.keyboardCursor;
     act(() => result.current.onCanvasKeyDown(keyboardEvent("Enter")));
     act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowRight")));
@@ -222,6 +224,67 @@ describe("useBattleMapGestures", () => {
     act(() => canvas.dispatchEvent(gestureEvent("gestureend", 2)));
     act(() => result.current.onCanvasWheel(wheelEvent));
     expect(result.current.viewport.zoom).toBeGreaterThan(2);
+  });
+
+  it("zooms with two touch pointers without publishing the first touch as a pan or token move", () => {
+    const canvas = {
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1200, height: 800 } as DOMRect),
+      setPointerCapture: vi.fn(),
+      hasPointerCapture: () => true,
+      releasePointerCapture: vi.fn(),
+    } as unknown as HTMLCanvasElement;
+    const { result } = renderGestures();
+    const touchEvent = (pointerId: number, clientX: number, clientY: number) => ({
+      button: 0,
+      pointerId,
+      pointerType: "touch",
+      clientX,
+      clientY,
+      currentTarget: canvas,
+      preventDefault: vi.fn(),
+    } as unknown as React.PointerEvent<HTMLCanvasElement>);
+    const first = touchEvent(11, 400, 400);
+    const second = touchEvent(12, 800, 400);
+
+    act(() => result.current.onCanvasPointerDown(first));
+    expect(result.current.panning).toBe(true);
+    act(() => result.current.onCanvasPointerDown(second));
+    expect(result.current.panning).toBe(false);
+
+    act(() => result.current.onCanvasPointerMove(touchEvent(12, 1000, 400)));
+    expect(result.current.viewport).toMatchObject({ zoom: 1.5, fit: false });
+
+    act(() => result.current.onCanvasPointerUp(touchEvent(12, 1000, 400)));
+    act(() => result.current.onCanvasPointerUp(first));
+    expect(result.current.preview).toBeNull();
+  });
+
+  it("keeps touch focus from painting a keyboard cursor and clears a keyboard cursor on touch", () => {
+    const { result } = renderGestures();
+    act(() => result.current.onCanvasFocus());
+    expect(result.current.keyboardCursor).toBeNull();
+
+    act(() => result.current.onCanvasKeyDown(keyboardEvent("ArrowRight")));
+    expect(result.current.keyboardCursor).not.toBeNull();
+
+    const rect = { left: 0, top: 0, width: 1200, height: 800 } as DOMRect;
+    const canvas = {
+      getBoundingClientRect: () => rect,
+      setPointerCapture: vi.fn(),
+      hasPointerCapture: () => false,
+      releasePointerCapture: vi.fn(),
+    } as unknown as HTMLCanvasElement;
+    const touch = {
+      button: 0,
+      pointerId: 13,
+      pointerType: "touch",
+      clientX: 900,
+      clientY: 600,
+      currentTarget: canvas,
+      preventDefault: vi.fn(),
+    } as unknown as React.PointerEvent<HTMLCanvasElement>;
+    act(() => result.current.onCanvasPointerDown(touch));
+    expect(result.current.keyboardCursor).toBeNull();
   });
 
   it("owns fit/reset viewport and shared-fog editing state", () => {
