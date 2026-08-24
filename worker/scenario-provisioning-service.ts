@@ -96,7 +96,14 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (!emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders)) {
       throw new ScenarioProvisioningWriteError("sender_unauthorized", "The manifest sender is not authorized for scenario provisioning.", 403);
     }
-    if (await repository.findMailMessage(parsed.manifest.source.mailboxKey, parsed.manifest.source.messageId)) {
+    const recordedSourceMessage = await repository.findMailMessage(
+      parsed.manifest.source.mailboxKey,
+      parsed.manifest.source.messageId,
+    );
+    const canonicalReplyMessage = recordedSourceMessage
+      ? await repository.findMailMessageByReply(recordedSourceMessage.replyId)
+      : null;
+    if (recordedSourceMessage && canonicalReplyMessage?.id === recordedSourceMessage.id) {
       throw new ScenarioProvisioningWriteError(
         "mail_message_automation_authored",
         "Automation-authored mail cannot create or revise a scenario.",

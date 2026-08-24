@@ -281,6 +281,22 @@ test("a legacy duplicate marker recovery record does not disqualify the human me
     recovered: false,
     reply: null,
   });
+  const humanRevision = await service.createJob(manifest({
+    idempotencyKey: "gmail-primary-human-follow-up-legacy-revision-2",
+    revision: 2,
+    operation: "revise",
+    targetScenarioCode: "SUNKEN-CHAPEL",
+    source: {
+      provider: "gmail",
+      mailboxKey: "primary",
+      messageId: "gmail-human-follow-up-legacy",
+      threadId: "thread-1",
+      sender: "dan@example.com",
+    },
+    party: { include: false, sourceScenarioCode: "EMBER-KEEP", placements: [] },
+    map: null,
+  }));
+  assert.equal(humanRevision.created, true);
 });
 
 test("new jobs are rate limited at the authenticated application boundary", async () => {
