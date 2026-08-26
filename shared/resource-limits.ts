@@ -33,6 +33,11 @@ export const CATALOG_THUMBNAIL_MAX_PIXELS = 262_144;
 
 export const RATE_LIMIT_POLICIES = Object.freeze({
   publicRead: { limit: 120, windowMs: 60_000 },
+  authRead: { limit: 120, windowMs: 60_000 },
+  authStart: { limit: 20, windowMs: 60_000 },
+  authCallback: { limit: 30, windowMs: 60_000 },
+  authWrite: { limit: 30, windowMs: 60_000 },
+  campaignWrite: { limit: 20, windowMs: 60_000 },
   anonymousProjection: { limit: 20, windowMs: 60_000 },
   authenticatedProjection: { limit: 180, windowMs: 60_000 },
   join: { limit: 30, windowMs: 60_000 },

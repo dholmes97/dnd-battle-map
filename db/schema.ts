@@ -103,9 +103,61 @@ export const mapImages = sqliteTable(
 export const identities = sqliteTable("identities", {
   id: text("id").primaryKey(),
   displayName: text("display_name").notNull(),
+  loginEmail: text("login_email").notNull().default(""),
+  canCreateCampaigns: integer("can_create_campaigns", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-}, (table) => [uniqueIndex("idx_identities_display_name").on(table.displayName)]);
+}, (table) => [
+  uniqueIndex("idx_identities_display_name").on(table.displayName),
+  uniqueIndex("idx_identities_login_email").on(table.loginEmail),
+]);
+
+export const authAccounts = sqliteTable(
+  "auth_accounts",
+  {
+    id: text("id").primaryKey(),
+    identityId: text("identity_id").notNull().references(() => identities.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerSubject: text("provider_subject").notNull(),
+    verifiedEmail: text("verified_email").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_auth_accounts_provider_subject").on(table.provider, table.providerSubject),
+    uniqueIndex("idx_auth_accounts_identity_provider").on(table.identityId, table.provider),
+    index("idx_auth_accounts_verified_email").on(table.verifiedEmail),
+  ],
+);
+
+export const authSessions = sqliteTable(
+  "auth_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    identityId: text("identity_id").notNull().references(() => identities.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+    lastSeenAt: integer("last_seen_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    revokedAt: integer("revoked_at"),
+  },
+  (table) => [
+    index("idx_auth_sessions_identity_expiry").on(table.identityId, table.expiresAt),
+    index("idx_auth_sessions_expiry").on(table.expiresAt),
+  ],
+);
+
+export const authOauthStates = sqliteTable(
+  "auth_oauth_states",
+  {
+    stateHash: text("state_hash").primaryKey(),
+    pkceVerifier: text("pkce_verifier").notNull(),
+    nonce: text("nonce").notNull(),
+    returnTo: text("return_to").notNull(),
+    createdAt: integer("created_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("idx_auth_oauth_states_expiry").on(table.expiresAt)],
+);
 
 export const campaigns = sqliteTable("campaigns", {
   id: text("id").primaryKey(),
@@ -140,6 +192,10 @@ export const campaignCharacters = sqliteTable(
     name: text("name").notNull(),
     className: text("class_name").notNull().default(""),
     artAsset: text("art_asset"),
+    size: text("size").notNull().default("medium"),
+    speed: integer("speed").notNull().default(30),
+    armorClass: integer("armor_class").notNull().default(10),
+    maxHp: integer("max_hp").notNull().default(10),
     sortOrder: integer("sort_order").notNull().default(0),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at").notNull(),

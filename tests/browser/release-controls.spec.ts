@@ -44,14 +44,14 @@ async function expectReadableText(page: Page, rootSelector: string) {
 
 async function openHydratedApplication(page: Page) {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Choose your seat" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Dan.*Continue as this person/ })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Welcome to the table" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Dan.*Test as this person/ })).toBeEnabled();
 }
 
 async function openCampaignAs(page: Page, person: "Dan" | "Kevin") {
   const campaigns = page.waitForResponse((response) =>
-    response.url().includes("/api/campaigns?") && response.request().method() === "GET");
-  await page.getByRole("button", { name: new RegExp(`${person}.*Continue as this person`) }).click();
+    response.url().endsWith("/api/campaigns") && response.request().method() === "GET");
+  await page.getByRole("button", { name: new RegExp(`${person}.*Test as this person`) }).click();
   await campaigns;
   await expect(page.getByRole("heading", { name: "Campaigns" })).toBeVisible();
   await page.getByRole("button", { name: /Open campaign/ }).click();
@@ -100,12 +100,12 @@ async function tapExposedMap(page: Page, drawerSelector: string) {
   await canvasLocator.click({ position: { x: x - canvas!.x, y: y - canvas!.y } });
 }
 
-test("fixed-identity login is keyboard-accessible and production-branded", async ({ page }) => {
+test("development identity login is keyboard-accessible and production-branded", async ({ page }) => {
   await openHydratedApplication(page);
 
   await expect(page).toHaveTitle("D&D Battle Map");
-  await expect(page.getByRole("heading", { name: "Choose your seat" })).toBeVisible();
-  const dan = page.getByRole("button", { name: /Dan.*Continue as this person/ });
+  await expect(page.getByRole("heading", { name: "Welcome to the table" })).toBeVisible();
+  const dan = page.getByRole("button", { name: /Dan.*Test as this person/ });
   await expect(dan).toBeFocused();
   await expectNoSeriousAccessibilityViolations(page);
 
@@ -115,6 +115,20 @@ test("fixed-identity login is keyboard-accessible and production-branded", async
   await expect(page.getByText("Dar'eleth · Paladin")).toBeVisible();
   await page.getByRole("button", { name: /Open campaign/ }).click();
   await expect(page.getByRole("heading", { name: "Encounters" })).toBeVisible();
+  await expectNoSeriousAccessibilityViolations(page);
+});
+
+test("public privacy and terms pages explain the Google sign-in relationship", async ({ page }) => {
+  await page.goto("/privacy");
+  await expect(page).toHaveTitle(/Privacy Policy/);
+  await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
+  await expect(page.getByText(/do not receive your Google password/i)).toBeVisible();
+  await expectNoSeriousAccessibilityViolations(page);
+
+  await page.getByRole("link", { name: "Terms", exact: true }).click();
+  await expect(page).toHaveTitle(/Terms of Service/);
+  await expect(page.getByRole("heading", { name: "Terms of Service" })).toBeVisible();
+  await expect(page.getByText(/independent fan-made tool/i)).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
 });
 
@@ -151,6 +165,24 @@ test("the DM can enter an encounter and reach an accessible battle-map shell", a
   await page.locator("summary[aria-label='UI Settings']").click();
   await expect(page.getByLabel("Colored token centers")).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
+});
+
+test("campaign home refreshes encounter status after returning from the battle map", async ({ page }) => {
+  await enterFirstEncounterAsDm(page);
+
+  const refreshedCampaigns = page.waitForResponse((response) =>
+    response.url().endsWith("/api/campaigns") && response.request().method() === "GET");
+  await page.getByRole("button", { name: "Back to campaign home" }).click();
+  const response = await refreshedCampaigns;
+  const campaignAccess = await response.json() as { items: Array<{ encounters: Array<{ name: string; status: "setup" | "active" | "paused" }> }> };
+  const refreshedEncounter = campaignAccess.items[0]?.encounters[0];
+  expect(refreshedEncounter).toBeTruthy();
+
+  const statusLabel = refreshedEncounter!.status === "active"
+    ? "In combat"
+    : refreshedEncounter!.status === "paused" ? "Paused" : "Ready";
+  const encounterCard = page.locator(".scenario-card").filter({ has: page.getByRole("heading", { name: refreshedEncounter!.name, exact: true }) });
+  await expect(encounterCard.getByText(statusLabel, { exact: true })).toBeVisible();
 });
 
 test("the main map and encounter setup support a complete no-pointer spatial flow", async ({ page }) => {

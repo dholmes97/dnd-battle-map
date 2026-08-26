@@ -32,7 +32,7 @@ npm run dev
 
 Wrangler records applied local migrations and only applies new files on later
 runs. The Worker performs a read-only check for the marker written by migration
-0017 and fails closed with a clear error when local storage was not bootstrapped.
+0031 and fails closed with a clear error when local storage was not bootstrapped.
 
 ## Tests
 

@@ -79,14 +79,19 @@ function playPingSound(context: AudioContext) {
 
 export default function BattleMapPrototype() {
   const [campaigns, setCampaigns] = useState<CampaignAccessSummary[]>([]);
+  const [invitedIdentities, setInvitedIdentities] = useState<JoinIdentity[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [signedInIdentity, setSignedInIdentity] = useState<JoinIdentity | null>(null);
   const [appView, setAppView] = useState<"login" | "campaigns" | "dashboard" | "map">("login");
+  const [authLoading, setAuthLoading] = useState(true);
+  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const [devLoginAvailable, setDevLoginAvailable] = useState(false);
   const [openingCode, setOpeningCode] = useState<string | null>(null);
   const [openingDestination, setOpeningDestination] = useState<"map" | "setup" | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
   const [renamingScenarioCode, setRenamingScenarioCode] = useState<string | null>(null);
+  const [campaignMutationPending, setCampaignMutationPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const encounterSync = useEncounterSync({ setError, setNotice });
@@ -133,7 +138,6 @@ export default function BattleMapPrototype() {
   const [placementSummonerId, setPlacementSummonerId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [presenting, setPresenting] = useState(false);
-  const [rosterFilter, setRosterFilter] = useState("");
   const personalUiSettings = usePersonalUiSettings(participant);
   const { gridOpacity, setGridOpacity, showColoredTokenCenters, setShowColoredTokenCenters, showHealthRings, setShowHealthRings } = personalUiSettings;
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -240,16 +244,64 @@ export default function BattleMapPrototype() {
     if (pingAudioContextRef.current.state === "suspended") void pingAudioContextRef.current.resume().catch(() => undefined);
   };
 
-  const loadCampaigns = async (identity: JoinIdentity) => {
-    setCampaignsLoading(true); setError("");
+  const loadCampaigns = async (identity: JoinIdentity, { preserveCurrent = false } = {}) => {
+    if (!preserveCurrent) setCampaignsLoading(true);
+    setError("");
     try {
-      const result = await api<CampaignAccessResponse>(`/api/campaigns?identityId=${encodeURIComponent(identity.id)}`);
+      const result = await api<CampaignAccessResponse>("/api/campaigns");
+      setSignedInIdentity(result.identity);
+      setInvitedIdentities(result.invitedIdentities);
       setCampaigns(result.items);
     } catch (caught) {
-      setCampaigns([]);
-      setError(caught instanceof Error ? caught.message : "Your campaigns could not be loaded. Please try again.");
-    } finally { setCampaignsLoading(false); }
+      if (!preserveCurrent) setCampaigns([]);
+      setError(caught instanceof Error ? caught.message : preserveCurrent
+        ? "Your campaign status could not be refreshed. Please try again."
+        : "Your campaigns could not be loaded. Please try again.");
+    } finally {
+      if (!preserveCurrent) setCampaignsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      try {
+        const response = await fetch("/api/auth/session", { headers: { accept: "application/json" } });
+        const result = await response.json() as {
+          authenticated?: boolean;
+          identity?: JoinIdentity;
+          googleConfigured?: boolean;
+          devLoginAvailable?: boolean;
+        };
+        if (!active) return;
+        setGoogleConfigured(Boolean(result.googleConfigured ?? response.ok));
+        setDevLoginAvailable(Boolean(result.devLoginAvailable));
+        if (response.ok && result.authenticated && result.identity) {
+          setSignedInIdentity(result.identity);
+          setAppView("campaigns");
+          await loadCampaigns(result.identity);
+        } else {
+          const authError = new URLSearchParams(window.location.search).get("authError");
+          const messages: Record<string, string> = {
+            "not-invited": "That Google account has not been invited to this table.",
+            "account-conflict": "That Google account is already linked to a different person.",
+            cancelled: "Google sign-in was cancelled or could not be verified.",
+            expired: "That sign-in attempt expired. Please try again.",
+            provider: "Google could not complete sign-in. Please try again.",
+            configuration: "Google sign-in has not been configured yet.",
+          };
+          if (authError && messages[authError]) setError(messages[authError]);
+          if (authError) window.history.replaceState({}, "", window.location.pathname);
+        }
+      } catch {
+        if (active) setError("Sign-in status could not be checked. Please refresh and try again.");
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    };
+    void restoreSession();
+    return () => { active = false; };
+  }, []);
 
   const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
 
@@ -268,7 +320,7 @@ export default function BattleMapPrototype() {
     try {
       const result = await api<{ participantId: string; participantName: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(code)}/join`,
-        { method: "POST", signal: controller.signal, body: JSON.stringify({ identityId: identity.id, campaignId: campaign.id }) },
+        { method: "POST", signal: controller.signal, body: JSON.stringify({ campaignId: campaign.id }) },
       );
       const joined = { id: result.participantId, name: result.participantName, role: result.role, sessionSecret: result.sessionSecret };
       personalUiSettings.loadForIdentity(result.participantName, result.role);
@@ -292,9 +344,19 @@ export default function BattleMapPrototype() {
     if (!signedInIdentity || !selectedCampaign || selectedCampaign.role !== "dm" || creatingScenarioFromHome) return false;
     setCreatingScenarioFromHome(true); setError("");
     try {
+      if (mode === "party") {
+        const result = await api<{ scenario: EncounterSummary }>(
+          `/api/campaigns/${encodeURIComponent(selectedCampaign.id)}/encounters`,
+          { method: "POST", body: JSON.stringify({ name }) },
+        );
+        updateCampaignEncounter(result.scenario);
+        setNotice(`${result.scenario.name} created.`);
+        return true;
+      }
+      if (!sourceCode) throw new Error("Choose an encounter to duplicate.");
       const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(sourceCode)}/join`,
-        { method: "POST", body: JSON.stringify({ identityId: signedInIdentity.id, campaignId: selectedCampaign.id }) },
+        { method: "POST", body: JSON.stringify({ campaignId: selectedCampaign.id }) },
       );
       const result = await api<{ scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(sourceCode)}/command`, {
         method: "POST",
@@ -315,7 +377,7 @@ export default function BattleMapPrototype() {
     try {
       const joined = await api<{ participantId: string; sessionSecret: string; role: Role; state: EncounterState }>(
         `/api/encounters/${encodeURIComponent(code)}/join`,
-        { method: "POST", body: JSON.stringify({ identityId: signedInIdentity.id, campaignId: selectedCampaign.id }) },
+        { method: "POST", body: JSON.stringify({ campaignId: selectedCampaign.id }) },
       );
       const result = await api<{ renamed: boolean; scenario: EncounterSummary; state: EncounterState }>(`/api/encounters/${encodeURIComponent(code)}/command`, {
         method: "POST",
@@ -328,6 +390,55 @@ export default function BattleMapPrototype() {
       setError(caught instanceof Error ? caught.message : "The encounter name could not be saved.");
       return false;
     } finally { setRenamingScenarioCode(null); }
+  };
+
+  const acceptCampaignAccess = (result: CampaignAccessResponse) => {
+    setSignedInIdentity(result.identity);
+    setInvitedIdentities(result.invitedIdentities);
+    setCampaigns(result.items);
+  };
+
+  const createCampaign = async (input: { name: string; players: Array<{ identityId: string; character: { name: string; className: string; maxHp: number; armorClass: number; speed: number } | null }> }) => {
+    if (campaignMutationPending) return false;
+    setCampaignMutationPending(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>("/api/campaigns", { method: "POST", body: JSON.stringify(input) });
+      acceptCampaignAccess(result);
+      setNotice(`${input.name} created.`);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The campaign could not be created.");
+      return false;
+    } finally { setCampaignMutationPending(false); }
+  };
+
+  const renameCampaign = async (name: string) => {
+    if (!selectedCampaign || campaignMutationPending) return false;
+    setCampaignMutationPending(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>(`/api/campaigns/${encodeURIComponent(selectedCampaign.id)}`, { method: "PATCH", body: JSON.stringify({ name }) });
+      acceptCampaignAccess(result);
+      setNotice(`${name} saved.`);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The campaign name could not be saved.");
+      return false;
+    } finally { setCampaignMutationPending(false); }
+  };
+
+  const addCampaignPlayer = async (input: { identityId: string; character: { name: string; className: string; maxHp: number; armorClass: number; speed: number } | null }) => {
+    if (!selectedCampaign || campaignMutationPending) return false;
+    setCampaignMutationPending(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>(`/api/campaigns/${encodeURIComponent(selectedCampaign.id)}/members`, { method: "POST", body: JSON.stringify(input) });
+      acceptCampaignAccess(result);
+      const added = invitedIdentities.find((candidate) => candidate.id === input.identityId)?.displayName ?? "Player";
+      setNotice(`${added} added to ${selectedCampaign.name}.`);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The player could not be added.");
+      return false;
+    } finally { setCampaignMutationPending(false); }
   };
 
   useEffect(() => {
@@ -643,40 +754,59 @@ export default function BattleMapPrototype() {
   }, [participant?.role, presenting, togglePresenting, state]);
 
   if (appView === "login" || !signedInIdentity) {
-    return <JoinScreen error={error} identities={JOIN_IDENTITIES} onLogin={(identity) => {
-      setSignedInIdentity(identity); setSelectedCampaignId(null); setCampaigns([]); setError(""); setAppView("campaigns");
-      void loadCampaigns(identity);
-    }} />;
+    return <JoinScreen error={error} identities={JOIN_IDENTITIES} loading={authLoading}
+      googleConfigured={googleConfigured} devLoginAvailable={devLoginAvailable}
+      onDevLogin={(identity) => { void (async () => {
+        setError(""); setAuthLoading(true);
+        try {
+          const result = await api<{ authenticated: true; identity: JoinIdentity }>("/api/auth/dev-login", { method: "POST", body: JSON.stringify({ identityId: identity.id }) });
+          setSignedInIdentity(result.identity); setSelectedCampaignId(null); setCampaigns([]); setAppView("campaigns");
+          await loadCampaigns(result.identity);
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : "Development sign-in failed.");
+        } finally { setAuthLoading(false); }
+      })(); }} />;
   }
 
-  const signOut = () => {
+  const signOut = async () => {
+    try { await api<{ signedOut: boolean }>("/api/auth/logout", { method: "POST", body: "{}" }); } catch { /* Local state still signs out. */ }
     clearSession(); setWorkshopOpen(false); setSignedInIdentity(null); setSelectedCampaignId(null);
-    setCampaigns([]); setError(""); setNotice(""); setAppView("login");
+    setCampaigns([]); setInvitedIdentities([]); setError(""); setNotice(""); setAppView("login");
+  };
+
+  const returnToCampaignHome = () => {
+    clearSession(); setWorkshopOpen(false); setError(""); setAppView("dashboard");
+    void loadCampaigns(signedInIdentity, { preserveCurrent: true });
   };
 
   if (appView === "campaigns") {
-    return <CampaignList identity={signedInIdentity} campaigns={campaigns} loading={campaignsLoading} error={error}
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
-      onSignOut={signOut} />;
+      onCreateCampaign={createCampaign}
+      onSignOut={() => void signOut()} />;
   }
 
   if (appView === "dashboard" && selectedCampaign) {
     return <CampaignHome
-      identity={signedInIdentity} campaign={selectedCampaign} loading={campaignsLoading}
+      identity={signedInIdentity} campaign={selectedCampaign} invitedIdentities={invitedIdentities} loading={campaignsLoading}
       openingCode={openingCode} openingDestination={openingDestination} renamingCode={renamingScenarioCode} error={error} notice={notice} creating={creatingScenarioFromHome}
+      campaignMutationPending={campaignMutationPending}
       onOpenEncounter={(code) => void join(signedInIdentity, selectedCampaign, code, "map")}
       onSetupEncounter={(code) => void join(signedInIdentity, selectedCampaign, code, "setup")}
       onCreateEncounter={createScenarioFromHome}
       onRenameEncounter={renameScenarioFromHome}
+      onRenameCampaign={renameCampaign}
+      onAddPlayer={addCampaignPlayer}
       onBackToCampaigns={() => { setError(""); setNotice(""); setAppView("campaigns"); }}
-      onSignOut={signOut}
+      onSignOut={() => void signOut()}
     />;
   }
 
   if (appView === "dashboard") {
-    return <CampaignList identity={signedInIdentity} campaigns={campaigns} loading={campaignsLoading} error={error}
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
-      onSignOut={signOut} />;
+      onCreateCampaign={createCampaign}
+      onSignOut={() => void signOut()} />;
   }
 
   if (!participant || !state) return null;
@@ -712,13 +842,13 @@ export default function BattleMapPrototype() {
         onDelete={(handout) => void deleteHandout(handout)}
       />}
       onCommand={async (name, extra) => sendCommand<{ state: EncounterState }>(name, extra)}
-      onClose={() => { clearSession(); setWorkshopOpen(false); setError(""); setAppView("dashboard"); }}
+      onClose={returnToCampaignHome}
     />
     {lightboxHandout?.available ? <HandoutLightbox participant={participant} encounterCode={state.encounter.code} handout={lightboxHandout} fitMode={handoutFitMode} onFitModeChange={setHandoutFitMode} onClose={() => setLightboxHandout(null)} /> : null}
   </>;
 
   const inCombat = state.encounter.status === "active";
-  const rosterRows = buildRosterRows(state.tokens, inCombat, rosterFilter, expandedGroups) as RosterRow[];
+  const rosterRows = buildRosterRows(state.tokens, inCombat, expandedGroups) as RosterRow[];
   const activeTurnMembers = state.tokens.filter((token) => token.kind !== SPELL_EFFECT_KIND &&
     token.initiativeOrder !== null && token.initiativeOrder === state.encounter.activeInitiativeOrder);
   const activeOwnTurnToken = activeTurnMembers.find((token) =>
@@ -755,7 +885,7 @@ export default function BattleMapPrototype() {
         onToggleChat={() => { if (!chatOpen) { markChatChannelRead(activeChatChannel); setChatOpen(true); setChatMinimized(false); chatShouldStickRef.current = true; } else if (chatMinimized) { markChatChannelRead(activeChatChannel); setChatMinimized(false); chatShouldStickRef.current = true; } else { markChatChannelRead(activeChatChannel); setChatOpen(false); } }}
         onToggleCreatures={() => { setPaletteOpen((open) => !open); setSpellPaletteOpen(false); setArmedSpellId(null); clearSpellPlacementPreview(); setAnnotationMode("move"); }}
         onToggleSpells={() => { setSpellPaletteOpen((open) => !open); setPaletteOpen(false); setArmedCreatureId(null); clearCreaturePlacementPreview(); setAnnotationMode("move"); }}
-        onOpenDashboard={() => { clearSession(); setError(""); setAppView("dashboard"); }}
+        onOpenDashboard={returnToCampaignHome}
         onHistory={(direction) => void history.run(direction)} onFit={fitViewport} onZoom={changeZoom}
         onResetZoom={resetViewport}
         onGridOpacityChange={setGridOpacity} onColoredTokenCentersChange={setShowColoredTokenCenters}
@@ -833,11 +963,10 @@ export default function BattleMapPrototype() {
 
         <EncounterSidebar
           participant={participant} state={state} hidden={!sidebarOpen || presenting} inCombat={inCombat}
-          rosterFilter={rosterFilter} rosterRows={rosterRows} selectedToken={selectedToken}
+          rosterRows={rosterRows} selectedToken={selectedToken}
           selectedSpell={selectedSpell} selectedMapNote={selectedMapNote}
           activeOwnTurnToken={activeOwnTurnToken} activeOwnTurnIsGroup={activeOwnTurnIsGroup}
           initiativeTokens={initiativeTokens} encounterAction={encounterAction} controls={tokenControls}
-          onRosterFilterChange={setRosterFilter}
           onToggleGroup={(key) => setExpandedGroups((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; })}
           onSelectToken={(id) => { setSelectedTokenId(id); setSelectedMapNoteId(null); }}
           onCloseMapNote={() => setSelectedMapNoteId(null)} onResizeSpell={tokenControls.resizeSpellEffect}

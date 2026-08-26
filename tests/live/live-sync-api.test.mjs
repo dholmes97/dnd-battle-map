@@ -11,10 +11,10 @@ if (!baseUrl) {
 const code = "EMBER-KEEP";
 const endpoint = (action) => `${baseUrl}/api/encounters/${code}/${action}`;
 const FIXED_IDENTITIES = Object.freeze({
-  dan: { name: "Dan", role: "player", tokenId: "token-bronze-warden" },
-  barry: { name: "Barry", role: "player", tokenId: "token-ash-mystic" },
-  scott: { name: "Scott", role: "player", tokenId: "token-ember-scout" },
-  kevin: { name: "Kevin", role: "dm", tokenId: null },
+  dan: { id: "identity-dan", name: "Dan", role: "player", tokenId: "token-bronze-warden" },
+  barry: { id: "identity-barry", name: "Barry", role: "player", tokenId: "token-ash-mystic" },
+  scott: { id: "identity-scott", name: "Scott", role: "player", tokenId: "token-ember-scout" },
+  kevin: { id: "identity-kevin", name: "Kevin", role: "dm", tokenId: null },
 });
 
 async function request(action, options = {}) {
@@ -43,9 +43,20 @@ function sessionBody(participant) {
 }
 
 async function join(name, role = "player") {
+  const identity = Object.values(FIXED_IDENTITIES).find((candidate) => candidate.name === name);
+  assert.ok(identity, `Missing fixed identity for ${name}`);
+  const loginResponse = await fetch(`${baseUrl}/api/auth/dev-login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ identityId: identity.id }),
+  });
+  assert.equal(loginResponse.status, 200);
+  const cookie = loginResponse.headers.get("set-cookie")?.split(";", 1)[0];
+  assert.ok(cookie);
   const result = await request("join", {
     method: "POST",
-    body: JSON.stringify({ participantName: name, role }),
+    headers: { cookie },
+    body: JSON.stringify({ campaignId: "campaign-force-of-nature", participantName: "Spoofed", role: role === "dm" ? "player" : "dm" }),
   });
   assert.equal(result.response.status, 200);
   assert.match(result.body.participantId, /^[a-f0-9-]{36}$/);
@@ -88,7 +99,11 @@ async function viewerState(participant) {
 }
 
 test("lists durable scenarios for the join chooser", async () => {
-  const response = await fetch(`${baseUrl}/api/encounters`, { headers: { accept: "application/json" } });
+  const loginResponse = await fetch(`${baseUrl}/api/auth/dev-login`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ identityId: "identity-kevin" }),
+  });
+  const cookie = loginResponse.headers.get("set-cookie")?.split(";", 1)[0];
+  const response = await fetch(`${baseUrl}/api/encounters`, { headers: { accept: "application/json", cookie } });
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(Array.isArray(body.items));

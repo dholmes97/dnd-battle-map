@@ -9,6 +9,8 @@ export interface Env {
   PRODUCTION_BACKUP_TOKEN?: string;
   SCENARIO_PROVISIONING_TOKEN?: string;
   SCENARIO_PROVISIONING_SENDERS?: string;
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

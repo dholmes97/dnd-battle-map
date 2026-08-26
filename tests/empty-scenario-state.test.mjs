@@ -26,16 +26,32 @@ test("an existing encounter projects normally when its token collection is empty
     const workerUrl = new URL("../dist/server/index.js", import.meta.url);
     workerUrl.searchParams.set("empty-scenario-test", `${process.pid}-${Date.now()}`);
     const { default: worker } = await import(workerUrl.href);
+    const environment = { DB: db };
+    const executionContext = { waitUntil() {}, passThroughOnException() {} };
+    const login = await worker.fetch(new Request("http://localhost/api/auth/dev-login", {
+      method: "POST",
+      headers: { "content-type": "application/json", "CF-Connecting-IP": "192.0.2.1" },
+      body: JSON.stringify({ identityId: "identity-dan" }),
+    }), environment, executionContext);
+    const cookie = login.headers.get("set-cookie")?.split(";", 1)[0];
+    const joined = await worker.fetch(new Request(`http://localhost/api/encounters/${encounter.code}/join`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie, "CF-Connecting-IP": "192.0.2.1" },
+      body: JSON.stringify({ campaignId: "campaign-force-of-nature" }),
+    }), environment, executionContext);
+    const session = await joined.json();
 
     const response = await worker.fetch(
       new Request(`http://localhost/api/encounters/${encounter.code}/state`, {
         headers: {
           "CF-Connecting-IP": "192.0.2.1",
           "x-operation-id": "empty-scenario-check",
+          "x-participant-id": session.participantId,
+          "x-session-secret": session.sessionSecret,
         },
       }),
-      { DB: db },
-      { waitUntil() {}, passThroughOnException() {} },
+      environment,
+      executionContext,
     );
     assert.equal(response.status, 200);
     assert.match(response.headers.get("x-request-id"), /^[a-f0-9-]{36}$/);

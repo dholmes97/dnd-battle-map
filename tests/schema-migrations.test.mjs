@@ -56,7 +56,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "17");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "19");
   assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "17");
   assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE code = 'EMBER-KEEP';"), "grandfather-tree-roots-v1");
   assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
@@ -68,6 +68,11 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT campaign_id FROM encounters WHERE code = 'EMBER-KEEP';"), "campaign-force-of-nature");
   assert.equal(await query(database, "SELECT campaign_character_id FROM tokens WHERE name = 'Dar''eleth';"), "character-dareleth");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'campaign-memberships-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'google-auth-campaign-management-v1';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('auth_accounts', 'auth_sessions', 'auth_oauth_states');"), "3");
+  assert.equal(await query(database, "SELECT login_email FROM identities WHERE id = 'identity-dan';"), "dholmes97@gmail.com");
+  assert.equal(await query(database, "SELECT SUM(can_create_campaigns) FROM identities;"), "4");
+  assert.equal(await query(database, "SELECT max_hp FROM campaign_characters WHERE id = 'character-dareleth';"), "10");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -280,7 +285,7 @@ test("the Worker only performs a read-only migration readiness check", async () 
   const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
   const block = worker.match(/const REQUIRED_SCHEMA_MIGRATION[\s\S]+?async function handleCreatureCatalog/)?.[0] ?? "";
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
-  assert.match(block, /campaign-memberships-v1/);
+  assert.match(block, /google-auth-campaign-management-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
 });
 

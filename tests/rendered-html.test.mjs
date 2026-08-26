@@ -12,18 +12,16 @@ async function render() {
   return worker.fetch(new Request("http://localhost/", { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-test("server-renders the trusted human-identity login without campaign or character credentials", async () => {
+test("server-renders the Google login shell without exposing identity impersonation", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>D&amp;D Battle Map<\/title>/i);
-  assert.match(html, /Choose your seat/);
-  assert.match(html, />Dan</);
-  assert.match(html, />Barry</);
-  assert.match(html, />Scott</);
-  assert.match(html, />Kevin</);
-  assert.match(html, /Continue as this person/);
+  assert.match(html, /Welcome to the table/);
+  assert.match(html, /invited Google account/);
+  assert.doesNotMatch(html, />Dan<|>Barry<|>Scott<|>Kevin</);
+  assert.doesNotMatch(html, /Continue as this person|Choose your seat/);
   assert.doesNotMatch(html, /Dar&#x27;eleth|Jelton|Malichar|Dungeon Master/);
   assert.doesNotMatch(html, /Choose a scenario|Display name|Encounter code|<select/i);
   assert.doesNotMatch(html, /codex-preview|Building your site/i);

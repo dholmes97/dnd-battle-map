@@ -51,7 +51,6 @@ type EncounterSidebarProps = {
   state: EncounterState;
   hidden: boolean;
   inCombat: boolean;
-  rosterFilter: string;
   rosterRows: RosterRow[];
   selectedToken: SharedToken | null;
   selectedSpell: SpellEffectDefinition | null;
@@ -61,7 +60,6 @@ type EncounterSidebarProps = {
   initiativeTokens: SharedToken[];
   encounterAction: "pause" | "resume" | "reset" | null;
   controls: TokenControls;
-  onRosterFilterChange: (value: string) => void;
   onToggleGroup: (key: string) => void;
   onSelectToken: (id: string) => void;
   onCloseMapNote: () => void;
@@ -77,7 +75,7 @@ type EncounterSidebarProps = {
   onCorrectTurn: (round: number, order: number) => void;
 };
 
-export function EncounterSidebar({ participant, state, hidden, inCombat, rosterFilter, rosterRows, selectedToken, selectedSpell, selectedMapNote, activeOwnTurnToken, activeOwnTurnIsGroup, initiativeTokens, encounterAction, controls, onRosterFilterChange, onToggleGroup, onSelectToken, onCloseMapNote, onResizeSpell, onDeleteToken, canMoveToken, onHideToken, onEndTurn, onStartOrRestart, onAdvanceTurn, onPauseOrResume, onRequestReset, onCorrectTurn }: EncounterSidebarProps) {
+export function EncounterSidebar({ participant, state, hidden, inCombat, rosterRows, selectedToken, selectedSpell, selectedMapNote, activeOwnTurnToken, activeOwnTurnIsGroup, initiativeTokens, encounterAction, controls, onToggleGroup, onSelectToken, onCloseMapNote, onResizeSpell, onDeleteToken, canMoveToken, onHideToken, onEndTurn, onStartOrRestart, onAdvanceTurn, onPauseOrResume, onRequestReset, onCorrectTurn }: EncounterSidebarProps) {
   const [initiativeEditorKey, setInitiativeEditorKey] = useState<string | null>(null);
   const playerCharacter = participant.role === "player"
     ? state.tokens.find((token) => token.kind === "character" && !token.summonerTokenId && token.controlledByViewer) ?? null
@@ -134,11 +132,16 @@ export function EncounterSidebar({ participant, state, hidden, inCombat, rosterF
   const pinnedCard = pinnedToken ? dockableTokenCard(pinnedToken, pinnedToken.kind === SPELL_EFFECT_KIND ? spellEffectByArt(pinnedToken.artAsset) ?? null : null, true) : null;
   const combatStarted = state.encounter.status !== "setup";
 
-  return <aside className={`control-panel${participant.role === "player" ? " is-player" : ""}`} aria-label="Encounter controls" hidden={hidden}>
+  return <aside className={`control-panel is-${participant.role}`} aria-label="Encounter controls" hidden={hidden}>
     <div className="panel-head"><div className="participant-row"><span className="participant-avatar">{participant.name.charAt(0).toUpperCase()}</span><span><small>{participant.role === "dm" ? "Dungeon Master" : "Joined as"}</small><strong>{participant.name}</strong></span></div><span className="panel-round">{state.tokens.length} tokens</span></div>
-    <label className="roster-filter"><Icon name="search" /><input type="search" value={rosterFilter} onChange={(event) => onRosterFilterChange(event.target.value)} placeholder={inCombat ? "Filter turn order" : "Filter tokens"} aria-label="Filter tokens" autoComplete="off" /></label>
+    {participant.role === "dm" ? <div className="dm-combat-controls" role="group" aria-label="Combat controls">
+      <button type="button" className="dm-combat-control is-primary" aria-label={combatStarted ? "Restart combat" : "Start combat"} data-tooltip={combatStarted ? "Restart at round 1 using current initiative; preserve the map, tokens, HP, effects, and initiative values." : "Start round 1 using the entered initiative values."} onClick={onStartOrRestart}><Icon name={combatStarted ? "restart" : "play"} /></button>
+      <button type="button" className="dm-combat-control" aria-label="Advance turn" data-tooltip="Complete the active group and advance to the next turn." onClick={onAdvanceTurn} disabled={!inCombat}><Icon name="advance" /></button>
+      <button type="button" className={`dm-combat-control${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`} aria-label={state.encounter.status === "paused" ? "Resume combat" : "Pause combat"} aria-busy={encounterAction === "pause" || encounterAction === "resume"} data-tooltip={state.encounter.status === "paused" ? "Resume the preserved round and active turn." : "Pause movement and turn advancement while preserving the current round and initiative."} disabled={encounterAction !== null || state.encounter.status === "setup"} onClick={onPauseOrResume}><Icon name={state.encounter.status === "paused" ? "play" : "pause"} /></button>
+      <button type="button" className={`dm-combat-control is-danger${encounterAction === "reset" ? " is-pending" : ""}`} aria-label="Reset combat" aria-busy={encounterAction === "reset"} data-tooltip="Exit combat and return to setup; preserve the map, tokens, HP, effects, and initiative values." disabled={encounterAction !== null || state.encounter.status === "setup"} onClick={onRequestReset}><Icon name="reset" /></button>
+    </div> : null}
     <div className="token-roster" role="list" aria-label={inCombat ? "Turn order" : "Tokens"}>
-      {rosterRows.length === 0 ? <p className="empty-copy">No tokens match “{rosterFilter}”.</p> : null}
+      {rosterRows.length === 0 ? <p className="empty-copy">No tokens in this encounter.</p> : null}
       {rosterRows.map((row) => row.type === "group" ? <div className={`roster-group${row.tokens[0].initiativeOrder !== null && row.tokens[0].initiativeOrder === state.encounter.activeInitiativeOrder ? " is-active" : ""}`} key={row.key}>
         <div className="roster-row-shell" role="listitem">
           <button type="button" className="roster-row is-group" aria-expanded={row.expanded} onClick={() => onToggleGroup(row.key)}>
@@ -158,13 +161,7 @@ export function EncounterSidebar({ participant, state, hidden, inCombat, rosterF
     </div> : selectedCard}
     <div className="panel-foot">
       {activeOwnTurnToken && participant.role !== "dm" ? <button className="end-turn-button" onClick={() => onEndTurn(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button> : null}
-      {participant.role === "dm" ? <>{initiativeTokens.length ? <details className="turn-correction-details"><summary>Correct turn</summary><div className="turn-correction"><label>Round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => onCorrectTurn(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => onCorrectTurn(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div></details> : null}
-        <div className="dm-combat-controls" role="group" aria-label="Combat controls">
-          <button type="button" className="dm-combat-control is-primary" aria-label={combatStarted ? "Restart combat" : "Start combat"} data-tooltip={combatStarted ? "Restart at round 1 using current initiative; preserve the map, tokens, HP, effects, and initiative values." : "Start round 1 using the entered initiative values."} onClick={onStartOrRestart}><Icon name={combatStarted ? "restart" : "play"} /></button>
-          <button type="button" className="dm-combat-control" aria-label="Advance turn" data-tooltip="Complete the active group and advance to the next turn." onClick={onAdvanceTurn} disabled={!inCombat}><Icon name="advance" /></button>
-          <button type="button" className={`dm-combat-control${encounterAction === "pause" || encounterAction === "resume" ? " is-pending" : ""}`} aria-label={state.encounter.status === "paused" ? "Resume combat" : "Pause combat"} aria-busy={encounterAction === "pause" || encounterAction === "resume"} data-tooltip={state.encounter.status === "paused" ? "Resume the preserved round and active turn." : "Pause movement and turn advancement while preserving the current round and initiative."} disabled={encounterAction !== null || state.encounter.status === "setup"} onClick={onPauseOrResume}><Icon name={state.encounter.status === "paused" ? "play" : "pause"} /></button>
-          <button type="button" className={`dm-combat-control is-danger${encounterAction === "reset" ? " is-pending" : ""}`} aria-label="Reset combat" aria-busy={encounterAction === "reset"} data-tooltip="Exit combat and return to setup; preserve the map, tokens, HP, effects, and initiative values." disabled={encounterAction !== null || state.encounter.status === "setup"} onClick={onRequestReset}><Icon name="reset" /></button>
-        </div></> : null}
+      {participant.role === "dm" && initiativeTokens.length ? <details className="turn-correction-details"><summary>Correct turn</summary><div className="turn-correction"><label>Round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => onCorrectTurn(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => onCorrectTurn(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div></details> : null}
     </div>
   </aside>;
 }

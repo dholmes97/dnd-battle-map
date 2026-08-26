@@ -1,13 +1,15 @@
 # D&D Battle Map
 
-A desktop-first, accountless tactical companion for a trusted D&D group. A
+A desktop-first tactical companion for a trusted D&D group. Invited humans sign
+in with Google, while campaign roles and characters remain application-owned. A
 vinext Worker owns the authoritative encounter API, D1 stores shared state and
 append-only action history, R2 stores map, handout, and creature art, and React
 clients converge through short conditional requests. Browser state is temporary.
 
 The application currently supports:
 
-- four fixed human identities with campaign-scoped roles and characters;
+- four invited Google-linked human identities with campaign-scoped roles and characters;
+- campaign creation and invited-player management for authorized campaign creators;
 - a Force of Nature campaign containing durable encounters with independent maps, tokens, chat, handouts, combat state,
   and history;
 - initiative groups, summons, movement tracking, HP, effects, and concentration
@@ -34,8 +36,37 @@ npm run db:bootstrap
 npm run dev
 ```
 
-Open the printed local URL in multiple browser windows, choose different human
-identities, enter Force of Nature, and open an encounter.
+Open the printed local URL. Localhost exposes a development-only identity
+switcher so multiple browser windows can exercise different people without
+changing Google accounts. To exercise the real Google flow locally, copy
+`.dev.vars.example` to `.dev.vars` and supply OAuth credentials.
+
+## Google authentication
+
+Create a Google Cloud OAuth 2.0 **Web application** client and register these
+redirect URIs:
+
+```text
+http://localhost:3000/api/auth/google/callback
+https://dnd.fridaylunchcrew.com/api/auth/google/callback
+```
+
+Use the exact local port printed by the development server if it differs from
+3000. The application requests only `openid email profile`; it does not request
+Gmail access. Production requires the Sites secrets
+`GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
+
+Use these canonical URLs in Google OAuth branding:
+
+```text
+Homepage:       https://dnd.fridaylunchcrew.com/
+Privacy policy: https://dnd.fridaylunchcrew.com/privacy
+Terms:          https://dnd.fridaylunchcrew.com/terms
+```
+
+The Google-ready 120-pixel logo is
+`public/assets/friday-lunch-crew-oauth-logo-120-v1.png`; its high-resolution
+source is `public/assets/friday-lunch-crew-logo-master-v1.png`.
 
 Useful checks:
 

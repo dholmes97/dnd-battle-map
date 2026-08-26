@@ -10,6 +10,8 @@ export const TRUSTED_IDENTITIES = Object.freeze([
 export type HumanIdentity = {
   id: string;
   displayName: string;
+  loginEmail?: string;
+  canCreateCampaigns?: boolean;
 };
 
 export type CampaignCharacterSummary = {
@@ -17,6 +19,17 @@ export type CampaignCharacterSummary = {
   name: string;
   className: string;
   artAsset: string | null;
+  size?: string;
+  speed?: number;
+  armorClass?: number;
+  maxHp?: number;
+};
+
+export type CampaignMemberSummary = {
+  membershipId: string;
+  identity: HumanIdentity;
+  role: Role;
+  characters: CampaignCharacterSummary[];
 };
 
 export type CampaignAccessSummary = {
@@ -26,6 +39,7 @@ export type CampaignAccessSummary = {
   membershipId: string;
   role: Role;
   characters: CampaignCharacterSummary[];
+  members?: CampaignMemberSummary[];
   encounters: Array<{
     code: string;
     name: string;
@@ -36,6 +50,7 @@ export type CampaignAccessSummary = {
 
 export type CampaignAccessResponse = {
   identity: HumanIdentity;
+  invitedIdentities: HumanIdentity[];
   items: CampaignAccessSummary[];
 };
 

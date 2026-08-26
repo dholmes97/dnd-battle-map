@@ -67,7 +67,6 @@ import {
   MAX_CATALOG_FAMILIES,
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
-  MAX_CAMPAIGNS,
   MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN,
   MAX_MAP_IMAGES,
   MAX_PARTICIPANTS_PER_ENCOUNTER,
@@ -148,6 +147,8 @@ import {
   readBoundedJsonObject,
 } from "./request-security.ts";
 import { handleScenarioProvisioningApi } from "./scenario-provisioning-api.ts";
+import { authenticatedIdentity, handleAuthRequest } from "./auth.ts";
+import { handleCampaignCollection, handleCampaignResource } from "./campaigns.ts";
 import type {
   ActionRow,
   AnnotationRow,
@@ -168,6 +169,8 @@ const API_ROUTE =
 const HANDOUT_API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/handouts(?:\/([^/]+)(?:\/(thumbnail|display))?)?$/;
 const PRODUCTION_BACKUP_ROUTE = /^\/api\/admin\/production-backup\/(d1|r2(?:\/object)?)$/;
+const AUTH_ROUTE = /^\/api\/auth\/(session|dev-login|logout|google\/start|google\/callback)$/;
+const CAMPAIGN_RESOURCE_ROUTE = /^\/api\/campaigns\/([a-zA-Z0-9-]{1,64})(?:\/(members|encounters))?$/;
 
 const PRODUCTION_BACKUP_PAGE_SIZE = 100;
 
@@ -602,12 +605,6 @@ function cleanCode(value: string): string {
   }
 }
 
-function cleanName(value: unknown): string {
-  return typeof value === "string"
-    ? value.trim().replace(/\s+/g, " ").slice(0, 32)
-    : "";
-}
-
 function cleanParticipantId(value: unknown): string {
   return typeof value === "string"
     ? value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64)
@@ -632,8 +629,8 @@ function cleanText(value: unknown, max = 64): string {
     : "";
 }
 
-const REQUIRED_SCHEMA_MIGRATION = "0029_wonderful_sentinel.sql";
-const REQUIRED_SCHEMA_MARKER = "campaign-memberships-v1";
+const REQUIRED_SCHEMA_MIGRATION = "0031_misty_doorman.sql";
+const REQUIRED_SCHEMA_MARKER = "google-auth-campaign-management-v1";
 
 async function ensureSchema(env: Env): Promise<void> {
   if (!schemaReady) {
@@ -901,88 +898,23 @@ async function handleEncounterList(request: Request, env: Env): Promise<Response
     return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
   }
   await ensureSchema(env);
-  const rateLimited = await enforceRateLimit(request, env, "encounter-list", RATE_LIMIT_POLICIES.publicRead);
+  const identity = await authenticatedIdentity(request, env);
+  if (!identity) return json({ error: "Sign in to see encounters." }, { status: 401 });
+  const rateLimited = await enforceRateLimit(request, env, "encounter-list", RATE_LIMIT_POLICIES.authRead, identity.id);
   if (rateLimited) return rateLimited;
   const encounters = await env.DB.prepare(
-    `SELECT code, name, status, updated_at
-     FROM encounters ORDER BY updated_at DESC, name, code LIMIT ?`,
-  ).bind(MAX_SCENARIOS).all<{ code: string; name: string; status: "setup" | "active" | "paused"; updated_at: number }>();
+    `SELECT e.code, e.name, e.status, e.updated_at
+     FROM encounters e
+     JOIN campaign_memberships cm ON cm.campaign_id = e.campaign_id
+     WHERE cm.identity_id = ?
+     ORDER BY e.updated_at DESC, e.name, e.code LIMIT ?`,
+  ).bind(identity.id, MAX_SCENARIOS).all<{ code: string; name: string; status: "setup" | "active" | "paused"; updated_at: number }>();
   return json({ items: encounters.results.map((encounter) => ({
     code: encounter.code,
     name: encounter.name,
     status: encounter.status,
     updatedAt: encounter.updated_at,
   })) });
-}
-
-async function handleCampaignList(request: Request, env: Env): Promise<Response> {
-  if (request.method !== "GET") {
-    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET" } });
-  }
-  await ensureSchema(env);
-  const rateLimited = await enforceRateLimit(request, env, "campaign-list", RATE_LIMIT_POLICIES.publicRead);
-  if (rateLimited) return rateLimited;
-  const identityId = cleanParticipantId(new URL(request.url).searchParams.get("identityId"));
-  if (!identityId) return json({ error: "Choose a person to see their campaigns." }, { status: 400 });
-  const identity = await env.DB.prepare(
-    "SELECT id, display_name FROM identities WHERE id = ? LIMIT 1",
-  ).bind(identityId).first<{ id: string; display_name: string }>();
-  if (!identity) return json({ error: "That person is not available." }, { status: 404 });
-
-  const memberships = await env.DB.prepare(
-    `SELECT c.id, c.slug, c.name, cm.id AS membership_id, cm.role
-     FROM campaign_memberships cm
-     JOIN campaigns c ON c.id = cm.campaign_id
-     WHERE cm.identity_id = ?
-     ORDER BY c.name, c.id LIMIT ?`,
-  ).bind(identity.id, MAX_CAMPAIGNS).all<{
-    id: string; slug: string; name: string; membership_id: string; role: "dm" | "player";
-  }>();
-  const characters = await env.DB.prepare(
-    `SELECT cc.id, cc.campaign_id, cc.name, cc.class_name, cc.art_asset,
-            controller.identity_id AS controller_identity_id
-     FROM campaign_characters cc
-     JOIN campaign_memberships controller ON controller.id = cc.controller_membership_id
-     JOIN campaign_memberships access ON access.campaign_id = cc.campaign_id
-     WHERE access.identity_id = ? AND cc.is_active = 1
-     ORDER BY cc.campaign_id, cc.sort_order, cc.name, cc.id LIMIT ?`,
-  ).bind(identity.id, MAX_CAMPAIGNS * MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<{
-    id: string; campaign_id: string; name: string; class_name: string; art_asset: string | null;
-    controller_identity_id: string;
-  }>();
-  const encounters = await env.DB.prepare(
-    `SELECT e.campaign_id, e.code, e.name, e.status, e.updated_at
-     FROM encounters e
-     JOIN campaign_memberships cm ON cm.campaign_id = e.campaign_id
-     WHERE cm.identity_id = ?
-     ORDER BY e.updated_at DESC, e.name, e.code LIMIT ?`,
-  ).bind(identity.id, MAX_SCENARIOS).all<{
-    campaign_id: string; code: string; name: string;
-    status: "setup" | "active" | "paused"; updated_at: number;
-  }>();
-  return json({
-    identity: { id: identity.id, displayName: identity.display_name },
-    items: memberships.results.map((membership) => ({
-      id: membership.id,
-      slug: membership.slug,
-      name: membership.name,
-      membershipId: membership.membership_id,
-      role: membership.role,
-      characters: characters.results.filter((character) => character.campaign_id === membership.id
-        && (membership.role === "dm" || character.controller_identity_id === identity.id)).map((character) => ({
-        id: character.id,
-        name: character.name,
-        className: character.class_name,
-        artAsset: character.art_asset,
-      })),
-      encounters: encounters.results.filter((encounter) => encounter.campaign_id === membership.id).map((encounter) => ({
-        code: encounter.code,
-        name: encounter.name,
-        status: encounter.status,
-        updatedAt: encounter.updated_at,
-      })),
-    })),
-  });
 }
 
 async function participantFromHeaders(
@@ -1607,12 +1539,13 @@ async function handleStatePoll(
   const encounter = await findEncounter(env, code);
   if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
   const viewer = await participantFromHeaders(request, env, encounter.id);
+  if (!viewer) return json({ error: "Participant session is required." }, { status: 401 });
   const rateLimited = await enforceRateLimit(
     request,
     env,
-    `state-poll:${encounter.id}:${viewer ? "session" : "anonymous"}`,
-    viewer ? RATE_LIMIT_POLICIES.authenticatedProjection : RATE_LIMIT_POLICIES.anonymousProjection,
-    viewer?.id,
+    `state-poll:${encounter.id}:session`,
+    RATE_LIMIT_POLICIES.authenticatedProjection,
+    viewer.id,
   );
   if (rateLimited) return rateLimited;
   // Version equality is authoritative: avoid loading tokens, effects, map
@@ -1878,12 +1811,13 @@ async function handleApi(
       ? await participantFromHeaders(request, env, encounter.id)
       : null;
     if (!encounter) return json({ error: "Encounter not found." }, { status: 404 });
+    if (!viewer) return json({ error: "Participant session is required." }, { status: 401 });
     const rateLimited = await enforceRateLimit(
       request,
       env,
-      `state:${encounter.id}:${viewer ? "session" : "anonymous"}`,
-      viewer ? RATE_LIMIT_POLICIES.authenticatedProjection : RATE_LIMIT_POLICIES.anonymousProjection,
-      viewer?.id,
+      `state:${encounter.id}:session`,
+      RATE_LIMIT_POLICIES.authenticatedProjection,
+      viewer.id,
     );
     if (rateLimited) return rateLimited;
     const state = await encounterState(env, code, viewer, telemetry);
@@ -1908,31 +1842,20 @@ async function handleApi(
   const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const now = Date.now();
   if (action === "join") {
-    const requestedIdentityId = cleanParticipantId(body.identityId);
+    const authenticated = await authenticatedIdentity(request, env);
+    if (!authenticated) return json({ error: "Sign in before entering an encounter." }, { status: 401 });
     const requestedCampaignId = cleanParticipantId(body.campaignId);
-    const legacyParticipantName = cleanName(body.participantName);
     if (requestedCampaignId && requestedCampaignId !== encounter.campaign_id) {
       return json({ error: "That encounter is not part of the selected campaign." }, { status: 403 });
     }
-    const membership = requestedIdentityId
-      ? await env.DB.prepare(
-          `SELECT cm.id AS membership_id, cm.identity_id, cm.role, i.display_name
-           FROM campaign_memberships cm
-           JOIN identities i ON i.id = cm.identity_id
-           WHERE cm.campaign_id = ? AND cm.identity_id = ? LIMIT 1`,
-        ).bind(encounter.campaign_id, requestedIdentityId).first<{
-          membership_id: string; identity_id: string; role: "dm" | "player"; display_name: string;
-        }>()
-      : legacyParticipantName
-        ? await env.DB.prepare(
-            `SELECT cm.id AS membership_id, cm.identity_id, cm.role, i.display_name
-             FROM campaign_memberships cm
-             JOIN identities i ON i.id = cm.identity_id
-             WHERE cm.campaign_id = ? AND lower(i.display_name) = lower(?) LIMIT 1`,
-          ).bind(encounter.campaign_id, legacyParticipantName).first<{
-            membership_id: string; identity_id: string; role: "dm" | "player"; display_name: string;
-          }>()
-        : null;
+    const membership = await env.DB.prepare(
+      `SELECT cm.id AS membership_id, cm.identity_id, cm.role, i.display_name
+       FROM campaign_memberships cm
+       JOIN identities i ON i.id = cm.identity_id
+       WHERE cm.campaign_id = ? AND cm.identity_id = ? LIMIT 1`,
+    ).bind(encounter.campaign_id, authenticated.id).first<{
+      membership_id: string; identity_id: string; role: "dm" | "player"; display_name: string;
+    }>();
     if (!membership) return json({ error: "You do not have access to this campaign." }, { status: 403 });
     const participantName = membership.display_name;
     const participantRole = membership.role;
@@ -2144,6 +2067,26 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: WorkerExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    const authMatch = url.pathname.match(AUTH_ROUTE);
+    if (authMatch) {
+      try {
+        await ensureSchema(env);
+        const route = authMatch[1];
+        const policy = route === "session"
+          ? RATE_LIMIT_POLICIES.authRead
+          : route === "google/start"
+            ? RATE_LIMIT_POLICIES.authStart
+            : route === "google/callback"
+              ? RATE_LIMIT_POLICIES.authCallback
+              : RATE_LIMIT_POLICIES.authWrite;
+        const rateLimited = await enforceRateLimit(request, env, `auth:${route}`, policy);
+        if (rateLimited) return rateLimited;
+        return await handleAuthRequest(request, env, route);
+      } catch (error) {
+        return apiFailure(error, "Authentication API error", "Authentication is temporarily unavailable.");
+      }
+    }
+
     if (url.pathname.startsWith("/api/scenario-provisioning/")) {
       ctx.waitUntil(reconcileStorageLifecycle(env.DB, env.MAP_ASSETS).catch(() => undefined));
       return handleScenarioProvisioningApi(request, env);
@@ -2178,9 +2121,37 @@ const worker = {
 
     if (url.pathname === "/api/campaigns") {
       try {
-        return await handleCampaignList(request, env);
+        await ensureSchema(env);
+        const identity = await authenticatedIdentity(request, env);
+        if (!identity) return json({ error: "Sign in to access campaigns." }, { status: 401 });
+        const policy = request.method === "GET" ? RATE_LIMIT_POLICIES.authRead : RATE_LIMIT_POLICIES.campaignWrite;
+        const rateLimited = await enforceRateLimit(request, env, "campaigns", policy, identity.id);
+        if (rateLimited) return rateLimited;
+        return await handleCampaignCollection(request, env, identity);
       } catch (error) {
         return apiFailure(error, "Campaign list API error", "The campaign list is temporarily unavailable.");
+      }
+    }
+
+    const campaignResourceMatch = url.pathname.match(CAMPAIGN_RESOURCE_ROUTE);
+    if (campaignResourceMatch) {
+      try {
+        await ensureSchema(env);
+        const identity = await authenticatedIdentity(request, env);
+        if (!identity) return json({ error: "Sign in to manage campaigns." }, { status: 401 });
+        const rateLimited = await enforceRateLimit(request, env, "campaign-management", RATE_LIMIT_POLICIES.campaignWrite, identity.id);
+        if (rateLimited) return rateLimited;
+        return await handleCampaignResource(
+          request,
+          env,
+          identity,
+          campaignResourceMatch[1],
+          campaignResourceMatch[2] === "members" || campaignResourceMatch[2] === "encounters"
+            ? campaignResourceMatch[2]
+            : null,
+        );
+      } catch (error) {
+        return apiFailure(error, "Campaign management API error", "The campaign could not be updated.");
       }
     }
 

@@ -1,0 +1,4 @@
+# Google Cloud OAuth 2.0 Web application credentials.
+# Copy to .dev.vars for exercising the real Google flow locally.
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=

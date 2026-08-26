@@ -19,14 +19,12 @@ export function compareTokenNames(a: InitiativeToken, b: InitiativeToken): numbe
   return a.name.localeCompare(b.name, undefined, { numeric: true });
 }
 
-export function buildRosterRows<T extends InitiativeToken>(tokens: T[], inCombat: boolean, filter: string, expandedGroups: ReadonlySet<string>): RosterRow<T>[] {
-  const needle = filter.trim().toLocaleLowerCase();
+export function buildRosterRows<T extends InitiativeToken>(tokens: T[], inCombat: boolean, expandedGroups: ReadonlySet<string>): RosterRow<T>[] {
   const rosterTokens = tokens.filter((token) => token.kind !== "spell-effect");
-  const visible = needle ? rosterTokens.filter((token) => token.name.toLocaleLowerCase().includes(needle)) : rosterTokens;
   if (inCombat) {
     const rows: RosterRow<T>[] = [];
     const groups = new Map<string, T[]>();
-    for (const token of [...visible].sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || compareTokenNames(a, b))) {
+    for (const token of [...rosterTokens].sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || compareTokenNames(a, b))) {
       const key = token.initiativeOrder === null ? `untracked:${token.id}` : `initiative:${token.initiativeOrder}`;
       const members = groups.get(key);
       if (members) members.push(token); else groups.set(key, [token]);
@@ -44,15 +42,14 @@ export function buildRosterRows<T extends InitiativeToken>(tokens: T[], inCombat
     }
     return rows;
   }
-  if (needle) return [...visible].sort(compareTokenNames).map((token) => ({ type: "token", token, grouped: false }));
 
   const priority = (token: T): number => token.kind === "character" ? (token.controlledByViewer ? 0 : 1) : token.summonerTokenId ? 2 : 3;
-  const rows: RosterRow<T>[] = visible
+  const rows: RosterRow<T>[] = rosterTokens
     .filter((token) => priority(token) < 3)
     .sort((a, b) => priority(a) - priority(b) || compareTokenNames(a, b))
     .map((token) => ({ type: "token", token, grouped: false }));
   const groups = new Map<string, T[]>();
-  for (const token of visible.filter((token) => priority(token) === 3).sort(compareTokenNames)) {
+  for (const token of rosterTokens.filter((token) => priority(token) === 3).sort(compareTokenNames)) {
     const key = rosterGroupKey(token);
     const bucket = groups.get(key);
     if (bucket) bucket.push(token); else groups.set(key, [token]);

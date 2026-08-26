@@ -65,9 +65,9 @@ function renderSidebar(initiative: number | null, controlledByViewer = true, sel
   const controls = tokenControls(hpAmount);
   const onSelectToken = vi.fn();
   const props: Parameters<typeof EncounterSidebar>[0] = {
-    participant, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "token", token, grouped: false }], selectedToken, selectedSpell, selectedMapNote: null,
+    participant, state, hidden: false, inCombat: false, rosterRows: [{ type: "token", token, grouped: false }], selectedToken, selectedSpell, selectedMapNote: null,
     activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls,
-    onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken, onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
+    onToggleGroup: vi.fn(), onSelectToken, onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
     onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
   };
   render(<EncounterSidebar {...props} />);
@@ -82,9 +82,9 @@ function dmSidebarProps(tokens: SharedToken[], selectedToken: SharedToken | null
     tokens, annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
   } as EncounterState;
   return {
-    participant: dm, state, hidden: false, inCombat: true, rosterFilter: "", rosterRows: tokens.map((token) => ({ type: "token" as const, token, grouped: false })), selectedToken, selectedSpell: null, selectedMapNote: null,
+    participant: dm, state, hidden: false, inCombat: true, rosterRows: tokens.map((token) => ({ type: "token" as const, token, grouped: false })), selectedToken, selectedSpell: null, selectedMapNote: null,
     activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: tokens, encounterAction: null, controls: tokenControls(),
-    onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
+    onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
     onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
   };
 }
@@ -175,9 +175,12 @@ describe("EncounterSidebar initiative disclosure", () => {
     expect(screen.getByRole("region", { name: "Dire Wolf details" })).toBeTruthy();
   });
 
-  it("keeps the four DM combat actions in one labelled icon group", () => {
+  it("replaces token filtering with the four DM combat actions above the roster", () => {
     render(<EncounterSidebar {...dmSidebarProps([tokenWithInitiative(17)])} />);
     const controls = screen.getByRole("group", { name: "Combat controls" });
+    const roster = screen.getByRole("list", { name: "Turn order" });
+    expect(screen.queryByRole("searchbox", { name: "Filter tokens" })).toBeNull();
+    expect(controls.compareDocumentPosition(roster) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(controls).getAllByRole("button")).toHaveLength(4);
     expect(within(controls).getByRole("button", { name: "Restart combat" }).getAttribute("data-tooltip")).toContain("round 1");
     expect(within(controls).getByRole("button", { name: "Advance turn" }).getAttribute("data-tooltip")).toContain("next turn");
@@ -262,9 +265,9 @@ describe("EncounterSidebar initiative disclosure", () => {
       tokens: [first, second], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
-      participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" }, state, hidden: false, inCombat: false, rosterFilter: "", rosterRows: [{ type: "group", key: "cave-bat", label: "Cave Bat", tokens: [first, second], expanded: false }], selectedToken: null, selectedSpell: null, selectedMapNote: null,
+      participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" }, state, hidden: false, inCombat: false, rosterRows: [{ type: "group", key: "cave-bat", label: "Cave Bat", tokens: [first, second], expanded: false }], selectedToken: null, selectedSpell: null, selectedMapNote: null,
       activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls: tokenControls(),
-      onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
+      onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
       onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
     };
 
@@ -287,11 +290,11 @@ describe("EncounterSidebar initiative disclosure", () => {
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
       participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" },
-      state, hidden: false, inCombat: false, rosterFilter: "",
+      state, hidden: false, inCombat: false,
       rosterRows: [{ type: "token", token, grouped: false }], selectedToken: null,
       selectedSpell: null, selectedMapNote: null, activeOwnTurnToken: null,
       activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null,
-      controls: tokenControls(), onRosterFilterChange: vi.fn(), onToggleGroup: vi.fn(),
+      controls: tokenControls(), onToggleGroup: vi.fn(),
       onSelectToken: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(),
       onDeleteToken: vi.fn(), canMoveToken: () => true, onHideToken: vi.fn(),
       onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(),

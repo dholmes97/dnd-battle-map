@@ -28,7 +28,7 @@ function token(id, name, extra = {}) {
 test("matching numbered monsters form a placement and roster pack", () => {
   const tokens = [token("g1", "Goblin 1"), token("g2", "Goblin 2"), token("g3", "Goblin 10")];
   assert.deepEqual(initiativePackMembers(tokens[0], tokens).map(({ id }) => id), ["g1", "g2", "g3"]);
-  const rows = buildRosterRows(tokens, false, "", new Set());
+  const rows = buildRosterRows(tokens, false, new Set());
   assert.equal(rows.length, 1);
   assert.deepEqual(rows[0], { type: "group", key: "Goblin|/goblin.png", label: "Goblin", tokens, expanded: false });
 });
@@ -37,7 +37,7 @@ test("combat roster follows initiative slots and keeps summons with their charac
   const dar = token("dar", "Dar'eleth", { kind: "character", initiativeOrder: 1 });
   const summon = token("wolf", "Dar's Wolf", { kind: "summon", summonerTokenId: "dar", initiativeOrder: 1 });
   const goblin = token("g1", "Goblin 1", { initiativeOrder: 0 });
-  const rows = buildRosterRows([dar, summon, goblin], true, "", new Set());
+  const rows = buildRosterRows([dar, summon, goblin], true, new Set());
   assert.equal(rows[0].type, "token");
   assert.equal(rows[0].token.id, "g1");
   assert.equal(rows[1].type, "group");

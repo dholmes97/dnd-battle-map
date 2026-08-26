@@ -15,13 +15,14 @@ const campaign = (role: "player" | "dm"): CampaignAccessSummary => ({
   id: "campaign-force-of-nature", slug: "force-of-nature", name: "Force of Nature",
   membershipId: role === "dm" ? "membership-kevin" : "membership-dan", role,
   characters: role === "player" ? [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: null }] : [],
+  members: role === "dm" ? [{ membershipId: "membership-kevin", identity: dm, role: "dm", characters: [] }] : [{ membershipId: "membership-dan", identity: player, role: "player", characters: [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: null }] }],
   encounters,
 });
 
 function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof CampaignHome>[0]> = {}) {
   const props: Parameters<typeof CampaignHome>[0] = {
-    identity, campaign: campaign(identity.id === "identity-kevin" ? "dm" : "player"), loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false,
-    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onBackToCampaigns: vi.fn(), onSignOut: vi.fn(), ...overrides,
+    identity, campaign: campaign(identity.id === "identity-kevin" ? "dm" : "player"), invitedIdentities: [], loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false, campaignMutationPending: false,
+    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onRenameCampaign: vi.fn(async () => true), onAddPlayer: vi.fn(async () => true), onBackToCampaigns: vi.fn(), onSignOut: vi.fn(), ...overrides,
   };
   render(<CampaignHome {...props} />); return props;
 }
@@ -78,5 +79,18 @@ describe("CampaignHome", () => {
     expect(onSetupEncounter).toHaveBeenCalledWith("EMBER-KEEP");
     await userEvent.click(screen.getAllByRole("button", { name: "Battle map" })[0]);
     expect(onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
+  });
+
+  it("lets the DM add an invited player from campaign management", async () => {
+    const onAddPlayer = vi.fn(async () => true);
+    home(dm, { invitedIdentities: [dm, player], onAddPlayer });
+    await userEvent.click(screen.getByRole("button", { name: "Manage campaign" }));
+    await userEvent.selectOptions(screen.getByLabelText("Player"), "identity-dan");
+    await userEvent.type(screen.getByLabelText("Character name"), "Dar'eleth");
+    await userEvent.click(screen.getByRole("button", { name: "Add player" }));
+    expect(onAddPlayer).toHaveBeenCalledWith({
+      identityId: "identity-dan",
+      character: { name: "Dar'eleth", className: "", maxHp: 10, armorClass: 10, speed: 30 },
+    });
   });
 });
