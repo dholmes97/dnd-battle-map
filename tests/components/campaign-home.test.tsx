@@ -35,8 +35,19 @@ describe("CampaignHome", () => {
     expect(screen.getByRole("img", { name: "Dar'eleth portrait" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
-    await userEvent.click(screen.getAllByRole("button", { name: /Enter encounter/ })[0]);
+    await userEvent.click(screen.getByRole("button", { name: /Enter encounter/ }));
     expect(props.onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
+  });
+
+  it("defaults to the most recently updated encounter and switches the nearby actions", async () => {
+    const onOpenEncounter = vi.fn();
+    home(player, { campaign: { ...campaign("player"), encounters: [...encounters].reverse() }, onOpenEncounter });
+
+    const selector = screen.getByRole("combobox", { name: "Selected encounter" });
+    expect(selector).toHaveProperty("value", "EMBER-KEEP");
+    await userEvent.selectOptions(selector, "SUNLESS");
+    await userEvent.click(screen.getByRole("button", { name: /Enter encounter/ }));
+    expect(onOpenEncounter).toHaveBeenCalledWith("SUNLESS");
   });
 
   it("lets the DM create a fresh encounter from campaign home", async () => {
@@ -76,10 +87,10 @@ describe("CampaignHome", () => {
     const onOpenEncounter = vi.fn();
     home(dm, { onSetupEncounter, onOpenEncounter });
 
-    expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
-    await userEvent.click(screen.getAllByRole("button", { name: "Set up" })[0]);
+    expect(screen.getByText("In combat")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Set up" }));
     expect(onSetupEncounter).toHaveBeenCalledWith("EMBER-KEEP");
-    await userEvent.click(screen.getAllByRole("button", { name: "Battle map" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Battle map" }));
     expect(onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
   });
 

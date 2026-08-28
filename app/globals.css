@@ -223,6 +223,21 @@ button:disabled { cursor: not-allowed; }
 .scenario-status { padding: 0.3rem 0.48rem; border: 1px solid #514a40; border-radius: 999px; color: #bfb5a7; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 .scenario-status.is-active { border-color: rgba(126, 188, 138, 0.45); background: rgba(126, 188, 138, 0.08); color: #9ed2a8; }
 .scenario-status.is-paused { border-color: rgba(245, 198, 92, 0.4); color: #d9bb75; }
+.encounter-picker-panel { overflow: hidden; border: 1px solid rgba(124, 113, 95, 0.52); border-radius: 0.85rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.93), rgba(18, 19, 18, 0.91)); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34); backdrop-filter: blur(14px) saturate(0.82); -webkit-backdrop-filter: blur(14px) saturate(0.82); }
+.encounter-picker-row { min-height: 4.8rem; padding: 0.8rem 0.9rem; display: grid; grid-template-columns: minmax(13rem, 1fr) auto auto; align-items: center; gap: 0.8rem; }
+.encounter-picker-select { min-width: 0; margin: 0; gap: 0.3rem; }
+.encounter-picker-select > span { color: #8f877b; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.encounter-picker-select select { min-height: 2.55rem; padding: 0.55rem 2.15rem 0.55rem 0.7rem; border-color: #514a40; background-color: rgba(12, 13, 12, 0.56); color: #eee3d0; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; }
+.encounter-picker-state { display: flex; align-items: center; gap: 0.55rem; white-space: nowrap; }
+.encounter-picker-state small { color: #777168; font-size: 0.58rem; }
+.encounter-picker-actions { display: flex; align-items: center; gap: 0.42rem; }
+.encounter-picker-actions button { min-height: 2.55rem; padding: 0.55rem 0.72rem; border: 1px solid #4b453c; border-radius: 0.48rem; background: rgba(255, 255, 255, 0.018); color: #bcb2a4; font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+.encounter-picker-actions button:hover:not(:disabled) { border-color: #716552; color: #e0d5c2; }
+.encounter-picker-actions button.is-primary { display: inline-flex; align-items: center; gap: 0.7rem; border-color: #8c7343; background: rgba(245, 198, 92, 0.07); color: #e2c477; }
+.encounter-picker-actions button.is-primary span { font-size: 0.95rem; transition: transform 120ms ease; }
+.encounter-picker-actions button.is-primary:hover:not(:disabled) span { transform: translateX(0.16rem); }
+.encounter-picker-actions button:disabled { opacity: 0.45; }
+.encounter-picker-panel > .scenario-rename-form { margin: 0; padding: 0.75rem 0.9rem 0.85rem; border-width: 1px 0 0; border-radius: 0; background: rgba(10, 11, 10, 0.36); }
 .scenario-card h3 { margin: 1.35rem 0 0.45rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; font-weight: 500; line-height: 1.15; }
 .scenario-card p { margin: 0; color: #918a80; font-size: 0.76rem; line-height: 1.55; }
 .scenario-card-actions { margin-top: auto; padding-top: 0.55rem; display: flex; align-items: center; gap: 0.7rem; border-top: 1px solid #3b3731; }
@@ -1684,6 +1699,8 @@ input:focus {
   .campaign-party-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .campaign-create-panel { grid-template-columns: 1fr; }
   .campaign-create-footer { grid-column: auto; }
+  .encounter-picker-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .encounter-picker-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
 
 @media (max-width: 560px) {
@@ -1739,6 +1756,11 @@ input:focus {
   .campaign-management-panel { grid-template-columns: 1fr; }
   .scenario-card-grid { grid-template-columns: 1fr; }
   .scenario-card { min-height: 14.5rem; }
+  .encounter-picker-row { grid-template-columns: 1fr; align-items: stretch; }
+  .encounter-picker-state { justify-content: space-between; }
+  .encounter-picker-actions { grid-column: auto; }
+  .encounter-picker-actions button { flex: 1; }
+  .encounter-picker-actions button.is-primary { justify-content: center; }
   .campaign-coming-soon { grid-template-columns: 1fr; gap: 0.65rem; }
   .creature-grid { grid-template-columns: 1fr; }
   .creature-palette, .spell-palette {

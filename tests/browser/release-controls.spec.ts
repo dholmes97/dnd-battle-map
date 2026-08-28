@@ -174,15 +174,15 @@ test("campaign home refreshes encounter status after returning from the battle m
     response.url().endsWith("/api/campaigns") && response.request().method() === "GET");
   await page.getByRole("button", { name: "Back to campaign home" }).click();
   const response = await refreshedCampaigns;
-  const campaignAccess = await response.json() as { items: Array<{ encounters: Array<{ name: string; status: "setup" | "active" | "paused" }> }> };
+  const campaignAccess = await response.json() as { items: Array<{ encounters: Array<{ code: string; name: string; status: "setup" | "active" | "paused" }> }> };
   const refreshedEncounter = campaignAccess.items[0]?.encounters[0];
   expect(refreshedEncounter).toBeTruthy();
 
   const statusLabel = refreshedEncounter!.status === "active"
     ? "In combat"
     : refreshedEncounter!.status === "paused" ? "Paused" : "Ready";
-  const encounterCard = page.locator(".scenario-card").filter({ has: page.getByRole("heading", { name: refreshedEncounter!.name, exact: true }) });
-  await expect(encounterCard.getByText(statusLabel, { exact: true })).toBeVisible();
+  await page.getByLabel("Selected encounter").selectOption(refreshedEncounter!.code);
+  await expect(page.locator(".encounter-picker-panel").getByText(statusLabel, { exact: true })).toBeVisible();
 });
 
 test("the main map and encounter setup support a complete no-pointer spatial flow", async ({ page }) => {
