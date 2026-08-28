@@ -56,6 +56,12 @@ Use the exact local port printed by the development server if it differs from
 Gmail access. Production requires the Sites secrets
 `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
 
+The source credentials are stored in macOS Keychain under account
+`dnd-battle-map`, using services `dnd-battle-map-google-oauth-client-id` and
+`dnd-battle-map-google-oauth-client-secret`. Do not print their values or copy
+them into tracked files; transfer them only through masked production-secret
+tooling or a process-local environment used for testing.
+
 Use these canonical URLs in Google OAuth branding:
 
 ```text
@@ -63,6 +69,9 @@ Homepage:       https://dnd.fridaylunchcrew.com/
 Privacy policy: https://dnd.fridaylunchcrew.com/privacy
 Terms:          https://dnd.fridaylunchcrew.com/terms
 ```
+
+The privacy and terms routes must remain publicly accessible without signing
+in and linked from the sign-in page.
 
 The Google-ready 120-pixel logo is
 `public/assets/friday-lunch-crew-oauth-logo-120-v1.png`; its high-resolution

@@ -43,15 +43,21 @@ button:disabled { cursor: not-allowed; }
   display: grid;
   place-items: center;
   padding: 2rem;
+  background:
+    linear-gradient(180deg, rgba(8, 9, 9, 0.32), rgba(8, 9, 9, 0.66)),
+    radial-gradient(circle at 50% 48%, rgba(7, 8, 8, 0.12) 0 15rem, rgba(7, 8, 8, 0.6) 46rem),
+    url("/assets/campaign-threshold-background-v2.webp") center / cover no-repeat;
 }
 
 .join-card {
   width: min(100%, 30rem);
   padding: 2.2rem;
-  border: 1px solid var(--rule);
+  border: 1px solid rgba(202, 180, 137, 0.34);
   border-radius: 1.25rem;
-  background: linear-gradient(145deg, rgba(36, 33, 29, 0.98), rgba(22, 21, 19, 0.98));
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+  background: linear-gradient(145deg, rgba(36, 33, 29, 0.93), rgba(16, 17, 16, 0.9));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.68), 0 0 0 1px rgba(255, 222, 157, 0.035) inset;
+  backdrop-filter: blur(18px) saturate(0.88);
+  -webkit-backdrop-filter: blur(18px) saturate(0.88);
 }
 
 .join-brand-logo { width: 4.5rem; height: 4.5rem; margin-bottom: 1rem; display: block; }
@@ -148,8 +154,8 @@ button:disabled { cursor: not-allowed; }
 .legal-content a { color: #e0c276; text-underline-offset: 0.18rem; }
 .legal-footer { padding: 1.1rem clamp(1.5rem, 5vw, 3.5rem); display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--rule); color: #847b6e; font-size: 0.7rem; }
 
-.campaign-home-shell { height: 100vh; height: 100dvh; min-height: 100vh; overflow-y: auto; background: radial-gradient(circle at 12% 0%, rgba(202, 117, 70, 0.13), transparent 32rem), #11110f; }
-.campaign-home-header { min-height: 4.6rem; padding: 0.8rem clamp(1rem, 4vw, 3.5rem); display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #302d29; background: rgba(17, 17, 15, 0.86); backdrop-filter: blur(18px); }
+.campaign-home-shell { height: 100vh; height: 100dvh; min-height: 100vh; overflow-y: auto; background: linear-gradient(90deg, rgba(9, 10, 10, 0.89) 0%, rgba(9, 10, 10, 0.67) 48%, rgba(9, 10, 10, 0.42) 100%), linear-gradient(180deg, rgba(8, 9, 9, 0.18), rgba(8, 9, 9, 0.72) 86%), url("/assets/campaign-threshold-background-v2.webp") center / cover no-repeat; }
+.campaign-home-header { min-height: 4.6rem; padding: 0.8rem clamp(1rem, 4vw, 3.5rem); display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid rgba(202, 180, 137, 0.22); background: rgba(13, 14, 13, 0.72); backdrop-filter: blur(18px) saturate(0.82); -webkit-backdrop-filter: blur(18px) saturate(0.82); }
 .campaign-home-header > div:first-child > strong { display: block; margin-top: 0.18rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.18rem; font-weight: 500; }
 .campaign-person { display: flex; align-items: center; gap: 1rem; }
 .campaign-person span { display: grid; text-align: right; }
@@ -159,8 +165,8 @@ button:disabled { cursor: not-allowed; }
 .campaign-person button:hover { border-color: #756a5c; color: #eee4d4; }
 .campaign-home-content { width: min(100% - 2rem, 76rem); margin: 0 auto; padding: clamp(2.4rem, 6vw, 5rem) 0 4rem; }
 .campaign-welcome { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
-.campaign-welcome h1 { max-width: 48rem; margin: 0.55rem 0 0.7rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.4rem, 6vw, 4.7rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.98; }
-.campaign-welcome p { max-width: 44rem; margin: 0; color: #aaa194; font-size: 1rem; line-height: 1.65; }
+.campaign-welcome h1 { max-width: 48rem; margin: 0.55rem 0 0.7rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.4rem, 6vw, 4.7rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.98; text-shadow: 0 3px 28px rgba(0, 0, 0, 0.9); }
+.campaign-welcome p { max-width: 44rem; margin: 0; color: #c0b7aa; font-size: 1rem; line-height: 1.65; text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9); }
 .campaign-create-button { min-height: 2rem; padding: 0.35rem 0.65rem; border: 1px solid #5a5041; border-radius: 0.45rem; background: rgba(245, 198, 92, 0.055); color: #d7bd7b; font-size: 0.65rem; font-weight: 750; }
 .campaign-create-button:hover { border-color: #8c754b; background: rgba(245, 198, 92, 0.1); color: #f0d591; }
 .campaign-create-panel { margin: 0 0 1.25rem; padding: clamp(1.25rem, 3vw, 2rem); display: grid; grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1fr); gap: 1.5rem 2.5rem; border: 1px solid #4d4539; border-radius: 1rem; background: linear-gradient(145deg, rgba(39, 35, 29, 0.98), rgba(25, 23, 20, 0.98)); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22); }
@@ -184,12 +190,18 @@ button:disabled { cursor: not-allowed; }
 .campaign-character-fields input { padding: 0.55rem 0.6rem; font-size: 0.72rem; }
 .campaign-party { margin-top: clamp(2.5rem, 6vw, 4rem); }
 .campaign-party-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; }
-.campaign-member-card { min-height: 6rem; padding: 0.8rem; border: 1px solid #39352f; border-radius: 0.68rem; background: rgba(31, 29, 26, 0.82); }
-.campaign-member-card > div { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.campaign-member-card { min-height: 14rem; overflow: hidden; border: 1px solid rgba(98, 89, 74, 0.62); border-radius: 0.8rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.94), rgba(18, 19, 18, 0.92)); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28); backdrop-filter: blur(12px) saturate(0.84); -webkit-backdrop-filter: blur(12px) saturate(0.84); }
+.campaign-member-portrait { position: relative; height: 9rem; overflow: hidden; border-bottom: 1px solid rgba(103, 93, 77, 0.44); background: radial-gradient(circle at 50% 20%, rgba(197, 148, 81, 0.18), rgba(14, 15, 14, 0.58) 66%), linear-gradient(145deg, rgba(62, 56, 47, 0.48), rgba(15, 16, 15, 0.82)); }
+.campaign-member-portrait::after { position: absolute; z-index: 1; inset: 0; content: ""; pointer-events: none; background: linear-gradient(180deg, transparent 54%, rgba(16, 17, 16, 0.54)); }
+.campaign-member-portrait img { object-fit: cover; object-position: 50% 8%; transform: scale(1.5); transform-origin: 50% 8%; }
+.campaign-member-portrait.is-dm img { object-position: 50% 2%; transform: scale(1.03); transform-origin: 50% 2%; }
+.campaign-member-portrait > span { height: 100%; display: grid; place-items: center; color: rgba(224, 194, 125, 0.64); font-family: Georgia, "Times New Roman", serif; font-size: 3.6rem; }
+.campaign-member-copy { padding: 0.75rem 0.8rem 0.85rem; }
+.campaign-member-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
 .campaign-member-card strong { font-size: 0.78rem; }
-.campaign-member-card span, .campaign-member-card small { color: #817a70; font-size: 0.58rem; }
-.campaign-member-card ul { margin: 0.75rem 0 0; padding: 0; list-style: none; color: #c9bda9; font-size: 0.68rem; }
-.campaign-member-card > small { display: block; margin-top: 0.75rem; }
+.campaign-member-card span, .campaign-member-card small { color: #8f877b; font-size: 0.58rem; }
+.campaign-member-card ul { margin: 0.6rem 0 0; padding: 0; list-style: none; color: #d1c4ae; font-size: 0.68rem; line-height: 1.45; }
+.campaign-member-copy > small { display: block; margin-top: 0.6rem; }
 .campaign-management-panel { margin-top: 0.8rem; padding: 1rem; display: grid; grid-template-columns: minmax(14rem, 0.7fr) minmax(20rem, 1.3fr); gap: 1.2rem; border: 1px solid #4a4237; border-radius: 0.8rem; background: #1a1815; }
 .campaign-management-panel h3 { margin: 0 0 0.7rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; font-weight: 500; }
 .campaign-management-panel label { margin: 0.6rem 0; }
@@ -204,7 +216,7 @@ button:disabled { cursor: not-allowed; }
 .campaign-list-section { max-width: 52rem; }
 .campaign-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .campaign-card { min-height: 14rem; }
-.scenario-card { min-height: 17rem; padding: 1.2rem; display: flex; flex-direction: column; border: 1px solid #39352f; border-radius: 0.85rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.97), rgba(23, 22, 20, 0.97)); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18); transition: border-color 140ms ease, transform 140ms ease; }
+.scenario-card { min-height: 17rem; padding: 1.2rem; display: flex; flex-direction: column; border: 1px solid rgba(124, 113, 95, 0.52); border-radius: 0.85rem; background: linear-gradient(155deg, rgba(34, 32, 29, 0.93), rgba(18, 19, 18, 0.91)); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34); backdrop-filter: blur(14px) saturate(0.82); -webkit-backdrop-filter: blur(14px) saturate(0.82); transition: border-color 140ms ease, transform 140ms ease; }
 .scenario-card:hover { border-color: #645948; transform: translateY(-2px); }
 .scenario-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; }
 .scenario-card-top small { color: #777168; font-size: 0.58rem; }
@@ -1648,6 +1660,9 @@ input:focus {
 @media (min-width: 851px) {
   html, body { height: 100%; overflow: hidden; }
   .app-shell { height: 100vh; height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .campaign-home-shell { background: linear-gradient(90deg, rgba(9, 10, 10, 0.2) 0%, rgba(9, 10, 10, 0.3) 26%, rgba(9, 10, 10, 0.82) 43%, rgba(9, 10, 10, 0.94) 100%), linear-gradient(180deg, rgba(8, 9, 9, 0.16), rgba(8, 9, 9, 0.72) 86%), url("/assets/campaign-threshold-background-v2.webp") center / cover no-repeat; }
+  .campaign-home-content { width: min(64vw, 58rem); margin-right: clamp(1rem, 4vw, 3.5rem); margin-left: auto; }
+  .campaign-list-section { max-width: none; }
   .command-bar { flex: 0 0 auto; }
   .workspace { flex: 1 1 auto; min-height: 0; }
   /* One stage row now, but the column still has to be told to stretch or the
@@ -1666,6 +1681,9 @@ input:focus {
   .encounter-identity span { display: none; }
   .draft-status { display: none; }
   .workshop-header-actions { gap: 0.3rem; }
+  .campaign-party-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campaign-create-panel { grid-template-columns: 1fr; }
+  .campaign-create-footer { grid-column: auto; }
 }
 
 @media (max-width: 560px) {

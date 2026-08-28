@@ -14,8 +14,8 @@ const dm: JoinIdentity = { id: "identity-kevin", displayName: "Kevin" };
 const campaign = (role: "player" | "dm"): CampaignAccessSummary => ({
   id: "campaign-force-of-nature", slug: "force-of-nature", name: "Force of Nature",
   membershipId: role === "dm" ? "membership-kevin" : "membership-dan", role,
-  characters: role === "player" ? [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: null }] : [],
-  members: role === "dm" ? [{ membershipId: "membership-kevin", identity: dm, role: "dm", characters: [] }] : [{ membershipId: "membership-dan", identity: player, role: "player", characters: [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: null }] }],
+  characters: role === "player" ? [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: "/assets/tokens/characters/dareleth-paladin-01.png" }] : [],
+  members: role === "dm" ? [{ membershipId: "membership-kevin", identity: dm, role: "dm", characters: [] }] : [{ membershipId: "membership-dan", identity: player, role: "player", characters: [{ id: "character-dareleth", name: "Dar'eleth", className: "Paladin", artAsset: "/assets/tokens/characters/dareleth-paladin-01.png" }] }],
   encounters,
 });
 
@@ -32,6 +32,7 @@ describe("CampaignHome", () => {
     const props = home(player);
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
     expect(screen.getByText("Dar'eleth")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Dar'eleth portrait" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
     await userEvent.click(screen.getAllByRole("button", { name: /Enter encounter/ })[0]);
@@ -41,6 +42,7 @@ describe("CampaignHome", () => {
   it("lets the DM create a fresh encounter from campaign home", async () => {
     const onCreateEncounter = vi.fn(async () => true);
     home(dm, { onCreateEncounter });
+    expect(screen.getByRole("img", { name: "Kevin, Dungeon Master portrait" })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /New encounter/ }));
     await userEvent.type(screen.getByLabelText("Encounter name"), "Ashes Below");
     await userEvent.click(screen.getByRole("button", { name: "Create encounter" }));
