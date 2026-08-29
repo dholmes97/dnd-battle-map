@@ -2514,7 +2514,7 @@ const worker = {
             errorMessage: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
           }));
         }
-        return apiFailure(error, "Combat QA session error", "The combat QA session could not be prepared.");
+        return apiFailure(error, "Interaction QA session error", "The interaction QA session could not be prepared.");
       }
     }
 

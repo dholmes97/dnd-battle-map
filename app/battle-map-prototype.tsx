@@ -34,7 +34,7 @@ import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
-import { CampaignList } from "@/app/campaign-list";
+import { CampaignList, type QaPendingAction, type QaPersona } from "@/app/campaign-list";
 import { CampaignHome } from "@/app/campaign-home";
 import { CreaturePalette, SpellPalette } from "@/app/battle-map-palettes";
 import { CombatRollPanel, type CombatRollResponse } from "@/app/combat-roll-panel";
@@ -92,7 +92,8 @@ export default function BattleMapPrototype() {
   const [authLoading, setAuthLoading] = useState(true);
   const [googleConfigured, setGoogleConfigured] = useState(false);
   const [devLoginAvailable, setDevLoginAvailable] = useState(false);
-  const [qaSessionInfo, setQaSessionInfo] = useState<null | { persona: "dm" | "player"; actor: string; expiresAt: number }>(null);
+  const [qaSessionInfo, setQaSessionInfo] = useState<null | { persona: QaPersona; actor: string; expiresAt: number }>(null);
+  const [qaPending, setQaPending] = useState<QaPendingAction>(null);
   const [openingCode, setOpeningCode] = useState<string | null>(null);
   const [openingDestination, setOpeningDestination] = useState<"map" | "setup" | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
@@ -363,11 +364,12 @@ export default function BattleMapPrototype() {
     }
   };
 
-  const launchQaSession = async (persona: "dm" | "player") => {
+  const launchQaSession = async (persona: QaPersona) => {
     if (!signedInIdentity?.canUseQaSessions) return;
+    setQaPending(persona);
     setBusy(true); setError("");
     try {
-      const result = await api<{ participantId: string; participantName: string; sessionSecret: string; role: Role; qa: { persona: "dm" | "player"; actor: string; expiresAt: number }; state: EncounterState }>(
+      const result = await api<{ participantId: string; participantName: string; sessionSecret: string; role: Role; qa: { persona: QaPersona; actor: string; expiresAt: number }; state: EncounterState }>(
         "/api/qa/session", { method: "POST", body: JSON.stringify({ persona }) },
       );
       const joined = { id: result.participantId, name: result.participantName, role: result.role, sessionSecret: result.sessionSecret };
@@ -376,17 +378,18 @@ export default function BattleMapPrototype() {
       startSession(joined, result.state); setQaSessionInfo(result.qa); setWorkshopOpen(false); setAppView("map");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The QA persona could not be opened.");
-    } finally { setBusy(false); }
+    } finally { setQaPending(null); setBusy(false); }
   };
 
   const resetQaFixture = async () => {
+    setQaPending("reset");
     setBusy(true); setError("");
     try {
       await api<{ reset: boolean }>("/api/qa/reset", { method: "POST", body: "{}" });
-      setNotice("Combat Rolling QA fixture reset.");
+      setNotice("Interaction QA fixture reset.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The QA fixture could not be reset.");
-    } finally { setBusy(false); }
+    } finally { setQaPending(null); setBusy(false); }
   };
 
   const createScenarioFromHome = async ({ name, mode, sourceCode }: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => {
@@ -864,7 +867,7 @@ export default function BattleMapPrototype() {
   };
 
   if (appView === "campaigns") {
-    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} qaPending={qaPending} error={error} notice={notice}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
       onCreateCampaign={createCampaign}
       onLaunchQa={(persona) => void launchQaSession(persona)} onResetQa={() => void resetQaFixture()}
@@ -890,7 +893,7 @@ export default function BattleMapPrototype() {
   }
 
   if (appView === "dashboard") {
-    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
+    return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} qaPending={qaPending} error={error} notice={notice}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
       onCreateCampaign={createCampaign}
       onLaunchQa={(persona) => void launchQaSession(persona)} onResetQa={() => void resetQaFixture()}
@@ -987,7 +990,7 @@ export default function BattleMapPrototype() {
 
   return (
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
-      {qaSessionInfo ? <div className="qa-session-banner" role="status"><strong>{qaSessionInfo.persona === "dm" ? "QA DM" : "QA Player"}</strong><span>Isolated Combat Rolling QA · authenticated as {qaSessionInfo.actor}</span><button onClick={returnToCampaignHome}>Exit QA</button></div> : null}
+      {qaSessionInfo ? <div className="qa-session-banner" role="status"><strong>{qaSessionInfo.persona === "dm" ? "QA DM" : qaSessionInfo.persona === "player1" ? "QA Player 1" : "QA Player 2"}</strong><span>Isolated Interaction QA · authenticated as {qaSessionInfo.actor}</span><button onClick={returnToCampaignHome}>Exit QA</button></div> : null}
       <BattleMapCommandBar
         participant={participant} state={state} annotationMode={annotationMode} editingSharedFog={editingSharedFog}
         chatOpen={chatOpen} chatMinimized={chatMinimized} chatUnreadTotal={chatUnreadTotal}

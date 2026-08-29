@@ -171,8 +171,13 @@ button:disabled { cursor: not-allowed; }
 .qa-session-launcher h2 { margin: 0.2rem 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; }
 .qa-session-launcher p { margin: 0; color: #c8b991; font-size: 0.75rem; }
 .qa-session-launcher > div:last-child { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-.qa-session-launcher button { padding: 0.5rem 0.7rem; border: 1px solid #8f7845; border-radius: 0.45rem; background: #211a0d; color: #f0d38e; font-weight: 700; }
+.qa-session-launcher button { padding: 0.5rem 0.7rem; border: 1px solid #8f7845; border-radius: 0.45rem; background: #211a0d; color: #f0d38e; font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); transition: color 120ms ease, background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease; }
+.qa-session-launcher button:hover:not(:disabled) { border-color: #e1b855; background: #3a2b0e; color: #ffe3a1; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+.qa-session-launcher button:focus-visible { outline: 2px solid #f3c75c; outline-offset: 2px; }
+.qa-session-launcher button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.qa-session-launcher button:disabled { cursor: wait; opacity: 0.68; }
 .qa-session-launcher button.is-danger { border-color: #8d4a3a; color: #ef9f8a; }
+.qa-session-launcher button.is-danger:hover:not(:disabled) { border-color: #d9755d; background: #3b1d16; color: #ffc0b0; }
 .campaign-create-button { min-height: 2rem; padding: 0.35rem 0.65rem; border: 1px solid #5a5041; border-radius: 0.45rem; background: rgba(245, 198, 92, 0.055); color: #d7bd7b; font-size: 0.65rem; font-weight: 750; }
 .campaign-create-button:hover { border-color: #8c754b; background: rgba(245, 198, 92, 0.1); color: #f0d591; }
 .campaign-create-panel { margin: 0 0 1.25rem; padding: clamp(1.25rem, 3vw, 2rem); display: grid; grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1fr); gap: 1.5rem 2.5rem; border: 1px solid #4d4539; border-radius: 1rem; background: linear-gradient(145deg, rgba(39, 35, 29, 0.98), rgba(25, 23, 20, 0.98)); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22); }

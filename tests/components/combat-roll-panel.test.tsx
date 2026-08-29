@@ -114,10 +114,12 @@ describe("CombatRollPanel", () => {
     })).toEqual({ left: 100, top: 240, maxHeight: 584, placement: "above" });
   });
 
-  it("shows automatic Bless and manual-rider guidance without an editable Bless control", () => {
+  it("shows automatic Bless and plain-language additional-effect guidance", () => {
     render(<CombatRollPanel participant={player} state={state()} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={vi.fn()} onComplete={vi.fn()} />);
     expect(screen.getByText("Bless +1d4 automatic")).toBeTruthy();
     expect(screen.queryByRole("checkbox", { name: /Bless/i })).toBeNull();
+    expect(screen.getByText("Additional effect:")).toBeTruthy();
+    expect(screen.queryByText(/manual rider/i)).toBeNull();
     expect(screen.getByText(/The target must save or fall prone/)).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Action" }));
   });

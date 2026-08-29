@@ -227,7 +227,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
           : proposalMessage
             ? proposalMessage
             : "The attack landed, but no damage proposal was created."}</p>
-      {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Manual rider:</strong> {roll.action.manualRiderText}</p> : null}
+      {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Additional effect:</strong> {roll.action.manualRiderText}</p> : null}
     </div>
   </article>;
 }
@@ -260,7 +260,7 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
     <div className="damage-review-content">
       <p id={descriptionId}><strong>{attackerName}</strong> hit <strong>{targetName}</strong> with {actionName}.</p>
       <div className="damage-review-total"><strong>{proposal.rolledDamage}</strong><span>{damageType || "damage"}<small>rolled damage</small></span></div>
-      {roll?.action.manualRider ? <p className="damage-review-rider"><strong>Manual rider:</strong> {roll.action.manualRiderText}</p> : null}
+      {roll?.action.manualRider ? <p className="damage-review-rider"><strong>Additional effect:</strong> {roll.action.manualRiderText}</p> : null}
       <div className="damage-review-decisions" role="group" aria-label={`Damage rulings for ${targetName}`}>
         <button type="button" className="is-primary" onClick={() => adjudicate("apply")}><strong>Apply full</strong><span>{proposal.rolledDamage}</span></button>
         <button type="button" onClick={() => adjudicate("resistant")}><strong>Resistant</strong><span>{Math.floor(proposal.rolledDamage / 2)}</span></button>

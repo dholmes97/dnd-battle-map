@@ -70,13 +70,13 @@ test("reopening a QA persona refreshes its referenced participant instead of del
   assert.equal(statements[2].bindings.at(-2), "existing-participant");
 });
 
-test("the isolated QA session remains available without a combat feature flag", async () => {
+test("the isolated QA session offers an independently controlled second player", async () => {
   const database = new FakeDatabase();
   const response = await handleQaSession(
     new Request("http://localhost/api/qa/session", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ persona: "player" }),
+      body: JSON.stringify({ persona: "player2" }),
     }),
     { DB: database },
     identity,
@@ -84,7 +84,13 @@ test("the isolated QA session remains available without a combat feature flag", 
   );
 
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).role, "player");
+  const result = await response.json();
+  assert.equal(result.role, "player");
+  assert.equal(result.participantName, "QA Player 2");
+  assert.equal(result.qa.persona, "player2");
+  const participantWrite = database.batches[0].at(-1);
+  assert.equal(participantWrite.bindings[2], "identity-combat-qa-player-2");
+  assert.equal(participantWrite.bindings[5], "membership-combat-qa-player-2");
 });
 
 test("QA reset removes roll references before deleting participant sessions", async () => {
@@ -106,4 +112,9 @@ test("QA reset removes roll references before deleting participant sessions", as
   assert.ok(guidingBolt);
   assert.match(guidingBolt.sql, /'Guiding Bolt', 8, 'ranged', 4, 6/);
   assert.match(guidingBolt.sql, /0, 'radiant', NULL, 120, 1/);
+  assert.ok(statements.some((statement) => statement.sql.includes("token-combat-qa-player-2")));
+  const playerTwoActions = statements.find((statement) => statement.sql.includes("character-combat-qa-player-2-rapier-v1"));
+  assert.ok(playerTwoActions);
+  assert.match(playerTwoActions.sql, /'Rapier', 5, 'melee', 1, 8/);
+  assert.match(playerTwoActions.sql, /'Shortbow', 5, 'ranged', 1, 6/);
 });

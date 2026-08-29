@@ -39,11 +39,16 @@ test("numbered migrations build and seed a fresh database", async () => {
 
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "7");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "8");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'temporary_hp';"), "1");
   assert.equal(await query(database, "SELECT temporary_hp FROM tokens WHERE id = 'token-combat-qa-player';"), "5");
   assert.equal(await query(database, "SELECT can_use_qa_sessions FROM identities WHERE id = 'identity-dan';"), "1");
   assert.equal(await query(database, "SELECT is_qa FROM campaigns WHERE id = 'campaign-combat-rolling-qa';"), "1");
+  assert.equal(await query(database, "SELECT name FROM campaigns WHERE id = 'campaign-combat-rolling-qa';"), "Interaction QA");
+  assert.equal(await query(database, "SELECT display_name FROM identities WHERE id = 'identity-combat-qa-player';"), "QA Player 1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM campaign_memberships WHERE id = 'membership-combat-qa-player-2' AND role = 'player';"), "1");
+  assert.equal(await query(database, "SELECT hp || '/' || max_hp FROM tokens WHERE id = 'token-combat-qa-player-2';"), "24/24");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-combat-qa-player-2' AND is_enabled = 1;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM effects WHERE id = 'effect-combat-qa-bless' AND lower(trim(name)) = 'bless';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
@@ -217,7 +222,7 @@ test("bootstrap migration preserves customized existing records", async () => {
 
   assert.equal(after, before);
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "3");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "8");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "9");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");

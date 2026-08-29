@@ -136,7 +136,7 @@ See [DM email scenario provisioning](docs/DM-EMAIL-SCENARIO-PROVISIONING.md).
 - [Feature backlog](docs/FEATURE-BACKLOG.md): unshipped product ideas only.
 - [Combat rolling requirements](docs/COMBAT-ROLLING-REQUIREMENTS.md): approved
   scope for compact action profiles, shared attack rolls, DM damage
-  adjudication, and isolated production QA sessions.
+  adjudication, and isolated production Interaction QA sessions.
 - [Creature catalog](docs/CREATURE-CATALOG.md): catalog data and provenance.
 - [Token art provenance](public/assets/tokens/README.md): generated token assets.
 

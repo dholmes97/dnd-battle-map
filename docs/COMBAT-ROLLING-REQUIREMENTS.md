@@ -5,8 +5,8 @@
 This document records the approved product direction for shared attack rolling,
 DM damage adjudication, and the multi-client testing support used to build and
 verify that workflow. Combat rolling is a standard production capability in
-every campaign, while the isolated Combat QA campaign remains available to
-authorized identities for deployed DM/player interaction testing.
+every campaign, while the isolated Interaction QA campaign remains available
+to authorized identities for deployed multi-client interaction testing.
 
 These requirements refine the broad product boundaries in
 `docs/FEATURE-BACKLOG.md`. D&D Beyond remains the authority for complete
@@ -709,7 +709,7 @@ than a full character sheet:
 The MVP schema should not force saving throws into an attack-bonus field. A
 future resolution-mode discriminator should allow a dedicated save model.
 
-## Production QA sessions
+## Production Interaction QA sessions
 
 ### Decision
 
@@ -725,8 +725,8 @@ not a campaign role and not permission to become another trusted human.
 
 - QA sessions operate only in an explicitly designated disposable test
   campaign and its encounters.
-- The production endpoint offers a small fixed set of server-owned personas,
-  initially `QA DM` and `QA Player`. It never accepts an arbitrary identity ID,
+- The production endpoint offers exactly three server-owned personas: `QA DM`,
+  `QA Player 1`, and `QA Player 2`. It never accepts an arbitrary identity ID,
   participant ID, campaign ID, or role supplied as authority by the browser.
 - QA personas are synthetic and cannot sign in with Google, appear in the
   ordinary invited-human chooser, or be added to real campaigns.
@@ -743,8 +743,9 @@ not a campaign role and not permission to become another trusted human.
 - QA session creation is rate-limited, auditable, protected by the normal
   Google-authenticated account, and disabled for identities without the
   capability.
-- Two simultaneous views use isolated cookie jars, such as separate browser
-  profiles, a private window, or separate automated browser contexts.
+- Three simultaneous windows may share the authorized human's Google session,
+  while each retains its own synthetic participant ID and secret in window-local
+  application state. Automated clients may use separate browser contexts.
 - A fixture/reset workflow can recreate a known QA encounter without mutating
   real campaign data.
 
@@ -754,9 +755,9 @@ The disposable QA campaign includes one deterministic encounter specifically
 prepared for the complete rolling and adjudication story. Resetting the fixture
 must recreate, at minimum:
 
-- a QA Player character with known AC, HP, temporary HP, and at least one
-  configured attack action;
-- Bless on the QA Player at the fixture's known starting state, with ordinary
+- two independently controlled QA player characters with known AC and HP, each
+  with at least one configured attack action, and Player 1 with temporary HP;
+- Bless on QA Player 1 at the fixture's known starting state, with ordinary
   removal available so consecutive Blessed and unblessed rolls can be tested;
 - at least two catalog-backed monster tokens from the initial enriched subset,
   each with authoritative AC and HP;
@@ -786,15 +787,16 @@ fixture; it does not control combat rolling in ordinary campaigns.
 
 ## Development and verification strategy
 
-### Local dual-client testing
+### Local multi-client testing
 
 The existing localhost-only identity switcher remains the development login
-mechanism. Manual testing uses two isolated browser contexts:
+mechanism. Manual testing may use three windows or isolated browser contexts:
 
 - Kevin/DM in one context; and
-- Dan/player in another.
+- Dan/player in another; and
+- a second player in a third when cross-player visibility is under test.
 
-Automated live tests should establish two independently authenticated clients
+Automated live tests should establish the required independently authenticated clients
 against one disposable encounter. They must use disposable participant tokens
 and guaranteed cleanup consistent with the existing live-suite policy.
 
@@ -899,12 +901,15 @@ and guaranteed cleanup consistent with the existing live-suite policy.
     creature; each result follows the same adjudication and HP path.
 11. The same combat story works in an ordinary campaign without altering the
     isolated QA fixture or its identity capability.
-12. An identity without the QA-session capability cannot assume either QA
+12. An identity without the QA-session capability cannot assume any QA
     persona even though combat rolling is available in their ordinary campaign.
+13. QA Player 1 acts while QA Player 2 is connected; Player 2 receives exactly
+    the public roll, damage, and combat-log information allowed to an ordinary
+    non-controlling player and receives no private Player 1 stats.
 
 Before publication, run the repository's full `npm run verify`, including both
 coverage suites and the dependency audit, followed by the isolated live suite
-and a manual two-window browser check. Publishing remains explicitly
+and a manual three-window browser check. Publishing remains explicitly
 user-authorized.
 
 ## Architectural boundaries

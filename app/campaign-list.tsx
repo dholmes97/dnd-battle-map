@@ -3,6 +3,9 @@
 import { useState } from "react";
 import type { CampaignAccessSummary, HumanIdentity } from "@/shared/campaigns";
 
+export type QaPersona = "dm" | "player1" | "player2";
+export type QaPendingAction = QaPersona | "reset" | null;
+
 export type CampaignPlayerInput = {
   identityId: string;
   character: { name: string; className: string; maxHp: number; armorClass: number; speed: number } | null;
@@ -16,16 +19,18 @@ function membershipLabel(campaign: CampaignAccessSummary) {
   ).join(", ");
 }
 
-export function CampaignList({ identity, campaigns, invitedIdentities, loading, mutationPending, error, onEnterCampaign, onCreateCampaign, onLaunchQa, onResetQa, onSignOut }: {
+export function CampaignList({ identity, campaigns, invitedIdentities, loading, mutationPending, qaPending, error, notice, onEnterCampaign, onCreateCampaign, onLaunchQa, onResetQa, onSignOut }: {
   identity: HumanIdentity;
   campaigns: CampaignAccessSummary[];
   invitedIdentities: HumanIdentity[];
   loading: boolean;
   mutationPending: boolean;
+  qaPending: QaPendingAction;
   error: string;
+  notice: string;
   onEnterCampaign: (campaignId: string) => void;
   onCreateCampaign: (input: { name: string; players: CampaignPlayerInput[] }) => Promise<boolean>;
-  onLaunchQa: (persona: "dm" | "player") => void;
+  onLaunchQa: (persona: QaPersona) => void;
   onResetQa: () => void;
   onSignOut: () => void;
 }) {
@@ -61,7 +66,8 @@ export function CampaignList({ identity, campaigns, invitedIdentities, loading, 
         <div><div className="eyebrow">Your tables</div><h1>Welcome back, {identity.displayName}.</h1><p>Choose a campaign to see its party, encounters, and between-session resources.</p></div>
       </section>
       {error ? <div className="form-error" role="alert">{error}</div> : null}
-      {identity.canUseQaSessions ? <section className="qa-session-launcher" aria-labelledby="qa-session-title"><div><div className="eyebrow">Isolated production test</div><h2 id="qa-session-title">Combat Rolling QA</h2><p>Open the fixed DM and player personas in separate windows. These sessions cannot enter ordinary campaigns.</p></div><div><button onClick={() => onLaunchQa("dm")}>Open QA DM</button><button onClick={() => onLaunchQa("player")}>Open QA Player</button><button className="is-danger" onClick={onResetQa}>Reset QA fixture</button></div></section> : null}
+      {!error && notice ? <div className="campaign-notice" role="status">{notice}</div> : null}
+      {identity.canUseQaSessions ? <section className="qa-session-launcher" aria-labelledby="qa-session-title"><div><div className="eyebrow">Isolated production test</div><h2 id="qa-session-title">Interaction QA</h2><p>Open this page in three windows, then choose the fixed DM, Player 1, and Player 2 personas. These sessions cannot enter ordinary campaigns.</p></div><div><button type="button" disabled={qaPending !== null} aria-busy={qaPending === "dm"} title="Open the isolated DM session in this window" onClick={() => onLaunchQa("dm")}>{qaPending === "dm" ? "Opening QA DM…" : "Open QA DM"}</button><button type="button" disabled={qaPending !== null} aria-busy={qaPending === "player1"} title="Open the isolated Player 1 session in this window" onClick={() => onLaunchQa("player1")}>{qaPending === "player1" ? "Opening Player 1…" : "Open QA Player 1"}</button><button type="button" disabled={qaPending !== null} aria-busy={qaPending === "player2"} title="Open the isolated Player 2 session in this window" onClick={() => onLaunchQa("player2")}>{qaPending === "player2" ? "Opening Player 2…" : "Open QA Player 2"}</button><button type="button" className="is-danger" disabled={qaPending !== null} aria-busy={qaPending === "reset"} title="Restore the shared QA encounter to its starting state" onClick={onResetQa}>{qaPending === "reset" ? "Resetting fixture…" : "Reset QA fixture"}</button></div></section> : null}
       <section className="campaign-scenarios campaign-list-section" aria-labelledby="campaign-list-title">
         <div className="campaign-section-heading"><div><div className="eyebrow">Campaigns you can access</div><h2 id="campaign-list-title">Campaigns</h2></div><div className="campaign-section-actions"><span>{campaigns.length} {campaigns.length === 1 ? "campaign" : "campaigns"}</span>{identity.canCreateCampaigns ? <button className="campaign-create-button" type="button" onClick={() => setShowCreator((open) => !open)} aria-expanded={showCreator}>{showCreator ? "Cancel" : "+ New campaign"}</button> : null}</div></div>
         {showCreator ? <section className="campaign-create-panel campaign-builder" aria-labelledby="create-campaign-title"><div><div className="eyebrow">New campaign</div><h2 id="create-campaign-title">Create a campaign</h2><p>You become its Dungeon Master. Add any invited players now, or manage the party later.</p></div><div className="campaign-create-fields"><label>Campaign name<input autoFocus maxLength={64} value={name} onChange={(event) => setName(event.target.value)} placeholder="The Shattered Crown" disabled={mutationPending} /></label><fieldset className="campaign-player-picker"><legend>Starting players</legend>{candidates.map((candidate) => {

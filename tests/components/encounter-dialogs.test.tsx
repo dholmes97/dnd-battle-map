@@ -217,6 +217,8 @@ describe("CombatRollResultCard", () => {
     expect(Array.from(dice.querySelectorAll(".is-damage"), (tile) => tile.textContent)).toEqual(["d62", "d65", "d61", "d66"]);
     expect(screen.getByText("+0")).toBeTruthy();
     expect(screen.getByLabelText("radiant damage total 14")).toBeTruthy();
+    expect(screen.getByText("Additional effect:")).toBeTruthy();
+    expect(screen.queryByText(/manual rider/i)).toBeNull();
   });
 
   it("reveals authoritative attack, verdict, and damage results in story order", () => {

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { CampaignList } from "@/app/campaign-list";
 
@@ -17,7 +18,9 @@ describe("CampaignList", () => {
       invitedIdentities={[]}
       loading={false}
       mutationPending={false}
+      qaPending={null}
       error=""
+      notice=""
       onEnterCampaign={onEnterCampaign}
       onCreateCampaign={vi.fn(async () => true)}
       onLaunchQa={vi.fn()} onResetQa={vi.fn()} onSignOut={vi.fn()}
@@ -37,7 +40,9 @@ describe("CampaignList", () => {
       invitedIdentities={[{ id: "identity-dan", displayName: "Dan" }, { id: "identity-barry", displayName: "Barry" }]}
       loading={false}
       mutationPending={false}
+      qaPending={null}
       error=""
+      notice=""
       onEnterCampaign={vi.fn()}
       onCreateCampaign={onCreateCampaign}
       onLaunchQa={vi.fn()} onResetQa={vi.fn()} onSignOut={vi.fn()}
@@ -52,5 +57,28 @@ describe("CampaignList", () => {
       name: "Lantern Coast",
       players: [{ identityId: "identity-barry", character: { name: "Old Rowan", className: "Ranger", maxHp: 10, armorClass: 10, speed: 30 } }],
     });
+  });
+
+  it("offers three interaction QA personas with clear pending and completion feedback", async () => {
+    const onLaunchQa = vi.fn();
+    const props: ComponentProps<typeof CampaignList> = {
+      identity: { id: "identity-dan", displayName: "Dan", canUseQaSessions: true },
+      campaigns: [], invitedIdentities: [], loading: false, mutationPending: false,
+      qaPending: null, error: "", notice: "", onEnterCampaign: vi.fn(),
+      onCreateCampaign: vi.fn(async () => true), onLaunchQa, onResetQa: vi.fn(), onSignOut: vi.fn(),
+    };
+    const view = render(<CampaignList {...props} />);
+    expect(screen.getByRole("heading", { name: "Interaction QA" })).toBeTruthy();
+    expect(screen.getByText(/three windows/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open QA DM" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open QA Player 1" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Open QA Player 2" }));
+    expect(onLaunchQa).toHaveBeenCalledWith("player2");
+
+    view.rerender(<CampaignList {...props} qaPending="reset" notice="Interaction QA fixture reset." />);
+    const reset = screen.getByRole("button", { name: "Resetting fixture…" });
+    expect(reset.hasAttribute("disabled")).toBe(true);
+    expect(reset.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("Interaction QA fixture reset.");
   });
 });

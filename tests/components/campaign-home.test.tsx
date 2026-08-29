@@ -40,6 +40,13 @@ describe("CampaignHome", () => {
     expect(props.onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
   });
 
+  it("uses plain language for attack effects that need a table ruling", async () => {
+    home(player);
+    await userEvent.click(screen.getByRole("button", { name: "+ Action" }));
+    expect(screen.getByRole("checkbox", { name: "Has additional effect" })).toBeTruthy();
+    expect(screen.queryByText(/manual rider/i)).toBeNull();
+  });
+
   it("defaults to the most recently updated encounter and switches the nearby actions", async () => {
     const onOpenEncounter = vi.fn();
     home(player, { campaign: { ...campaign("player"), encounters: [...encounters].reverse() }, onOpenEncounter });
