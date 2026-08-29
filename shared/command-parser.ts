@@ -189,7 +189,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         ? { command, payload: { tokenId: body.tokenId, amount: body.amount } }
         : null;
     case "save-combat-action": {
-      const values = validateCombatActionValues(body.values);
+      const values = validateCombatActionValues(body.values, { requireManualRiderText: true });
       return optionalString(body.actionId) && (body.ownerType === "character" || body.ownerType === "creature") &&
         requiredString(body.ownerId) && values
         ? { command, payload: compact<"save-combat-action">({
@@ -203,7 +203,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     case "delete-combat-action":
       return requiredString(body.actionId) ? { command, payload: { actionId: body.actionId } } : null;
     case "roll-attack": {
-      const adHocAction = body.adHocAction === undefined ? undefined : validateCombatActionValues(body.adHocAction);
+      const adHocAction = body.adHocAction === undefined ? undefined : validateCombatActionValues(body.adHocAction, { requireManualRiderText: true });
       return requiredString(body.operationId) && requiredString(body.attackerTokenId) &&
         requiredString(body.targetTokenId) && optionalString(body.actionProfileId) &&
         (body.adHocAction === undefined || adHocAction) && rollMode(body.rollMode) &&

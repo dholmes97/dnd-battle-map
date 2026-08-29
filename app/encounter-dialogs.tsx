@@ -188,7 +188,7 @@ export function CombatRollResultDialog({ notice, onDismiss }: {
           : proposalId
             ? "Damage is pending DM approval."
             : "The attack landed, but no damage proposal was created."}</p>
-      {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}>This action has a manual rider that still needs a table ruling.</p> : null}
+      {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Manual rider:</strong> {roll.action.manualRiderText}</p> : null}
     </div>
     <footer><button type="button" className="primary-button" data-dialog-initial-focus onClick={onDismiss}>Return to map</button></footer>
   </ModalDialog>;
@@ -219,7 +219,7 @@ export function DamageReviewDialog({ proposal, roll, pendingCount, onAdjudicate,
     <div className="damage-review-content">
       <p id="damage-review-description"><strong>{attackerName}</strong> hit <strong>{targetName}</strong> with {actionName}.</p>
       <div className="damage-review-total"><strong>{proposal.rolledDamage}</strong><span>{damageType || "damage"}<small>rolled damage</small></span></div>
-      {roll?.action.manualRider ? <p className="damage-review-rider">This action has a manual rider that still needs a table ruling.</p> : null}
+      {roll?.action.manualRider ? <p className="damage-review-rider"><strong>Manual rider:</strong> {roll.action.manualRiderText}</p> : null}
       <div className="damage-review-decisions" role="group" aria-label="Damage rulings">
         <button type="button" className="is-primary" data-dialog-initial-focus onClick={() => adjudicate("apply")}><strong>Apply full</strong><span>{proposal.rolledDamage} damage</span></button>
         <button type="button" onClick={() => adjudicate("resistant")}><strong>Resistant</strong><span>{Math.floor(proposal.rolledDamage / 2)} damage</span></button>

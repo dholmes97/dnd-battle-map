@@ -48,4 +48,5 @@ export const RATE_LIMIT_POLICIES = Object.freeze({
   tokenMove: { limit: 120, windowMs: 60_000 },
   handoutUpload: { limit: 10, windowMs: 60_000 },
   catalogImport: { limit: 2, windowMs: 60_000 },
+  catalogActionImport: { limit: 30, windowMs: 60_000 },
 });

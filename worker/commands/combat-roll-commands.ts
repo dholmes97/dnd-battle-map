@@ -251,6 +251,7 @@ function actionValues(row: CombatActionProfileRow): CombatActionValues | null {
     reachFeet: row.reach_feet,
     rangeFeet: row.range_feet,
     manualRider: Boolean(row.manual_rider),
+    manualRiderText: row.manual_rider_text,
     alternateDamage,
   });
 }

@@ -15,6 +15,7 @@ export type CombatActionProfileRow = {
   reach_feet: number | null;
   range_feet: number | null;
   manual_rider: number;
+  manual_rider_text: string | null;
   alternate_damage_json: string | null;
   source_kind: string;
   source_ref: string | null;

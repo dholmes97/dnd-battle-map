@@ -196,6 +196,7 @@ export function CombatRollPanel({
       reachFeet: 5,
       rangeFeet: null,
       manualRider: false,
+      manualRiderText: null,
       alternateDamage: null,
     };
   };
@@ -242,7 +243,7 @@ export function CombatRollPanel({
         {selectedAction?.alternateDamage ? <label className="combat-alternate"><input type="checkbox" checked={alternateDamage} onChange={(event) => setAlternateDamage(event.target.checked)} />Use {selectedAction.alternateDamage.label} ({formatDiceFormula(selectedAction.alternateDamage.formula)})</label> : null}
         {bless ? <p className="combat-bless">Bless +1d4 automatic</p> : null}
       </div>
-      {selectedAction?.manualRider ? <p className="combat-rider-warning">Manual rider: consult the stat block before applying damage.</p> : null}
+      {selectedAction?.manualRider ? <p className="combat-rider-warning"><strong>Manual rider:</strong> {selectedAction.manualRiderText}</p> : null}
     </div>
     <footer><button className="combat-roll-submit" type="button" disabled={!submitArmed || pending || (!selectedAction && !genericAvailable)} onClick={() => void submit()}>{pending ? "Rolling…" : "Roll attack & damage"}</button></footer>
   </section>;

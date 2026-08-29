@@ -24,7 +24,7 @@ const damageRoll: SharedCombatRoll = {
   targetTokenId: "target-1",
   targetName: "Orc Warrior",
   participantName: "Dan",
-  action: { name: "Longsword +1", attackBonus: 7, attackKind: "melee", damage: { count: 1, sides: 8, modifier: 4 }, damageType: "slashing", reachFeet: 5, rangeFeet: null, manualRider: false, alternateDamage: null },
+  action: { name: "Longsword +1", attackBonus: 7, attackKind: "melee", damage: { count: 1, sides: 8, modifier: 4 }, damageType: "slashing", reachFeet: 5, rangeFeet: null, manualRider: false, manualRiderText: null, alternateDamage: null },
   actionSource: "character",
   rollMode: "normal",
   attackDice: [15],
@@ -143,7 +143,7 @@ describe("CombatRollResultDialog", () => {
   it("shows every die in a multi-die damage roll independently", () => {
     render(<CombatRollResultDialog notice={{ roll: {
       ...damageRoll,
-      action: { ...damageRoll.action, name: "Guiding Bolt", damage: { count: 4, sides: 6, modifier: 0 }, damageType: "radiant", manualRider: true },
+      action: { ...damageRoll.action, name: "Guiding Bolt", damage: { count: 4, sides: 6, modifier: 0 }, damageType: "radiant", manualRider: true, manualRiderText: "The next attack against the target has advantage." },
       damageDice: [2, 5, 1, 6],
       damageTotal: 14,
     }, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);

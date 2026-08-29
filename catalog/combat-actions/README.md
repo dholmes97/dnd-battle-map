@@ -38,6 +38,6 @@ Normalized actions contain:
 
 ## Future import
 
-After the production schema and action-only import endpoint are deployed, submit these files in manifest order. The importer should accept at most ten existing creature IDs per request, validate the action contract, replace only those creatures' action profiles transactionally and idempotently, and leave creature metadata and artwork untouched. Run the production backup and importer dry-run before the bulk mutation, then compare imported counts with `manifest.json` and rerun production projections for representative ready, manual-rider, and no-supported-action creatures.
+After the production schema and action-only import endpoint are deployed, run `npm run catalog:import-actions` with `CATALOG_IMPORT_TOKEN` set. The command verifies every batch checksum and performs a server-side dry run only. After a verified production backup, append `-- --apply`; that mode repeats the complete dry run before submitting the batches in manifest order. The endpoint accepts at most ten existing creature IDs per request, replaces only those creatures' action profiles atomically, and leaves creature metadata and artwork untouched.
 
 The source metadata retains SRD/Open5e document and publisher provenance. Preserve the applicable open-license attribution when importing or redistributing these derived action values.

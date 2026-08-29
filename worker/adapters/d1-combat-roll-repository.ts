@@ -14,7 +14,7 @@ const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, 
 
 const ACTION_COLUMNS = `id, campaign_character_id, creature_catalog_id, name, attack_bonus, attack_kind,
   damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
-  manual_rider, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at`;
+  manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at`;
 
 export function createD1CombatRollRepository(db: D1Database): CombatRollRepository {
   return {
@@ -68,14 +68,15 @@ export function createD1CombatRollRepository(db: D1Database): CombatRollReposito
         `INSERT INTO combat_action_profiles
          (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
           damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
-          manual_rider, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)
+          manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
           name = excluded.name, attack_bonus = excluded.attack_bonus, attack_kind = excluded.attack_kind,
           damage_dice_count = excluded.damage_dice_count, damage_die_size = excluded.damage_die_size,
           damage_modifier = excluded.damage_modifier, damage_type = excluded.damage_type,
           reach_feet = excluded.reach_feet, range_feet = excluded.range_feet,
-          manual_rider = excluded.manual_rider, alternate_damage_json = excluded.alternate_damage_json,
+          manual_rider = excluded.manual_rider, manual_rider_text = excluded.manual_rider_text,
+          alternate_damage_json = excluded.alternate_damage_json,
           source_kind = excluded.source_kind, source_ref = excluded.source_ref, updated_at = excluded.updated_at
          WHERE combat_action_profiles.campaign_character_id IS excluded.campaign_character_id
            AND combat_action_profiles.creature_catalog_id IS excluded.creature_catalog_id`,
@@ -83,7 +84,7 @@ export function createD1CombatRollRepository(db: D1Database): CombatRollReposito
         input.id, characterId, creatureId, input.values.name, input.values.attackBonus,
         input.values.attackKind, input.values.damage.count, input.values.damage.sides,
         input.values.damage.modifier, input.values.damageType, input.values.reachFeet,
-        input.values.rangeFeet, input.values.manualRider ? 1 : 0, alternateDamageJson,
+        input.values.rangeFeet, input.values.manualRider ? 1 : 0, input.values.manualRiderText, alternateDamageJson,
         input.sourceKind, input.sourceRef, input.now, input.now,
       ).run();
       return true;

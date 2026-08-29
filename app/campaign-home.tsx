@@ -7,6 +7,7 @@ import type { EncounterSummary } from "@/app/encounter-summary";
 import type { CampaignAccessSummary, CampaignMemberSummary } from "@/shared/campaigns";
 import {
   DAMAGE_TYPES,
+  LEGACY_MANUAL_RIDER_TEXT,
   SUPPORTED_DIE_SIDES,
   formatDiceFormula,
   type CombatActionProfile,
@@ -41,13 +42,13 @@ function PartyMemberCard({ member }: { member: CampaignMemberSummary }) {
 type ActionDraft = {
   name: string; attackBonus: string; attackKind: "melee" | "ranged";
   count: string; sides: string; modifier: string; damageType: string;
-  reachFeet: string; rangeFeet: string; manualRider: boolean;
+  reachFeet: string; rangeFeet: string; manualRider: boolean; manualRiderText: string;
   alternate: boolean; alternateLabel: string; alternateCount: string; alternateSides: string; alternateModifier: string;
 };
 
 const EMPTY_ACTION: ActionDraft = {
   name: "", attackBonus: "0", attackKind: "melee", count: "1", sides: "8", modifier: "0",
-  damageType: "slashing", reachFeet: "5", rangeFeet: "", manualRider: false,
+  damageType: "slashing", reachFeet: "5", rangeFeet: "", manualRider: false, manualRiderText: LEGACY_MANUAL_RIDER_TEXT,
   alternate: false, alternateLabel: "Two-handed", alternateCount: "1", alternateSides: "10", alternateModifier: "0",
 };
 
@@ -69,6 +70,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       count: String(action.damage.count), sides: String(action.damage.sides), modifier: String(action.damage.modifier),
       damageType: action.damageType, reachFeet: action.reachFeet === null ? "" : String(action.reachFeet),
       rangeFeet: action.rangeFeet === null ? "" : String(action.rangeFeet), manualRider: action.manualRider,
+      manualRiderText: action.manualRiderText ?? LEGACY_MANUAL_RIDER_TEXT,
       alternate: Boolean(action.alternateDamage), alternateLabel: action.alternateDamage?.label ?? "Two-handed",
       alternateCount: String(action.alternateDamage?.formula.count ?? 1), alternateSides: String(action.alternateDamage?.formula.sides ?? 10),
       alternateModifier: String(action.alternateDamage?.formula.modifier ?? action.damage.modifier),
@@ -76,7 +78,8 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
   };
   const values = (): CombatActionValues | null => {
     const numbers = [draft.attackBonus, draft.count, draft.sides, draft.modifier].map(Number);
-    if (!numbers.every(Number.isInteger) || !draft.name.trim()) return null;
+    if (!numbers.every(Number.isInteger) || !draft.name.trim() ||
+        (draft.manualRider && !draft.manualRiderText.trim())) return null;
     const [attackBonus, count, sides, modifier] = numbers;
     const alternateNumbers = [draft.alternateCount, draft.alternateSides, draft.alternateModifier].map(Number);
     if (draft.alternate && !alternateNumbers.every(Number.isInteger)) return null;
@@ -87,6 +90,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       reachFeet: draft.reachFeet === "" ? null : Number(draft.reachFeet),
       rangeFeet: draft.rangeFeet === "" ? null : Number(draft.rangeFeet),
       manualRider: draft.manualRider,
+      manualRiderText: draft.manualRider ? draft.manualRiderText.trim() : null,
       alternateDamage: draft.alternate ? {
         label: draft.alternateLabel.trim() || "Alternate",
         formula: { count: alternateNumbers[0], sides: alternateNumbers[1] as 4 | 6 | 8 | 10 | 12 | 20, modifier: alternateNumbers[2] },

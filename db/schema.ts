@@ -400,6 +400,7 @@ export const combatActionProfiles = sqliteTable(
     reachFeet: integer("reach_feet"),
     rangeFeet: integer("range_feet"),
     manualRider: integer("manual_rider", { mode: "boolean" }).notNull().default(false),
+    manualRiderText: text("manual_rider_text"),
     alternateDamageJson: text("alternate_damage_json"),
     sourceKind: text("source_kind").notNull(),
     sourceRef: text("source_ref"),

@@ -25,7 +25,7 @@ const action: CombatActionProfile = {
   id: "longsword", ownerType: "character", ownerId: "character", applicableTokenIds: ["attacker"],
   source: "character", enabled: true, sortOrder: 0, name: "Longsword", attackBonus: 7,
   attackKind: "melee", damage: { count: 1, sides: 8, modifier: 4 }, damageType: "slashing",
-  reachFeet: 5, rangeFeet: null, manualRider: true,
+  reachFeet: 5, rangeFeet: null, manualRider: true, manualRiderText: "The target must save or fall prone.",
   alternateDamage: { label: "Two-handed", formula: { count: 1, sides: 10, modifier: 4 } },
 };
 
@@ -119,7 +119,7 @@ describe("CombatRollPanel", () => {
     render(<CombatRollPanel participant={player} state={state()} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={vi.fn()} onComplete={vi.fn()} />);
     expect(screen.getByText("Bless +1d4 automatic")).toBeTruthy();
     expect(screen.queryByRole("checkbox", { name: /Bless/i })).toBeNull();
-    expect(screen.getByText(/Manual rider: consult the stat block/)).toBeTruthy();
+    expect(screen.getByText(/The target must save or fall prone/)).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Action" }));
   });
 

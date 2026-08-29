@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1b3988d0-68f4-4980-a964-b03174439763",
-  "prevId": "a8e1ec45-3de6-4eb8-b06a-f6cd010942c1",
+  "id": "591c313a-0e18-48c5-adb4-f8c7e13066fd",
+  "prevId": "1b3988d0-68f4-4980-a964-b03174439763",
   "tables": {
     "actions": {
       "name": "actions",
@@ -1010,6 +1010,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "manual_rider_text": {
+          "name": "manual_rider_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "alternate_damage_json": {
           "name": "alternate_damage_json",

@@ -55,6 +55,7 @@ import {
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
 import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
 import { inspectCatalogPng, type CatalogImageVariant } from "../shared/catalog-image.ts";
+import { validateCatalogActionImport } from "../shared/catalog-action-import.ts";
 import { indexRowsByKey } from "../shared/projection-index.ts";
 import {
   cleanCorrelationId,
@@ -834,7 +835,7 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
           return json({ error: `Invalid combat action for ${name || id || "an entry"}.` }, { status: 400 });
         }
         const actionEntry = rawAction as Record<string, unknown>;
-        const values = validateCombatActionValues(actionEntry.values ?? actionEntry);
+        const values = validateCombatActionValues(actionEntry.values ?? actionEntry, { requireManualRiderText: true });
         const sourceRef = cleanText(actionEntry.sourceRef, 160);
         if (!values || !sourceRef) {
           return json({ error: `Combat actions for ${name || id || "an entry"} require complete values and source provenance.` }, { status: 400 });
@@ -909,13 +910,14 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
           `INSERT INTO combat_action_profiles
            (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
             damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
-            manual_rider, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-import', ?, ?, 1, ?, ?)`,
+            manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-import', ?, ?, 1, ?, ?)`,
         ).bind(
           action.id, creature.id, action.values.name, action.values.attackBonus, action.values.attackKind,
           action.values.damage.count, action.values.damage.sides, action.values.damage.modifier,
           action.values.damageType, action.values.reachFeet, action.values.rangeFeet,
           action.values.manualRider ? 1 : 0,
+          action.values.manualRiderText,
           action.values.alternateDamage ? JSON.stringify(action.values.alternateDamage) : null,
           action.sourceRef, index, now, now,
         )),
@@ -925,6 +927,89 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
   const total = await env.DB.prepare("SELECT COUNT(*) AS count FROM creature_catalog WHERE is_active = 1")
     .first<{ count: number }>();
   return json({ imported: prepared.map((creature) => creature.id), count: prepared.length, total: total?.count ?? 0 });
+}
+
+async function handleCreatureCatalogActionImport(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "POST" } });
+  }
+  if (!authorizedCatalogImport(request, env)) {
+    return json({ error: "Catalog import authorization failed." }, { status: 401 });
+  }
+  await ensureSchema(env);
+  const rateLimited = await enforceRateLimit(
+    request, env, "catalog-action-import", RATE_LIMIT_POLICIES.catalogActionImport, "authorized-importer",
+  );
+  if (rateLimited) return rateLimited;
+  const leaseKey = "catalog-import";
+  const lease = await acquireOperationLease(env.DB, leaseKey, 120_000);
+  if (!lease) {
+    return json({ error: "Another catalog import is already running.", code: "operation_in_progress" }, { status: 409 });
+  }
+  try {
+    const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
+    const prepared = validateCatalogActionImport(body);
+    if (!prepared) {
+      return json({ error: "Import one to ten creatures with mode 'replace', a dry-run flag, and valid sourced actions." }, { status: 400 });
+    }
+    const ids = prepared.creatures.map((creature) => creature.creatureId);
+    const existing = await env.DB.prepare(
+      `SELECT id FROM creature_catalog WHERE id IN (${ids.map(() => "?").join(", ")})`,
+    ).bind(...ids).all<{ id: string }>();
+    const existingIds = new Set(existing.results.map((row) => row.id));
+    const missing = ids.filter((id) => !existingIds.has(id));
+    if (missing.length) {
+      return json({ error: "Every action owner must already exist in the creature catalog.", missing }, { status: 409 });
+    }
+    const result = {
+      dryRun: prepared.dryRun,
+      mode: "replace",
+      creatureCount: prepared.creatures.length,
+      actionCount: prepared.creatures.reduce((sum, creature) => sum + creature.actions.length, 0),
+      creatures: prepared.creatures.map((creature) => ({
+        creatureId: creature.creatureId,
+        actionCount: creature.actions.length,
+      })),
+    };
+    if (prepared.dryRun) return json(result);
+    const now = Date.now();
+    await env.DB.batch(prepared.creatures.flatMap((creature) => [
+      ...creature.actions.map((action) => env.DB.prepare(
+        `INSERT INTO combat_action_profiles
+         (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
+          damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
+          manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref,
+          sort_order, is_enabled, created_at, updated_at)
+         VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-action-import', ?, ?, 1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET name = excluded.name, attack_bonus = excluded.attack_bonus,
+          attack_kind = excluded.attack_kind, damage_dice_count = excluded.damage_dice_count,
+          damage_die_size = excluded.damage_die_size, damage_modifier = excluded.damage_modifier,
+          damage_type = excluded.damage_type, reach_feet = excluded.reach_feet,
+          range_feet = excluded.range_feet, manual_rider = excluded.manual_rider,
+          manual_rider_text = excluded.manual_rider_text,
+          alternate_damage_json = excluded.alternate_damage_json, source_kind = excluded.source_kind,
+          source_ref = excluded.source_ref, sort_order = excluded.sort_order, is_enabled = 1,
+          updated_at = excluded.updated_at
+         WHERE combat_action_profiles.creature_catalog_id IS excluded.creature_catalog_id`,
+      ).bind(
+        action.id, creature.creatureId, action.values.name, action.values.attackBonus,
+        action.values.attackKind, action.values.damage.count, action.values.damage.sides,
+        action.values.damage.modifier, action.values.damageType, action.values.reachFeet,
+        action.values.rangeFeet, action.values.manualRider ? 1 : 0, action.values.manualRiderText,
+        action.values.alternateDamage ? JSON.stringify(action.values.alternateDamage) : null,
+        action.sourceRef, action.sourceActionIndex, now, now,
+      )),
+      creature.actions.length
+        ? env.DB.prepare(
+          `DELETE FROM combat_action_profiles
+           WHERE creature_catalog_id = ? AND id NOT IN (${creature.actions.map(() => "?").join(", ")})`,
+        ).bind(creature.creatureId, ...creature.actions.map((action) => action.id))
+        : env.DB.prepare("DELETE FROM combat_action_profiles WHERE creature_catalog_id = ?").bind(creature.creatureId),
+    ]));
+    return json(result);
+  } finally {
+    await releaseOperationLease(env.DB, leaseKey, lease);
+  }
 }
 
 async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
@@ -982,6 +1067,7 @@ function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile |
     reachFeet: row.reach_feet,
     rangeFeet: row.range_feet,
     manualRider: Boolean(row.manual_rider),
+    manualRiderText: row.manual_rider_text,
     alternateDamage,
   });
   const ownerType = row.campaign_character_id ? "character" as const : "creature" as const;
@@ -1504,7 +1590,7 @@ async function encounterState(
         `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name,
                 cap.attack_bonus, cap.attack_kind, cap.damage_dice_count, cap.damage_die_size,
                 cap.damage_modifier, cap.damage_type, cap.reach_feet, cap.range_feet,
-                cap.manual_rider, cap.alternate_damage_json, cap.source_kind, cap.source_ref,
+                cap.manual_rider, cap.manual_rider_text, cap.alternate_damage_json, cap.source_kind, cap.source_ref,
                 cap.sort_order, cap.is_enabled, cap.created_at, cap.updated_at
          FROM combat_action_profiles cap
          WHERE cap.is_enabled = 1 AND (
@@ -2486,6 +2572,14 @@ const worker = {
         return await handleCreatureCatalogImport(request, env);
       } catch (error) {
         return apiFailure(error, "Creature catalog import error", "The creature catalog batch could not be imported.");
+      }
+    }
+
+    if (url.pathname === "/api/catalog/actions/import") {
+      try {
+        return await handleCreatureCatalogActionImport(request, env);
+      } catch (error) {
+        return apiFailure(error, "Creature catalog action import error", "The catalog actions could not be imported.");
       }
     }
 

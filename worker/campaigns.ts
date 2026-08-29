@@ -151,7 +151,7 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
   const actionRows = enabledCampaignIds.size ? await env.DB.prepare(
     `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name, cap.attack_bonus,
             cap.attack_kind, cap.damage_dice_count, cap.damage_die_size, cap.damage_modifier,
-            cap.damage_type, cap.reach_feet, cap.range_feet, cap.manual_rider,
+            cap.damage_type, cap.reach_feet, cap.range_feet, cap.manual_rider, cap.manual_rider_text,
             cap.alternate_damage_json, cap.source_kind, cap.source_ref, cap.sort_order,
             cap.is_enabled, cap.created_at, cap.updated_at
      FROM combat_action_profiles cap
@@ -510,6 +510,7 @@ function campaignActionSummary(row: CombatActionProfileRow): CombatActionProfile
     reachFeet: row.reach_feet,
     rangeFeet: row.range_feet,
     manualRider: Boolean(row.manual_rider),
+    manualRiderText: row.manual_rider_text,
     alternateDamage,
   });
   return values ? {

@@ -38,6 +38,7 @@ export type CombatActionValues = {
   reachFeet: number | null;
   rangeFeet: number | null;
   manualRider: boolean;
+  manualRiderText: string | null;
   alternateDamage: AlternateDamage | null;
 };
 
@@ -230,7 +231,12 @@ export function transitionDamageWithTemporaryHp(input: {
   };
 }
 
-export function validateCombatActionValues(value: unknown): CombatActionValues | null {
+export const LEGACY_MANUAL_RIDER_TEXT = "Consult the source stat block for this attack's additional effects.";
+
+export function validateCombatActionValues(
+  value: unknown,
+  options: { requireManualRiderText?: boolean } = {},
+): CombatActionValues | null {
   if (!isRecord(value)) return null;
   const name = cleanText(value.name, 64);
   const attackBonus = integer(value.attackBonus);
@@ -240,13 +246,20 @@ export function validateCombatActionValues(value: unknown): CombatActionValues |
   const reachFeet = nullableBoundedInteger(value.reachFeet, 0, 1_000);
   const rangeFeet = nullableBoundedInteger(value.rangeFeet, 0, 10_000);
   const manualRider = typeof value.manualRider === "boolean" ? value.manualRider : null;
+  const suppliedManualRiderText = value.manualRiderText === null || value.manualRiderText === undefined
+    ? null
+    : cleanText(value.manualRiderText, 320);
+  const manualRiderText = manualRider
+    ? suppliedManualRiderText || (options.requireManualRiderText ? null : LEGACY_MANUAL_RIDER_TEXT)
+    : null;
   const alternateDamage = value.alternateDamage === null || value.alternateDamage === undefined
     ? null
     : validateAlternateDamage(value.alternateDamage);
   if (!name || !integerBetween(attackBonus, -20, 30) || !attackKind || !damage || !damageType ||
       reachFeet === undefined || rangeFeet === undefined || manualRider === null ||
+      (manualRider && !manualRiderText) ||
       (value.alternateDamage !== null && value.alternateDamage !== undefined && !alternateDamage)) return null;
-  return { name, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, alternateDamage };
+  return { name, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, manualRiderText, alternateDamage };
 }
 
 export function validateDiceFormula(value: unknown): DiceFormula | null {

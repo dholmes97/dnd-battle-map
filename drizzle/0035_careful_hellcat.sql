@@ -1,0 +1,1 @@
+ALTER TABLE `combat_action_profiles` ADD `manual_rider_text` text;

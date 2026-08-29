@@ -24,6 +24,7 @@
     "db:bootstrap": "node scripts/bootstrap-local-database.mjs",
     "catalog:expand": "node scripts/build-creature-expansion.mjs",
     "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
+    "catalog:import-actions": "node scripts/import-creature-actions.mjs catalog/combat-actions/manifest.json",
     "scenario:provision": "node scripts/provision-scenario.mjs",
     "scenario:mail-reply": "node scripts/scenario-mail-reply.mjs",
     "scenario:prepare-handout": "node scripts/prepare-scenario-handout.mjs",

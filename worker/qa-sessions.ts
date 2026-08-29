@@ -126,15 +126,16 @@ export async function resetQaFixture(request: Request, env: Env, identity: Authe
     env.DB.prepare(
       `INSERT INTO combat_action_profiles
        (id, campaign_character_id, name, attack_bonus, attack_kind, damage_dice_count, damage_die_size,
-        damage_modifier, damage_type, reach_feet, range_feet, manual_rider, alternate_damage_json,
+        damage_modifier, damage_type, reach_feet, range_feet, manual_rider, manual_rider_text, alternate_damage_json,
         source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
        VALUES ('character-combat-qa-guiding-bolt-v1', 'character-combat-qa-player', 'Guiding Bolt', 8, 'ranged', 4, 6,
-        0, 'radiant', NULL, 120, 1, NULL, 'manual-character', 'qa-fixture-v1', 20, 1, ?, ?)
+        0, 'radiant', NULL, 120, 1, 'The next attack roll made against the target before the end of your next turn has advantage.', NULL, 'manual-character', 'qa-fixture-v1', 20, 1, ?, ?)
        ON CONFLICT(id) DO UPDATE SET name = excluded.name, attack_bonus = excluded.attack_bonus,
         attack_kind = excluded.attack_kind, damage_dice_count = excluded.damage_dice_count,
         damage_die_size = excluded.damage_die_size, damage_modifier = excluded.damage_modifier,
         damage_type = excluded.damage_type, reach_feet = excluded.reach_feet, range_feet = excluded.range_feet,
-        manual_rider = excluded.manual_rider, alternate_damage_json = excluded.alternate_damage_json,
+        manual_rider = excluded.manual_rider, manual_rider_text = excluded.manual_rider_text,
+        alternate_damage_json = excluded.alternate_damage_json,
         sort_order = excluded.sort_order, is_enabled = excluded.is_enabled, updated_at = excluded.updated_at`,
     ).bind(now, now),
     env.DB.prepare(
