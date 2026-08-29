@@ -3,10 +3,8 @@ import test from "node:test";
 
 import {
   adjudicatedDamage,
-  combatRollingEnabled,
   formatDiceFormula,
   hasBless,
-  parseCombatRollingMode,
   projectCombatDamageValues,
   projectDamageAdjudication,
   resolveAttack,
@@ -15,14 +13,6 @@ import {
 } from "../shared/combat-rolling.ts";
 
 const damage = { count: 1, sides: 8, modifier: 5 };
-
-test("feature mode fails closed and enables only the intended campaign class", () => {
-  assert.equal(parseCombatRollingMode("broken"), "off");
-  assert.equal(combatRollingEnabled("off", true), false);
-  assert.equal(combatRollingEnabled("qa", false), false);
-  assert.equal(combatRollingEnabled("qa", true), true);
-  assert.equal(combatRollingEnabled("all", false), true);
-});
 
 test("normal, advantage, disadvantage, and Bless resolve deterministically", () => {
   const normal = resolveAttack({ rollMode: "normal", attackDice: [10], attackBonus: 4, targetArmorClass: 15, damageFormula: damage, damageDice: [6] });

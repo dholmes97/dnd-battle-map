@@ -386,7 +386,7 @@ export function useBattleMapGestures({
   };
 
   const onCanvasContextMenu = (event: ReactMouseEvent<HTMLCanvasElement>) => {
-    if (!state || !participant || !state.features.combatRolling.enabled) return;
+    if (!state || !participant) return;
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);

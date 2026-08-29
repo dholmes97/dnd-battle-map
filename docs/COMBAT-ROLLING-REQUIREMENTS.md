@@ -4,8 +4,9 @@
 
 This document records the approved product direction for shared attack rolling,
 DM damage adjudication, and the multi-client testing support used to build and
-verify that workflow. The feature is deployed in production in `qa` mode, so
-only the isolated Combat QA campaign can create new rolls and proposals.
+verify that workflow. Combat rolling is a standard production capability in
+every campaign, while the isolated Combat QA campaign remains available to
+authorized identities for deployed DM/player interaction testing.
 
 These requirements refine the broad product boundaries in
 `docs/FEATURE-BACKLOG.md`. D&D Beyond remains the authority for complete
@@ -147,49 +148,32 @@ The stored model should be extensible to additional resolution modes and
 multiple damage components later, but adapters must not expose incomplete
 future behavior in the MVP.
 
-## Three-mode feature gate
+## Permanent availability and QA isolation
 
-Combat rolling is controlled by one server-owned deployment mode with exactly
-three values:
+Combat rolling is a standard campaign capability rather than a deployment
+feature flag. Configured action rolls, the DM generic Attack fallback, roll
+projections, and action-profile maintenance are available in every campaign.
+The browser never submits a feature-mode override; ordinary membership,
+controller, target, and DM-adjudication authorization remains authoritative in
+the Worker.
 
-- **`off`:** No participant can create a new roll. Ordinary rolling entry
-  points and action-profile maintenance surfaces are hidden.
-- **`qa`:** Rolling is enabled only in the designated isolated QA campaign for
-  its authorized QA sessions. Ordinary campaigns behave exactly as `off`.
-- **`all`:** Rolling is enabled for eligible ordinary campaigns as well as the
-  QA campaign.
+The isolated QA campaign is gated separately by the durable QA-session identity
+capability. Removing or changing that capability must not disable rolling in
+ordinary campaigns, and ordinary campaign access must never grant QA persona
+access.
 
-The browser receives a derived capability in its authenticated server
-projection. It never selects, submits, or overrides the authoritative mode,
-campaign classification, or eligibility decision. Both configured action rolls
-and the DM generic Attack command must enforce the mode in the Worker even when
-a client calls their endpoints directly.
-
-### Safe disablement and data preservation
-
-Changing from `all` or `qa` to `off` stops new roll creation immediately without
-rolling back schema or deleting data.
-
-- Action profiles, immutable roll records, resolved proposals, and HP history
-  remain durable and unchanged while disabled.
+- Action profiles, immutable roll records, proposals, and HP history remain
+  durable across deployments.
 - Previously accepted damage remains an ordinary HP/history result and retains
   its existing Undo/Redo behavior.
-- A mode change never undoes HP, removes Bless, resets initiative, changes token
-  ownership, or mutates an encounter.
-- Pending proposals enter a bounded drain state. The initiating participant and
-  DM can still see them, and the DM can apply, adjust, nullify, reject, or cancel
-  them, but no replacement roll can be created.
-- Once no pending proposals remain, disabled ordinary encounter polling must
-  skip loading roll/action collections and calculating roll projections.
-- Re-enabling the mode restores preserved profiles and history without a data
-  migration, repair step, or client-authored recovery action.
+- Deploying combat UI changes never undoes HP, removes Bless, resets initiative,
+  changes token ownership, or mutates an encounter.
 - Existing movement, direct HP controls, initiative, effects, Bless VFX, spells,
-  chat, handouts, map interactions, and Undo/Redo remain operational in every
-  mode.
+  chat, handouts, map interactions, and Undo/Redo remain independent of combat
+  rolling.
 
-Feature-gate checks belong at the rolling command, projection, and presentation
-boundaries. Existing feature repositories and commands must not acquire a
-dependency on the combat-roll repository or feature mode.
+Existing feature repositories and commands must not acquire a dependency on
+the combat-roll repository merely because rolling is permanently available.
 
 ## Minimum copied character and creature data
 
@@ -617,9 +601,8 @@ temporary HP. The MVP should add it rather than silently subtracting damage
 from current HP when temporary HP is present on the authoritative character
 sheet.
 
-Temporary HP is explicitly outside the combat-rolling feature gate. Once
-introduced, it is ordinary core encounter and HP state in `off`, `qa`, and
-`all` modes.
+Temporary HP is ordinary core encounter and HP state, independent of combat
+rolling.
 
 - Temporary HP is a non-negative whole number distinct from current and
   maximum HP.
@@ -627,8 +610,8 @@ introduced, it is ordinary core encounter and HP state in `off`, `qa`, and
 - Healing does not restore temporary HP.
 - The existing explicit HP controls gain an equally explicit way for a
   controller or DM to set/replace temporary HP.
-- Direct manual damage consumes temporary HP correctly even when combat rolling
-  is disabled for that campaign.
+- Direct manual damage consumes temporary HP correctly without depending on the
+  combat-roll workflow.
 - Exact temporary HP follows the same projection privacy as exact HP.
 - A combined temporary-HP/current-HP damage transition is one undoable action.
 - A positive final adjudicated damage amount counts as taking damage for
@@ -639,10 +622,9 @@ introduced, it is ordinary core encounter and HP state in `off`, `qa`, and
 - The controller sees the dismissible damage-summary card first. Dismissing it
   opens the blocking concentration acknowledgement before the next queued
   combat update, so the card and modal never compete for focus.
-- Manual damage remains independent of the combat-rolling feature gate. When a
+- Manual damage remains independent of combat rolling. When a
   player applies damage manually to their concentrating character, the existing
-  immediate blocking concentration acknowledgement still appears even in
-  `off` mode.
+  immediate blocking concentration acknowledgement still appears.
 
 ## Live synchronization and presentation
 
@@ -791,13 +773,16 @@ token action path rather than bypassing it with test-only roll values. Fixture
 creation and reset are idempotent, bounded, and isolated from every real
 campaign.
 
-Production QA support is for a final deployed-environment smoke test. It is not
-the primary development test harness and must not be required to run ordinary
-unit, component, or live integration tests.
+Production QA support remains permanently available to identities with the QA
+session capability so DM/player interactions can be retested in the deployed
+environment without impersonating ordinary campaign members. It is not the
+primary development test harness and must not be required to run ordinary unit,
+component, or live integration tests.
 
-The production smoke test runs first with combat rolling in `qa` mode. QA
-session capability alone does not bypass `off`, and `qa` mode never enables
-rolling in Force of Nature or another ordinary campaign.
+The initial production smoke test used a temporary QA-only deployment mode.
+After approval for ordinary campaigns, that runtime gate is retired. The QA
+session capability now governs only access to the isolated QA personas and
+fixture; it does not control combat rolling in ordinary campaigns.
 
 ## Development and verification strategy
 
@@ -832,7 +817,8 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Turn-window metadata without hard turn rejection
 - Structured generic Attack validation and formatted snapshot output
 - Manual-rider metadata survives validation without being treated as automated
-- `off`, `qa`, and `all` mode policy resolves from server-owned campaign context
+- QA persona access remains independently capability-gated while ordinary
+  campaigns retain combat rolling
 
 ### Required React/component tests
 
@@ -849,9 +835,8 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - DM-only generic Attack form for a creature with no configured profiles
 - No generic Attack fallback for a player-controlled attacker
 - Visible manual-rider warning on a partially supported creature action
-- Rolling controls are absent in `off` and in ordinary campaigns under `qa`
-- Pending-proposal drain controls remain available after rolling is disabled
-- Temporary HP controls and readouts remain available in every rolling mode
+- Rolling controls are available in every campaign to authorized controllers
+- Temporary HP controls and readouts remain independent of combat rolling
 - Pending proposal count, bounded card queue, and DM adjudication controls
 - Actor feedback for each terminal DM decision
 - No global interaction blocking while operations are pending
@@ -875,14 +860,10 @@ and guaranteed cleanup consistent with the existing live-suite policy.
   and rejected from a player
 - Creature-action import preserves source/version provenance and rejects an
   incomplete unflagged rider
-- The Worker rejects new configured and ad hoc rolls in `off`
-- The Worker permits rolls only for the designated QA campaign in `qa` and for
-  eligible QA and ordinary campaigns in `all`
-- A forged client feature capability cannot bypass the authoritative mode
-- Disabled polling skips roll/action collection work after pending proposals
-  have drained
-- Mode transitions preserve action, roll, proposal, HP, and history records
-- Direct HP changes continue consuming temporary HP in every mode
+- The Worker permits rolls in ordinary and QA campaigns only through normal
+  participant, controller, and DM authorization
+- A forged client cannot bypass membership, ownership, or adjudication policy
+- Direct HP changes continue consuming temporary HP independently
 - Roll retries recover one immutable result
 - Player cannot forge dice, formulas, target changes, or adjudication
 - Only the campaign DM can close a player proposal
@@ -916,11 +897,10 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 10. The QA DM uses configured melee and ranged actions from the attack-ready QA
     monsters, then uses the structured generic Attack on the unconfigured
     creature; each result follows the same adjudication and HP path.
-11. With mode `off`, both clients retain movement, effects, initiative, direct
-    HP, temporary HP, chat, and Undo/Redo while every new roll path is rejected.
-12. With mode `qa`, the same QA clients can complete the rolling story while an
-    ordinary campaign cannot; changing to `all` enables the ordinary campaign
-    without recreating profiles or repairing data.
+11. The same combat story works in an ordinary campaign without altering the
+    isolated QA fixture or its identity capability.
+12. An identity without the QA-session capability cannot assume either QA
+    persona even though combat rolling is available in their ordinary campaign.
 
 Before publication, run the repository's full `npm run verify`, including both
 coverage suites and the dependency audit, followed by the isolated live suite
@@ -945,9 +925,8 @@ user-authorized.
   component.
 - Roll/proposal commands use the shared typed command registry and the existing
   operation-oriented synchronization boundary.
-- The server-owned `off | qa | all` mode gates only rolling commands,
-  projections, and UI. Temporary HP and the core HP transition never depend on
-  that mode.
+- Combat rolling has no runtime deployment gate. Temporary HP and the core HP
+  transition remain independent of the roll workflow.
 - Roll animation state is browser-local. Roll and proposal outcomes are durable
   shared state. HP remains server-authoritative.
 
@@ -967,10 +946,12 @@ user-authorized.
 8. Add the isolated production QA-session capability and its deterministic
    attack-ready encounter fixture.
 9. Run full verification and request explicit publication approval.
-10. Publish with combat rolling set to `off`, then use `qa` for the isolated
-    production smoke test.
-11. Change the mode to `all` only after the QA story passes and the user
-    explicitly approves enabling it for ordinary campaigns.
+10. Publish the isolated QA smoke test behind the QA-session identity
+    capability.
+11. After the QA story passes and the user explicitly approves ordinary
+    campaigns, retire the temporary deployment gate, make combat rolling a
+    standard campaign capability, and keep the isolated QA launcher and fixture
+    available to authorized identities permanently.
 
 All schema changes described here are additive. A production backup is not
 required solely for those additive migrations. Any later non-additive migration,

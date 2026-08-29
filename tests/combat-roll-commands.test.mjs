@@ -72,7 +72,6 @@ function context(overrides = {}) {
       actionProfileId: "action", rollMode: "normal", alternateDamage: false,
     },
     now: 100,
-    feature: { enabled: true, draining: false },
     canControl: async () => true,
     rollDie: () => dice.shift() ?? 1,
     services: {
@@ -86,13 +85,6 @@ function context(overrides = {}) {
     calls,
   };
 }
-
-test("new rolls fail closed while unrelated command domains remain independent", async () => {
-  const value = context({ feature: { enabled: false, draining: false } });
-  const result = await rollAttack(value);
-  assert.equal(result.status, 403);
-  assert.equal(value.calls.length, 0);
-});
 
 test("a configured roll uses authoritative Bless, dice, action values, and actor audit identity", async () => {
   const value = context({

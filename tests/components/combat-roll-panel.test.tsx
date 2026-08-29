@@ -33,7 +33,6 @@ function state(actions: CombatActionProfile[] = [action]): EncounterState {
   return {
     encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "active", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 1, activeInitiativeOrder: 0, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
     grid: { width: 20, height: 20, feetPerCell: 5 }, viewer: { id: "participant", role: "player" },
-    features: { combatRolling: { mode: "all", enabled: true, draining: false } },
     combatActions: actions, combatRolls: [], damageProposals: [],
     undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
     tokens: [], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],

@@ -241,7 +241,7 @@ export default function BattleMapPrototype() {
     : null;
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const openAttackTarget = useCallback((targetId: string, anchor: { x: number; y: number }) => {
-    if (!state?.features.combatRolling.enabled || !participant) return false;
+    if (!state || !participant) return false;
     const attacker = state.tokens.find((token) => token.id === (armedAttackAttackerId ?? effectiveSelectedTokenId)) ??
       (participant.role === "player" ? playerCharacter : null);
     const target = state.tokens.find((token) => token.id === targetId);
@@ -907,7 +907,6 @@ export default function BattleMapPrototype() {
       : connection === "reconnecting"
         ? "Reconnecting — restoring shared encounter updates."
         : "Connecting — loading shared encounter updates.";
-  const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
   const durableAnnotationCount = state.annotations.filter((annotation) => annotation.type === "drawing").length;
   const adjudicateDamageProposal = (proposalId: string, method: Parameters<typeof adjudicatedDamage>[0]["method"], adjustedDamage?: number) => {
     void runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }, "adjudicate-damage">(
@@ -1009,6 +1008,7 @@ export default function BattleMapPrototype() {
         onHealthRingsChange={setShowHealthRings} onFogModeChange={setFogModeOptimistically}
         onVisionDoorChange={setVisionDoorOpenOptimistically} onStrictMovementChange={setStrictMovementOptimistically}
         onToggleSidebar={() => setSidebarOpen((open) => !open)} onTogglePresenting={togglePresenting}
+        onCorrectTurn={correctTurnOptimistically}
       />
 
       <div className="workspace">
@@ -1101,7 +1101,7 @@ export default function BattleMapPrototype() {
           rosterRows={rosterRows} selectedToken={selectedToken}
           selectedSpell={selectedSpell} selectedMapNote={selectedMapNote}
           activeOwnTurnToken={activeOwnTurnToken} activeOwnTurnIsGroup={activeOwnTurnIsGroup}
-          initiativeTokens={initiativeTokens} encounterAction={encounterAction} controls={tokenControls}
+          encounterAction={encounterAction} controls={tokenControls}
           onToggleGroup={(key) => setExpandedGroups((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; })}
           onSelectToken={(id) => { setSelectedTokenId(id); setSelectedMapNoteId(null); }}
           onBeginAttack={(token) => { setArmedAttackAttackerId(token.id); setCombatChooser(null); setNotice(`Choose a visible target for ${token.name}.`); }}
@@ -1112,7 +1112,7 @@ export default function BattleMapPrototype() {
           onStartOrRestart={() => { if (state.encounter.status !== "setup") setRestartConfirmOpen(true); else startCombatOptimistically(); }}
           onAdvanceTurn={advanceTurnOptimistically}
           onPauseOrResume={() => void configureEncounterOptimistically(state.encounter.status === "paused" ? "active" : "paused", state.encounter.status === "paused" ? "Encounter resumed." : "Encounter paused.")}
-          onRequestReset={() => setResetConfirmOpen(true)} onCorrectTurn={correctTurnOptimistically}
+          onRequestReset={() => setResetConfirmOpen(true)}
         />
 
       </div>

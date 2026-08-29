@@ -60,16 +60,16 @@ function renderSidebar(initiative: number | null, controlledByViewer = true, sel
   const selectedToken = selectedOverride ?? token;
   const state = {
     encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
-    grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: participant.id, role: participant.role }, features: { combatRolling: { mode: "off", enabled: false, draining: false } }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+    grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: participant.id, role: participant.role }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
     tokens: selectedToken.id === token.id ? [token] : [token, selectedToken], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
   } as EncounterState;
   const controls = tokenControls(hpAmount);
   const onSelectToken = vi.fn();
   const props: Parameters<typeof EncounterSidebar>[0] = {
     participant, state, hidden: false, inCombat: false, rosterRows: [{ type: "token", token, grouped: false }], selectedToken, selectedSpell, selectedMapNote: null,
-    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls,
+    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, encounterAction: null, controls,
     onToggleGroup: vi.fn(), onSelectToken, onBeginAttack: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
-    onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+    onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(),
   };
   render(<EncounterSidebar {...props} />);
   return { controls, onSelectToken, token };
@@ -79,14 +79,14 @@ function dmSidebarProps(tokens: SharedToken[], selectedToken: SharedToken | null
   const dm: ParticipantSession = { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" };
   const state = {
     encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "active", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 1, activeInitiativeOrder: 0, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
-    grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: dm.id, role: dm.role }, features: { combatRolling: { mode: "off", enabled: false, draining: false } }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+    grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: dm.id, role: dm.role }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
     tokens, annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
   } as EncounterState;
   return {
     participant: dm, state, hidden: false, inCombat: true, rosterRows: tokens.map((token) => ({ type: "token" as const, token, grouped: false })), selectedToken, selectedSpell: null, selectedMapNote: null,
-    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: tokens, encounterAction: null, controls: tokenControls(),
+    activeOwnTurnToken: null, activeOwnTurnIsGroup: false, encounterAction: null, controls: tokenControls(),
     onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onBeginAttack: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
-    onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+    onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(),
   };
 }
 
@@ -287,14 +287,14 @@ describe("EncounterSidebar initiative disclosure", () => {
     const second = { ...tokenWithInitiative(6), id: "bat-2", name: "Cave Bat" };
     const state = {
       encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
-      grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, features: { combatRolling: { mode: "off", enabled: false, draining: false } }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+      grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
       tokens: [first, second], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
       participant: { id: "dm-kevin", name: "Kevin", role: "dm", sessionSecret: "session-secret" }, state, hidden: false, inCombat: false, rosterRows: [{ type: "group", key: "cave-bat", label: "Cave Bat", tokens: [first, second], expanded: false }], selectedToken: null, selectedSpell: null, selectedMapNote: null,
-      activeOwnTurnToken: null, activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null, controls: tokenControls(),
+      activeOwnTurnToken: null, activeOwnTurnIsGroup: false, encounterAction: null, controls: tokenControls(),
       onToggleGroup: vi.fn(), onSelectToken: vi.fn(), onBeginAttack: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(), onDeleteToken: vi.fn(), canMoveToken: () => true,
-      onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+      onHideToken: vi.fn(), onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(), onPauseOrResume: vi.fn(), onRequestReset: vi.fn(),
     };
 
     render(<EncounterSidebar {...props} />);
@@ -311,7 +311,7 @@ describe("EncounterSidebar initiative disclosure", () => {
     const token = tokenWithInitiative(17);
     const state = {
       encounter: { code: "TEST", name: "Test", dmBriefing: null, version: 1, status: "setup", mapPackage: null, mapDraft: null, draftUpdatedAt: null, currentRound: 0, activeInitiativeOrder: null, strictMovement: false, fogVisibility: { mode: "off", polygons: [] }, updatedAt: 1 },
-      grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, features: { combatRolling: { mode: "off", enabled: false, draining: false } }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
+      grid: { width: 24, height: 16, feetPerCell: 5 }, viewer: { id: "dm-kevin", role: "dm" }, combatActions: [], combatRolls: [], damageProposals: [], undo: { available: 0, redoAvailable: 0, lastAction: null, nextRedoAction: null },
       tokens: [token], annotations: [], chatMessages: [], handouts: [], mapImages: [], availableArt: [],
     } as EncounterState;
     const props: Parameters<typeof EncounterSidebar>[0] = {
@@ -319,12 +319,12 @@ describe("EncounterSidebar initiative disclosure", () => {
       state, hidden: false, inCombat: false,
       rosterRows: [{ type: "token", token, grouped: false }], selectedToken: null,
       selectedSpell: null, selectedMapNote: null, activeOwnTurnToken: null,
-      activeOwnTurnIsGroup: false, initiativeTokens: [], encounterAction: null,
+      activeOwnTurnIsGroup: false, encounterAction: null,
       controls: tokenControls(), onToggleGroup: vi.fn(),
       onSelectToken: vi.fn(), onBeginAttack: vi.fn(), onCloseMapNote: vi.fn(), onResizeSpell: vi.fn(),
       onDeleteToken: vi.fn(), canMoveToken: () => true, onHideToken: vi.fn(),
       onEndTurn: vi.fn(), onStartOrRestart: vi.fn(), onAdvanceTurn: vi.fn(),
-      onPauseOrResume: vi.fn(), onRequestReset: vi.fn(), onCorrectTurn: vi.fn(),
+      onPauseOrResume: vi.fn(), onRequestReset: vi.fn(),
     };
     render(<EncounterSidebar {...props} />);
     expect((screen.getByRole("button", { name: "Pause combat" }) as HTMLButtonElement).disabled).toBe(true);

@@ -11,7 +11,6 @@ export interface Env {
   SCENARIO_PROVISIONING_SENDERS?: string;
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
-  COMBAT_ROLLING_MODE?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

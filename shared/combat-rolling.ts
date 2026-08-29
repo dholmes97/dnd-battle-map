@@ -1,8 +1,5 @@
 import type { SharedEffect } from "./contracts.ts";
 
-export const COMBAT_ROLLING_MODES = ["off", "qa", "all"] as const;
-export type CombatRollingMode = (typeof COMBAT_ROLLING_MODES)[number];
-
 export const ROLL_MODES = ["normal", "advantage", "disadvantage"] as const;
 export type RollMode = (typeof ROLL_MODES)[number];
 
@@ -120,14 +117,6 @@ export function projectCombatDamageValues(input: {
     proposalRolledDamage: appliedDamage,
     proposalFinalDamage: appliedDamage,
   };
-}
-
-export function parseCombatRollingMode(value: unknown): CombatRollingMode {
-  return value === "qa" || value === "all" ? value : "off";
-}
-
-export function combatRollingEnabled(mode: CombatRollingMode, isQaCampaign: boolean): boolean {
-  return mode === "all" || (mode === "qa" && isQaCampaign);
 }
 
 export function normalizeEffectName(value: string): string {

@@ -1,4 +1,3 @@
-import { combatRollingEnabled, parseCombatRollingMode } from "../shared/combat-rolling.ts";
 import type { AuthenticatedIdentity } from "../shared/auth-domain.ts";
 import { API_JSON_BODY_MAX_BYTES, MAX_PARTICIPANTS_PER_ENCOUNTER } from "../shared/resource-limits.ts";
 import { readBoundedJsonObject } from "./request-security.ts";
@@ -42,11 +41,6 @@ export async function handleQaSession(
 ): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "POST" } });
   if (!identity.canUseQaSessions) return json({ error: "QA sessions are not available to this account." }, { status: 403 });
-  const campaign = await env.DB.prepare("SELECT is_qa FROM campaigns WHERE id = ?")
-    .bind(QA_CAMPAIGN_ID).first<{ is_qa: number }>();
-  if (!campaign || !combatRollingEnabled(parseCombatRollingMode(env.COMBAT_ROLLING_MODE), Boolean(campaign.is_qa))) {
-    return json({ error: "Combat rolling QA is disabled." }, { status: 403 });
-  }
   const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const personaKey = body.persona === "dm" || body.persona === "player" ? body.persona : null;
   if (!personaKey) return json({ error: "Choose the fixed QA DM or QA Player persona." }, { status: 400 });

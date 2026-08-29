@@ -60,7 +60,6 @@ const state: EncounterState = {
   },
   grid: { width: 24, height: 16, feetPerCell: 5 },
   viewer: { id: participant.id, role: participant.role },
-  features: { combatRolling: { mode: "off", enabled: false, draining: false } },
   combatActions: [],
   combatRolls: [],
   damageProposals: [],

@@ -57,7 +57,6 @@ type EncounterSidebarProps = {
   selectedMapNote: MapNote | null;
   activeOwnTurnToken: SharedToken | null;
   activeOwnTurnIsGroup: boolean;
-  initiativeTokens: SharedToken[];
   encounterAction: "pause" | "resume" | "reset" | null;
   controls: TokenControls;
   onToggleGroup: (key: string) => void;
@@ -73,10 +72,9 @@ type EncounterSidebarProps = {
   onAdvanceTurn: () => void;
   onPauseOrResume: () => void;
   onRequestReset: () => void;
-  onCorrectTurn: (round: number, order: number) => void;
 };
 
-export function EncounterSidebar({ participant, state, hidden, inCombat, rosterRows, selectedToken, selectedSpell, selectedMapNote, activeOwnTurnToken, activeOwnTurnIsGroup, initiativeTokens, encounterAction, controls, onToggleGroup, onSelectToken, onBeginAttack, onCloseMapNote, onResizeSpell, onDeleteToken, canMoveToken, onHideToken, onEndTurn, onStartOrRestart, onAdvanceTurn, onPauseOrResume, onRequestReset, onCorrectTurn }: EncounterSidebarProps) {
+export function EncounterSidebar({ participant, state, hidden, inCombat, rosterRows, selectedToken, selectedSpell, selectedMapNote, activeOwnTurnToken, activeOwnTurnIsGroup, encounterAction, controls, onToggleGroup, onSelectToken, onBeginAttack, onCloseMapNote, onResizeSpell, onDeleteToken, canMoveToken, onHideToken, onEndTurn, onStartOrRestart, onAdvanceTurn, onPauseOrResume, onRequestReset }: EncounterSidebarProps) {
   const [initiativeEditorKey, setInitiativeEditorKey] = useState<string | null>(null);
   const playerCharacter = participant.role === "player"
     ? state.tokens.find((token) => token.kind === "character" && !token.summonerTokenId && token.controlledByViewer) ?? null
@@ -161,9 +159,7 @@ export function EncounterSidebar({ participant, state, hidden, inCombat, rosterR
       <div className="sidebar-card-layer is-pinned">{pinnedCard}</div>
     </div> : selectedCard}
     <div className="panel-foot">
-      {(state.features.combatRolling.enabled || state.features.combatRolling.draining) && state.combatRolls.length ? <details className="combat-history"><summary>Recent rolls</summary>{state.combatRolls.slice(0, 5).map((roll) => { const proposal = state.damageProposals.find((item) => item.rollId === roll.id); return <p key={roll.id}><strong>{roll.attackerName}</strong> → {roll.targetName}: {roll.outcome}{roll.damageTotal === null ? "" : `, ${roll.damageTotal} ${roll.action.damageType}`}{proposal ? ` · ${proposal.status}` : ""}</p>; })}</details> : null}
       {activeOwnTurnToken && participant.role !== "dm" ? <button className="end-turn-button" onClick={() => onEndTurn(activeOwnTurnToken)}>{activeOwnTurnIsGroup ? "End Group Turn" : "End Turn"}</button> : null}
-      {participant.role === "dm" && initiativeTokens.length ? <details className="turn-correction-details"><summary>Correct turn</summary><div className="turn-correction"><label>Round<input type="number" min="1" value={Math.max(1, state.encounter.currentRound)} onChange={(event) => onCorrectTurn(Number(event.target.value), state.encounter.activeInitiativeOrder ?? 0)} /></label><label>Active group<select value={state.encounter.activeInitiativeOrder ?? 0} onChange={(event) => onCorrectTurn(Math.max(1, state.encounter.currentRound), Number(event.target.value))}>{[...new Set(initiativeTokens.map((token) => token.initiativeOrder))].map((order) => <option key={order} value={order ?? 0}>#{(order ?? 0) + 1}</option>)}</select></label></div></details> : null}
     </div>
   </aside>;
 }
@@ -172,7 +168,7 @@ function TokenDetails({ participant, state, token, health, hpStep, controls, onB
   const controlled = token.controlledByViewer;
   const packMembers = initiativePackMembers(token, state.tokens);
   const secondaryMovement = secondaryMovementLabel(token);
-  const canAttack = controlled && token.kind !== SPELL_EFFECT_KIND && state.features.combatRolling.enabled &&
+  const canAttack = controlled && token.kind !== SPELL_EFFECT_KIND &&
     (participant.role === "dm" || state.combatActions.some((action) => action.applicableTokenIds.includes(token.id)));
   return <section className="token-detail" aria-label={`${token.name} details`}>
     {controlled && controls.tokenEditorTokenId === token.id ? <div className="token-config"><div className="token-config-toolbar"><small>Edit token details</small><span className="token-config-actions"><IconActionButton variant="discard" label="Discard token detail changes" title="Discard changes" onClick={() => controls.discardTokenDetails(token.id)} /><button className="token-config-save" aria-label="Save token details" title="Save details" onClick={() => void controls.saveTokenDetails(token)}><Icon name="check" /></button></span></div><input aria-label="Token name" value={controls.tokenDrafts[token.id]?.name ?? token.name} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], name: event.target.value } }))} /><div className="form-grid"><label>Size<select aria-label="Token size" value={controls.tokenDrafts[token.id]?.size ?? token.size} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], size: event.target.value as CreatureSize } }))}>{CREATURE_SIZES.map((size) => <option value={size} key={size}>{size.charAt(0).toUpperCase() + size.slice(1)}</option>)}</select></label><label>Speed<input aria-label="Token speed" type="number" value={controls.tokenDrafts[token.id]?.speed ?? token.speed} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], speed: event.target.value } }))} /></label><label>AC<input aria-label="Token armor class" type="number" min="1" max="40" value={controls.tokenDrafts[token.id]?.armorClass ?? token.armorClass ?? ""} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], armorClass: event.target.value } }))} /></label><label>Max HP<input aria-label="Token maximum HP" type="number" value={controls.tokenDrafts[token.id]?.maxHp ?? token.maxHp ?? ""} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], maxHp: event.target.value } }))} /></label></div><label>Portrait<select aria-label="Token portrait" value={controls.tokenDrafts[token.id]?.artAsset ?? token.artAsset ?? ""} onChange={(event) => controls.setTokenDrafts((current) => ({ ...current, [token.id]: { ...current[token.id], artAsset: event.target.value } }))}><option value="">No portrait</option>{state.availableArt.map((path) => <option value={path} key={path}>{artLabel(path)}</option>)}</select></label></div>

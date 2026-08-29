@@ -55,7 +55,7 @@ test("reopening a QA persona refreshes its referenced participant instead of del
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ persona: "dm" }),
     }),
-    { DB: database, COMBAT_ROLLING_MODE: "qa" },
+    { DB: database },
     identity,
     async () => ({ marker: "state" }),
   );
@@ -68,6 +68,23 @@ test("reopening a QA persona refreshes its referenced participant instead of del
   assert.match(statements[1].sql, /NOT EXISTS \(SELECT 1 FROM combat_rolls/);
   assert.match(statements[2].sql, /UPDATE participants SET/);
   assert.equal(statements[2].bindings.at(-2), "existing-participant");
+});
+
+test("the isolated QA session remains available without a combat feature flag", async () => {
+  const database = new FakeDatabase();
+  const response = await handleQaSession(
+    new Request("http://localhost/api/qa/session", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ persona: "player" }),
+    }),
+    { DB: database },
+    identity,
+    async () => ({ marker: "state" }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).role, "player");
 });
 
 test("QA reset removes roll references before deleting participant sessions", async () => {

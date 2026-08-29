@@ -18,6 +18,7 @@ const ICON_PATHS = {
   scenarios: "M3 5h5l1.7 2H17v9H3zM6 10h8M6 13h5",
   home: "M3 9.2 10 3l7 6.2V17h-5v-4.5H8V17H3z",
   chat: "M4 4h12v8H9l-3.5 3V12H4zM7 7h6M7 9.5h4",
+  combatLog: "M4 3.5h12v13H4zM7 7h6M7 10h6M7 13h4",
   undo: "M7 5 3.5 8.5 7 12M3.5 8.5H12a4.5 4.5 0 0 1 0 9h-3",
   redo: "M13 5l3.5 3.5L13 12M16.5 8.5H8a4.5 4.5 0 0 0 0 9h3",
   fit: "M3.5 7.5v-4h4M16.5 7.5v-4h-4M3.5 12.5v4h4M16.5 12.5v4h-4",

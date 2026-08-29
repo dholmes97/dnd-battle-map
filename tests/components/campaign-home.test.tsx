@@ -31,8 +31,9 @@ describe("CampaignHome", () => {
   it("gives a player a personal landing page with encounter entry and no creation controls", async () => {
     const props = home(player);
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
-    expect(screen.getByText("Dar'eleth")).toBeTruthy();
+    expect(screen.getAllByText("Dar'eleth")).toHaveLength(2);
     expect(screen.getByRole("img", { name: "Dar'eleth portrait" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Combat actions" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /Enter encounter/ }));

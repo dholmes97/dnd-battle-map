@@ -9,12 +9,7 @@ import {
 import type { AuthenticatedIdentity } from "../shared/auth-domain.ts";
 import { readBoundedJsonObject } from "./request-security.ts";
 import type { Env } from "./types.ts";
-import {
-  combatRollingEnabled,
-  parseCombatRollingMode,
-  validateCombatActionValues,
-  type CombatActionProfile,
-} from "../shared/combat-rolling.ts";
+import { validateCombatActionValues, type CombatActionProfile } from "../shared/combat-rolling.ts";
 import { MAX_COMBAT_ACTIONS_PER_OWNER } from "../shared/resource-limits.ts";
 import { createD1CombatRollRepository } from "./adapters/d1-combat-roll-repository.ts";
 import type { CombatActionProfileRow } from "./ports/combat-roll-repository.ts";
@@ -25,7 +20,6 @@ type MembershipRow = {
   name: string;
   membership_id: string;
   role: "dm" | "player";
-  is_qa: number;
 };
 
 type CharacterRow = {
@@ -108,7 +102,7 @@ export async function campaignListResponse(env: Env, identity: AuthenticatedIden
 
 async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
   const memberships = await env.DB.prepare(
-    `SELECT c.id, c.slug, c.name, c.is_qa, cm.id AS membership_id, cm.role
+    `SELECT c.id, c.slug, c.name, cm.id AS membership_id, cm.role
      FROM campaign_memberships cm
      JOIN campaigns c ON c.id = cm.campaign_id
      WHERE cm.identity_id = ?
@@ -145,10 +139,7 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
      WHERE login_email <> '' AND id NOT LIKE 'identity-combat-qa-%'
      ORDER BY display_name, id LIMIT ?`,
   ).bind(MAX_CAMPAIGN_MEMBERS_PER_CAMPAIGN).all<{ id: string; display_name: string }>();
-  const enabledCampaignIds = new Set(memberships.results.filter((membership) =>
-    combatRollingEnabled(parseCombatRollingMode(env.COMBAT_ROLLING_MODE), Boolean(membership.is_qa))
-  ).map((membership) => membership.id));
-  const actionRows = enabledCampaignIds.size ? await env.DB.prepare(
+  const actionRows = await env.DB.prepare(
     `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name, cap.attack_bonus,
             cap.attack_kind, cap.damage_dice_count, cap.damage_die_size, cap.damage_modifier,
             cap.damage_type, cap.reach_feet, cap.range_feet, cap.manual_rider, cap.manual_rider_text,
@@ -160,7 +151,7 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
      WHERE access.identity_id = ? AND cap.is_enabled = 1
      ORDER BY cap.sort_order, cap.name, cap.id LIMIT ?`,
   ).bind(identity.id, MAX_CAMPAIGNS * MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN * MAX_COMBAT_ACTIONS_PER_OWNER)
-    .all<CombatActionProfileRow>() : { results: [] as CombatActionProfileRow[] };
+    .all<CombatActionProfileRow>();
 
   return {
     identity,
@@ -174,16 +165,15 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
         name: membership.name,
         membershipId: membership.membership_id,
         role: membership.role,
-        combatRollingEnabled: enabledCampaignIds.has(membership.id),
         characters: campaignCharacters.filter((character) =>
           membership.role === "dm" || character.controller_identity_id === identity.id,
-        ).map((character) => characterSummary(character, enabledCampaignIds.has(membership.id) ? actionRows.results : [])),
+        ).map((character) => characterSummary(character, actionRows.results)),
         members: campaignMembers.map((member) => ({
           membershipId: member.membership_id,
           identity: { id: member.identity_id, displayName: member.display_name },
           role: member.role,
           characters: campaignCharacters.filter((character) => character.controller_identity_id === member.identity_id)
-            .map((character) => characterSummary(character, enabledCampaignIds.has(membership.id) ? actionRows.results : [])),
+            .map((character) => characterSummary(character, actionRows.results)),
         })),
         encounters: encounters.results.filter((encounter) => encounter.campaign_id === membership.id).map((encounter) => ({
           code: encounter.code,
@@ -203,11 +193,6 @@ async function maintainCharacterAction(
   campaignId: string,
 ): Promise<Response> {
   if (request.method !== "POST" && request.method !== "DELETE") return methodNotAllowed("POST, DELETE");
-  const campaign = await env.DB.prepare("SELECT is_qa FROM campaigns WHERE id = ?")
-    .bind(campaignId).first<{ is_qa: number }>();
-  if (!campaign || !combatRollingEnabled(parseCombatRollingMode(env.COMBAT_ROLLING_MODE), Boolean(campaign.is_qa))) {
-    return json({ error: "Combat rolling is disabled for this campaign." }, { status: 403 });
-  }
   const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const repository = createD1CombatRollRepository(env.DB);
   if (request.method === "DELETE") {

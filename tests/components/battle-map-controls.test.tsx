@@ -8,7 +8,7 @@ import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/c
 const dm: ParticipantSession = { id: "dm", name: "Kevin", role: "dm", sessionSecret: "secret" };
 const player: ParticipantSession = { id: "p", name: "Dan", role: "player", sessionSecret: "secret" };
 const baseToken = { id: "dar", name: "Dar'eleth", kind: "character", summonerTokenId: null } as SharedToken;
-const state = { encounter: { name: "Dinner Party", status: "active", currentRound: 2, strictMovement: false, mapPackage: { fog: { mode: "off", doors: [] } } }, undo: { available: 1, redoAvailable: 0 } } as unknown as EncounterState;
+const state = { encounter: { name: "Dinner Party", status: "active", currentRound: 2, activeInitiativeOrder: 0, strictMovement: false, mapPackage: { fog: { mode: "off", doors: [] } } }, tokens: [{ ...baseToken, initiativeOrder: 0 }], combatRolls: [], damageProposals: [], undo: { available: 1, redoAvailable: 0 } } as unknown as EncounterState;
 
 function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]> = {}) {
   const props: Parameters<typeof BattleMapCommandBar>[0] = {
@@ -17,7 +17,7 @@ function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]
     connection: "live", connectionLabel: "Live", connectionTooltip: "Live connection", uiSettingsRef: { current: null }, gridOpacity: 0.17,
     showColoredTokenCenters: true, showHealthRings: true, sidebarOpen: true, presenting: false,
     durableAnnotationCount: 0,
-    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onRequestClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), ...overrides,
+    onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onRequestClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), onCorrectTurn: vi.fn(), ...overrides,
   };
   render(<BattleMapCommandBar {...props} />); return props;
 }
@@ -35,6 +35,32 @@ describe("BattleMapCommandBar", () => {
     expect((screen.getByRole("button", { name: "Redo last action" }) as HTMLButtonElement).disabled).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: "Undo last action" }));
     expect(props.onHistory).toHaveBeenCalledWith("undo");
+  });
+  it("opens the combat log from the top row", async () => {
+    const roll = { id: "roll-1", attackerName: "Dar'eleth", targetName: "Goblin", outcome: "hit", damageTotal: 8, action: { name: "Longsword +1", damageType: "slashing" } };
+    commandBar({ state: { ...state, combatRolls: [roll] } as EncounterState });
+    expect(screen.queryByRole("region", { name: "Combat Log" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Combat Log, 1 roll" }));
+    const log = screen.getByRole("region", { name: "Combat Log" });
+    expect(log.querySelector(".combat-log-scroll")).toBeTruthy();
+    expect(log.textContent).toContain("Dar'eleth → Goblin");
+    expect(log.textContent).toContain("8 slashing");
+  });
+  it("opens turn correction from the DM round control", async () => {
+    const onCorrectTurn = vi.fn();
+    commandBar({ onCorrectTurn });
+    expect(screen.queryByRole("region", { name: "Correct turn" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Round 2, correct turn" }));
+    expect(screen.getByRole("region", { name: "Correct turn" })).toBeTruthy();
+    await userEvent.clear(screen.getByLabelText("Correct round"));
+    await userEvent.type(screen.getByLabelText("Correct round"), "3");
+    await userEvent.click(screen.getByRole("button", { name: "Apply correction" }));
+    expect(onCorrectTurn).toHaveBeenLastCalledWith(3, 0);
+  });
+  it("keeps the player round display read-only", () => {
+    commandBar({ participant: player });
+    expect(screen.queryByRole("button", { name: /correct turn/i })).toBeNull();
+    expect(screen.getByLabelText("Current round 2")).toBeTruthy();
   });
   it("returns every participant to campaign home from the map", async () => {
     const onOpenDashboard = vi.fn(); commandBar({ participant: player, onOpenDashboard });

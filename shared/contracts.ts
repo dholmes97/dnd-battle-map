@@ -2,7 +2,7 @@ import type { CreatureSize } from "./creature-library";
 import type { MapImage, MapPackage } from "./map-package";
 import type { HealthBand } from "./health";
 import type { SpellAreaSize, SpellEffectDefinition } from "./spell-effects";
-import type { CombatActionProfile, CombatActionValues, CombatRollingMode, DamageAdjudication, DamageProposalStatus, RollMode } from "./combat-rolling";
+import type { CombatActionProfile, CombatActionValues, DamageAdjudication, DamageProposalStatus, RollMode } from "./combat-rolling";
 
 export type Role = "player" | "dm";
 export type EncounterStatus = "setup" | "active" | "paused";
@@ -102,7 +102,6 @@ export type FogVisibility = {
 };
 
 export type EncounterState = {
-  features: { combatRolling: { mode: CombatRollingMode; enabled: boolean; draining: boolean } };
   encounter: {
     code: string;
     name: string;

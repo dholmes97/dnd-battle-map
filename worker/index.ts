@@ -44,8 +44,6 @@ import {
 } from "../shared/contracts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
 import {
-  combatRollingEnabled,
-  parseCombatRollingMode,
   projectCombatDamageValues,
   projectDamageAdjudication,
   validateCombatActionValues,
@@ -1036,17 +1034,6 @@ async function findEncounter(env: Env, code: string): Promise<EncounterRow | nul
     .first<EncounterRow>();
 }
 
-async function combatRollingFeature(env: Env, encounterId: string, campaignId: string) {
-  const mode = parseCombatRollingMode(env.COMBAT_ROLLING_MODE);
-  const campaign = await env.DB.prepare("SELECT is_qa FROM campaigns WHERE id = ?")
-    .bind(campaignId).first<{ is_qa: number }>();
-  const enabled = combatRollingEnabled(mode, Boolean(campaign?.is_qa));
-  const pending = enabled ? null : await env.DB.prepare(
-    "SELECT 1 AS found FROM damage_proposals WHERE encounter_id = ? AND status = 'pending' LIMIT 1",
-  ).bind(encounterId).first();
-  return { mode, enabled, draining: !enabled && Boolean(pending) };
-}
-
 function secureRollDie(sides: number): number {
   if (!Number.isInteger(sides) || sides < 2 || sides > 100) throw new Error("Invalid die size.");
   const limit = Math.floor(0x1_0000_0000 / sides) * sides;
@@ -1584,9 +1571,7 @@ async function encounterState(
       ((!token.is_hidden || viewer?.role === "dm" || viewerControls(token)) &&
       (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
-  const combatFeature = await combatRollingFeature(env, encounter!.id, encounter!.campaign_id);
-  const actionRows = combatFeature.enabled
-    ? await env.DB.prepare(
+  const actionRows = await env.DB.prepare(
         `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name,
                 cap.attack_bonus, cap.attack_kind, cap.damage_dice_count, cap.damage_die_size,
                 cap.damage_modifier, cap.damage_type, cap.reach_feet, cap.range_feet,
@@ -1601,24 +1586,13 @@ async function encounterState(
            )
          )
          ORDER BY cap.sort_order, cap.name, cap.id LIMIT 200`,
-      ).bind(encounter!.id, encounter!.id).all<CombatActionProfileRow>()
-    : { results: [] as CombatActionProfileRow[] };
-  const rollRows = combatFeature.enabled
-    ? await env.DB.prepare(
+      ).bind(encounter!.id, encounter!.id).all<CombatActionProfileRow>();
+  const rollRows = await env.DB.prepare(
         `SELECT r.*, p.name AS participant_name FROM combat_rolls r
          JOIN participants p ON p.id = r.participant_id
          WHERE r.encounter_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 100`,
-      ).bind(encounter!.id).all<CombatRollRow & { participant_name: string }>()
-    : combatFeature.draining
-      ? await env.DB.prepare(
-          `SELECT r.*, p.name AS participant_name FROM combat_rolls r
-           JOIN participants p ON p.id = r.participant_id
-           JOIN damage_proposals dp ON dp.roll_id = r.id AND dp.status = 'pending'
-           WHERE r.encounter_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 100`,
-        ).bind(encounter!.id).all<CombatRollRow & { participant_name: string }>()
-      : { results: [] as Array<CombatRollRow & { participant_name: string }> };
-  const proposalRows = combatFeature.enabled || combatFeature.draining
-    ? await env.DB.prepare(
+      ).bind(encounter!.id).all<CombatRollRow & { participant_name: string }>();
+  const proposalRows = await env.DB.prepare(
         `SELECT dp.id, dp.encounter_id, dp.roll_id, dp.target_token_id, dp.status,
                 dp.rolled_damage, dp.final_damage, dp.adjudication_method,
                 dp.adjudicated_by_participant_id, dp.adjudication_note,
@@ -1627,10 +1601,9 @@ async function encounterState(
                   THEN 1 ELSE 0 END AS concentration_check_required
          FROM damage_proposals dp
          LEFT JOIN actions a ON a.id = dp.history_action_id AND a.encounter_id = dp.encounter_id
-         WHERE dp.encounter_id = ? AND (? = 1 OR dp.status = 'pending')
+         WHERE dp.encounter_id = ?
          ORDER BY dp.created_at DESC, dp.id DESC LIMIT 100`,
-      ).bind(encounter!.id, combatFeature.enabled ? 1 : 0).all<DamageProposalRow & { concentration_check_required: number }>()
-    : { results: [] as Array<DamageProposalRow & { concentration_check_required: number }> };
+      ).bind(encounter!.id).all<DamageProposalRow & { concentration_check_required: number }>();
   const visibleRollRows = rollRows.results.filter((roll) => {
     const target = tokenById.get(roll.target_token_id);
     const attacker = tokenById.get(roll.attacker_token_id);
@@ -1717,7 +1690,6 @@ async function encounterState(
     },
     grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
     viewer: viewer ? { id: viewer.id, role: viewer.role } : null,
-    features: { combatRolling: combatFeature },
     combatActions,
     combatRolls,
     damageProposals,
@@ -2019,10 +1991,6 @@ async function handleCommand(
     authenticatedActorIdentityId: participant.authenticated_actor_identity_id ?? participant.identity_id ?? null,
     campaignMembershipId: participant.campaign_membership_id ?? null,
   };
-  let combatFeatureValue: Awaited<ReturnType<typeof combatRollingFeature>> | null = null;
-  const loadCombatFeature = async () => combatFeatureValue ??= await combatRollingFeature(
-    env, encounter.id, encounter.campaign_id,
-  );
   const commandServices = {
     createId: () => crypto.randomUUID(),
     loadState: state,
@@ -2126,7 +2094,6 @@ async function handleCommand(
     ...baseContext(payload),
     repository: createD1CombatRollRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
-    feature: await loadCombatFeature(),
     rollDie: secureRollDie,
   });
   let outcome: CommandOutcome;

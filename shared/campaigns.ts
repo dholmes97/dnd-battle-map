@@ -41,7 +41,6 @@ export type CampaignAccessSummary = {
   name: string;
   membershipId: string;
   role: Role;
-  combatRollingEnabled?: boolean;
   characters: CampaignCharacterSummary[];
   members?: CampaignMemberSummary[];
   encounters: Array<{

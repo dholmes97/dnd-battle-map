@@ -17,14 +17,12 @@ type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-a
 type CombatDependencies = {
   repository: CombatRollRepository;
   canControl(token: TokenRow): Promise<boolean>;
-  feature: { enabled: boolean; draining: boolean };
   rollDie(sides: number): number;
 };
 export type CombatRollCommandContext<Name extends CombatCommandName = CombatCommandName> =
   CommandContextFor<Name, CombatDependencies>;
 
 export async function saveCombatAction(context: CombatRollCommandContext<"save-combat-action">): Promise<CommandOutcome> {
-  if (!context.feature.enabled) return featureDisabled();
   const values = validateCombatActionValues(context.payload.values);
   if (!values) return commandError("Combat action values are invalid.", 400);
   const ownerAllowed = await canMaintainOwner(context, context.payload.ownerType, context.payload.ownerId);
@@ -53,7 +51,6 @@ export async function saveCombatAction(context: CombatRollCommandContext<"save-c
 }
 
 export async function deleteCombatAction(context: CombatRollCommandContext<"delete-combat-action">): Promise<CommandOutcome> {
-  if (!context.feature.enabled) return featureDisabled();
   const actionId = cleanId(context.payload.actionId);
   const action = await context.repository.findAction(actionId);
   if (!action) return commandError("Combat action not found.", 404);
@@ -68,7 +65,6 @@ export async function deleteCombatAction(context: CombatRollCommandContext<"dele
 }
 
 export async function rollAttack(context: CombatRollCommandContext<"roll-attack">): Promise<CommandOutcome> {
-  if (!context.feature.enabled) return featureDisabled();
   const operationId = cleanOperationId(context.payload.operationId);
   if (!operationId) return commandError("A valid operation ID is required.", 400);
   const prior = await context.repository.findRollByOperation(context.encounter.id, operationId);
@@ -158,7 +154,6 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
 export async function adjudicateDamage(context: CombatRollCommandContext<"adjudicate-damage">): Promise<CommandOutcome> {
   const dmError = requireDm(context);
   if (dmError) return dmError;
-  if (!context.feature.enabled && !context.feature.draining) return featureDisabled();
   const proposal = await context.repository.findProposal(context.encounter.id, cleanId(context.payload.proposalId));
   if (!proposal) return commandError("Damage proposal not found.", 404);
   if (proposal.status !== "pending") {
@@ -295,10 +290,6 @@ function cleanId(value: unknown): string {
 
 function cleanOperationId(value: unknown): string {
   return typeof value === "string" && /^[a-zA-Z0-9_-]{8,96}$/.test(value) ? value : "";
-}
-
-function featureDisabled() {
-  return commandError("Combat rolling is disabled for this campaign.", 403);
 }
 
 async function success(context: CombatRollCommandContext, payload: Record<string, unknown>): Promise<CommandOutcome> {
