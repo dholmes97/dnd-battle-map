@@ -2126,7 +2126,6 @@ async function handleCommand(
     ...baseContext(payload),
     repository: createD1CombatRollRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
-    canSeeToken: async (tokenId) => Boolean((await state())?.tokens.some((token) => token.id === tokenId)),
     feature: await loadCombatFeature(),
     rollDie: secureRollDie,
   });

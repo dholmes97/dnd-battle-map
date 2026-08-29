@@ -373,6 +373,10 @@ The workflow requires an unambiguous source and target.
   is selected, the UI requires an attacker choice rather than guessing.
 - Persistent spell entities cannot act as the attacker in the MVP.
 - The target must be a creature token visible to the initiating viewer.
+- The client offers only projected visible tokens as targets. The Worker verifies
+  that the submitted target exists in the encounter but deliberately does not
+  rebuild visibility or reject a previously known hidden-token ID; this trusted-
+  group edge case is left to mandatory DM damage adjudication.
 - Selection remains independent from movement authority. Strict movement does
   not alter attack selection or roll permissions.
 
@@ -846,7 +850,8 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 
 - Player can roll only from a controlled attacker
 - DM can roll from any authorized encounter creature
-- Hidden or unprojected targets cannot be selected by a player
+- Submitted targets must exist in the encounter; target visibility is not
+  re-authorized by the roll command
 - Exact target AC and HP do not leak in player responses
 - Missing AC produces an explicit non-applicable outcome
 - Authoritative Bless state adds one server-generated d4 while forged client

@@ -74,7 +74,6 @@ function context(overrides = {}) {
     now: 100,
     feature: { enabled: true, draining: false },
     canControl: async () => true,
-    canSeeToken: async () => true,
     rollDie: () => dice.shift() ?? 1,
     services: {
       createId: () => `generated-${++nextId}`,
@@ -126,9 +125,33 @@ test("a target without armor class records the roll without creating a damage pr
   assert.equal(written.proposalId, null);
 });
 
-test("a player cannot roll an uncontrolled attacker or an unprojected target", async () => {
+test("a player cannot roll an uncontrolled attacker", async () => {
   assert.equal((await rollAttack(context({ canControl: async () => false }))).status, 403);
-  assert.equal((await rollAttack(context({ canSeeToken: async () => false }))).status, 404);
+});
+
+test("an existing hidden target is accepted without a visibility projection", async () => {
+  const value = context({
+    repository: {
+      findToken: async (_encounterId, id) => id === "attacker"
+        ? token("attacker", { name: "Hero", kind: "character", campaign_character_id: "character" })
+        : id === "target" ? token("target", { name: "Hidden Goblin", is_hidden: 1 }) : null,
+    },
+  });
+  const result = await rollAttack(value);
+  assert.equal(result.status, undefined);
+  assert.equal(value.calls.some(([kind]) => kind === "roll"), true);
+});
+
+test("a submitted target must still exist in the encounter", async () => {
+  const value = context({
+    repository: {
+      findToken: async (_encounterId, id) => id === "attacker"
+        ? token("attacker", { name: "Hero", kind: "character", campaign_character_id: "character" })
+        : null,
+    },
+  });
+  assert.equal((await rollAttack(value)).status, 404);
+  assert.equal(value.calls.some(([kind]) => kind === "roll"), false);
 });
 
 test("operation retries recover the immutable roll without generating dice again", async () => {

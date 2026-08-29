@@ -17,7 +17,6 @@ type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-a
 type CombatDependencies = {
   repository: CombatRollRepository;
   canControl(token: TokenRow): Promise<boolean>;
-  canSeeToken(tokenId: string): Promise<boolean>;
   feature: { enabled: boolean; draining: boolean };
   rollDie(sides: number): number;
 };
@@ -78,7 +77,6 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
   const target = await context.repository.findToken(context.encounter.id, cleanId(context.payload.targetTokenId));
   if (!attacker || !target) return commandError("Attacker or target not found.", 404);
   if (!await context.canControl(attacker)) return commandError("You cannot attack from that token.", 403);
-  if (!await context.canSeeToken(target.id)) return commandError("That target is not visible to you.", 404);
   if (attacker.id === target.id) return commandError("Choose a different target.", 400);
 
   const selected = await selectedAction(context, attacker);
