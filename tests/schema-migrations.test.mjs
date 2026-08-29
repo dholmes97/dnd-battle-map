@@ -45,6 +45,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT can_use_qa_sessions FROM identities WHERE id = 'identity-dan';"), "1");
   assert.equal(await query(database, "SELECT is_qa FROM campaigns WHERE id = 'campaign-combat-rolling-qa';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM effects WHERE id = 'effect-combat-qa-bless' AND lower(trim(name)) = 'bless';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
@@ -303,6 +304,11 @@ test("the Worker only performs a read-only migration readiness check", async () 
   assert.match(block, /SELECT 1 AS ready FROM app_maintenance/);
   assert.match(block, /google-auth-campaign-management-v1/);
   assert.doesNotMatch(block, /CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX|DELETE FROM|UPDATE |INSERT INTO|\.run\(|\.batch\(/);
+});
+
+test("local development applies pending migrations before serving requests", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(packageJson.scripts.predev, "npm run db:bootstrap");
 });
 
 test("resource-limit migration constants stay aligned with application policies", async () => {

@@ -1534,6 +1534,84 @@ input:focus {
 .damage-review-launcher { position: absolute; z-index: 19; top: 0.75rem; right: 0.75rem; min-height: 2.55rem; padding: 0.5rem 0.55rem 0.5rem 0.75rem; display: flex; align-items: center; gap: 0.55rem; border: 1px solid #bc8d36; border-radius: 999px; background: rgba(30, 24, 16, 0.96); color: #f0d28b; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46); font-size: 0.7rem; font-weight: 850; }
 .damage-review-launcher:hover, .damage-review-launcher:focus-visible { background: #352817; border-color: #e1b45c; }
 .damage-review-launcher span { min-width: 1.35rem; height: 1.35rem; padding: 0 0.25rem; display: grid; place-items: center; border-radius: 999px; background: #b9832f; color: #18120b; font-family: var(--font-geist-mono), monospace; font-size: 0.62rem; }
+.combat-activity-stack {
+  position: fixed;
+  z-index: 45;
+  top: 5.25rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  width: min(27rem, calc(100vw - 21.75rem));
+  min-width: 20rem;
+  padding-right: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+  scrollbar-color: #6b5a3a transparent;
+  scrollbar-width: thin;
+}
+.combat-activity-card {
+  flex: 0 0 auto;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid rgba(132, 112, 75, 0.86);
+  border-radius: 0.68rem;
+  background: rgba(17, 17, 15, 0.94);
+  color: #ddd4c6;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.66), 0 0 28px rgba(126, 166, 113, 0.06);
+  backdrop-filter: blur(10px);
+}
+.combat-activity-card > header {
+  min-height: 3rem;
+  padding: 0.58rem 0.62rem 0.58rem 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(74, 64, 49, 0.82);
+  background: linear-gradient(180deg, rgba(44, 39, 31, 0.96), rgba(25, 23, 20, 0.94));
+}
+.combat-activity-card > header > span:first-child { min-width: 0; display: grid; flex: 1 1 auto; gap: 0.1rem; }
+.combat-activity-card > header small { color: #bda56f; font-size: 0.48rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; }
+.combat-activity-card > header strong { color: #e4dacb; font-family: Georgia, "Times New Roman", serif; font-size: 0.9rem; font-weight: 550; line-height: 1.25; }
+.combat-activity-card > header strong span { color: #efd48e; }
+.combat-activity-card > header .icon-action-close { width: 1.75rem; height: 1.75rem; flex: 0 0 1.75rem; }
+.combat-roll-result-card .combat-roll-result-content { padding: 0.68rem; gap: 0.55rem; }
+.combat-roll-result-card .combat-roll-result-stage { min-height: 5.25rem; padding: 0.58rem; gap: 0.55rem; border-radius: 0.5rem; }
+.combat-roll-result-card .combat-roll-dice { gap: 0.38rem; }
+.combat-roll-result-card .combat-roll-dice > span { width: 3.15rem; min-height: 3.15rem; padding: 0.25rem; border-radius: 0.55rem; }
+.combat-roll-result-card .combat-roll-dice small, .combat-roll-result-card .combat-roll-total small { font-size: 0.43rem; }
+.combat-roll-result-card .combat-roll-dice strong { font-size: 1.05rem; }
+.combat-roll-result-card .combat-roll-total { min-width: 5.2rem; }
+.combat-roll-result-card .combat-roll-total strong { font-size: 2.25rem; }
+.combat-roll-result-card .combat-roll-outcome strong { font-size: 1.05rem; }
+.combat-roll-result-card .combat-roll-damage-stage { min-height: 4.8rem; }
+.combat-roll-result-card .combat-roll-result-status { padding: 0.45rem 0.52rem; font-size: 0.65rem; }
+.combat-roll-result-card.is-miss .combat-roll-result-status { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
+.damage-review-card { border-color: rgba(165, 127, 55, 0.9); box-shadow: 0 16px 42px rgba(0, 0, 0, 0.66), 0 0 30px rgba(210, 170, 86, 0.1); }
+.damage-review-card > header { background: linear-gradient(180deg, rgba(49, 40, 26, 0.96), rgba(29, 26, 21, 0.94)); }
+.damage-review-card .damage-review-count { margin-left: auto; }
+.damage-review-card .damage-review-content { padding: 0.68rem; gap: 0.52rem; }
+.damage-review-card .damage-review-content > p { font-size: 0.7rem; line-height: 1.4; }
+.damage-review-card .damage-review-total { padding: 0.5rem 0.62rem; }
+.damage-review-card .damage-review-total > strong { font-size: 1.55rem; }
+.damage-review-card .damage-review-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.34rem; }
+.damage-review-card .damage-review-decisions button { min-height: 2.5rem; padding: 0.36rem 0.42rem; text-align: center; }
+.damage-review-card .damage-review-decisions button strong { font-size: 0.64rem; }
+.damage-review-card .damage-review-decisions button span { font-size: 0.58rem; }
+.damage-review-card .damage-review-adjust { grid-template-columns: 6.4rem minmax(0, 1fr); align-items: center; gap: 0.4rem; }
+.damage-review-card .damage-review-adjust > div { grid-template-columns: minmax(0, 1fr) auto; gap: 0.34rem; }
+.damage-review-card .damage-review-adjust input, .damage-review-card .damage-review-adjust button { min-height: 2rem; }
+.damage-review-card > footer { padding: 0 0.68rem 0.62rem; display: flex; gap: 0.25rem; }
+.damage-review-card > footer .text-button { min-height: 1.85rem; padding-inline: 0.42rem; font-size: 0.58rem; }
+.damage-notification-card-content { padding: 0.68rem; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); align-items: center; gap: 0.62rem; }
+.damage-notification-card .damage-notification-sigil { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border: 1px solid #9b7937; border-radius: 50%; color: #edc76c; box-shadow: inset 0 0 0 0.28rem rgba(155, 121, 55, 0.08); }
+.damage-notification-card .damage-notification-copy { gap: 0.3rem; font-size: 0.68rem; line-height: 1.38; }
+.damage-notification-card > footer { padding: 0 0.68rem 0.62rem; display: flex; justify-content: flex-end; }
+.combat-card-action { min-height: 1.9rem; padding: 0.32rem 0.6rem; border: 1px solid #74613b; border-radius: 0.4rem; background: rgba(79, 61, 29, 0.56); color: #efd58e; font-size: 0.62rem; font-weight: 800; }
+.combat-card-action:hover, .combat-card-action:focus-visible { border-color: #b99145; background: rgba(112, 82, 32, 0.65); }
+.combat-activity-overflow { flex: 0 0 auto; align-self: flex-start; padding: 0.38rem 0.62rem; pointer-events: auto; border: 1px solid rgba(184, 145, 71, 0.55); border-radius: 999px; background: rgba(28, 24, 18, 0.94); color: #dbc184; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.44); font-size: 0.6rem; font-weight: 800; }
 .handout-lightbox > section { width: min(72rem, 100%); height: min(90vh, 52rem); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #66573d; border-radius: 0.78rem; background: #11110f; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.78); }
 .handout-lightbox header { min-height: 3.5rem; padding: 0.65rem 0.75rem 0.65rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #39342d; background: linear-gradient(180deg, #29251f, #1d1b18); }
 .handout-lightbox header > span { min-width: 0; display: grid; gap: 0.12rem; }
@@ -1967,9 +2045,19 @@ input:focus {
   .concentration-reminder-content { grid-template-columns: 3.25rem minmax(0, 1fr); padding: 1.15rem 1rem; gap: 0.85rem; }
   .concentration-reminder-sigil { width: 3.25rem; height: 3.25rem; }
   .concentration-reminder-shadowbox footer { padding: 0 1rem 1rem; }
-  .combat-roll-result-shadowbox { padding: 1rem; }
+  .combat-activity-stack {
+    position: fixed;
+    inset: auto max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+    width: auto;
+    min-width: 0;
+    max-height: min(66dvh, 34rem);
+    padding: 0.2rem 0;
+  }
+  .combat-activity-card { background: rgba(17, 17, 15, 0.97); }
   .combat-roll-result-stage { grid-template-columns: 1fr; }
   .combat-roll-total { min-width: 0; justify-items: start; }
+  .damage-review-card .damage-review-decisions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .damage-review-card .damage-review-adjust { grid-template-columns: 1fr; }
   .spell-grid { grid-template-columns: 1fr; }
   .workshop-header { align-items: center; }
   .workshop-header-title span { display: none; }

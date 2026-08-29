@@ -111,6 +111,13 @@ export function useDamageNotifications({ participant, state }: {
     previousTokensRef.current = currentTokens;
   }, [participant, state]);
 
-  const dismiss = useCallback(() => setQueue((current) => current.slice(1)), []);
-  return { notification: queue[0] ?? null, remainingCount: Math.max(0, queue.length - 1), dismiss };
+  const dismiss = useCallback((notificationId?: string) => setQueue((current) => notificationId
+    ? current.filter((notification) => notification.id !== notificationId)
+    : current.slice(1)), []);
+  return {
+    notifications: queue,
+    notification: queue[0] ?? null,
+    remainingCount: Math.max(0, queue.length - 1),
+    dismiss,
+  };
 }

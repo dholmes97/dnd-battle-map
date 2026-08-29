@@ -13,18 +13,25 @@ export function useDamageReviewQueue({ participant, state }: {
       .filter((proposal) => proposal.status === "pending")
       .sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id))
     : [], [participant?.role, state?.damageProposals]);
-  const activeProposal = pendingProposals.find((proposal) => !deferredProposalIds.has(proposal.id)) ?? null;
+  const visibleProposals = pendingProposals.filter((proposal) => !deferredProposalIds.has(proposal.id));
+  const activeProposal = visibleProposals[0] ?? null;
+
+  const deferProposal = useCallback((proposalId: string) => {
+    setDeferredProposalIds((current) => new Set(current).add(proposalId));
+  }, []);
 
   const deferActive = useCallback(() => {
     if (!activeProposal) return;
-    setDeferredProposalIds((current) => new Set(current).add(activeProposal.id));
-  }, [activeProposal]);
+    deferProposal(activeProposal.id);
+  }, [activeProposal, deferProposal]);
 
   const reopen = useCallback(() => setDeferredProposalIds(new Set()), []);
 
   return {
     activeProposal,
+    visibleProposals,
     pendingCount: pendingProposals.length,
+    deferProposal,
     deferActive,
     reopen,
   };

@@ -32,9 +32,12 @@ date and flags.
 ```bash
 npm install
 npm run build
-npm run db:bootstrap
 npm run dev
 ```
+
+`npm run dev` applies any pending checked-in migrations before starting the
+local server. Run `npm run db:bootstrap` directly when you only want to update
+the project-local database.
 
 Open the printed local URL. Localhost exposes a development-only identity
 switcher so multiple browser windows can exercise different people without

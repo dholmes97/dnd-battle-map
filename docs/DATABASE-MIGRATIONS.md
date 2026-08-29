@@ -21,14 +21,17 @@ new numbered migrations instead of a source-code seed catalog.
 
 ## Local development
 
-Build once, then apply every unapplied checked-in migration to the project-local
-Miniflare D1 database before starting the server:
+Build once, then start the local server. Its `predev` hook applies every
+unapplied checked-in migration to the project-local Miniflare D1 database before
+the server accepts requests:
 
 ```bash
 npm run build
-npm run db:bootstrap
 npm run dev
 ```
+
+Use `npm run db:bootstrap` directly to apply migrations without starting the
+development server.
 
 Wrangler records applied local migrations and only applies new files on later
 runs. The Worker performs a read-only check for the marker written by migration

@@ -14,9 +14,11 @@ describe("useDamageReviewQueue", () => {
     const { result } = renderHook(() => useDamageReviewQueue({ participant, state }));
 
     expect(result.current.activeProposal?.id).toBe("older");
+    expect(result.current.visibleProposals.map((item) => item.id)).toEqual(["older", "newer"]);
     expect(result.current.pendingCount).toBe(2);
-    act(() => result.current.deferActive());
+    act(() => result.current.deferProposal("older"));
     expect(result.current.activeProposal?.id).toBe("newer");
+    expect(result.current.visibleProposals.map((item) => item.id)).toEqual(["newer"]);
     act(() => result.current.deferActive());
     expect(result.current.activeProposal).toBeNull();
     expect(result.current.pendingCount).toBe(2);

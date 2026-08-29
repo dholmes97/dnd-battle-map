@@ -2540,6 +2540,13 @@ const worker = {
           : await handleQaSession(request, env, identity, (participant) =>
               encounterState(env, "COMBAT-ROLLING-QA", participant));
       } catch (error) {
+        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+          console.error(JSON.stringify({
+            event: "combat_qa_session_debug",
+            errorType: error instanceof Error ? error.name : typeof error,
+            errorMessage: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+          }));
+        }
         return apiFailure(error, "Combat QA session error", "The combat QA session could not be prepared.");
       }
     }

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { CombatRollResultDialog, ConcentrationReminderDialog, DamageNotificationDialog, DamageReviewDialog, EncounterDialogs } from "@/app/encounter-dialogs";
+import { CombatActivityStack, CombatRollResultCard, DamageNotificationCard, DamageReviewCard } from "@/app/combat-activity-stack";
+import { ConcentrationReminderDialog, EncounterDialogs } from "@/app/encounter-dialogs";
 import type { EncounterState, ParticipantSession, SharedCombatRoll, SharedDamageProposal } from "@/shared/contracts";
 
 const damageProposal: SharedDamageProposal = {
@@ -54,10 +55,10 @@ describe("ConcentrationReminderDialog", () => {
   });
 });
 
-describe("DamageNotificationDialog", () => {
+describe("DamageNotificationCard", () => {
   it("explains temporary HP absorption and permits ordinary dismissal", () => {
     const onDismiss = vi.fn();
-    const { container } = render(<DamageNotificationDialog notification={{
+    render(<DamageNotificationCard notification={{
       id: "proposal-1",
       targetTokenId: "target-1",
       targetName: "QA Champion",
@@ -73,22 +74,22 @@ describe("DamageNotificationDialog", () => {
       concentrationCheckRequired: true,
     }} remainingCount={1} onDismiss={onDismiss} />);
 
-    expect(screen.getByRole("alertdialog", { name: "Damage applied" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Damage applied" })).toBeTruthy();
     expect(screen.getByText(/5 temporary HP absorbed all of it/)).toBeTruthy();
-    expect(container.querySelector("#damage-notification-description p")?.textContent).toBe("QA Goblin Raider hit QA Champion with Scimitar for 5 slashing damage.");
+    expect(screen.getByText(/QA Goblin Raider/).closest("p")?.textContent).toBe("QA Goblin Raider hit QA Champion with Scimitar for 5 slashing damage.");
     expect(screen.getByText("1 more combat update waiting")).toBeTruthy();
-
-    fireEvent.mouseDown(container.querySelector(".damage-notification-shadowbox")!);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Continue to concentration check" }));
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 });
 
-describe("DamageReviewDialog", () => {
+describe("DamageReviewCard", () => {
   it("makes the standard rulings prominent and submits the selected result", () => {
     const onAdjudicate = vi.fn();
-    render(<DamageReviewDialog proposal={damageProposal} roll={damageRoll} pendingCount={2} onAdjudicate={onAdjudicate} onDismiss={vi.fn()} />);
+    render(<DamageReviewCard proposal={damageProposal} roll={damageRoll} pendingCount={2} onAdjudicate={onAdjudicate} onDismiss={vi.fn()} />);
 
-    expect(screen.getByRole("dialog", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
     expect(screen.getByText("2 pending")).toBeTruthy();
     expect(screen.getByText("Dar'eleth")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Resistant/ }));
@@ -98,25 +99,25 @@ describe("DamageReviewDialog", () => {
   it("supports an explicit adjustment and defers without resolving the proposal", () => {
     const onAdjudicate = vi.fn();
     const onDismiss = vi.fn();
-    render(<DamageReviewDialog proposal={damageProposal} roll={damageRoll} pendingCount={1} onAdjudicate={onAdjudicate} onDismiss={onDismiss} />);
+    render(<DamageReviewCard proposal={damageProposal} roll={damageRoll} pendingCount={1} onAdjudicate={onAdjudicate} onDismiss={onDismiss} />);
 
-    const applyAdjusted = screen.getByRole("button", { name: "Apply adjusted" });
+    const applyAdjusted = screen.getByRole("button", { name: "Apply" });
     expect((applyAdjusted as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByRole("spinbutton", { name: "Adjusted damage for Orc Warrior" }), { target: { value: "8" } });
     fireEvent.click(applyAdjusted);
     expect(onAdjudicate).toHaveBeenCalledWith("proposal-review-1", "adjust", 8);
 
-    fireEvent.click(screen.getByRole("button", { name: "Decide later" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decide later for Orc Warrior" }));
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 });
 
-describe("CombatRollResultDialog", () => {
+describe("CombatRollResultCard", () => {
   it("presents authoritative dice and damage in a dedicated result surface", () => {
     const onDismiss = vi.fn();
-    render(<CombatRollResultDialog notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={onDismiss} />);
+    render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={onDismiss} />);
 
-    expect(screen.getByRole("dialog", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
     const attackRoll = screen.getByLabelText("Attack total 22");
     const outcome = screen.getByRole("status", { name: "Attack result: Hit" });
     expect(screen.getByText("Attack bonus")).toBeTruthy();
@@ -128,20 +129,20 @@ describe("CombatRollResultDialog", () => {
     expect(outcome.compareDocumentPosition(damageRollResult) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByLabelText("Damage dice").textContent).toContain("d8");
     expect(screen.getByText("Damage is pending DM approval.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Return to map" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss roll result" }));
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
   it("does not present damage for a miss", () => {
-    render(<CombatRollResultDialog notice={{ roll: { ...damageRoll, outcome: "miss", damageDice: [7], damageTotal: 11 }, proposalId: null }} onDismiss={vi.fn()} />);
-    expect(screen.getByRole("dialog", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
+    render(<CombatRollResultCard notice={{ roll: { ...damageRoll, outcome: "miss", damageDice: [7], damageTotal: 11 }, proposalId: null }} onDismiss={vi.fn()} />);
+    expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
     expect(screen.getByRole("status", { name: "Attack result: Miss" })).toBeTruthy();
     expect(screen.queryByLabelText("Damage dice")).toBeNull();
     expect(screen.getByText("The attack missed. No damage proposal was created.")).toBeTruthy();
   });
 
   it("shows every die in a multi-die damage roll independently", () => {
-    render(<CombatRollResultDialog notice={{ roll: {
+    render(<CombatRollResultCard notice={{ roll: {
       ...damageRoll,
       action: { ...damageRoll.action, name: "Guiding Bolt", damage: { count: 4, sides: 6, modifier: 0 }, damageType: "radiant", manualRider: true, manualRiderText: "The next attack against the target has advantage." },
       damageDice: [2, 5, 1, 6],
@@ -156,7 +157,7 @@ describe("CombatRollResultDialog", () => {
 
   it("reveals authoritative attack, verdict, and damage results in story order", () => {
     vi.useFakeTimers();
-    const view = render(<CombatRollResultDialog notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
+    const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
     const attackTerms = screen.getByLabelText("Attack dice").querySelectorAll(".combat-roll-term");
     const attackTotal = screen.getByLabelText("Attack total 22").querySelector(".combat-roll-total")!;
     const outcome = screen.getByRole("status", { name: "Attack result: Hit" });
@@ -191,7 +192,7 @@ describe("CombatRollResultDialog", () => {
 
   it("waits until both advantage dice land before identifying the kept die", () => {
     vi.useFakeTimers();
-    const view = render(<CombatRollResultDialog notice={{ roll: {
+    const view = render(<CombatRollResultCard notice={{ roll: {
       ...damageRoll,
       rollMode: "advantage",
       attackDice: [7, 5],
@@ -216,7 +217,7 @@ describe("CombatRollResultDialog", () => {
   it("reveals the completed result immediately when reduced motion is preferred", () => {
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = vi.fn(() => ({ matches: true })) as unknown as typeof window.matchMedia;
-    const view = render(<CombatRollResultDialog notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
+    const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
 
     expect(screen.getByRole("status", { name: "Attack result: Hit" }).classList.contains("is-revealed")).toBe(true);
     expect(screen.getByLabelText("slashing damage total 11").classList.contains("is-revealed")).toBe(true);
@@ -227,8 +228,8 @@ describe("CombatRollResultDialog", () => {
   });
 });
 
-describe("EncounterDialogs combat event ordering", () => {
-  it("shows the blocking concentration check instead of stacking it over a queued damage update", () => {
+describe("combat surface separation", () => {
+  it("keeps the concentration check as a blocking authored dialog", () => {
     const participant: ParticipantSession = { id: "player", name: "Player", role: "player", sessionSecret: "secret" };
     render(<EncounterDialogs
       participant={participant}
@@ -238,25 +239,6 @@ describe("EncounterDialogs combat event ordering", () => {
       clearAnnotationsOpen={false}
       clearAnnotationCount={0}
       concentrationReminder={{ tokenId: "target-1", tokenName: "QA Champion" }}
-      damageNotification={{
-        id: "proposal-2",
-        targetTokenId: "target-1",
-        targetName: "QA Champion",
-        attackerName: "QA Skeleton Archer",
-        actionName: "Shortbow",
-        damageType: "piercing",
-        finalDamage: 4,
-        hpBefore: 30,
-        hpAfter: 26,
-        maxHp: 30,
-        temporaryHpBefore: 0,
-        temporaryHpAfter: 0,
-        concentrationCheckRequired: false,
-      }}
-      damageNotificationRemainingCount={0}
-      combatRollResult={null}
-      damageReviewProposal={null}
-      damageReviewPendingCount={0}
       lightboxHandout={null}
       handoutFitMode
       onResetOpen={vi.fn()}
@@ -266,51 +248,32 @@ describe("EncounterDialogs combat event ordering", () => {
       onRestart={vi.fn()}
       onClearAnnotations={vi.fn()}
       onDismissConcentrationReminder={vi.fn()}
-      onDismissDamageNotification={vi.fn()}
-      onDismissCombatRollResult={vi.fn()}
-      onDismissDamageReview={vi.fn()}
-      onAdjudicateDamage={vi.fn()}
       onHandoutFitMode={vi.fn()}
       onCloseLightbox={vi.fn()}
     />);
 
     expect(screen.getByRole("alertdialog", { name: "Concentration check required" })).toBeTruthy();
-    expect(screen.queryByRole("alertdialog", { name: "Damage applied" })).toBeNull();
   });
 
-  it("shows the initiating DM's roll result before its pending damage approval", () => {
-    const participant: ParticipantSession = { id: "dm", name: "DM", role: "dm", sessionSecret: "secret" };
-    render(<EncounterDialogs
-      participant={participant}
-      state={{ encounter: { code: "TEST" }, combatRolls: [damageRoll] } as EncounterState}
-      resetOpen={false}
-      restartOpen={false}
-      clearAnnotationsOpen={false}
-      clearAnnotationCount={0}
-      concentrationReminder={null}
-      damageNotification={null}
-      damageNotificationRemainingCount={0}
-      combatRollResult={{ roll: damageRoll, proposalId: damageProposal.id }}
-      damageReviewProposal={damageProposal}
-      damageReviewPendingCount={1}
-      lightboxHandout={null}
-      handoutFitMode
-      onResetOpen={vi.fn()}
-      onRestartOpen={vi.fn()}
-      onClearAnnotationsOpen={vi.fn()}
-      onReset={vi.fn()}
-      onRestart={vi.fn()}
-      onClearAnnotations={vi.fn()}
-      onDismissConcentrationReminder={vi.fn()}
+  it("shows a roll result and multiple DM damage reviews together without a modal", () => {
+    const secondRoll = { ...damageRoll, id: "roll-review-2", targetTokenId: "target-2", targetName: "Goblin Raider" };
+    const secondProposal = { ...damageProposal, id: "proposal-review-2", rollId: secondRoll.id, targetTokenId: secondRoll.targetTokenId, createdAt: 2 };
+    render(<CombatActivityStack
+      state={{ combatRolls: [damageRoll, secondRoll] } as EncounterState}
+      rollResult={{ roll: damageRoll, proposalId: damageProposal.id }}
+      damageNotifications={[]}
+      damageReviewProposals={[damageProposal, secondProposal]}
+      damageReviewPendingCount={2}
+      onDismissRollResult={vi.fn()}
       onDismissDamageNotification={vi.fn()}
-      onDismissCombatRollResult={vi.fn()}
       onDismissDamageReview={vi.fn()}
       onAdjudicateDamage={vi.fn()}
-      onHandoutFitMode={vi.fn()}
-      onCloseLightbox={vi.fn()}
     />);
 
-    expect(screen.getByRole("dialog", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
-    expect(screen.queryByRole("dialog", { name: "Apply damage to Orc Warrior?" })).toBeNull();
+    expect(screen.getByRole("complementary", { name: "Combat activity" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Apply damage to Goblin Raider?" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

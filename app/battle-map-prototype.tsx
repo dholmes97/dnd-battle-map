@@ -27,7 +27,8 @@ import { useCreatureCatalog } from "@/app/use-creature-catalog";
 import { useEncounterActions } from "@/app/use-encounter-actions";
 import { useMapAssets } from "@/app/use-map-assets";
 import { BattleMapCommandBar, type AnnotationMode } from "@/app/battle-map-command-bar";
-import { EncounterDialogs, type CombatRollResultNotice } from "@/app/encounter-dialogs";
+import { CombatActivityStack, type CombatRollResultNotice } from "@/app/combat-activity-stack";
+import { EncounterDialogs } from "@/app/encounter-dialogs";
 import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
 import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
@@ -1033,7 +1034,7 @@ export default function BattleMapPrototype() {
                 }}
               /> : null;
             })() : null}
-            {participant.role === "dm" && damageReview.pendingCount > 0 && !damageReview.activeProposal ? <button type="button" className="damage-review-launcher" onClick={damageReview.reopen}>Review pending damage <span>{damageReview.pendingCount}</span></button> : null}
+            {participant.role === "dm" && damageReview.pendingCount > 0 && damageReview.visibleProposals.length === 0 ? <button type="button" className="damage-review-launcher" onClick={damageReview.reopen}>Review pending damage <span>{damageReview.pendingCount}</span></button> : null}
             <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div>
             {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeSharedFogPoint}>Remove selected</button><button type="button" onClick={finishSharedFogEditing}>Done</button></div> : null}
             {paletteOpen ? <CreaturePalette
@@ -1115,29 +1116,32 @@ export default function BattleMapPrototype() {
         />
 
       </div>
+      <CombatActivityStack
+        state={state}
+        rollResult={combatRollResult}
+        damageNotifications={damageNotifications.notifications}
+        damageReviewProposals={damageReview.visibleProposals}
+        damageReviewPendingCount={damageReview.pendingCount}
+        onDismissRollResult={() => setCombatRollResult(null)}
+        onDismissDamageNotification={(notification) => {
+          damageNotifications.dismiss(notification.id);
+          if (!notification.concentrationCheckRequired) return;
+          const target = state.tokens.find((token) => token.id === notification.targetTokenId);
+          if (target) tokenControls.requireConcentrationCheck(target);
+        }}
+        onDismissDamageReview={damageReview.deferProposal}
+        onAdjudicateDamage={adjudicateDamageProposal}
+      />
       <EncounterDialogs
         participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
         clearAnnotationsOpen={clearAnnotationsConfirmOpen} clearAnnotationCount={durableAnnotationCount}
         concentrationReminder={tokenControls.concentrationReminder}
-        damageNotification={damageNotifications.notification} damageNotificationRemainingCount={damageNotifications.remainingCount}
-        combatRollResult={combatRollResult}
-        damageReviewProposal={damageReview.activeProposal} damageReviewPendingCount={damageReview.pendingCount}
         lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
         onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen} onClearAnnotationsOpen={setClearAnnotationsConfirmOpen}
         onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
         onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
         onClearAnnotations={() => { setClearAnnotationsConfirmOpen(false); void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: current.annotations.filter((annotation) => annotation.type !== "drawing") }), `${durableAnnotationCount} ${durableAnnotationCount === 1 ? "drawing" : "drawings"} cleared. Use Undo to restore.`); }}
         onDismissConcentrationReminder={tokenControls.dismissConcentrationReminder}
-        onDismissDamageNotification={() => {
-          const notification = damageNotifications.notification;
-          damageNotifications.dismiss();
-          if (!notification?.concentrationCheckRequired) return;
-          const target = state.tokens.find((token) => token.id === notification.targetTokenId);
-          if (target) tokenControls.requireConcentrationCheck(target);
-        }}
-        onDismissCombatRollResult={() => setCombatRollResult(null)}
-        onDismissDamageReview={damageReview.deferActive}
-        onAdjudicateDamage={adjudicateDamageProposal}
         onHandoutFitMode={setHandoutFitMode}
         onCloseLightbox={() => setLightboxHandout(null)}
       />

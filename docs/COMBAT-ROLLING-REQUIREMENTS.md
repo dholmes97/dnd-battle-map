@@ -4,8 +4,8 @@
 
 This document records the approved product direction for shared attack rolling,
 DM damage adjudication, and the multi-client testing support used to build and
-verify that workflow. The implementation is complete in the current working
-tree but has not been published or enabled in production.
+verify that workflow. The feature is deployed in production in `qa` mode, so
+only the isolated Combat QA campaign can create new rolls and proposals.
 
 These requirements refine the broad product boundaries in
 `docs/FEATURE-BACKLOG.md`. D&D Beyond remains the authority for complete
@@ -428,11 +428,12 @@ or choose the value of that die in the roll surface.
 
 After a successful submission, the compact attack chooser closes and the
 initiating participant sees the individual dice, total, hit/miss/critical
-outcome, and pending adjudication state in the shared modal system. The modal
-is a distinct presentation surface with enough room for later dice animation.
-It reads chronologically from top to bottom: a narrative header naming who is
-attacking whom with which action, the attack roll and total, the Hit/Miss/
-Critical verdict, and only then the damage roll when the attack landed.
+outcome, and pending adjudication state in a compact non-modal combat card at
+the edge of the viewport. The map remains visible and interactive around it.
+The card has enough room for later dice animation and reads chronologically
+from top to bottom: a narrative header naming who is attacking whom with which
+action, the attack roll and total, the Hit/Miss/Critical verdict, and only then
+the damage roll when the attack landed.
 Within that sequence, authoritative die values reveal from left to right with
 a short landing beat. Advantage and disadvantage d20s land neutrally; only
 after both are visible does a short beat identify the kept die. The verdict
@@ -440,14 +441,14 @@ appears one second after the attack total;
 on a hit, damage dice then reveal left to right before the damage total. This
 is presentation only—the client never generates or changes a server result—and
 reduced-motion preference reveals the completed result immediately.
-Closing it returns to the unobstructed map; another attack requires a fresh
+Closing the card removes only that result; another attack requires a fresh
 target interaction rather than reusing the prior chooser. Dice animation is
 local presentation that lands on the server-provided results; animation frames
 never cross the network and animation cannot generate or change the result.
 
-For a DM-originated damaging hit, the roll-result modal appears before the
-damage-adjudication modal. Dismissing the result reveals the already-pending
-approval; the two dialogs never stack.
+For a DM-originated damaging hit, the roll-result card and already-pending
+damage-approval card may appear together in the combat activity tray. They are
+independent non-modal cards and never obscure the entire battlefield.
 
 The initiating surface must not globally block token movement or unrelated map
 interactions while the roll or adjudication is pending.
@@ -532,9 +533,10 @@ damage from the generic critical rule.
 ## Damage proposal and DM adjudication
 
 A successful damaging player roll creates a durable encounter-scoped proposal.
-It is not a transient toast. A new proposal automatically opens an adjudication
-modal for the DM; review controls must not be buried in the initiative sidebar.
-The modal presents one proposal at a time, oldest first, such as:
+It is not a transient toast. A new proposal automatically adds an adjudication
+card to the DM's edge-aligned combat activity tray; review controls must not be
+buried in the initiative sidebar. Pending cards are ordered oldest first, with
+up to three visible at once and a queued-count summary for overflow, such as:
 
 `Dar'eleth hit Orc Warrior with Longsword +1 — 11 slashing damage.`
 
@@ -548,11 +550,11 @@ The DM can choose:
   retain a short bounded reason/category.
 - **Reject:** Apply no damage and mark the proposal rejected.
 
-The DM may choose **Decide later** or dismiss the modal without changing the
-proposal. Deferred proposals remain pending and a prominent map-level launcher
-shows the pending count and reopens the oldest proposal. Resolving one proposal
-advances the modal to the next pending proposal so simultaneous attacks form a
-bounded decision queue rather than stacked dialogs.
+The DM may choose **Decide later** or dismiss an individual card without
+changing the proposal. Deferred proposals remain pending and a prominent
+map-level launcher shows the pending count and restores the ordered card queue.
+Resolving one proposal removes only that card and reveals the next queued item,
+so simultaneous attacks remain independently actionable.
 
 Resistance, vulnerability, and immunity are DM decisions in the MVP; the
 system does not infer them from a stat block or effect.
@@ -625,9 +627,9 @@ introduced, it is ordinary core encounter and HP state in `off`, `qa`, and
   concentration acknowledgement remains authoritative.
 - Adjudicated combat damage routes the required concentration acknowledgement
   to the controller of the damaged token, not to the DM who approved the damage.
-- The controller sees the dismissible damage summary first. Dismissing it opens
-  the blocking concentration acknowledgement before the next queued combat
-  update, so the two shadowboxes never stack or compete for focus.
+- The controller sees the dismissible damage-summary card first. Dismissing it
+  opens the blocking concentration acknowledgement before the next queued
+  combat update, so the card and modal never compete for focus.
 - Manual damage remains independent of the combat-rolling feature gate. When a
   player applies damage manually to their concentrating character, the existing
   immediate blocking concentration acknowledgement still appears even in
@@ -830,9 +832,10 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Context action plus keyboard/touch-accessible fallback
 - Focus management and Escape behavior
 - Roll-mode and alternate-damage selection
-- Successful rolls close the chooser and open the authoritative result modal
+- Successful rolls close the chooser and add the authoritative result card
 - Another attack requires a fresh target interaction after result dismissal
-- DM roll results appear before their damage-adjudication modal without stacking
+- DM roll results and multiple damage-adjudication cards coexist in the bounded
+  combat activity tray without blocking the map
 - Non-editable Blessed indicator and authoritative Bless d4 presentation
 - DM-only generic Attack form for a creature with no configured profiles
 - No generic Attack fallback for a player-controlled attacker
@@ -840,7 +843,7 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Rolling controls are absent in `off` and in ordinary campaigns under `qa`
 - Pending-proposal drain controls remain available after rolling is disabled
 - Temporary HP controls and readouts remain available in every rolling mode
-- Pending proposal badge and DM adjudication controls
+- Pending proposal count, bounded card queue, and DM adjudication controls
 - Actor feedback for each terminal DM decision
 - No global interaction blocking while operations are pending
 - Private values absent from unauthorized rendering
