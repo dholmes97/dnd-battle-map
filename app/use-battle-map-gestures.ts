@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type DragEvent as ReactDragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   type SetStateAction,
@@ -137,6 +138,7 @@ type UseBattleMapGesturesInput = {
   onAddAnnotation: (type: AnnotationMode, start: MapPoint, end?: MapPoint) => void | Promise<void>;
   onRemoveAnnotation: (annotation: SharedAnnotation) => void;
   onUpdateSharedFog: (polygon: MapPoint[]) => void;
+  onAttackTarget: (tokenId: string, anchor: { x: number; y: number }) => boolean;
 };
 
 let nativeDragGhost: HTMLCanvasElement | null = null;
@@ -202,6 +204,7 @@ export function useBattleMapGestures({
   onAddAnnotation,
   onRemoveAnnotation,
   onUpdateSharedFog,
+  onAttackTarget,
 }: UseBattleMapGesturesInput) {
   const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [dragOrigin, setDragOrigin] = useState<MapPoint | null>(null);
@@ -380,6 +383,23 @@ export function useBattleMapGestures({
     event.dataTransfer.dropEffect = "copy";
     const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, tokenRadiusCells(creature.size));
     setPlacementPreview({ creature, ...point });
+  };
+
+  const onCanvasContextMenu = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    if (!state || !participant || !state.features.combatRolling.enabled) return;
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+    const rect = event.currentTarget.getBoundingClientRect();
+    const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
+    const target = [...state.tokens].reverse().find((token) => {
+      if (token.kind === SPELL_EFFECT_KIND || isTokenPendingCreation(token.id)) return false;
+      const radius = geometry.cellSize * tokenRadiusCells(token.size);
+      return Math.hypot((point.x - token.x) * geometry.cellSize, (point.y - token.y) * geometry.cellSize) <= radius;
+    });
+    if (!target || !onAttackTarget(target.id, {
+      x: Math.max(8, Math.min(rect.width - 16, event.clientX - rect.left)),
+      y: Math.max(8, Math.min(rect.height - 16, event.clientY - rect.top)),
+    })) return;
+    event.preventDefault();
   };
 
   const onMapDrop = (event: ReactDragEvent<HTMLCanvasElement>) => {
@@ -1086,6 +1106,7 @@ export function useBattleMapGestures({
     onCanvasPointerUp,
     onCanvasPointerCancel,
     onCanvasWheel,
+    onCanvasContextMenu,
     onCanvasFocus,
     onCanvasKeyDown,
     changeZoom,

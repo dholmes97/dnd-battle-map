@@ -1,0 +1,544 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 32,
+  "creatures": [
+    {
+      "creatureId": "srd-white-dragon-wyrmling",
+      "creatureName": "White Dragon Wyrmling",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/white-dragon-wyrmling",
+        "fetchedAt": "2026-08-29T02:06:41.557Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 2 (1d4) cold damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:white-dragon-wyrmling#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Cold Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-wight",
+      "creatureName": "Wight",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wight",
+        "fetchedAt": "2026-08-29T02:06:41.567Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Life Drain",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "necrotic",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wight#life-drain"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Longsword",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "Two handed",
+            "formula": {
+              "count": 1,
+              "sides": 10,
+              "modifier": 2
+            }
+          },
+          "sourceRef": "srd-5.1:wight#longsword"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Longbow",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 150,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wight#longbow"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-will-o-wisp",
+      "creatureName": "Will-o'-Wisp",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/will-o-wisp",
+        "fetchedAt": "2026-08-29T02:06:41.563Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Shock",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 0
+          },
+          "damageType": "lightning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:will-o-wisp#shock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-winter-wolf",
+      "creatureName": "Winter Wolf",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/winter-wolf",
+        "fetchedAt": "2026-08-29T02:06:41.564Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:winter-wolf#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Cold Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-wolf",
+      "creatureName": "Wolf",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wolf",
+        "fetchedAt": "2026-08-29T02:06:41.563Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wolf#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-worg",
+      "creatureName": "Worg",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/worg",
+        "fetchedAt": "2026-08-29T02:06:41.559Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:worg#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-wraith",
+      "creatureName": "Wraith",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wraith",
+        "fetchedAt": "2026-08-29T02:06:41.559Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Life Drain",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "necrotic",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wraith#life-drain"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Create Specter",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-wyvern",
+      "creatureName": "Wyvern",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/wyvern",
+        "fetchedAt": "2026-08-29T02:06:41.560Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wyvern#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claws",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wyvern#claws"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Stinger",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must make a DC 15 Constitution saving throw, taking 24 (7d6) poison damage on a failed save, or half as much damage on a successful one.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:wyvern#stinger"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-xorn",
+      "creatureName": "Xorn",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/xorn",
+        "fetchedAt": "2026-08-29T02:06:41.565Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:xorn#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claw",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:xorn#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-young-black-dragon",
+      "creatureName": "Young Black Dragon",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/young-black-dragon",
+        "fetchedAt": "2026-08-29T02:06:41.566Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 10,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 4 (1d8) acid damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:young-black-dragon#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claw",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:young-black-dragon#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Acid Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

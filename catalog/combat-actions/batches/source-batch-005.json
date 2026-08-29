@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 5,
+  "creatures": [
+    {
+      "creatureId": "srd-bat",
+      "creatureName": "Bat",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bat",
+        "fetchedAt": "2026-08-29T02:06:38.777Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 0,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:bat#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-bearded-devil",
+      "creatureName": "Bearded Devil",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/bearded-devil",
+        "fetchedAt": "2026-08-29T02:06:38.778Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Beard",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 12 Constitution saving throw or be poisoned for 1 minute. While poisoned in this way, the target can't regain hit points. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:bearded-devil#beard"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Glaive",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature other than an undead or a construct, it must succeed on a DC 12 Constitution saving throw or lose 5 (1d10) hit points at the start of each of its turns due to an infernal wound. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:bearded-devil#glaive"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-behir",
+      "creatureName": "Behir",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/behir",
+        "fetchedAt": "2026-08-29T02:06:38.782Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:behir#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Constrict",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 17 (2d10 + 6) slashing damage. The target is grappled (escape DC 16) if the behir isn't already constricting a creature, and the target is restrained until this grapple ends.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:behir#constrict"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Lightning Breath",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Swallow",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-berserker",
+      "creatureName": "Berserker",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/berserker",
+        "fetchedAt": "2026-08-29T02:06:38.783Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Greataxe",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 12,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:berserker#greataxe"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-black-dragon-wyrmling",
+      "creatureName": "Black Dragon Wyrmling",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/black-dragon-wyrmling",
+        "fetchedAt": "2026-08-29T02:06:38.777Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 2 (1d4) acid damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:black-dragon-wyrmling#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Acid Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-black-pudding",
+      "creatureName": "Black Pudding",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/black-pudding",
+        "fetchedAt": "2026-08-29T02:06:38.776Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Pseudopod",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 18 (4d8) acid damage. In addition, nonmagical armor worn by the target is partly dissolved and takes a permanent and cumulative -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:black-pudding#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-blink-dog",
+      "creatureName": "Blink Dog",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blink-dog",
+        "fetchedAt": "2026-08-29T02:06:38.774Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:blink-dog#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Teleport",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-blood-hawk",
+      "creatureName": "Blood Hawk",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blood-hawk",
+        "fetchedAt": "2026-08-29T02:06:38.777Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Beak",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:blood-hawk#beak"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-blue-dragon-wyrmling",
+      "creatureName": "Blue Dragon Wyrmling",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/blue-dragon-wyrmling",
+        "fetchedAt": "2026-08-29T02:06:38.779Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) lightning damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:blue-dragon-wyrmling#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Lightning Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-boar",
+      "creatureName": "Boar",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/boar",
+        "fetchedAt": "2026-08-29T02:06:38.781Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Tusk",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:boar#tusk"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

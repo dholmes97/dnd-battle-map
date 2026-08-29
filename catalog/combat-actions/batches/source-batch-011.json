@@ -1,0 +1,469 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 11,
+  "creatures": [
+    {
+      "creatureId": "srd-flesh-golem",
+      "creatureName": "Flesh Golem",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/flesh-golem",
+        "fetchedAt": "2026-08-29T02:06:39.549Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:flesh-golem#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-flying-snake",
+      "creatureName": "Flying Snake",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/flying-snake",
+        "fetchedAt": "2026-08-29T02:06:39.548Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "poison",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (3d4) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:flying-snake#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-flying-sword",
+      "creatureName": "Flying Sword",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/flying-sword",
+        "fetchedAt": "2026-08-29T02:06:39.555Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Longsword",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 1
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:flying-sword#longsword"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-frog",
+      "creatureName": "Frog",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/frog",
+        "fetchedAt": "2026-08-29T02:06:39.557Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-frost-giant",
+      "creatureName": "Frost Giant",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/frost-giant",
+        "fetchedAt": "2026-08-29T02:06:39.552Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greataxe",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 12,
+            "modifier": 6
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:frost-giant#greataxe"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Rock",
+          "attackBonus": 9,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 60,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:frost-giant#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-gargoyle",
+      "creatureName": "Gargoyle",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gargoyle",
+        "fetchedAt": "2026-08-29T02:06:39.546Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:gargoyle#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claws",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:gargoyle#claws"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-gelatinous-cube",
+      "creatureName": "Gelatinous Cube",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/gelatinous-cube",
+        "fetchedAt": "2026-08-29T02:06:39.547Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Pseudopod",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "acid",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:gelatinous-cube#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Engulf",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ghast",
+      "creatureName": "Ghast",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ghast",
+        "fetchedAt": "2026-08-29T02:06:39.550Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ghast#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Claws",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature other than an undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ghast#claws"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ghost",
+      "creatureName": "Ghost",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ghost",
+        "fetchedAt": "2026-08-29T02:06:39.551Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Withering Touch",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "necrotic",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ghost#withering-touch"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Etherealness",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Horrifying Visage",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Possession",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ghoul",
+      "creatureName": "Ghoul",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ghoul",
+        "fetchedAt": "2026-08-29T02:06:39.553Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ghoul#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Claws",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature other than an elf or undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ghoul#claws"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

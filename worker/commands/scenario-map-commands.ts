@@ -12,6 +12,7 @@ type ScenarioMapCommandName =
 type ScenarioMapDependencies = {
   repository: ScenarioMapRepository;
   loadScenarioState(code: string, participantId: string): ReturnType<CommandContext["services"]["loadState"]>;
+  cancelPendingDamageProposals(): Promise<void>;
 };
 export type ScenarioMapCommandContext<Name extends ScenarioMapCommandName = ScenarioMapCommandName> =
   CommandContextFor<Name, ScenarioMapDependencies>;
@@ -95,6 +96,7 @@ export async function createScenario(context: ScenarioMapCommandContext<"create-
         ? copiedIds.get(token.summoner_token_id) ?? null
         : null,
       copiedHp: duplicate ? token.hp : token.max_hp,
+      copiedTemporaryHp: duplicate ? token.temporary_hp : 0,
       copiedHidden: duplicate ? Boolean(token.is_hidden) : false,
       copiedAltitude: duplicate ? token.altitude : 0,
     })),
@@ -194,6 +196,7 @@ export async function configureEncounter(context: ScenarioMapCommandContext<"con
   });
   if (transitionError) return commandError(transitionError, 409);
   if (status === context.encounter.status) return success(context, { configured: false });
+  if (status === "setup") await context.cancelPendingDamageProposals();
   await context.repository.configureEncounter(context.encounter.id, status, context.now);
   await finish(context, "encounter_configured", {
     previous: { status: context.encounter.status },

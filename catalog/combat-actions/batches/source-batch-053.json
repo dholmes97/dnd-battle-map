@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 53,
+  "creatures": [
+    {
+      "creatureId": "open5e-tob3-demon-inciter",
+      "creatureName": "Demon, Inciter",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_demon-inciter/",
+        "fetchedAt": "2026-08-29T02:06:50.145Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-clurichaun",
+      "creatureName": "Clurichaun",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_clurichaun/",
+        "fetchedAt": "2026-08-29T02:06:50.300Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bawdy Remark",
+          "attackBonus": 5,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "psychic",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Wisdom saving throw or be incapacitated until the end of its next turn as it doubles over in laughter or freezes up in embarrassment (the target's choice).",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_clurichaun#bawdy-remark"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Improvised Weapon",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "untyped",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": true,
+          "manualRiderText": "Damage type choice: 3 (1d4 + 1) bludgeoning, piercing, or slashing damage, depending on the weapon.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_clurichaun#improvised-weapon"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Slam",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_clurichaun#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Spellcasting",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-foxin",
+      "creatureName": "Foxin",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_foxin/",
+        "fetchedAt": "2026-08-29T02:06:50.201Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 12 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_foxin#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Illusory Calm",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-lymarien",
+      "creatureName": "Lymarien",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_lymarien/",
+        "fetchedAt": "2026-08-29T02:06:50.187Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_lymarien#claw"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-gremlin-bilge",
+      "creatureName": "Gremlin, Bilge",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_gremlin-bilge/",
+        "fetchedAt": "2026-08-29T02:06:50.266Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-firegeist",
+      "creatureName": "Firegeist",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_firegeist/",
+        "fetchedAt": "2026-08-29T02:06:50.391Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Burning Slam",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) fire damage. If the target is a flammable object, it ignites. If the target is a creature, the target must succeed on a DC 13 Dexterity saving throw or ignite. Until a creature takes an action to douse the fire, the target takes 3 (1d6) fire damage at the start of each of its turns.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_firegeist#burning-slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Burning Terror",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-pech",
+      "creatureName": "Pech",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_pech/",
+        "fetchedAt": "2026-08-29T02:06:50.159Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Hammer",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_pech#hammer"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Pick",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_pech#pick"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-befouled-weird",
+      "creatureName": "Befouled Weird",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_befouled-weird/",
+        "fetchedAt": "2026-08-29T02:06:50.162Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 2,
+          "name": "Slam",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) necrotic damage. If the target is a creature, it must succeed on a DC 13 Constitution saving throw or become infected with parasitic amoebas (see the Parasitic Amoebas trait).",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_befouled-weird#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Drown in Filth",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-khamaseen",
+      "creatureName": "Khamaseen",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_khamaseen/",
+        "fetchedAt": "2026-08-29T02:06:50.196Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Shock",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-crimson-drake",
+      "creatureName": "Crimson Drake",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_crimson-drake/",
+        "fetchedAt": "2026-08-29T02:06:50.312Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) fire damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_crimson-drake#bite"
+        },
+        {
+          "sourceActionIndex": 4,
+          "name": "Stinger",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 12 Constitution saving throw or become poisoned for 1 minute. If the saving throw fails by 5 or more, the target takes 2 (1d4) poison damage at the start of each of its turns while poisoned. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_crimson-drake#stinger"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Familiar",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Fire Breath",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 45,
+  "creatures": [
+    {
+      "creatureId": "open5e-tob3-offal-walker",
+      "creatureName": "Offal Walker",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_offal-walker/",
+        "fetchedAt": "2026-08-29T02:06:46.643Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-child-of-the-briar",
+      "creatureName": "Child of the Briar",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_child-of-the-briar/",
+        "fetchedAt": "2026-08-29T02:06:46.511Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_child-of-the-briar#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Entangle",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Spitdart Tongue",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-mandrake",
+      "creatureName": "Mandrake",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_mandrake/",
+        "fetchedAt": "2026-08-29T02:06:46.600Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_mandrake#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Shriek",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-shiftshroom",
+      "creatureName": "Shiftshroom",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_shiftshroom/",
+        "fetchedAt": "2026-08-29T02:06:46.590Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Slam",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_shiftshroom#slam"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-tuberkith",
+      "creatureName": "Tuberkith",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_tuberkith/",
+        "fetchedAt": "2026-08-29T02:06:46.670Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-treacle",
+      "creatureName": "Treacle",
+      "status": "no-supported-action",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_treacle/",
+        "fetchedAt": "2026-08-29T02:06:46.462Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Blood Drain",
+          "reason": "no-supported-primary-damage"
+        },
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Mimic Innocence",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-suppurating-ooze",
+      "creatureName": "Suppurating Ooze",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_suppurating-ooze/",
+        "fetchedAt": "2026-08-29T02:06:46.459Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Pseudopod",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 9 (2d8) necrotic damage. If the target is a creature, it must succeed on a DC 13 Constitution saving throw or become infected with the seeping death disease (see the Seeping Death trait).",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_suppurating-ooze#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-ichor-ooze",
+      "creatureName": "Ichor Ooze",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ichor-ooze/",
+        "fetchedAt": "2026-08-29T02:06:46.534Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Hurl Mote",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "fire",
+          "reachFeet": null,
+          "rangeFeet": 10,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_ichor-ooze#hurl-mote"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Pseudopod",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) fire damage. If the target is a Large or smaller creature, it is grappled (escape DC 12).",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_ichor-ooze#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Life Drain",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-doppelixir",
+      "creatureName": "Doppelixir",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_doppelixir/",
+        "fetchedAt": "2026-08-29T02:06:46.457Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Imitative Liquid",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-map-mimic",
+      "creatureName": "Map Mimic",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_map-mimic/",
+        "fetchedAt": "2026-08-29T02:06:46.568Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Pseudopod",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "It attaches to the target. While attached, the mimic can't attack, the target is blinded, and at the start of each of the mimic's turns, the target takes 5 (1d6 + 2) bludgeoning damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_map-mimic#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Change Shape",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

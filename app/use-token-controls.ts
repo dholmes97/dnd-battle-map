@@ -5,6 +5,7 @@ import type { EncounterSync } from "@/app/use-encounter-sync";
 import { tokenRadiusCells, type CreatureSize } from "@/shared/creature-library";
 import type { EncounterState, ParticipantSession, SharedEffect, SharedToken } from "@/shared/contracts";
 import { transitionHp } from "@/shared/encounter-transitions.ts";
+import { transitionDamageWithTemporaryHp } from "@/shared/combat-rolling.ts";
 import { clampMapPoint } from "@/shared/battle-map-geometry.ts";
 import { initiativePackMembers, rosterBaseName } from "@/shared/initiative-domain.ts";
 import { MAX_ALTITUDE_FEET, normalizeAltitude } from "@/shared/token-altitude.ts";
@@ -22,6 +23,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   const [tokenDrafts, setTokenDrafts] = useState<Record<string, { name?: string; size?: CreatureSize; speed?: string; armorClass?: string; maxHp?: string; artAsset?: string }>>({});
   const [altitudeDrafts, setAltitudeDrafts] = useState<Record<string, string>>({});
   const [hpAmount, setHpAmount] = useState("");
+  const [temporaryHpDrafts, setTemporaryHpDrafts] = useState<Record<string, string>>({});
   const [effectName, setEffectName] = useState("");
   const [effectType, setEffectType] = useState("condition");
   const [effectDuration, setEffectDuration] = useState("1");
@@ -158,13 +160,26 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     if (!Number.isFinite(delta) || delta === 0 || token.maxHp === null) return;
     setHpAmount("");
     const hpTransition = transitionHp(token.hp, token.maxHp, delta);
+    const damageTransition = delta < 0
+      ? transitionDamageWithTemporaryHp({
+        hp: token.hp,
+        maxHp: token.maxHp,
+        temporaryHp: token.temporaryHp ?? 0,
+        damage: Math.abs(delta),
+      })
+      : null;
     const reminder = { id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name };
     const locallyRequiresConcentrationCheck = delta < 0 && token.effects.some((effect) => effect.type === "concentration");
     if (locallyRequiresConcentrationCheck) setConcentrationReminder(reminder);
     const result = await sync.runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }>(
       "apply-hp",
       { tokenId: token.id, delta },
-      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hp: hpTransition.hp, healthState: hpTransition.healthState } : item) }),
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? {
+        ...item,
+        hp: damageTransition?.hp ?? hpTransition.hp,
+        temporaryHp: damageTransition?.temporaryHp ?? item.temporaryHp,
+        healthState: damageTransition ? transitionHp(damageTransition.hp, token.maxHp!, 0).healthState : hpTransition.healthState,
+      } : item) }),
     );
     if (!result) {
       if (locallyRequiresConcentrationCheck) setConcentrationReminder((current) => current?.id === reminder.id ? null : current);
@@ -175,6 +190,27 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     if (locallyRequiresConcentrationCheck && !result.concentrationCheckRequired) {
       setConcentrationReminder((current) => current?.id === reminder.id ? null : current);
     }
+  };
+
+  const saveTemporaryHp = async (token: SharedToken) => {
+    const draft = temporaryHpDrafts[token.id];
+    if (draft === undefined) return;
+    const amount = Number(draft);
+    if (!Number.isInteger(amount) || amount < 0 || amount > 100_000) {
+      setError("Temporary HP must be a whole number from 0 to 100000.");
+      return;
+    }
+    if (amount === (token.temporaryHp ?? 0)) {
+      setTemporaryHpDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
+      return;
+    }
+    const result = await sync.runOptimisticCommand(
+      "set-temporary-hp",
+      { tokenId: token.id, amount },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, temporaryHp: amount } : item) }),
+      `Temporary HP set to ${amount}.`,
+    );
+    if (result) setTemporaryHpDrafts((current) => { const next = { ...current }; delete next[token.id]; return next; });
   };
 
   const removeEffectFromToken = (tokenId: string, effectId: string) => {
@@ -265,12 +301,14 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
   return {
     initiativeDrafts, setInitiativeDrafts, initiativeStatuses, setInitiativeStatuses,
     tokenDrafts, setTokenDrafts, altitudeDrafts, setAltitudeDrafts, hpAmount, setHpAmount,
+    temporaryHpDrafts, setTemporaryHpDrafts,
     effectName, setEffectName, effectType, setEffectType, effectDuration, setEffectDuration,
     effectReminder, setEffectReminder, effectEditorTokenId, setEffectEditorTokenId,
     tokenEditorTokenId, setTokenEditorTokenId, pendingDeleteTokenId, setPendingDeleteTokenId,
     concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
+    requireConcentrationCheck: (token: SharedToken) => setConcentrationReminder({ id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name }),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
+    applyHpToToken, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
   };
 }
 

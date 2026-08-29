@@ -1,0 +1,510 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 21,
+  "creatures": [
+    {
+      "creatureId": "srd-nalfeshnee",
+      "creatureName": "Nalfeshnee",
+      "status": "ready",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/nalfeshnee",
+        "fetchedAt": "2026-08-29T02:06:40.543Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 5,
+            "sides": 10,
+            "modifier": 5
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:nalfeshnee#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claw",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 5
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:nalfeshnee#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Horror Nimbus",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Teleport",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-night-hag",
+      "creatureName": "Night Hag",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/night-hag",
+        "fetchedAt": "2026-08-29T02:06:40.547Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claws (Hag Form Only)",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:night-hag#claws-(hag-form-only)"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Change Shape",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Etherealness",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Nightmare Haunting",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-nightmare",
+      "creatureName": "Nightmare",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/nightmare",
+        "fetchedAt": "2026-08-29T02:06:40.541Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Hooves",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) fire damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:nightmare#hooves"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Ethereal Stride",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-noble",
+      "creatureName": "Noble",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/noble",
+        "fetchedAt": "2026-08-29T02:06:40.548Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Rapier",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:noble#rapier"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ochre-jelly",
+      "creatureName": "Ochre Jelly",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ochre-jelly",
+        "fetchedAt": "2026-08-29T02:06:40.542Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Pseudopod",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) acid damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ochre-jelly#pseudopod"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-octopus",
+      "creatureName": "Octopus",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/octopus",
+        "fetchedAt": "2026-08-29T02:06:40.540Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Tentacles",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target is grappled (escape DC 10). Until this grapple ends, the octopus can't use its tentacles on another target.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:octopus#tentacles"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Ink Cloud",
+          "reason": "no-supported-primary-damage"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ogre",
+      "creatureName": "Ogre",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ogre",
+        "fetchedAt": "2026-08-29T02:06:40.540Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Greatclub",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ogre#greatclub"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Javelin",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ogre#javelin"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-ogre-zombie",
+      "creatureName": "Ogre Zombie",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/ogre-zombie",
+        "fetchedAt": "2026-08-29T02:06:40.545Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Morningstar",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:ogre-zombie#morningstar"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-oni",
+      "creatureName": "Oni",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/oni",
+        "fetchedAt": "2026-08-29T02:06:40.544Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Claw (Oni Form Only)",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:oni#claw-(oni-form-only)"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Glaive",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 10,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "In small or medium form",
+            "formula": {
+              "count": 1,
+              "sides": 10,
+              "modifier": 4
+            }
+          },
+          "sourceRef": "srd-5.1:oni#glaive"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Change Shape",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-orc",
+      "creatureName": "Orc",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/orc",
+        "fetchedAt": "2026-08-29T02:06:40.546Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Greataxe",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 12,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:orc#greataxe"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Javelin",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:orc#javelin"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 83,
+  "creatures": [
+    {
+      "creatureId": "open5e-tob3-cyonaxin",
+      "creatureName": "Cyonaxin",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_cyonaxin/",
+        "fetchedAt": "2026-08-29T02:07:05.675Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Free Runner",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-putrid-haunt",
+      "creatureName": "Putrid Haunt",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_putrid-haunt/",
+        "fetchedAt": "2026-08-29T02:07:05.873Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 5 (2d4) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_putrid-haunt#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Expel Vermin",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-shadow-skeleton",
+      "creatureName": "Shadow Skeleton",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_shadow-skeleton/",
+        "fetchedAt": "2026-08-29T02:07:05.695Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Finger Darts",
+          "attackBonus": 5,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) necrotic damage. If the target is a creature other than an undead or a construct, it must make a DC 12 Constitution saving throw. On a failure, the target is surrounded by a shadowy aura for 1 minute. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_shadow-skeleton#finger-darts"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Scimitar",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_shadow-skeleton#scimitar"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-cave-goat",
+      "creatureName": "Cave Goat",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_cave-goat/",
+        "fetchedAt": "2026-08-29T02:07:05.761Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Ram",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_cave-goat#ram"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-meerkats-swarm",
+      "creatureName": "Meerkats, Swarm",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_meerkats-swarm/",
+        "fetchedAt": "2026-08-29T02:07:05.682Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-frostveil",
+      "creatureName": "Frostveil",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_frostveil/",
+        "fetchedAt": "2026-08-29T02:07:05.883Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Frozen Tendril",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 5
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) cold damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_frostveil#frozen-tendril"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Snowy Engulf",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Spirit Spores",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-warlocks-trumpetbloom",
+      "creatureName": "Warlock's Trumpetbloom",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_warlocks-trumpetbloom/",
+        "fetchedAt": "2026-08-29T02:07:05.687Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Stinger",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 12,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 15 Constitution saving throw or become poisoned for 1 minute. The target is paralyzed while poisoned in this way. It can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_warlocks-trumpetbloom#stinger"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Tendril",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target is grappled (escape DC 14) if it is a Medium or smaller creature. The trumpetbloom has two tendrils, each of which can grapple only one target.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_warlocks-trumpetbloom#tendril"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-gaunt-one",
+      "creatureName": "Gaunt One",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_gaunt-one/",
+        "fetchedAt": "2026-08-29T02:07:05.815Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_gaunt-one#claw"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Extract Heart",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 5,
+            "sides": 8,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "On a failed save, or half as much damage on a successful one. If this damage reduces the target to 0 hp, the gaunt one kills the target by extracting and devouring its heart.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_gaunt-one#extract-heart"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-the-flesh",
+      "creatureName": "The Flesh",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_the-flesh/",
+        "fetchedAt": "2026-08-29T02:07:05.675Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Assume Form",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

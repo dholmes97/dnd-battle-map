@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 44,
+  "creatures": [
+    {
+      "creatureId": "open5e-ccdx-giant-moth",
+      "creatureName": "Giant Moth",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_giant-moth/",
+        "fetchedAt": "2026-08-29T02:06:46.185Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Proboscis",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_giant-moth#proboscis"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Powdery Wings",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-lantern-beetle",
+      "creatureName": "Lantern Beetle",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_lantern-beetle/",
+        "fetchedAt": "2026-08-29T02:06:46.262Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Horn",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_lantern-beetle#horn"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-meerkat",
+      "creatureName": "Meerkat",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_meerkat/",
+        "fetchedAt": "2026-08-29T02:06:46.180Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-bagiennik",
+      "creatureName": "Bagiennik",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_bagiennik/",
+        "fetchedAt": "2026-08-29T02:06:46.224Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Claw",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_bagiennik#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Acid Spray",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Healing Oil",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-zoog",
+      "creatureName": "Zoog",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_zoog/",
+        "fetchedAt": "2026-08-29T02:06:46.332Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_zoog#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-ahu-nixta-drudge",
+      "creatureName": "Ahu-Nixta Drudge",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ahu-nixta-drudge/",
+        "fetchedAt": "2026-08-29T02:06:46.249Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Whirring Blades",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_ahu-nixta-drudge#whirring-blades"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-light-eater",
+      "creatureName": "Light Eater",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_light-eater/",
+        "fetchedAt": "2026-08-29T02:06:46.151Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Emergency Flare",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-beggar-ghoul",
+      "creatureName": "Beggar Ghoul",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_beggar-ghoul/",
+        "fetchedAt": "2026-08-29T02:06:46.190Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_beggar-ghoul#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Claws",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature other than an elf or Undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute. A paralyzed target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_beggar-ghoul#claws"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-skull-lantern",
+      "creatureName": "Skull Lantern",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_skull-lantern/",
+        "fetchedAt": "2026-08-29T02:06:46.149Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_skull-lantern#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Fire Beam",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-cackling-skeleton",
+      "creatureName": "Cackling Skeleton",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_cackling-skeleton/",
+        "fetchedAt": "2026-08-29T02:06:46.156Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The cackling skeleton has advantage on this attack roll if the target is demoralized.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_cackling-skeleton#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Mock",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

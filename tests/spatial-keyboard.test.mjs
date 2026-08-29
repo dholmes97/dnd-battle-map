@@ -13,6 +13,7 @@ test("spatial keyboard intents distinguish cursor movement from viewport panning
   assert.deepEqual(spatialKeyboardIntent({ key: "PageUp" }), { kind: "altitude", direction: 1 });
   assert.deepEqual(spatialKeyboardIntent({ key: "Enter" }), { kind: "activate" });
   assert.deepEqual(spatialKeyboardIntent({ key: " " }), { kind: "grab" });
+  assert.deepEqual(spatialKeyboardIntent({ key: "Space" }), { kind: "grab" });
   assert.equal(spatialKeyboardIntent({ key: "Tab" }), null);
 });
 

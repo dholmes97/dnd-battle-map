@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 23,
+  "creatures": [
+    {
+      "creatureId": "srd-pony",
+      "creatureName": "Pony",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/pony",
+        "fetchedAt": "2026-08-29T02:06:40.648Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Hooves",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:pony#hooves"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-priest",
+      "creatureName": "Priest",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/priest",
+        "fetchedAt": "2026-08-29T02:06:40.646Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Mace",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:priest#mace"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-pseudodragon",
+      "creatureName": "Pseudodragon",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/pseudodragon",
+        "fetchedAt": "2026-08-29T02:06:40.650Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:pseudodragon#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Sting",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 11 Constitution saving throw or become poisoned for 1 hour. If the saving throw fails by 5 or more, the target falls unconscious for the same duration, or until it takes damage or another creature uses an action to shake it awake.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:pseudodragon#sting"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-purple-worm",
+      "creatureName": "Purple Worm",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/purple-worm",
+        "fetchedAt": "2026-08-29T02:06:40.652Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 9
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a Large or smaller creature, it must succeed on a DC 19 Dexterity saving throw or be swallowed by the worm. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:purple-worm#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Tail Stinger",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 9
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must make a DC 19 Constitution saving throw, taking 42 (12d6) poison damage on a failed save, or half as much damage on a successful one.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:purple-worm#tail-stinger"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-quasit",
+      "creatureName": "Quasit",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/quasit",
+        "fetchedAt": "2026-08-29T02:06:40.649Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw (Bite in Beast Form)",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 10 Constitution saving throw or take 5 (2d4) poison damage and become poisoned for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:quasit#claw-(bite-in-beast-form)"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Scare",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-quipper",
+      "creatureName": "Quipper",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/quipper",
+        "fetchedAt": "2026-08-29T02:06:40.645Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:quipper#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-rakshasa",
+      "creatureName": "Rakshasa",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/rakshasa",
+        "fetchedAt": "2026-08-29T02:06:40.645Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Claw",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target is cursed if it is a creature. The magical curse takes effect whenever the target takes a short or long rest, filling the target's thoughts with horrible images and dreams. The cursed target gains no benefit from finishing a short or long rest. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:rakshasa#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-rat",
+      "creatureName": "Rat",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/rat",
+        "fetchedAt": "2026-08-29T02:06:40.647Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 0,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:rat#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-raven",
+      "creatureName": "Raven",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/raven",
+        "fetchedAt": "2026-08-29T02:06:40.650Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Beak",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:raven#beak"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-red-dragon-wyrmling",
+      "creatureName": "Red Dragon Wyrmling",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/red-dragon-wyrmling",
+        "fetchedAt": "2026-08-29T02:06:40.651Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 3 (1d6) fire damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:red-dragon-wyrmling#bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Fire Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

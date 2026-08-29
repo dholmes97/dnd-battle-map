@@ -1,0 +1,507 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 52,
+  "creatures": [
+    {
+      "creatureId": "open5e-ccdx-cueyatl",
+      "creatureName": "Cueyatl",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_cueyatl/",
+        "fetchedAt": "2026-08-29T02:06:50.025Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Spear",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) poison damage or 4 (1d8) piercing damage plus 7 (2d6) poison damage if used with two hands to make a melee attack.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_cueyatl#spear"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-harefolk",
+      "creatureName": "Harefolk",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_harefolk/",
+        "fetchedAt": "2026-08-29T02:06:49.829Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_harefolk#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Shortsword",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_harefolk#shortsword"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Sling",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_harefolk#sling"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-gullkin",
+      "creatureName": "Gullkin",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_gullkin/",
+        "fetchedAt": "2026-08-29T02:06:49.984Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-forest-marauder",
+      "creatureName": "Forest Marauder",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_forest-marauder/",
+        "fetchedAt": "2026-08-29T02:06:49.761Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Boar Spear",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 10,
+            "modifier": 5
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_forest-marauder#boar-spear"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Rock",
+          "attackBonus": 7,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 3,
+            "sides": 10,
+            "modifier": 5
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_forest-marauder#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Forest Ambusher",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-tusked-crimson-ogre",
+      "creatureName": "Tusked Crimson Ogre",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_tusked-crimson-ogre/",
+        "fetchedAt": "2026-08-29T02:06:49.796Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_tusked-crimson-ogre#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Morningstar",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_tusked-crimson-ogre#morningstar"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Berserker's Blood",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-manggus",
+      "creatureName": "Manggus",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_manggus/",
+        "fetchedAt": "2026-08-29T02:06:49.789Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_manggus#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Greataxe",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 12,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_manggus#greataxe"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-giant-thursir-hearth-priestess",
+      "creatureName": "Giant, Thursir Hearth Priestess",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_giant-thursir-hearth-priestess/",
+        "fetchedAt": "2026-08-29T02:06:49.830Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-volguloth",
+      "creatureName": "Volguloth",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_volguloth/",
+        "fetchedAt": "2026-08-29T02:06:49.805Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_volguloth#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Enshroud",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Strangle",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-gumienniki",
+      "creatureName": "Gumienniki",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_gumienniki/",
+        "fetchedAt": "2026-08-29T02:06:49.993Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Flaming Hand Scythe",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) fire damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_gumienniki#flaming-hand-scythe"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Fiendish Blink",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Taunting Cackle",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-tree-skinner",
+      "creatureName": "Tree Skinner",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_tree-skinner/",
+        "fetchedAt": "2026-08-29T02:06:49.995Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Constitution saving throw or take 7 (2d6) poison damage and become poisoned until the end of its next turn.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_tree-skinner#claw"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Vine Whip",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 20,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a Large or smaller creature, it is grappled (escape DC 13). The skinner can grapple up to two creatures at one time.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_tree-skinner#vine-whip"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Squeeze",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

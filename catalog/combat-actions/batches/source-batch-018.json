@@ -1,0 +1,527 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 18,
+  "creatures": [
+    {
+      "creatureId": "srd-imp",
+      "creatureName": "Imp",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/imp",
+        "fetchedAt": "2026-08-29T02:06:39.927Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Sting (Bite in Beast Form)",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must make on a DC 11 Constitution saving throw, taking 10 (3d6) poison damage on a failed save, or half as much damage on a successful one.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:imp#sting-(bite-in-beast-form)"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-invisible-stalker",
+      "creatureName": "Invisible Stalker",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/invisible-stalker",
+        "fetchedAt": "2026-08-29T02:06:39.928Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:invisible-stalker#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-iron-golem",
+      "creatureName": "Iron Golem",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/iron-golem",
+        "fetchedAt": "2026-08-29T02:06:39.935Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 13,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 7
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:iron-golem#slam"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Sword",
+          "attackBonus": 13,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 10,
+            "modifier": 7
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:iron-golem#sword"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Poison Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-jackal",
+      "creatureName": "Jackal",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/jackal",
+        "fetchedAt": "2026-08-29T02:06:39.936Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 1,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": -1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:jackal#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-killer-whale",
+      "creatureName": "Killer Whale",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/killer-whale",
+        "fetchedAt": "2026-08-29T02:06:39.931Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 5,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:killer-whale#bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-knight",
+      "creatureName": "Knight",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/knight",
+        "fetchedAt": "2026-08-29T02:06:39.925Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greatsword",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:knight#greatsword"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Heavy Crossbow",
+          "attackBonus": 2,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 100,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:knight#heavy-crossbow"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Leadership",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-kobold",
+      "creatureName": "Kobold",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/kobold",
+        "fetchedAt": "2026-08-29T02:06:39.924Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Dagger",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:kobold#dagger"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Sling",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:kobold#sling"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-kraken",
+      "creatureName": "Kraken",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/kraken",
+        "fetchedAt": "2026-08-29T02:06:39.929Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 10
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a Large or smaller creature grappled by the kraken, that creature is swallowed, and the grapple ends. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:kraken#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Tentacle",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 10
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 30,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target is grappled (escape DC 18). Until this grapple ends, the target is restrained. The kraken has ten tentacles, each of which can grapple one target.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:kraken#tentacle"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Fling",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Lightning Storm",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-lamia",
+      "creatureName": "Lamia",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lamia",
+        "fetchedAt": "2026-08-29T02:06:39.933Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Claws",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 10,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:lamia#claws"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Dagger",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:lamia#dagger"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Intoxicating Touch",
+          "reason": "no-supported-primary-damage"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-lemure",
+      "creatureName": "Lemure",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/lemure",
+        "fetchedAt": "2026-08-29T02:06:39.934Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Fist",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:lemure#fist"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

@@ -34,7 +34,7 @@ export function spatialKeyboardIntent(event: KeyboardEventLike): SpatialKeyboard
     };
   }
   if (event.key === "Enter") return { kind: "activate" };
-  if (event.key === " " || event.key === "Spacebar") return { kind: "grab" };
+  if (event.key === " " || event.key === "Space" || event.key === "Spacebar") return { kind: "grab" };
   if (event.key === "Escape") return { kind: "cancel" };
   if (event.key === "Delete" || event.key === "Backspace") return { kind: "delete" };
   if (event.key === "PageUp") return { kind: "altitude", direction: 1 };

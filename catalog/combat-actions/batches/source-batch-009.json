@@ -1,0 +1,599 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 9,
+  "creatures": [
+    {
+      "creatureId": "srd-doppelganger",
+      "creatureName": "Doppelganger",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/doppelganger",
+        "fetchedAt": "2026-08-29T02:06:38.991Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:doppelganger#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Read Thoughts",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-draft-horse",
+      "creatureName": "Draft Horse",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/draft-horse",
+        "fetchedAt": "2026-08-29T02:06:38.989Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Hooves",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 4
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:draft-horse#hooves"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-dragon-turtle",
+      "creatureName": "Dragon Turtle",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dragon-turtle",
+        "fetchedAt": "2026-08-29T02:06:38.998Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 13,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 12,
+            "modifier": 7
+          },
+          "damageType": "piercing",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dragon-turtle#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claw",
+          "attackBonus": 13,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 7
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dragon-turtle#claw"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Tail",
+          "attackBonus": 13,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 12,
+            "modifier": 7
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 20 Strength saving throw or be pushed up to 10 feet away from the dragon turtle and knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dragon-turtle#tail"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Steam Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-dretch",
+      "creatureName": "Dretch",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dretch",
+        "fetchedAt": "2026-08-29T02:06:38.999Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dretch#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claws",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dretch#claws"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Fetid Cloud",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-drider",
+      "creatureName": "Drider",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/drider",
+        "fetchedAt": "2026-08-29T02:06:38.994Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 9 (2d8) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:drider#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Longsword",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "Two handed",
+            "formula": {
+              "count": 1,
+              "sides": 10,
+              "modifier": 3
+            }
+          },
+          "sourceRef": "srd-5.1:drider#longsword"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Longbow",
+          "attackBonus": 6,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 150,
+          "manualRider": true,
+          "manualRiderText": "Also deals 4 (1d8) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:drider#longbow"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-drow",
+      "creatureName": "Drow",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/drow",
+        "fetchedAt": "2026-08-29T02:06:38.988Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Shortsword",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:drow#shortsword"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Hand Crossbow",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Constitution saving throw or be poisoned for 1 hour. If the saving throw fails by 5 or more, the target is also unconscious while poisoned in this way. The target wakes up if it takes damage or if another creature takes an action to shake it awake.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:drow#hand-crossbow"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-druid",
+      "creatureName": "Druid",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/druid",
+        "fetchedAt": "2026-08-29T02:06:38.989Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Quarterstaff",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 4 (1d8) bludgeoning damage if wielded with two hands, or 6 (1d8 + 2) bludgeoning damage with shillelagh.",
+          "alternateDamage": {
+            "label": "Two handed",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:druid#quarterstaff"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-dryad",
+      "creatureName": "Dryad",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dryad",
+        "fetchedAt": "2026-08-29T02:06:38.994Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Club",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "With shillelagh",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 4
+            }
+          },
+          "sourceRef": "srd-5.1:dryad#club"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Fey Charm",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-duergar",
+      "creatureName": "Duergar",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/duergar",
+        "fetchedAt": "2026-08-29T02:06:38.993Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "War Pick",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "While enlarged",
+            "formula": {
+              "count": 2,
+              "sides": 8,
+              "modifier": 2
+            }
+          },
+          "sourceRef": "srd-5.1:duergar#war-pick"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Javelin",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "While enlarged",
+            "formula": {
+              "count": 2,
+              "sides": 6,
+              "modifier": 2
+            }
+          },
+          "sourceRef": "srd-5.1:duergar#javelin"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Enlarge",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-dust-mephit",
+      "creatureName": "Dust Mephit",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/dust-mephit",
+        "fetchedAt": "2026-08-29T02:06:38.995Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claws",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:dust-mephit#claws"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Blinding Breath",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

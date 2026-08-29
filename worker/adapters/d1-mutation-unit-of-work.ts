@@ -90,7 +90,7 @@ export function createD1MutationUnitOfWork(db: D1Database): MutationUnitOfWork {
          (id, encounter_id, participant_id, action_type, payload_json, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
       ).bind(
-        crypto.randomUUID(),
+        input.actionId ?? crypto.randomUUID(),
         input.encounterId,
         input.participantId,
         input.actionType,

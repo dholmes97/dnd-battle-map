@@ -8,9 +8,12 @@ const MAP_SOURCE_PIXELS_PER_CELL = 128;
 
 test("full-scene maps are package-safe production assets", async () => {
   const workerSource = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8");
-  const mapImages = builtInMapImagesFromMigration(migration);
-  assert.equal(mapImages.length, 17);
+  const mapMigrations = await Promise.all([
+    readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0033_modern_maximus.sql", import.meta.url), "utf8"),
+  ]);
+  const mapImages = mapMigrations.flatMap(builtInMapImagesFromMigration);
+  assert.equal(mapImages.length, 18);
   for (const mapImage of mapImages) {
     const map = createMapPackageForImage(mapImage);
     const parsed = parseMapPackage(JSON.parse(JSON.stringify(map)));
@@ -37,6 +40,9 @@ test("full-scene maps are package-safe production assets", async () => {
   assert.deepEqual(mapImages.filter((image) => image.gridWidth === 45).map((image) => [image.id, image.gridWidth, image.gridHeight, image.pixelWidth, image.pixelHeight]), [
     ["cliffside-switchbacks-v2", 45, 30, 5760, 3840],
     ["underwater-ruins-v2", 45, 30, 5760, 3840],
+  ]);
+  assert.deepEqual(mapImages.filter((image) => image.id === "qa-forest-hollow-v1").map((image) => [image.gridWidth, image.gridHeight, image.pixelWidth, image.pixelHeight]), [
+    [16, 12, 2048, 1536],
   ]);
 });
 

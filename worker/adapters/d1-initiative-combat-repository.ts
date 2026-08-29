@@ -4,7 +4,7 @@ import { MAX_TOKENS_PER_ENCOUNTER } from "../../shared/resource-limits.ts";
 import { replayInitiativeHistory } from "./d1-initiative-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-  climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
+  climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
   summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 

@@ -1,0 +1,557 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 74,
+  "creatures": [
+    {
+      "creatureId": "open5e-ccdx-woodwose",
+      "creatureName": "Woodwose",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_woodwose/",
+        "fetchedAt": "2026-08-29T02:06:58.873Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Club",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "With shillelagh",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 3
+            }
+          },
+          "sourceRef": "open5e:ccdx:ccdx_woodwose#club"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Shortbow",
+          "attackBonus": 3,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 80,
+          "manualRider": true,
+          "manualRiderText": "Also deals 5 (2d4) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_woodwose#shortbow"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-egret-harpy",
+      "creatureName": "Egret Harpy",
+      "status": "ready",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_egret-harpy/",
+        "fetchedAt": "2026-08-29T02:06:58.929Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 2,
+          "name": "Spear",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "Two-handed",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 3
+            }
+          },
+          "sourceRef": "open5e:tob2:tob2_egret-harpy#spear"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Talons",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_egret-harpy#talons"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Guiding Song",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Wing Buffet",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-iceworm",
+      "creatureName": "Iceworm",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_iceworm/",
+        "fetchedAt": "2026-08-29T02:06:58.919Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-degenerate-titan",
+      "creatureName": "Degenerate Titan",
+      "status": "ready",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_degenerate-titan/",
+        "fetchedAt": "2026-08-29T02:06:59.154Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greatclub",
+          "attackBonus": 8,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 5
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_degenerate-titan#greatclub"
+        },
+        {
+          "sourceActionIndex": 4,
+          "name": "Rock",
+          "attackBonus": 8,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 10,
+            "modifier": 5
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 60,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_degenerate-titan#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Earthstrike",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Reality-Bending Shout",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-chuhaister",
+      "creatureName": "Chuhaister",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_chuhaister/",
+        "fetchedAt": "2026-08-29T02:06:58.885Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greatclub",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 5,
+            "sides": 6,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_chuhaister#greatclub"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Rock",
+          "attackBonus": 2,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 5,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_chuhaister#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Deadfall Shield",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-mydnari",
+      "creatureName": "Mydnari",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_mydnari/",
+        "fetchedAt": "2026-08-29T02:06:59.061Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Acid Glob",
+          "attackBonus": 5,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 3
+          },
+          "damageType": "acid",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 12 Constitution saving throw or be poisoned for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_mydnari#acid-glob"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Shortsword",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_mydnari#shortsword"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-avestruzii-champion",
+      "creatureName": "Avestruzii Champion",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_avestruzii-champion/",
+        "fetchedAt": "2026-08-29T02:06:59.035Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Dig In",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-spawn-of-arbeyach",
+      "creatureName": "Spawn of Arbeyach",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_spawn-of-arbeyach/",
+        "fetchedAt": "2026-08-29T02:06:58.931Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 4 (1d8) poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_spawn-of-arbeyach#bite"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Stinger",
+          "attackBonus": 7,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 4
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 13 (3d8) poison damage. If the target is a creature, it must succeed on a DC 13 Constitution saving throw or be poisoned for 1 minute. A poisoned creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_spawn-of-arbeyach#stinger"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Children of Arbeyach",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-plaresh",
+      "creatureName": "Plaresh",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_plaresh/",
+        "fetchedAt": "2026-08-29T02:06:59.134Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must make a DC 13 Constitution saving throw, taking 7 (2d6) poison damage on a failed save, or half as much damage on a successful one. If the target is wearing nonmagical armor, the armor takes a permanent and cumulative -1 penalty to the AC it offers. Armor reduced to an AC of 10 is destroyed.",
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "open5e:ccdx:ccdx_plaresh#bites"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Infest Corpse",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-thin-giant",
+      "creatureName": "Thin Giant",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_thin-giant/",
+        "fetchedAt": "2026-08-29T02:06:58.953Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 6
+          },
+          "damageType": "slashing",
+          "reachFeet": 20,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_thin-giant#claw"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Consuming Bite",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 6
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 7 (2d6) necrotic damage. The target's hp maximum is reduced by an amount equal to the necrotic damage taken, and the giant regains hp equal to that amount. This reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hp maximum to 0.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_thin-giant#consuming-bite"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

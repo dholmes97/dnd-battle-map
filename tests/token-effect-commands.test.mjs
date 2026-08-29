@@ -28,6 +28,8 @@ function token(overrides = {}) {
     armor_class: 18,
     hp: 20,
     max_hp: 30,
+    temporary_hp: 0,
+    catalog_creature_id: null,
     is_hidden: 0,
     summoner_token_id: null,
     initiative: 18,
@@ -176,6 +178,7 @@ test("effects and deletion enforce token control", async () => {
     name: "Hero", x: 4, y: 4, artAsset: "hero.png", kind: "spell-effect",
     size: "medium", speed: 30, flySpeed: null, swimSpeed: null, climbSpeed: null,
     burrowSpeed: null, altitude: 0, armorClass: 18, hp: 20, maxHp: 30,
+    temporaryHp: 0, catalogCreatureId: null,
     hidden: false, summonerTokenId: null, initiative: 18, initiativeOrder: 0,
   });
 });

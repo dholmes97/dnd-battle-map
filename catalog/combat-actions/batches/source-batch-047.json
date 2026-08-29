@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 47,
+  "creatures": [
+    {
+      "creatureId": "open5e-tob3-crystallite",
+      "creatureName": "Crystallite",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_crystallite/",
+        "fetchedAt": "2026-08-29T02:06:47.196Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Calcify",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-ink-devil",
+      "creatureName": "Ink Devil",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 6,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_ink-devil/",
+        "fetchedAt": "2026-08-29T02:06:47.200Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 4
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_ink-devil#claw"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Devil's Ink",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 8,
+            "modifier": 4
+          },
+          "damageType": "poison",
+          "reachFeet": 5,
+          "rangeFeet": 60,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Dexterity saving throw or be marked with a small, fiendish tattoo for 24 hours. Devils have advantage on attack rolls against the marked target, and the target has disadvantage on saving throws against the spells and abilities of devils.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_ink-devil#devil's-ink"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Corrupt Scroll",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Disrupt Concentration",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Invisibility",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 5,
+          "actionName": "Spellcasting",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-fire-imp",
+      "creatureName": "Fire Imp",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_fire-imp/",
+        "fetchedAt": "2026-08-29T02:06:47.251Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Fire Touch",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "fire",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a flammable object that isn't being worn or carried, it also catches fire. If the target is a creature, it must succeed on a DC 12 Dexterity saving throw or take another 2 (1d4) fire damage at the start of its next turn.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_fire-imp#fire-touch"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Hurl Flame",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "fire",
+          "reachFeet": null,
+          "rangeFeet": 150,
+          "manualRider": true,
+          "manualRiderText": "If the target is a flammable object that isn't being worn or carried, it also catches fire.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_fire-imp#hurl-flame"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-corrupted-pixie",
+      "creatureName": "Corrupted Pixie",
+      "status": "no-supported-action",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_corrupted-pixie/",
+        "fetchedAt": "2026-08-29T02:06:47.314Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Confusion Touch",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Superior Invisibility",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-rakshasa-servitor",
+      "creatureName": "Rakshasa, Servitor",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_rakshasa-servitor/",
+        "fetchedAt": "2026-08-29T02:06:47.193Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Protecting Pounce",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-azza-gremlin",
+      "creatureName": "Azza Gremlin",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_azza-gremlin/",
+        "fetchedAt": "2026-08-29T02:06:47.141Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Lightning Jolt",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "lightning",
+          "reachFeet": 5,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 10 Constitution saving throw or be affected by Contagious Lightning.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_azza-gremlin#lightning-jolt"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Ride the Bolt",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-morko",
+      "creatureName": "Morko",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_morko/",
+        "fetchedAt": "2026-08-29T02:06:47.180Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 3,
+          "name": "Spear",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "Two-handed",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 1
+            }
+          },
+          "sourceRef": "open5e:ccdx:ccdx_morko#spear"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Charisma",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Disdainful Eye",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Shrink",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-ice-bogie",
+      "creatureName": "Ice Bogie",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_ice-bogie/",
+        "fetchedAt": "2026-08-29T02:06:47.319Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Icicle Fist",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 2 (1d4) cold damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_ice-bogie#icicle-fist"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Spiteful Hail",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "cold",
+          "reachFeet": null,
+          "rangeFeet": 30,
+          "manualRider": true,
+          "manualRiderText": "The target's speed is reduced by 10 until the end of its next turn.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_ice-bogie#spiteful-hail"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Frosty Aid",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-aziza",
+      "creatureName": "Aziza",
+      "status": "no-supported-action",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_aziza/",
+        "fetchedAt": "2026-08-29T02:06:47.328Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Dazzling Glow",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-anubian",
+      "creatureName": "Anubian",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_anubian/",
+        "fetchedAt": "2026-08-29T02:06:47.273Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_anubian#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Haboob",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Sand Step",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    }
+  ]
+}

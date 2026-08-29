@@ -1,4 +1,5 @@
 import type { Role } from "./contracts";
+import type { CombatActionProfile } from "./combat-rolling";
 
 export const TRUSTED_IDENTITIES = Object.freeze([
   { id: "identity-dan", displayName: "Dan" },
@@ -12,6 +13,7 @@ export type HumanIdentity = {
   displayName: string;
   loginEmail?: string;
   canCreateCampaigns?: boolean;
+  canUseQaSessions?: boolean;
 };
 
 export type CampaignCharacterSummary = {
@@ -23,6 +25,7 @@ export type CampaignCharacterSummary = {
   speed?: number;
   armorClass?: number;
   maxHp?: number;
+  combatActions?: CombatActionProfile[];
 };
 
 export type CampaignMemberSummary = {
@@ -38,6 +41,7 @@ export type CampaignAccessSummary = {
   name: string;
   membershipId: string;
   role: Role;
+  combatRollingEnabled?: boolean;
   characters: CampaignCharacterSummary[];
   members?: CampaignMemberSummary[];
   encounters: Array<{

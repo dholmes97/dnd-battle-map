@@ -1,0 +1,498 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 27,
+  "creatures": [
+    {
+      "creatureId": "srd-stone-giant",
+      "creatureName": "Stone Giant",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/stone-giant",
+        "fetchedAt": "2026-08-29T02:06:40.855Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greatclub",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:stone-giant#greatclub"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Rock",
+          "attackBonus": 9,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 60,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 17 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:stone-giant#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-stone-golem",
+      "creatureName": "Stone Golem",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/stone-golem",
+        "fetchedAt": "2026-08-29T02:06:40.853Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 8,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:stone-golem#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Slow",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-storm-giant",
+      "creatureName": "Storm Giant",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/storm-giant",
+        "fetchedAt": "2026-08-29T02:06:40.857Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Greatsword",
+          "attackBonus": 14,
+          "attackKind": "melee",
+          "damage": {
+            "count": 6,
+            "sides": 6,
+            "modifier": 9
+          },
+          "damageType": "slashing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:storm-giant#greatsword"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Rock",
+          "attackBonus": 14,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 12,
+            "modifier": 9
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 60,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:storm-giant#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Lightning Strike",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-succubus-incubus",
+      "creatureName": "Succubus/Incubus",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/succubus-incubus",
+        "fetchedAt": "2026-08-29T02:06:40.859Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw (Fiend Form Only)",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:succubus-incubus#claw-(fiend-form-only)"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Charm",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Draining Kiss",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Etherealness",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-bats",
+      "creatureName": "Swarm of Bats",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-bats",
+        "fetchedAt": "2026-08-29T02:06:40.861Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 1,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-bats#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-beetles",
+      "creatureName": "Swarm of Beetles",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-beetles",
+        "fetchedAt": "2026-08-29T02:06:40.853Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-beetles#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-centipedes",
+      "creatureName": "Swarm of Centipedes",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-centipedes",
+        "fetchedAt": "2026-08-29T02:06:40.852Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "A creature reduced to 0 hit points by a swarm of centipedes is stable but poisoned for 1 hour, even after regaining hit points, and paralyzed while poisoned in this way.",
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-centipedes#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-insects",
+      "creatureName": "Swarm of Insects",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-insects",
+        "fetchedAt": "2026-08-29T02:06:40.859Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-insects#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-poisonous-snakes",
+      "creatureName": "Swarm of Poisonous Snakes",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-poisonous-snakes",
+        "fetchedAt": "2026-08-29T02:06:40.855Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 6,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target must make a DC 10 Constitution saving throw, taking 14 (4d6) poison damage on a failed save, or half as much damage on a successful one.",
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 1,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-poisonous-snakes#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-quippers",
+      "creatureName": "Swarm of Quippers",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-quippers",
+        "fetchedAt": "2026-08-29T02:06:40.858Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-quippers#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

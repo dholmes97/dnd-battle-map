@@ -67,8 +67,11 @@ rules. Remove an item when it ships; Git history is the archive.
 
 ## Product boundaries
 
-- D&D Beyond remains the home for complete character sheets, player dice,
-  classes, spell slots, and modifiers.
+- D&D Beyond remains the home for complete character sheets, classes, spell
+  slots, rules content, and the source values used to maintain characters.
+- The battle map may store compact final-value combat action profiles and
+  provide shared server-authoritative attack rolls with DM damage adjudication;
+  see `docs/COMBAT-ROLLING-REQUIREMENTS.md`.
 - Do not build against unofficial D&D Beyond browser integrations unless an
   official supported API becomes available.
 - Small DM conveniences for monsters remain in scope when they reduce table

@@ -8,6 +8,7 @@ export type AuthenticatedIdentity = {
   displayName: string;
   loginEmail: string;
   canCreateCampaigns: boolean;
+  canUseQaSessions: boolean;
 };
 
 export function normalizeLoginEmail(value: unknown): string {

@@ -105,6 +105,7 @@ export const identities = sqliteTable("identities", {
   displayName: text("display_name").notNull(),
   loginEmail: text("login_email").notNull().default(""),
   canCreateCampaigns: integer("can_create_campaigns", { mode: "boolean" }).notNull().default(false),
+  canUseQaSessions: integer("can_use_qa_sessions", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
@@ -163,6 +164,7 @@ export const campaigns = sqliteTable("campaigns", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull(),
   name: text("name").notNull(),
+  isQa: integer("is_qa", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [uniqueIndex("idx_campaigns_slug").on(table.slug)]);
@@ -381,6 +383,41 @@ export const creatureCatalog = sqliteTable(
   ],
 );
 
+export const combatActionProfiles = sqliteTable(
+  "combat_action_profiles",
+  {
+    id: text("id").primaryKey(),
+    campaignCharacterId: text("campaign_character_id").references(() => campaignCharacters.id, { onDelete: "cascade" }),
+    creatureCatalogId: text("creature_catalog_id").references(() => creatureCatalog.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    resolutionMode: text("resolution_mode").notNull().default("attack-vs-ac"),
+    attackBonus: integer("attack_bonus").notNull(),
+    attackKind: text("attack_kind").notNull(),
+    damageDiceCount: integer("damage_dice_count").notNull(),
+    damageDieSize: integer("damage_die_size").notNull(),
+    damageModifier: integer("damage_modifier").notNull(),
+    damageType: text("damage_type").notNull(),
+    reachFeet: integer("reach_feet"),
+    rangeFeet: integer("range_feet"),
+    manualRider: integer("manual_rider", { mode: "boolean" }).notNull().default(false),
+    alternateDamageJson: text("alternate_damage_json"),
+    sourceKind: text("source_kind").notNull(),
+    sourceRef: text("source_ref"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isEnabled: integer("is_enabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    check("combat_action_profiles_one_owner", sql`(
+      (${table.campaignCharacterId} IS NOT NULL AND ${table.creatureCatalogId} IS NULL) OR
+      (${table.campaignCharacterId} IS NULL AND ${table.creatureCatalogId} IS NOT NULL)
+    )`),
+    index("idx_combat_actions_character_sort").on(table.campaignCharacterId, table.sortOrder, table.id),
+    index("idx_combat_actions_creature_sort").on(table.creatureCatalogId, table.sortOrder, table.id),
+  ],
+);
+
 export const participants = sqliteTable(
   "participants",
   {
@@ -389,6 +426,8 @@ export const participants = sqliteTable(
       .notNull()
       .references(() => encounters.id, { onDelete: "cascade" }),
     identityId: text("identity_id").references(() => identities.id),
+    authenticatedActorIdentityId: text("authenticated_actor_identity_id").references(() => identities.id),
+    qaPersona: text("qa_persona"),
     campaignMembershipId: text("campaign_membership_id").references(() => campaignMemberships.id),
     name: text("name").notNull(),
     role: text("role").notNull().default("player"),
@@ -424,9 +463,11 @@ export const tokens = sqliteTable(
     armorClass: integer("armor_class"),
     hp: integer("hp"),
     maxHp: integer("max_hp"),
+    temporaryHp: integer("temporary_hp").notNull().default(0),
     isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
     summonerTokenId: text("summoner_token_id"),
     campaignCharacterId: text("campaign_character_id").references(() => campaignCharacters.id),
+    catalogCreatureId: text("catalog_creature_id").references(() => creatureCatalog.id, { onDelete: "set null" }),
     initiative: integer("initiative"),
     initiativeGroupId: text("initiative_group_id"),
     initiativeOrder: integer("initiative_order"),
@@ -446,6 +487,60 @@ export const tokens = sqliteTable(
     index("idx_tokens_encounter_id").on(table.encounterId),
     index("idx_tokens_campaign_character_id").on(table.campaignCharacterId),
     index("idx_tokens_owner_participant_id").on(table.ownerParticipantId),
+  ],
+);
+
+export const combatRolls = sqliteTable(
+  "combat_rolls",
+  {
+    id: text("id").primaryKey(),
+    encounterId: text("encounter_id").notNull().references(() => encounters.id, { onDelete: "cascade" }),
+    operationId: text("operation_id").notNull(),
+    participantId: text("participant_id").notNull().references(() => participants.id, { onDelete: "restrict" }),
+    authenticatedActorIdentityId: text("authenticated_actor_identity_id").references(() => identities.id),
+    attackerTokenId: text("attacker_token_id").notNull().references(() => tokens.id, { onDelete: "restrict" }),
+    targetTokenId: text("target_token_id").notNull().references(() => tokens.id, { onDelete: "restrict" }),
+    actionProfileId: text("action_profile_id").references(() => combatActionProfiles.id, { onDelete: "set null" }),
+    actionSource: text("action_source").notNull(),
+    actionSnapshotJson: text("action_snapshot_json").notNull(),
+    rollMode: text("roll_mode").notNull(),
+    attackDiceJson: text("attack_dice_json").notNull(),
+    keptD20: integer("kept_d20").notNull(),
+    blessDie: integer("bless_die"),
+    attackTotal: integer("attack_total").notNull(),
+    outcome: text("outcome").notNull(),
+    damageDiceJson: text("damage_dice_json").notNull(),
+    damageTotal: integer("damage_total").notNull(),
+    inTurn: integer("in_turn", { mode: "boolean" }).notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_combat_rolls_encounter_operation").on(table.encounterId, table.operationId),
+    index("idx_combat_rolls_encounter_created").on(table.encounterId, table.createdAt, table.id),
+    index("idx_combat_rolls_participant_created").on(table.participantId, table.createdAt, table.id),
+  ],
+);
+
+export const damageProposals = sqliteTable(
+  "damage_proposals",
+  {
+    id: text("id").primaryKey(),
+    encounterId: text("encounter_id").notNull().references(() => encounters.id, { onDelete: "cascade" }),
+    rollId: text("roll_id").notNull().references(() => combatRolls.id, { onDelete: "cascade" }),
+    targetTokenId: text("target_token_id").notNull().references(() => tokens.id, { onDelete: "restrict" }),
+    status: text("status").notNull().default("pending"),
+    rolledDamage: integer("rolled_damage").notNull(),
+    finalDamage: integer("final_damage"),
+    adjudicationMethod: text("adjudication_method"),
+    adjudicatedByParticipantId: text("adjudicated_by_participant_id").references(() => participants.id, { onDelete: "set null" }),
+    adjudicationNote: text("adjudication_note"),
+    historyActionId: text("history_action_id"),
+    createdAt: integer("created_at").notNull(),
+    resolvedAt: integer("resolved_at"),
+  },
+  (table) => [
+    uniqueIndex("idx_damage_proposals_roll").on(table.rollId),
+    index("idx_damage_proposals_encounter_status_created").on(table.encounterId, table.status, table.createdAt, table.id),
   ],
 );
 

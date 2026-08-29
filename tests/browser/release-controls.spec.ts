@@ -190,6 +190,7 @@ test("the main map and encounter setup support a complete no-pointer spatial flo
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await enterFirstEncounterAsDm(page);
   const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
+  await expect(map).not.toHaveClass(/is-blocked/);
   await map.focus();
   await expect(map).toBeFocused();
 

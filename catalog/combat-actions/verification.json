@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-08-29T02:17:25.054Z",
+  "valid": true,
+  "creatureCount": 829,
+  "actionCount": 1102,
+  "sourceActionCount": 2006,
+  "omittedSourceActionCount": 904,
+  "manualRiderActionCount": 418,
+  "sourceCounts": {
+    "srd-5.1": 329,
+    "open5e-v2": 500
+  },
+  "statusCounts": {
+    "ready-with-manual-riders": 360,
+    "ready": 345,
+    "no-supported-action": 124
+  },
+  "batchCount": 83,
+  "checkedBatchChecksums": 83,
+  "sourceSnapshotCount": 829,
+  "unresolvedIssueCount": 0,
+  "errors": []
+}

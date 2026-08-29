@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 43,
+  "creatures": [
+    {
+      "creatureId": "open5e-tob3-dragonette-barnyard",
+      "creatureName": "Dragonette, Barnyard",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_dragonette-barnyard/",
+        "fetchedAt": "2026-08-29T02:06:45.959Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-living-wick",
+      "creatureName": "Living Wick",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_living-wick/",
+        "fetchedAt": "2026-08-29T02:06:45.829Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_living-wick#slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Consuming Inferno",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-bookkeeper",
+      "creatureName": "Bookkeeper",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_bookkeeper/",
+        "fetchedAt": "2026-08-29T02:06:45.936Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 0,
+            "sides": 4,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 1 poison damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_bookkeeper#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Ink Splash",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "poison",
+          "reachFeet": null,
+          "rangeFeet": 20,
+          "manualRider": true,
+          "manualRiderText": "The target must succeed on a DC 13 Dexterity saving throw or be blinded until the end of its next turn.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_bookkeeper#ink-splash"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Elusive Pages",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-greed-swarm",
+      "creatureName": "Greed Swarm",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_greed-swarm/",
+        "fetchedAt": "2026-08-29T02:06:45.873Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Coin Barrage",
+          "attackBonus": 5,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 1,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "open5e:tob2:tob2_greed-swarm#coin-barrage"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Coin Slam",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "open5e:tob2:tob2_greed-swarm#coin-slam"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Gather",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-animated-instrument",
+      "creatureName": "Animated Instrument",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_animated-instrument/",
+        "fetchedAt": "2026-08-29T02:06:45.731Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-uraeus",
+      "creatureName": "Uraeus",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 5,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_uraeus/",
+        "fetchedAt": "2026-08-29T02:06:45.849Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 9 (2d8) poison damage, and the target must succeed on a DC 12 Constitution saving throw or be poisoned for 1 minute. While poisoned, the target takes 3 (1d6) fire damage at the start of each of its turns. See the source stat block for complete resolution.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_uraeus#bite"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Spit Fire",
+          "attackBonus": 4,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "fire",
+          "reachFeet": null,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_uraeus#spit-fire"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Bonded Savior",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Searing Breath",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 4,
+          "actionName": "Ward Bond",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-ccdx-hallowed-reed",
+      "creatureName": "Hallowed Reed",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/ccdx_hallowed-reed/",
+        "fetchedAt": "2026-08-29T02:06:45.895Z",
+        "documentKey": "ccdx",
+        "documentName": "Creature Codex",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Searing Grasp",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "radiant",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "The target is grappled (escape DC 12). Until this grapple ends, the creature is restrained, it takes 2 (1d4) radiant damage at the start of each of its turns, and the hallowed reed can't grasp another target. Undead and fiends have disadvantage on ability checks made to escape the grapple.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:ccdx:ccdx_hallowed-reed#searing-grasp"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob2-aviere",
+      "creatureName": "Aviere",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob2_aviere/",
+        "fetchedAt": "2026-08-29T02:06:45.955Z",
+        "documentKey": "tob2",
+        "documentName": "Tome of Beasts 2",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Claw",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Also deals 4 (1d8) fire damage.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob2:tob2_aviere#claw"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 1,
+          "actionName": "Song of Healing",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 2,
+          "actionName": "Song of Life",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob3-angel-haladron",
+      "creatureName": "Angel, Haladron",
+      "status": "no-supported-action",
+      "sourceActionCount": 0,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob3_angel-haladron/",
+        "fetchedAt": "2026-08-29T02:06:45.795Z",
+        "documentKey": "tob3",
+        "documentName": "Tome of Beasts 3",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "open5e-tob-2023-wharfling",
+      "creatureName": "Wharfling",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "open5e-v2",
+        "url": "https://api.open5e.com/v2/creatures/tob-2023_wharfling/",
+        "fetchedAt": "2026-08-29T02:06:45.907Z",
+        "documentKey": "tob-2023",
+        "documentName": "Tome of Beasts 1 (2023 Edition)",
+        "publisher": "Kobold Press",
+        "gameSystem": "5th Edition 2014"
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Pilfering Bite",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 4,
+            "modifier": 2
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "Instead of dealing damage, the wharfling can steal one item the target is wearing or carrying, provided the item weighs no more than 10 pounds, isn't a weapon, and isn't wrapped around or firmly attached to the target, such as a shirt or armor.",
+          "alternateDamage": null,
+          "sourceRef": "open5e:tob-2023:tob-2023_wharfling#pilfering-bite"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

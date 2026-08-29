@@ -43,6 +43,15 @@ import {
   type SharedToken,
 } from "../shared/contracts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
+import {
+  combatRollingEnabled,
+  parseCombatRollingMode,
+  projectCombatDamageValues,
+  projectDamageAdjudication,
+  validateCombatActionValues,
+  type CombatActionProfile,
+  type DamageAdjudication,
+} from "../shared/combat-rolling.ts";
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
 import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
 import { inspectCatalogPng, type CatalogImageVariant } from "../shared/catalog-image.ts";
@@ -68,6 +77,7 @@ import {
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
   MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN,
+  MAX_COMBAT_ACTIONS_PER_OWNER,
   MAX_MAP_IMAGES,
   MAX_PARTICIPANTS_PER_ENCOUNTER,
   MAX_SCENARIOS,
@@ -80,6 +90,7 @@ import {
   type ChatHandoutCommandContext,
 } from "./commands/chat-handout-commands";
 import type { CommandOutcome } from "./commands/types";
+import type { CombatActionProfileRow, CombatRollRow, DamageProposalRow } from "./ports/combat-roll-repository.ts";
 import { createD1ChatHandoutRepository, createR2HandoutObjectStorage } from "./adapters/d1-chat-handout-repository";
 import {
   addAnnotation,
@@ -120,10 +131,19 @@ import {
   deleteToken,
   removeEffect,
   resizeSpellEffect,
+  setTemporaryHp,
   updateToken,
   type TokenEffectCommandContext,
 } from "./commands/token-effect-commands";
 import { createD1TokenEffectRepository } from "./adapters/d1-token-effect-repository";
+import {
+  adjudicateDamage,
+  deleteCombatAction,
+  rollAttack,
+  saveCombatAction,
+  type CombatRollCommandContext,
+} from "./commands/combat-roll-commands.ts";
+import { createD1CombatRollRepository } from "./adapters/d1-combat-roll-repository.ts";
 import { redo, undo, type HistoryCommandContext } from "./commands/history-commands";
 import { createD1HistoryRepository } from "./adapters/d1-history-repository";
 import { createD1MutationUnitOfWork } from "./adapters/d1-mutation-unit-of-work.ts";
@@ -149,6 +169,7 @@ import {
 import { handleScenarioProvisioningApi } from "./scenario-provisioning-api.ts";
 import { authenticatedIdentity, handleAuthRequest } from "./auth.ts";
 import { handleCampaignCollection, handleCampaignResource } from "./campaigns.ts";
+import { handleQaSession, resetQaFixture } from "./qa-sessions.ts";
 import type {
   ActionRow,
   AnnotationRow,
@@ -170,7 +191,7 @@ const HANDOUT_API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/handouts(?:\/([^/]+)(?:\/(thumbnail|display))?)?$/;
 const PRODUCTION_BACKUP_ROUTE = /^\/api\/admin\/production-backup\/(d1|r2(?:\/object)?)$/;
 const AUTH_ROUTE = /^\/api\/auth\/(session|dev-login|logout|google\/start|google\/callback)$/;
-const CAMPAIGN_RESOURCE_ROUTE = /^\/api\/campaigns\/([a-zA-Z0-9-]{1,64})(?:\/(members|encounters))?$/;
+const CAMPAIGN_RESOURCE_ROUTE = /^\/api\/campaigns\/([a-zA-Z0-9-]{1,64})(?:\/(members|encounters|actions))?$/;
 
 const PRODUCTION_BACKUP_PAGE_SIZE = 100;
 
@@ -777,6 +798,7 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
     defaultHp: number; hitDice: string | null; armorClass: number; challengeRating: string | null;
     walk: number; fly: number | null; swim: number | null; climb: number | null; burrow: number | null;
     assetKey: string; tokenAsset: string; thumbnailAsset: string; original: Uint8Array; thumbnail: Uint8Array;
+    actions: Array<{ id: string; values: NonNullable<ReturnType<typeof validateCombatActionValues>>; sourceRef: string }> | null;
   }> = [];
   let decodedImageBytes = 0;
   for (const raw of entries) {
@@ -799,6 +821,31 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
     const burrow = cleanCatalogSpeed(speeds.burrow);
     const original = decodeCatalogImage(entry.imageBase64, "original");
     const thumbnail = decodeCatalogImage(entry.thumbnailBase64, "thumbnail");
+    const rawActions = entry.actions;
+    let actions: Array<{ id: string; values: NonNullable<ReturnType<typeof validateCombatActionValues>>; sourceRef: string }> | null = null;
+    if (rawActions !== undefined) {
+      if (!Array.isArray(rawActions) || rawActions.length > MAX_COMBAT_ACTIONS_PER_OWNER) {
+        return json({ error: `Invalid combat actions for ${name || id || "an entry"}.` }, { status: 400 });
+      }
+      actions = [];
+      const actionIds = new Set<string>();
+      for (const [index, rawAction] of rawActions.entries()) {
+        if (!rawAction || typeof rawAction !== "object") {
+          return json({ error: `Invalid combat action for ${name || id || "an entry"}.` }, { status: 400 });
+        }
+        const actionEntry = rawAction as Record<string, unknown>;
+        const values = validateCombatActionValues(actionEntry.values ?? actionEntry);
+        const sourceRef = cleanText(actionEntry.sourceRef, 160);
+        if (!values || !sourceRef) {
+          return json({ error: `Combat actions for ${name || id || "an entry"} require complete values and source provenance.` }, { status: 400 });
+        }
+        const actionSlug = values.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || `action-${index + 1}`;
+        const actionId = `catalog-${id}-${actionSlug}-${index + 1}`.slice(0, 96);
+        if (actionIds.has(actionId)) return json({ error: `Duplicate combat action for ${name}.` }, { status: 400 });
+        actionIds.add(actionId);
+        actions.push({ id: actionId, values, sourceRef });
+      }
+    }
     if (!id || !name || !family || !size || !Number.isFinite(defaultHp) || defaultHp < 1 || defaultHp > 10000 ||
         !Number.isFinite(armorClass) || armorClass < 1 || armorClass > 40 || walk === null || !original || !thumbnail) {
       return json({ error: `Invalid catalog metadata or images for ${name || id || "an entry"}.` }, { status: 400 });
@@ -811,7 +858,7 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
     const tokenAsset = `/creature-assets/${assetKey}`;
     prepared.push({ id, name, family, creatureType, size, defaultHp, hitDice, armorClass, challengeRating,
       walk, fly, swim, climb, burrow, assetKey, tokenAsset,
-      thumbnailAsset: `${tokenAsset}?variant=thumbnail&v=3`, original, thumbnail });
+      thumbnailAsset: `${tokenAsset}?variant=thumbnail&v=3`, original, thumbnail, actions });
   }
   const catalogCount = await env.DB.prepare("SELECT COUNT(*) AS value FROM creature_catalog")
     .first<{ value: number }>();
@@ -855,6 +902,25 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
       creature.defaultHp, creature.hitDice, creature.armorClass, creature.challengeRating,
       creature.walk, creature.walk, creature.fly, creature.swim, creature.climb, creature.burrow,
       `r2://${creature.assetKey}`, creature.tokenAsset, creature.thumbnailAsset, sortOrder, now, now).run();
+    if (creature.actions !== null) {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM combat_action_profiles WHERE creature_catalog_id = ?").bind(creature.id),
+        ...creature.actions.map((action, index) => env.DB.prepare(
+          `INSERT INTO combat_action_profiles
+           (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
+            damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
+            manual_rider, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-import', ?, ?, 1, ?, ?)`,
+        ).bind(
+          action.id, creature.id, action.values.name, action.values.attackBonus, action.values.attackKind,
+          action.values.damage.count, action.values.damage.sides, action.values.damage.modifier,
+          action.values.damageType, action.values.reachFeet, action.values.rangeFeet,
+          action.values.manualRider ? 1 : 0,
+          action.values.alternateDamage ? JSON.stringify(action.values.alternateDamage) : null,
+          action.sourceRef, index, now, now,
+        )),
+      ]);
+    }
   }
   const total = await env.DB.prepare("SELECT COUNT(*) AS count FROM creature_catalog WHERE is_active = 1")
     .first<{ count: number }>();
@@ -883,6 +949,99 @@ async function findEncounter(env: Env, code: string): Promise<EncounterRow | nul
   )
     .bind(code)
     .first<EncounterRow>();
+}
+
+async function combatRollingFeature(env: Env, encounterId: string, campaignId: string) {
+  const mode = parseCombatRollingMode(env.COMBAT_ROLLING_MODE);
+  const campaign = await env.DB.prepare("SELECT is_qa FROM campaigns WHERE id = ?")
+    .bind(campaignId).first<{ is_qa: number }>();
+  const enabled = combatRollingEnabled(mode, Boolean(campaign?.is_qa));
+  const pending = enabled ? null : await env.DB.prepare(
+    "SELECT 1 AS found FROM damage_proposals WHERE encounter_id = ? AND status = 'pending' LIMIT 1",
+  ).bind(encounterId).first();
+  return { mode, enabled, draining: !enabled && Boolean(pending) };
+}
+
+function secureRollDie(sides: number): number {
+  if (!Number.isInteger(sides) || sides < 2 || sides > 100) throw new Error("Invalid die size.");
+  const limit = Math.floor(0x1_0000_0000 / sides) * sides;
+  const values = new Uint32Array(1);
+  do crypto.getRandomValues(values); while (values[0] >= limit);
+  return (values[0] % sides) + 1;
+}
+
+function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile | null {
+  let alternateDamage: unknown = null;
+  try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
+  const values = validateCombatActionValues({
+    name: row.name,
+    attackBonus: row.attack_bonus,
+    attackKind: row.attack_kind,
+    damage: { count: row.damage_dice_count, sides: row.damage_die_size, modifier: row.damage_modifier },
+    damageType: row.damage_type,
+    reachFeet: row.reach_feet,
+    rangeFeet: row.range_feet,
+    manualRider: Boolean(row.manual_rider),
+    alternateDamage,
+  });
+  const ownerType = row.campaign_character_id ? "character" as const : "creature" as const;
+  const ownerId = row.campaign_character_id ?? row.creature_catalog_id;
+  return values && ownerId ? {
+    ...values,
+    id: row.id,
+    ownerType,
+    ownerId,
+    applicableTokenIds: [],
+    source: ownerType === "character" ? "character" : "creature-catalog",
+    enabled: Boolean(row.is_enabled),
+    sortOrder: row.sort_order,
+  } : null;
+}
+
+function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string }): EncounterState["combatRolls"][number] | null {
+  let snapshot: Record<string, unknown>;
+  try { snapshot = JSON.parse(row.action_snapshot_json) as Record<string, unknown>; } catch { return null; }
+  const action = validateCombatActionValues(snapshot);
+  const attackDice = jsonDice(row.attack_dice_json, 20);
+  const damage = validateCombatActionValues(snapshot)?.damage;
+  const damageDice = jsonDice(row.damage_dice_json, damage?.sides ?? 100);
+  if (!action || !attackDice || !damageDice ||
+      (row.outcome !== "miss" && row.outcome !== "hit" && row.outcome !== "critical" && row.outcome !== "needs-ac") ||
+      (row.roll_mode !== "normal" && row.roll_mode !== "advantage" && row.roll_mode !== "disadvantage")) return null;
+  return {
+    id: row.id,
+    attackerTokenId: row.attacker_token_id,
+    attackerName: typeof snapshot.attackerName === "string" ? snapshot.attackerName : "Attacker",
+    targetTokenId: row.target_token_id,
+    targetName: typeof snapshot.targetName === "string" ? snapshot.targetName : "Target",
+    participantName: row.participant_name,
+    action,
+    actionSource: row.action_source === "dm-generic-ad-hoc" ? "dm-ad-hoc"
+      : row.action_source.includes("catalog") ? "creature-catalog" : "character",
+    rollMode: row.roll_mode,
+    attackDice,
+    keptD20: row.kept_d20,
+    blessDie: row.bless_die,
+    attackTotal: row.attack_total,
+    outcome: row.outcome,
+    damageDice,
+    damageTotal: row.damage_total,
+    inTurn: Boolean(row.in_turn),
+    createdAt: row.created_at,
+  };
+}
+
+function jsonDice(value: string, sides: number): number[] | null {
+  try {
+    const dice = JSON.parse(value);
+    return Array.isArray(dice) && dice.length <= 40 && dice.every((die) => Number.isInteger(die) && die >= 1 && die <= sides)
+      ? dice as number[] : null;
+  } catch { return null; }
+}
+
+function isDamageAdjudication(value: unknown): value is DamageAdjudication {
+  return value === "apply" || value === "resistant" || value === "vulnerable" ||
+    value === "immune" || value === "adjust" || value === "reject" || value === "cancel";
 }
 
 function parseStoredMapSetup(serialized: string, width: number, height: number) {
@@ -930,10 +1089,11 @@ async function participantFromHeaders(
   );
   if (!participantId || !sessionSecret) return null;
   return env.DB.prepare(
-    `SELECT id, name, role, identity_id, campaign_membership_id FROM participants
-     WHERE id = ? AND encounter_id = ? AND session_secret = ?`,
+    `SELECT id, name, role, identity_id, authenticated_actor_identity_id, qa_persona, campaign_membership_id FROM participants
+     WHERE id = ? AND encounter_id = ? AND session_secret = ?
+       AND (qa_persona IS NULL OR last_seen_at > ?)`,
   )
-    .bind(participantId, encounterId, sessionSecret)
+    .bind(participantId, encounterId, sessionSecret, Date.now() - 2 * 60 * 60 * 1_000)
     .first<ParticipantRow>();
 }
 
@@ -1208,7 +1368,7 @@ async function encounterState(
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
-            t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative,
+            t.armor_class, t.hp, t.max_hp, t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative,
             t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used, t.altitude,
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
@@ -1338,6 +1498,121 @@ async function encounterState(
       ((!token.is_hidden || viewer?.role === "dm" || viewerControls(token)) &&
       (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
+  const combatFeature = await combatRollingFeature(env, encounter!.id, encounter!.campaign_id);
+  const actionRows = combatFeature.enabled
+    ? await env.DB.prepare(
+        `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name,
+                cap.attack_bonus, cap.attack_kind, cap.damage_dice_count, cap.damage_die_size,
+                cap.damage_modifier, cap.damage_type, cap.reach_feet, cap.range_feet,
+                cap.manual_rider, cap.alternate_damage_json, cap.source_kind, cap.source_ref,
+                cap.sort_order, cap.is_enabled, cap.created_at, cap.updated_at
+         FROM combat_action_profiles cap
+         WHERE cap.is_enabled = 1 AND (
+           cap.campaign_character_id IN (
+             SELECT campaign_character_id FROM tokens WHERE encounter_id = ? AND campaign_character_id IS NOT NULL
+           ) OR cap.creature_catalog_id IN (
+             SELECT catalog_creature_id FROM tokens WHERE encounter_id = ? AND catalog_creature_id IS NOT NULL
+           )
+         )
+         ORDER BY cap.sort_order, cap.name, cap.id LIMIT 200`,
+      ).bind(encounter!.id, encounter!.id).all<CombatActionProfileRow>()
+    : { results: [] as CombatActionProfileRow[] };
+  const rollRows = combatFeature.enabled
+    ? await env.DB.prepare(
+        `SELECT r.*, p.name AS participant_name FROM combat_rolls r
+         JOIN participants p ON p.id = r.participant_id
+         WHERE r.encounter_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 100`,
+      ).bind(encounter!.id).all<CombatRollRow & { participant_name: string }>()
+    : combatFeature.draining
+      ? await env.DB.prepare(
+          `SELECT r.*, p.name AS participant_name FROM combat_rolls r
+           JOIN participants p ON p.id = r.participant_id
+           JOIN damage_proposals dp ON dp.roll_id = r.id AND dp.status = 'pending'
+           WHERE r.encounter_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 100`,
+        ).bind(encounter!.id).all<CombatRollRow & { participant_name: string }>()
+      : { results: [] as Array<CombatRollRow & { participant_name: string }> };
+  const proposalRows = combatFeature.enabled || combatFeature.draining
+    ? await env.DB.prepare(
+        `SELECT dp.id, dp.encounter_id, dp.roll_id, dp.target_token_id, dp.status,
+                dp.rolled_damage, dp.final_damage, dp.adjudication_method,
+                dp.adjudicated_by_participant_id, dp.adjudication_note,
+                dp.history_action_id, dp.created_at, dp.resolved_at,
+                CASE WHEN json_extract(a.payload_json, '$.concentrationCheckRequired') = 1
+                  THEN 1 ELSE 0 END AS concentration_check_required
+         FROM damage_proposals dp
+         LEFT JOIN actions a ON a.id = dp.history_action_id AND a.encounter_id = dp.encounter_id
+         WHERE dp.encounter_id = ? AND (? = 1 OR dp.status = 'pending')
+         ORDER BY dp.created_at DESC, dp.id DESC LIMIT 100`,
+      ).bind(encounter!.id, combatFeature.enabled ? 1 : 0).all<DamageProposalRow & { concentration_check_required: number }>()
+    : { results: [] as Array<DamageProposalRow & { concentration_check_required: number }> };
+  const visibleRollRows = rollRows.results.filter((roll) => {
+    const target = tokenById.get(roll.target_token_id);
+    const attacker = tokenById.get(roll.attacker_token_id);
+    if (!viewer || !target || !attacker || !visibleTokens.some((token) => token.id === target.id) ||
+        !visibleTokens.some((token) => token.id === attacker.id)) return false;
+    return viewer.role === "dm" || roll.participant_id === viewer.id || viewerControls(target);
+  });
+  const visibleRollIds = new Set(visibleRollRows.map((roll) => roll.id));
+  const proposalByRollId = new Map(proposalRows.results.map((proposal) => [proposal.roll_id, proposal]));
+  const allowedActionOwners = new Set(visibleTokens.filter((token) => viewer?.role === "dm" || viewerControls(token)).flatMap((token) => [
+    token.campaign_character_id ? `character:${token.campaign_character_id}` : "",
+    token.catalog_creature_id ? `creature:${token.catalog_creature_id}` : "",
+  ]).filter(Boolean));
+  const combatActions = actionRows.results.flatMap((row) => {
+    const action = combatActionFromRow(row);
+    return action && allowedActionOwners.has(`${action.ownerType}:${action.ownerId}`) ? [{
+      ...action,
+      applicableTokenIds: visibleTokens.filter((token) => action.ownerType === "character"
+        ? token.campaign_character_id === action.ownerId
+        : token.catalog_creature_id === action.ownerId).map((token) => token.id),
+    }] : [];
+  });
+  const combatRolls = visibleRollRows.flatMap((row) => {
+    const roll = sharedCombatRollFromRow(row);
+    const target = tokenById.get(row.target_token_id);
+    if (!roll || !viewer || !target) return [];
+    const proposal = proposalByRollId.get(row.id) ?? null;
+    const damage = projectCombatDamageValues({
+      damageDice: roll.damageDice,
+      rolledDamage: row.damage_total,
+      finalDamage: proposal?.final_damage ?? null,
+      proposalStatus: proposal?.status ?? null,
+      canSeePrivateAdjudication: viewer.role === "dm",
+      initiatedRoll: row.participant_id === viewer.id,
+      controlsTarget: viewerControls(target),
+    });
+    return [{ ...roll, damageDice: damage.damageDice, damageTotal: damage.damageTotal }];
+  });
+  const damageProposals = proposalRows.results.filter((row) => visibleRollIds.has(row.roll_id)).map((row) => {
+    const roll = visibleRollRows.find((candidate) => candidate.id === row.roll_id);
+    const target = tokenById.get(row.target_token_id);
+    const damage = projectCombatDamageValues({
+      damageDice: [],
+      rolledDamage: row.rolled_damage,
+      finalDamage: row.final_damage,
+      proposalStatus: row.status,
+      canSeePrivateAdjudication: viewer?.role === "dm",
+      initiatedRoll: Boolean(viewer && roll?.participant_id === viewer.id),
+      controlsTarget: Boolean(target && viewerControls(target)),
+    });
+    const adjudication = projectDamageAdjudication({
+      status: row.status,
+      adjudicationMethod: isDamageAdjudication(row.adjudication_method) ? row.adjudication_method : null,
+      adjudicationNote: row.adjudication_note,
+      canSeePrivateAdjudication: viewer?.role === "dm",
+    });
+    return {
+      id: row.id,
+      rollId: row.roll_id,
+      targetTokenId: row.target_token_id,
+      ...adjudication,
+      rolledDamage: damage.proposalRolledDamage,
+      finalDamage: damage.proposalFinalDamage,
+      concentrationCheckRequired: Boolean(row.concentration_check_required),
+      createdAt: row.created_at,
+      resolvedAt: row.resolved_at,
+    };
+  });
   const projectedState: EncounterState = {
     encounter: {
       code: encounter!.code,
@@ -1356,6 +1631,10 @@ async function encounterState(
     },
     grid: { width: encounter!.grid_width, height: encounter!.grid_height, feetPerCell: 5 },
     viewer: viewer ? { id: viewer.id, role: viewer.role } : null,
+    features: { combatRolling: combatFeature },
+    combatActions,
+    combatRolls,
+    damageProposals,
     undo: {
       available: availableHistory.undo.length,
       redoAvailable: availableHistory.redo.length,
@@ -1381,6 +1660,7 @@ async function encounterState(
         armorClass: canSeePrivateStats ? token.armor_class : null,
         hp: canSeePrivateStats ? token.hp : null,
         maxHp: canSeePrivateStats ? token.max_hp : null,
+        temporaryHp: canSeePrivateStats ? token.temporary_hp : null,
         healthState: coarseHealth(token.hp, token.max_hp),
         hidden: Boolean(token.is_hidden),
         summonerTokenId: token.summoner_token_id,
@@ -1574,7 +1854,7 @@ async function canControlToken(
     visited.add(current.id);
     const summoner = await env.DB.prepare(
       `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-              climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
+              climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
               summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
               movement_used, owner_participant_id, owner_name, initiative_group_id
        FROM tokens WHERE id = ? AND encounter_id = ?`,
@@ -1650,18 +1930,24 @@ async function handleCommand(
     name: participant.name,
     role: participant.role,
     identityId: participant.identity_id ?? null,
+    authenticatedActorIdentityId: participant.authenticated_actor_identity_id ?? participant.identity_id ?? null,
     campaignMembershipId: participant.campaign_membership_id ?? null,
   };
+  let combatFeatureValue: Awaited<ReturnType<typeof combatRollingFeature>> | null = null;
+  const loadCombatFeature = async () => combatFeatureValue ??= await combatRollingFeature(
+    env, encounter.id, encounter.campaign_id,
+  );
   const commandServices = {
     createId: () => crypto.randomUUID(),
     loadState: state,
-    commit: (actionType: string | null, payload: Record<string, unknown> = {}) =>
+    commit: (actionType: string | null, payload: Record<string, unknown> = {}, actionId: string | null = null) =>
       unitOfWork.commit({
         encounterId: encounter.id,
         expectedVersion: encounter.version,
         participantId: actionType ? participant.id : null,
         actionType,
         actionPayload: payload,
+        actionId,
         now,
       }),
     commitFor: (input: {
@@ -1711,6 +1997,8 @@ async function handleCommand(
         identity_id: participant.identity_id,
         campaign_membership_id: participant.campaign_membership_id,
       }, telemetry),
+    cancelPendingDamageProposals: () => createD1CombatRollRepository(mutationDb)
+      .cancelPendingProposals(encounter.id, participant.id, now),
   });
   type InitiativeCommandName =
     | "set-initiative" | "set-initiative-group" | "start-combat"
@@ -1721,15 +2009,20 @@ async function handleCommand(
     ...baseContext(payload),
     repository: createD1InitiativeCombatRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
+    cancelPendingDamageProposals: () => createD1CombatRollRepository(mutationDb)
+      .cancelPendingProposals(encounter.id, participant.id, now),
   });
   const tokenEffectContext = <Name extends
     "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token" |
-    "apply-hp" | "add-effect" | "remove-effect" | "delete-token"
+    "apply-hp" | "set-temporary-hp" | "add-effect" | "remove-effect" | "delete-token"
   >(payload: CommandPayload<Name>): TokenEffectCommandContext<Name> => ({
     ...baseContext(payload),
     repository: createD1TokenEffectRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
     isAllowedArt: (value) => isAllowedTokenArt(env, value),
+    isCatalogCreature: async (id, artAsset) => Boolean(await env.DB.prepare(
+      "SELECT 1 AS found FROM creature_catalog WHERE id = ? AND token_asset = ? AND is_active = 1 LIMIT 1",
+    ).bind(id, artAsset).first()),
   });
   const historyContext = <Name extends "undo" | "redo">(
     payload: CommandPayload<Name>,
@@ -1740,6 +2033,16 @@ async function handleCommand(
     annotationRepository: createD1AnnotationFogRepository(mutationDb),
     initiativeRepository: createD1InitiativeCombatRepository(mutationDb),
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
+  });
+  const combatRollContext = async <Name extends
+    "save-combat-action" | "delete-combat-action" | "roll-attack" | "adjudicate-damage"
+  >(payload: CommandPayload<Name>): Promise<CombatRollCommandContext<Name>> => ({
+    ...baseContext(payload),
+    repository: createD1CombatRollRepository(mutationDb),
+    canControl: (token) => canControlToken(env, encounter.id, token, participant),
+    canSeeToken: async (tokenId) => Boolean((await state())?.tokens.some((token) => token.id === tokenId)),
+    feature: await loadCombatFeature(),
+    rollDie: secureRollDie,
   });
   let outcome: CommandOutcome;
   try {
@@ -1765,6 +2068,11 @@ async function handleCommand(
     case "resize-spell-effect": outcome = await resizeSpellEffect(tokenEffectContext(request.payload)); break;
     case "update-token": outcome = await updateToken(tokenEffectContext(request.payload)); break;
     case "apply-hp": outcome = await applyHp(tokenEffectContext(request.payload)); break;
+    case "set-temporary-hp": outcome = await setTemporaryHp(tokenEffectContext(request.payload)); break;
+    case "save-combat-action": outcome = await saveCombatAction(await combatRollContext(request.payload)); break;
+    case "delete-combat-action": outcome = await deleteCombatAction(await combatRollContext(request.payload)); break;
+    case "roll-attack": outcome = await rollAttack(await combatRollContext(request.payload)); break;
+    case "adjudicate-damage": outcome = await adjudicateDamage(await combatRollContext(request.payload)); break;
     case "add-effect": outcome = await addEffect(tokenEffectContext(request.payload)); break;
     case "remove-effect": outcome = await removeEffect(tokenEffectContext(request.payload)); break;
     case "delete-token": outcome = await deleteToken(tokenEffectContext(request.payload)); break;
@@ -1873,11 +2181,12 @@ async function handleApi(
       ).bind(encounter.id, encounter.id, MAX_PARTICIPANTS_PER_ENCOUNTER - 1),
       env.DB.prepare(
         `INSERT INTO participants
-        (id, encounter_id, identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, encounter_id, identity_id, authenticated_actor_identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         participantId,
         encounter.id,
+        membership.identity_id,
         membership.identity_id,
         membership.membership_id,
         participantName,
@@ -1928,10 +2237,11 @@ async function handleApi(
     return json({ error: "Participant session is required." }, { status: 401 });
   }
   const participant = await env.DB.prepare(
-    `SELECT id, name, role, identity_id, campaign_membership_id FROM participants
-     WHERE id = ? AND encounter_id = ? AND session_secret = ?`,
+    `SELECT id, name, role, identity_id, authenticated_actor_identity_id, qa_persona, campaign_membership_id FROM participants
+     WHERE id = ? AND encounter_id = ? AND session_secret = ?
+       AND (qa_persona IS NULL OR last_seen_at > ?)`,
   )
-    .bind(participantId, encounter.id, sessionSecret)
+    .bind(participantId, encounter.id, sessionSecret, now - 2 * 60 * 60 * 1_000)
     .first<ParticipantRow>();
   if (!participant) {
     return json({ error: "Participant session is invalid." }, { status: 401 });
@@ -1956,7 +2266,7 @@ async function handleApi(
   }
   const token = await env.DB.prepare(
     `SELECT id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-            climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
+            climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
             summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
             movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name
      FROM tokens WHERE id = ? AND encounter_id = ?`,
@@ -2133,6 +2443,22 @@ const worker = {
       }
     }
 
+    if (url.pathname === "/api/qa/session" || url.pathname === "/api/qa/reset") {
+      try {
+        await ensureSchema(env);
+        const identity = await authenticatedIdentity(request, env);
+        if (!identity) return json({ error: "Sign in to use QA sessions." }, { status: 401 });
+        const rateLimited = await enforceRateLimit(request, env, `combat-qa:${url.pathname}`, RATE_LIMIT_POLICIES.campaignWrite, identity.id);
+        if (rateLimited) return rateLimited;
+        return url.pathname.endsWith("/reset")
+          ? await resetQaFixture(request, env, identity)
+          : await handleQaSession(request, env, identity, (participant) =>
+              encounterState(env, "COMBAT-ROLLING-QA", participant));
+      } catch (error) {
+        return apiFailure(error, "Combat QA session error", "The combat QA session could not be prepared.");
+      }
+    }
+
     const campaignResourceMatch = url.pathname.match(CAMPAIGN_RESOURCE_ROUTE);
     if (campaignResourceMatch) {
       try {
@@ -2146,7 +2472,7 @@ const worker = {
           env,
           identity,
           campaignResourceMatch[1],
-          campaignResourceMatch[2] === "members" || campaignResourceMatch[2] === "encounters"
+          campaignResourceMatch[2] === "members" || campaignResourceMatch[2] === "encounters" || campaignResourceMatch[2] === "actions"
             ? campaignResourceMatch[2]
             : null,
         );

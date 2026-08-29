@@ -11,6 +11,7 @@ export interface Env {
   SCENARIO_PROVISIONING_SENDERS?: string;
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
+  COMBAT_ROLLING_MODE?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -38,9 +39,9 @@ export type TokenRow = {
   id: string; name: string; x: number; y: number; art_asset: string | null; kind: string;
   size: CreatureSize; speed: number; fly_speed: number | null; swim_speed: number | null;
   climb_speed: number | null; burrow_speed: number | null;
-  armor_class: number | null; hp: number | null; max_hp: number | null; is_hidden: number;
+  armor_class: number | null; hp: number | null; max_hp: number | null; temporary_hp: number; is_hidden: number;
   summoner_token_id: string | null; initiative: number | null; initiative_group_id: string | null;
-  campaign_character_id: string | null;
+  campaign_character_id: string | null; catalog_creature_id?: string | null;
   initiative_order: number | null; turn_complete: number; movement_used: number;
   altitude: number;
   movement_origin_x?: number | null; movement_origin_y?: number | null;
@@ -52,6 +53,8 @@ export type ParticipantRow = {
   name: string;
   role: "dm" | "player";
   identity_id?: string | null;
+  authenticated_actor_identity_id?: string | null;
+  qa_persona?: string | null;
   campaign_membership_id?: string | null;
 };
 export type EffectRow = { id: string; token_id: string; name: string; effect_type: string; duration_rounds: number | null; expires_round: number | null; reminder_timing: string };

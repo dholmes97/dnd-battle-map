@@ -36,6 +36,7 @@ type AuthSessionRow = {
   display_name: string;
   login_email: string;
   can_create_campaigns: number;
+  can_use_qa_sessions: number;
   last_seen_at: number;
 };
 
@@ -58,7 +59,7 @@ export async function authenticatedIdentity(request: Request, env: Env): Promise
   const now = Date.now();
   const tokenHash = await sha256Hex(rawToken);
   const row = await env.DB.prepare(
-    `SELECT i.id, i.display_name, i.login_email, i.can_create_campaigns, s.last_seen_at
+    `SELECT i.id, i.display_name, i.login_email, i.can_create_campaigns, i.can_use_qa_sessions, s.last_seen_at
      FROM auth_sessions s
      JOIN identities i ON i.id = s.identity_id
      WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? LIMIT 1`,
@@ -96,7 +97,8 @@ async function devLogin(request: Request, env: Env): Promise<Response> {
   const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
   const identityId = cleanIdentifier(body.identityId);
   const row = await env.DB.prepare(
-    "SELECT id, display_name, login_email, can_create_campaigns, 0 AS last_seen_at FROM identities WHERE id = ? LIMIT 1",
+    `SELECT id, display_name, login_email, can_create_campaigns, can_use_qa_sessions, 0 AS last_seen_at
+     FROM identities WHERE id = ? AND id NOT LIKE 'identity-combat-qa-%' LIMIT 1`,
   ).bind(identityId).first<AuthSessionRow>();
   if (!row) return json({ error: "That development identity is unavailable." }, { status: 404 });
   const issued = await issueSession(env, row.id, request);
@@ -193,13 +195,13 @@ async function finishGoogleLogin(request: Request, env: Env): Promise<Response> 
   const subject = cleanProviderSubject(claims.sub);
   if (!email || !subject) return authRedirect(request, "/?authError=provider", expiredCookie(AUTH_STATE_COOKIE, request));
   const existing = await env.DB.prepare(
-    `SELECT i.id, i.display_name, i.login_email, i.can_create_campaigns, 0 AS last_seen_at
+    `SELECT i.id, i.display_name, i.login_email, i.can_create_campaigns, i.can_use_qa_sessions, 0 AS last_seen_at
      FROM auth_accounts a JOIN identities i ON i.id = a.identity_id
      WHERE a.provider = 'google' AND a.provider_subject = ? LIMIT 1`,
   ).bind(subject).first<AuthSessionRow>();
   const invited = existing ?? await env.DB.prepare(
-    `SELECT id, display_name, login_email, can_create_campaigns, 0 AS last_seen_at
-     FROM identities WHERE login_email = ? LIMIT 1`,
+    `SELECT id, display_name, login_email, can_create_campaigns, can_use_qa_sessions, 0 AS last_seen_at
+     FROM identities WHERE login_email = ? AND id NOT LIKE 'identity-combat-qa-%' LIMIT 1`,
   ).bind(email).first<AuthSessionRow>();
   if (!invited) return authRedirect(request, "/?authError=not-invited", expiredCookie(AUTH_STATE_COOKIE, request));
 
@@ -353,7 +355,13 @@ function expiredCookie(name: string, request: Request): string {
 }
 
 function identityFromRow(row: AuthSessionRow): AuthenticatedIdentity {
-  return { id: row.id, displayName: row.display_name, loginEmail: row.login_email, canCreateCampaigns: Boolean(row.can_create_campaigns) };
+  return {
+    id: row.id,
+    displayName: row.display_name,
+    loginEmail: row.login_email,
+    canCreateCampaigns: Boolean(row.can_create_campaigns),
+    canUseQaSessions: Boolean(row.can_use_qa_sessions),
+  };
 }
 
 function cleanIdentifier(value: unknown): string {

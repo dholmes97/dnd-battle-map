@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 1,
+  "batchNumber": 28,
+  "creatures": [
+    {
+      "creatureId": "srd-swarm-of-rats",
+      "creatureName": "Swarm of Rats",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-rats",
+        "fetchedAt": "2026-08-29T02:06:40.907Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 2,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 1,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-rats#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-ravens",
+      "creatureName": "Swarm of Ravens",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-ravens",
+        "fetchedAt": "2026-08-29T02:06:40.905Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Beaks",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 2,
+            "sides": 6,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 1,
+              "sides": 6,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-ravens#beaks"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-spiders",
+      "creatureName": "Swarm of Spiders",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-spiders",
+        "fetchedAt": "2026-08-29T02:06:40.911Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-spiders#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-swarm-of-wasps",
+      "creatureName": "Swarm of Wasps",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/swarm-of-wasps",
+        "fetchedAt": "2026-08-29T02:06:40.912Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bites",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 4,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": 0,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "If the swarm has half of its hi",
+            "formula": {
+              "count": 2,
+              "sides": 4,
+              "modifier": 0
+            }
+          },
+          "sourceRef": "srd-5.1:swarm-of-wasps#bites"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-tarrasque",
+      "creatureName": "Tarrasque",
+      "status": "ready-with-manual-riders",
+      "sourceActionCount": 7,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tarrasque",
+        "fetchedAt": "2026-08-29T02:06:40.910Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Bite",
+          "attackBonus": 19,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 12,
+            "modifier": 10
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it is grappled (escape DC 20). Until this grapple ends, the target is restrained, and the tarrasque can't bite another target.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tarrasque#bite"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Claw",
+          "attackBonus": 19,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 8,
+            "modifier": 10
+          },
+          "damageType": "slashing",
+          "reachFeet": 15,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tarrasque#claw"
+        },
+        {
+          "sourceActionIndex": 3,
+          "name": "Horns",
+          "attackBonus": 19,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 10,
+            "modifier": 10
+          },
+          "damageType": "piercing",
+          "reachFeet": 10,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tarrasque#horns"
+        },
+        {
+          "sourceActionIndex": 4,
+          "name": "Tail",
+          "attackBonus": 19,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 6,
+            "modifier": 10
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 20,
+          "rangeFeet": null,
+          "manualRider": true,
+          "manualRiderText": "If the target is a creature, it must succeed on a DC 20 Strength saving throw or be knocked prone.",
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tarrasque#tail"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 5,
+          "actionName": "Frightful Presence",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 6,
+          "actionName": "Swallow",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-thug",
+      "creatureName": "Thug",
+      "status": "ready",
+      "sourceActionCount": 3,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/thug",
+        "fetchedAt": "2026-08-29T02:06:40.905Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Mace",
+          "attackBonus": 4,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 2
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:thug#mace"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Heavy Crossbow",
+          "attackBonus": 2,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 0
+          },
+          "damageType": "piercing",
+          "reachFeet": null,
+          "rangeFeet": 100,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:thug#heavy-crossbow"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-tiger",
+      "creatureName": "Tiger",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tiger",
+        "fetchedAt": "2026-08-29T02:06:40.906Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Bite",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 10,
+            "modifier": 3
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tiger#bite"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Claw",
+          "attackBonus": 5,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 8,
+            "modifier": 3
+          },
+          "damageType": "slashing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:tiger#claw"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-treant",
+      "creatureName": "Treant",
+      "status": "ready",
+      "sourceActionCount": 4,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/treant",
+        "fetchedAt": "2026-08-29T02:06:40.907Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 1,
+          "name": "Slam",
+          "attackBonus": 10,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 6,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:treant#slam"
+        },
+        {
+          "sourceActionIndex": 2,
+          "name": "Rock",
+          "attackBonus": 10,
+          "attackKind": "ranged",
+          "damage": {
+            "count": 4,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": null,
+          "rangeFeet": 60,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:treant#rock"
+        }
+      ],
+      "omittedSourceActions": [
+        {
+          "sourceActionIndex": 0,
+          "actionName": "Multiattack",
+          "reason": "no-attack-roll"
+        },
+        {
+          "sourceActionIndex": 3,
+          "actionName": "Animate Trees",
+          "reason": "no-attack-roll"
+        }
+      ],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-tribal-warrior",
+      "creatureName": "Tribal Warrior",
+      "status": "ready",
+      "sourceActionCount": 1,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/tribal-warrior",
+        "fetchedAt": "2026-08-29T02:06:40.910Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Spear",
+          "attackBonus": 3,
+          "attackKind": "melee",
+          "damage": {
+            "count": 1,
+            "sides": 6,
+            "modifier": 1
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": 20,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": {
+            "label": "Two handed",
+            "formula": {
+              "count": 1,
+              "sides": 8,
+              "modifier": 1
+            }
+          },
+          "sourceRef": "srd-5.1:tribal-warrior#spear"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    },
+    {
+      "creatureId": "srd-triceratops",
+      "creatureName": "Triceratops",
+      "status": "ready",
+      "sourceActionCount": 2,
+      "source": {
+        "kind": "srd-5.1",
+        "url": "https://www.dnd5eapi.co/api/2014/monsters/triceratops",
+        "fetchedAt": "2026-08-29T02:06:40.908Z",
+        "documentKey": null,
+        "documentName": null,
+        "publisher": null,
+        "gameSystem": null
+      },
+      "actions": [
+        {
+          "sourceActionIndex": 0,
+          "name": "Gore",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 4,
+            "sides": 8,
+            "modifier": 6
+          },
+          "damageType": "piercing",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:triceratops#gore"
+        },
+        {
+          "sourceActionIndex": 1,
+          "name": "Stomp",
+          "attackBonus": 9,
+          "attackKind": "melee",
+          "damage": {
+            "count": 3,
+            "sides": 10,
+            "modifier": 6
+          },
+          "damageType": "bludgeoning",
+          "reachFeet": 5,
+          "rangeFeet": null,
+          "manualRider": false,
+          "manualRiderText": null,
+          "alternateDamage": null,
+          "sourceRef": "srd-5.1:triceratops#stomp"
+        }
+      ],
+      "omittedSourceActions": [],
+      "reviewIssues": []
+    }
+  ]
+}

@@ -688,7 +688,7 @@ async function loadParty(db: D1Database, code: string): Promise<TokenRow[]> {
   const rows = await db.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed, t.armor_class, t.hp, t.max_hp,
-            t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative, t.initiative_group_id,
+            t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative, t.initiative_group_id,
             t.initiative_order, t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
             t.movement_origin_y, t.owner_participant_id, t.owner_name
      FROM tokens t JOIN encounters e ON e.id = t.encounter_id

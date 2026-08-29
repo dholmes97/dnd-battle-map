@@ -5,6 +5,13 @@ import Image from "next/image";
 import type { JoinIdentity } from "@/app/join-screen";
 import type { EncounterSummary } from "@/app/encounter-summary";
 import type { CampaignAccessSummary, CampaignMemberSummary } from "@/shared/campaigns";
+import {
+  DAMAGE_TYPES,
+  SUPPORTED_DIE_SIDES,
+  formatDiceFormula,
+  type CombatActionProfile,
+  type CombatActionValues,
+} from "@/shared/combat-rolling";
 
 const DM_PARTY_PORTRAIT = "/assets/party-portraits/dungeon-master-v1.webp";
 
@@ -31,7 +38,66 @@ function PartyMemberCard({ member }: { member: CampaignMemberSummary }) {
   </article>;
 }
 
-export function CampaignHome({ identity, campaign, invitedIdentities, loading, openingCode, openingDestination, renamingCode, error, notice, creating, campaignMutationPending, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onRenameCampaign, onAddPlayer, onBackToCampaigns, onSignOut }: {
+type ActionDraft = {
+  name: string; attackBonus: string; attackKind: "melee" | "ranged";
+  count: string; sides: string; modifier: string; damageType: string;
+  reachFeet: string; rangeFeet: string; manualRider: boolean;
+  alternate: boolean; alternateLabel: string; alternateCount: string; alternateSides: string; alternateModifier: string;
+};
+
+const EMPTY_ACTION: ActionDraft = {
+  name: "", attackBonus: "0", attackKind: "melee", count: "1", sides: "8", modifier: "0",
+  damageType: "slashing", reachFeet: "5", rangeFeet: "", manualRider: false,
+  alternate: false, alternateLabel: "Two-handed", alternateCount: "1", alternateSides: "10", alternateModifier: "0",
+};
+
+function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
+  campaign: CampaignAccessSummary;
+  pending: boolean;
+  onSave(input: { characterId: string; actionId?: string; values: CombatActionValues }): Promise<boolean>;
+  onDelete(actionId: string): Promise<boolean>;
+}) {
+  const [characterId, setCharacterId] = useState(campaign.characters[0]?.id ?? "");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ActionDraft>(EMPTY_ACTION);
+  const character = campaign.characters.find((item) => item.id === characterId) ?? campaign.characters[0] ?? null;
+  const actions = character?.combatActions ?? [];
+  const begin = (action?: CombatActionProfile) => {
+    setEditingId(action?.id ?? "new");
+    setDraft(action ? {
+      name: action.name, attackBonus: String(action.attackBonus), attackKind: action.attackKind,
+      count: String(action.damage.count), sides: String(action.damage.sides), modifier: String(action.damage.modifier),
+      damageType: action.damageType, reachFeet: action.reachFeet === null ? "" : String(action.reachFeet),
+      rangeFeet: action.rangeFeet === null ? "" : String(action.rangeFeet), manualRider: action.manualRider,
+      alternate: Boolean(action.alternateDamage), alternateLabel: action.alternateDamage?.label ?? "Two-handed",
+      alternateCount: String(action.alternateDamage?.formula.count ?? 1), alternateSides: String(action.alternateDamage?.formula.sides ?? 10),
+      alternateModifier: String(action.alternateDamage?.formula.modifier ?? action.damage.modifier),
+    } : { ...EMPTY_ACTION });
+  };
+  const values = (): CombatActionValues | null => {
+    const numbers = [draft.attackBonus, draft.count, draft.sides, draft.modifier].map(Number);
+    if (!numbers.every(Number.isInteger) || !draft.name.trim()) return null;
+    const [attackBonus, count, sides, modifier] = numbers;
+    const alternateNumbers = [draft.alternateCount, draft.alternateSides, draft.alternateModifier].map(Number);
+    if (draft.alternate && !alternateNumbers.every(Number.isInteger)) return null;
+    return {
+      name: draft.name.trim(), attackBonus, attackKind: draft.attackKind,
+      damage: { count, sides: sides as 4 | 6 | 8 | 10 | 12 | 20, modifier },
+      damageType: draft.damageType as CombatActionValues["damageType"],
+      reachFeet: draft.reachFeet === "" ? null : Number(draft.reachFeet),
+      rangeFeet: draft.rangeFeet === "" ? null : Number(draft.rangeFeet),
+      manualRider: draft.manualRider,
+      alternateDamage: draft.alternate ? {
+        label: draft.alternateLabel.trim() || "Alternate",
+        formula: { count: alternateNumbers[0], sides: alternateNumbers[1] as 4 | 6 | 8 | 10 | 12 | 20, modifier: alternateNumbers[2] },
+      } : null,
+    };
+  };
+  if (!character) return null;
+  return <section className="campaign-combat-actions" aria-labelledby="combat-actions-title"><div className="campaign-section-heading"><div><div className="eyebrow">Tactical mirror</div><h2 id="combat-actions-title">Combat actions</h2></div><button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button></div><p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>{campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}<div className="campaign-action-list">{actions.length ? actions.map((action) => <article key={action.id}><div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · manual rider" : ""}</span></div><button onClick={() => begin(action)}>Edit</button><button className="is-danger" disabled={pending} onClick={() => void onDelete(action.id)}>Delete</button></article>) : <p>No maintained actions yet.</p>}</div>{editingId ? <form className="campaign-action-editor" onSubmit={(event) => { event.preventDefault(); const next = values(); if (!next) return; void onSave({ characterId: character.id, actionId: editingId === "new" ? undefined : editingId, values: next }).then((saved) => { if (saved) setEditingId(null); }); }}><label>Action name<input autoFocus maxLength={64} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label><label>Attack bonus<input type="number" min="-20" max="30" value={draft.attackBonus} onChange={(event) => setDraft((current) => ({ ...current, attackBonus: event.target.value }))} /></label><label>Kind<select value={draft.attackKind} onChange={(event) => setDraft((current) => ({ ...current, attackKind: event.target.value as "melee" | "ranged" }))}><option value="melee">Melee</option><option value="ranged">Ranged</option></select></label><label>Dice count<input type="number" min="0" max="20" value={draft.count} onChange={(event) => setDraft((current) => ({ ...current, count: event.target.value }))} /></label><label>Die<select value={draft.sides} onChange={(event) => setDraft((current) => ({ ...current, sides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label><label>Damage modifier<input type="number" min="-50" max="100" value={draft.modifier} onChange={(event) => setDraft((current) => ({ ...current, modifier: event.target.value }))} /></label><label>Damage type<select value={draft.damageType} onChange={(event) => setDraft((current) => ({ ...current, damageType: event.target.value }))}>{DAMAGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></label><label>Reach (ft)<input type="number" min="0" value={draft.reachFeet} onChange={(event) => setDraft((current) => ({ ...current, reachFeet: event.target.value }))} /></label><label>Range (ft)<input type="number" min="0" value={draft.rangeFeet} onChange={(event) => setDraft((current) => ({ ...current, rangeFeet: event.target.value }))} /></label><label className="campaign-action-check"><input type="checkbox" checked={draft.manualRider} onChange={(event) => setDraft((current) => ({ ...current, manualRider: event.target.checked }))} />Manual rider</label><label className="campaign-action-check"><input type="checkbox" checked={draft.alternate} onChange={(event) => setDraft((current) => ({ ...current, alternate: event.target.checked }))} />Alternate damage</label>{draft.alternate ? <><label>Alternate label<input value={draft.alternateLabel} onChange={(event) => setDraft((current) => ({ ...current, alternateLabel: event.target.value }))} /></label><label>Alt dice count<input type="number" min="0" max="20" value={draft.alternateCount} onChange={(event) => setDraft((current) => ({ ...current, alternateCount: event.target.value }))} /></label><label>Alt die<select value={draft.alternateSides} onChange={(event) => setDraft((current) => ({ ...current, alternateSides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label><label>Alt modifier<input type="number" value={draft.alternateModifier} onChange={(event) => setDraft((current) => ({ ...current, alternateModifier: event.target.value }))} /></label></> : null}<div className="campaign-action-editor-buttons"><button type="button" onClick={() => setEditingId(null)}>Cancel</button><button className="primary-button" disabled={pending || !values()}>{pending ? "Saving…" : "Save action"}</button></div></form> : null}</section>;
+}
+
+export function CampaignHome({ identity, campaign, invitedIdentities, loading, openingCode, openingDestination, renamingCode, error, notice, creating, campaignMutationPending, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onRenameCampaign, onAddPlayer, onSaveCombatAction, onDeleteCombatAction, onBackToCampaigns, onSignOut }: {
   identity: JoinIdentity;
   campaign: CampaignAccessSummary;
   invitedIdentities: JoinIdentity[];
@@ -49,6 +115,8 @@ export function CampaignHome({ identity, campaign, invitedIdentities, loading, o
   onRenameEncounter: (code: string, name: string) => Promise<boolean>;
   onRenameCampaign: (name: string) => Promise<boolean>;
   onAddPlayer: (input: { identityId: string; character: { name: string; className: string; maxHp: number; armorClass: number; speed: number } | null }) => Promise<boolean>;
+  onSaveCombatAction: (input: { characterId: string; actionId?: string; values: CombatActionValues }) => Promise<boolean>;
+  onDeleteCombatAction: (actionId: string) => Promise<boolean>;
   onBackToCampaigns: () => void;
   onSignOut: () => void;
 }) {
@@ -106,6 +174,7 @@ export function CampaignHome({ identity, campaign, invitedIdentities, loading, o
       {error ? <div className="form-error" role="alert">{error}</div> : null}
       {!error && notice ? <div className="campaign-notice" role="status">{notice}</div> : null}
       <section className="campaign-party" aria-labelledby="campaign-party-title"><div className="campaign-section-heading"><div><div className="eyebrow">At this table</div><h2 id="campaign-party-title">Party</h2></div>{isDm ? <button className="campaign-create-button" type="button" onClick={() => setShowCampaignManager((open) => !open)} aria-expanded={showCampaignManager}>{showCampaignManager ? "Done" : "Manage campaign"}</button> : null}</div><div className="campaign-party-grid">{members.map((member) => <PartyMemberCard member={member} key={member.membershipId} />)}</div>{isDm && showCampaignManager ? <div className="campaign-management-panel"><section><h3>Campaign name</h3><div className="campaign-management-row"><input aria-label="Campaign name" maxLength={64} value={campaignName} onChange={(event) => setCampaignName(event.target.value)} disabled={campaignMutationPending} /><button type="button" disabled={campaignMutationPending || campaignName.trim().length < 3 || campaignName.trim() === campaign.name} onClick={() => void onRenameCampaign(campaignName.trim())}>{campaignMutationPending ? "Saving…" : "Save name"}</button></div></section><section><h3>Add a player or character</h3>{availablePlayers.length ? <><label>Player<select value={newPlayerId} onChange={(event) => setNewPlayerId(event.target.value)}><option value="">Choose a person</option>{availablePlayers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.displayName}</option>)}</select></label><div className="campaign-character-fields"><label>Character name<input value={characterName} maxLength={64} onChange={(event) => setCharacterName(event.target.value)} placeholder={selectedExistingMember ? "Required" : "Optional for now"} /></label><label>Class<input value={characterClass} maxLength={64} onChange={(event) => setCharacterClass(event.target.value)} /></label><label>Max HP<input inputMode="numeric" value={characterMaxHp} onChange={(event) => setCharacterMaxHp(event.target.value)} /></label><label>AC<input inputMode="numeric" value={characterArmorClass} onChange={(event) => setCharacterArmorClass(event.target.value)} /></label><label>Speed<input inputMode="numeric" value={characterSpeed} onChange={(event) => setCharacterSpeed(event.target.value)} /></label></div><button className="primary-button" type="button" disabled={campaignMutationPending || !newPlayerId || (selectedExistingMember && !characterName.trim())} onClick={() => void onAddPlayer({ identityId: newPlayerId, character: characterName.trim() ? { name: characterName.trim(), className: characterClass.trim(), maxHp: Number(characterMaxHp), armorClass: Number(characterArmorClass), speed: Number(characterSpeed) } : null }).then((added) => { if (added) { setNewPlayerId(""); setCharacterName(""); setCharacterClass(""); } })}>{campaignMutationPending ? "Adding…" : selectedExistingMember ? "Add character" : "Add player"}</button></> : <p>Every invited player has a character in this campaign.</p>}</section></div> : null}</section>
+      {campaign.combatRollingEnabled ? <CharacterCombatActions campaign={campaign} pending={campaignMutationPending} onSave={onSaveCombatAction} onDelete={onDeleteCombatAction} /> : null}
       <section className="campaign-scenarios" aria-labelledby="encounter-list-title">
         <div className="campaign-section-heading"><div><div className="eyebrow">{isDm ? "Encounters you run" : "Encounters you play"}</div><h2 id="encounter-list-title">Encounters</h2></div><div className="campaign-section-actions"><span>{encounters.length} {encounters.length === 1 ? "encounter" : "encounters"}</span>{isDm ? <button className="campaign-create-button" type="button" onClick={() => setShowCreator((open) => !open)} aria-expanded={showCreator}>{showCreator ? "Cancel" : "+ New encounter"}</button> : null}</div></div>
         {isDm && showCreator ? <section className="campaign-create-panel" aria-labelledby="create-encounter-title">

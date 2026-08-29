@@ -22,7 +22,7 @@ const campaign = (role: "player" | "dm"): CampaignAccessSummary => ({
 function home(identity: JoinIdentity, overrides: Partial<Parameters<typeof CampaignHome>[0]> = {}) {
   const props: Parameters<typeof CampaignHome>[0] = {
     identity, campaign: campaign(identity.id === "identity-kevin" ? "dm" : "player"), invitedIdentities: [], loading: false, openingCode: null, openingDestination: null, renamingCode: null, error: "", notice: "", creating: false, campaignMutationPending: false,
-    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onRenameCampaign: vi.fn(async () => true), onAddPlayer: vi.fn(async () => true), onBackToCampaigns: vi.fn(), onSignOut: vi.fn(), ...overrides,
+    onOpenEncounter: vi.fn(), onSetupEncounter: vi.fn(), onCreateEncounter: vi.fn(async () => true), onRenameEncounter: vi.fn(async () => true), onRenameCampaign: vi.fn(async () => true), onAddPlayer: vi.fn(async () => true), onSaveCombatAction: vi.fn(async () => true), onDeleteCombatAction: vi.fn(async () => true), onBackToCampaigns: vi.fn(), onSignOut: vi.fn(), ...overrides,
   };
   render(<CampaignHome {...props} />); return props;
 }

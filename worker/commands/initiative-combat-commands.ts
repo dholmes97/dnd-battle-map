@@ -9,6 +9,7 @@ type InitiativeCombatCommandName =
 type InitiativeCombatDependencies = {
   repository: InitiativeCombatRepository;
   canControl(token: TokenRow): Promise<boolean>;
+  cancelPendingDamageProposals(): Promise<void>;
 };
 export type InitiativeCombatCommandContext<Name extends InitiativeCombatCommandName = InitiativeCombatCommandName> =
   CommandContextFor<Name, InitiativeCombatDependencies>;
@@ -87,6 +88,7 @@ export async function startCombat(context: InitiativeCombatCommandContext<"start
   if (denied) return denied;
   const groups = orderedGroups(await context.repository.listInitiativeTokens(context.encounter.id));
   if (!groups.length) return commandError("Enter at least one initiative before starting combat.", 409);
+  if (context.encounter.status !== "setup") await context.cancelPendingDamageProposals();
   await context.repository.startCombat(context.encounter.id, groups, context.now);
   await finish(context, "combat_started", {
     groups: groups.map((tokenIds, order) => ({ tokenIds, order })),

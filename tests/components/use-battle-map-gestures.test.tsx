@@ -72,6 +72,7 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
     onAddAnnotation: vi.fn(),
     onRemoveAnnotation: vi.fn(),
     onUpdateSharedFog,
+    onAttackTarget: vi.fn(() => false),
     ...overrides,
   };
   return { ...renderHook(() => useBattleMapGestures(inputs)), onSelectToken, onUpdateSharedFog };

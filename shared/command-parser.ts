@@ -1,6 +1,12 @@
 import { isCreatureSize } from "./creature-library.ts";
 import { parseMapPackage } from "./map-package.ts";
 import { isSpellAreaSize, spellEffectById } from "./spell-effects.ts";
+import {
+  ROLL_MODES,
+  validateCombatActionValues,
+  type DamageAdjudication,
+  type RollMode,
+} from "./combat-rolling.ts";
 import { MAX_INITIATIVE_GROUP_TOKENS, MAX_SHARED_FOG_INPUT_POINTS } from "./resource-limits.ts";
 import {
   COMMAND_NAMES,
@@ -26,7 +32,8 @@ const PARSED_COMMANDS = [
   "update-shared-fog", "create-spell-effect", "create-token",
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
-  "delete-token",
+  "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
+  "roll-attack", "adjudicate-damage",
 ] as const satisfies readonly CommandName[];
 
 export function commandParserCoverage(): { complete: boolean; missing: CommandName[] } {
@@ -131,7 +138,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
           !finiteNumber(body.speed) || !optionalNumber(body.flySpeed) || !optionalNumber(body.swimSpeed) ||
           !optionalNumber(body.climbSpeed) || !optionalNumber(body.burrowSpeed) ||
           !optionalNumber(body.armorClass) || !optionalNumber(body.hp) || !optionalNumber(body.maxHp) ||
-          !optionalBoolean(body.hidden) || !optionalString(body.artAsset) ||
+          !optionalBoolean(body.hidden) || !optionalString(body.artAsset) || !optionalString(body.catalogCreatureId) ||
           !optionalString(body.summonerTokenId) || !finiteNumber(body.x) || !finiteNumber(body.y)) return null;
       return { command, payload: compact<"create-token">({
         name: body.name,
@@ -147,6 +154,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         maxHp: body.maxHp,
         hidden: body.hidden,
         artAsset: body.artAsset,
+        catalogCreatureId: body.catalogCreatureId,
         summonerTokenId: body.summonerTokenId,
         x: body.x,
         y: body.y,
@@ -175,6 +183,51 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     case "apply-hp":
       return requiredString(body.tokenId) && finiteNumber(body.delta)
         ? { command, payload: { tokenId: body.tokenId, delta: body.delta } }
+        : null;
+    case "set-temporary-hp":
+      return requiredString(body.tokenId) && finiteNumber(body.amount)
+        ? { command, payload: { tokenId: body.tokenId, amount: body.amount } }
+        : null;
+    case "save-combat-action": {
+      const values = validateCombatActionValues(body.values);
+      return optionalString(body.actionId) && (body.ownerType === "character" || body.ownerType === "creature") &&
+        requiredString(body.ownerId) && values
+        ? { command, payload: compact<"save-combat-action">({
+          actionId: body.actionId,
+          ownerType: body.ownerType,
+          ownerId: body.ownerId,
+          values,
+        }) }
+        : null;
+    }
+    case "delete-combat-action":
+      return requiredString(body.actionId) ? { command, payload: { actionId: body.actionId } } : null;
+    case "roll-attack": {
+      const adHocAction = body.adHocAction === undefined ? undefined : validateCombatActionValues(body.adHocAction);
+      return requiredString(body.operationId) && requiredString(body.attackerTokenId) &&
+        requiredString(body.targetTokenId) && optionalString(body.actionProfileId) &&
+        (body.adHocAction === undefined || adHocAction) && rollMode(body.rollMode) &&
+        optionalBoolean(body.alternateDamage)
+        ? { command, payload: compact<"roll-attack">({
+          operationId: body.operationId,
+          attackerTokenId: body.attackerTokenId,
+          targetTokenId: body.targetTokenId,
+          actionProfileId: body.actionProfileId,
+          adHocAction: adHocAction ?? undefined,
+          rollMode: body.rollMode,
+          alternateDamage: body.alternateDamage,
+        }) }
+        : null;
+    }
+    case "adjudicate-damage":
+      return requiredString(body.proposalId) && damageAdjudication(body.method) &&
+        optionalNumber(body.adjustedDamage) && optionalString(body.note)
+        ? { command, payload: compact<"adjudicate-damage">({
+          proposalId: body.proposalId,
+          method: body.method,
+          adjustedDamage: body.adjustedDamage,
+          note: body.note,
+        }) }
         : null;
     case "add-effect":
       return parseAddEffect(command, body);
@@ -270,6 +323,15 @@ function optionalEffectType(value: unknown): value is "condition" | "effect" | "
 
 function optionalReminder(value: unknown): value is "start" | "end" | undefined {
   return value === undefined || value === "start" || value === "end";
+}
+
+function rollMode(value: unknown): value is RollMode {
+  return ROLL_MODES.includes(value as RollMode);
+}
+
+function damageAdjudication(value: unknown): value is DamageAdjudication {
+  return value === "apply" || value === "resistant" || value === "vulnerable" ||
+    value === "immune" || value === "adjust" || value === "reject" || value === "cancel";
 }
 
 function annotationType(value: unknown): value is SharedAnnotation["type"] {

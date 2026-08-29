@@ -20,7 +20,7 @@ describe("CampaignList", () => {
       error=""
       onEnterCampaign={onEnterCampaign}
       onCreateCampaign={vi.fn(async () => true)}
-      onSignOut={vi.fn()}
+      onLaunchQa={vi.fn()} onResetQa={vi.fn()} onSignOut={vi.fn()}
     />);
     expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
@@ -40,7 +40,7 @@ describe("CampaignList", () => {
       error=""
       onEnterCampaign={vi.fn()}
       onCreateCampaign={onCreateCampaign}
-      onSignOut={vi.fn()}
+      onLaunchQa={vi.fn()} onResetQa={vi.fn()} onSignOut={vi.fn()}
     />);
     await userEvent.click(screen.getByRole("button", { name: /New campaign/ }));
     await userEvent.type(screen.getByLabelText("Campaign name"), "Lantern Coast");

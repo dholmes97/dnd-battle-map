@@ -20,12 +20,14 @@ import {
 import { EncounterSetupDetails } from "@/app/encounter-setup-details";
 import { useChatHandouts } from "@/app/use-chat-handouts";
 import { useTokenControls } from "@/app/use-token-controls";
+import { useDamageNotifications } from "@/app/use-damage-notifications";
+import { useDamageReviewQueue } from "@/app/use-damage-review-queue";
 import type { EncounterSummary } from "@/app/encounter-summary";
 import { useCreatureCatalog } from "@/app/use-creature-catalog";
 import { useEncounterActions } from "@/app/use-encounter-actions";
 import { useMapAssets } from "@/app/use-map-assets";
 import { BattleMapCommandBar, type AnnotationMode } from "@/app/battle-map-command-bar";
-import { EncounterDialogs } from "@/app/encounter-dialogs";
+import { EncounterDialogs, type CombatRollResultNotice } from "@/app/encounter-dialogs";
 import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
 import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
 import { usePersonalUiSettings } from "@/app/use-personal-ui-settings";
@@ -34,6 +36,7 @@ import { JoinScreen, type JoinIdentity } from "@/app/join-screen";
 import { CampaignList } from "@/app/campaign-list";
 import { CampaignHome } from "@/app/campaign-home";
 import { CreaturePalette, SpellPalette } from "@/app/battle-map-palettes";
+import { CombatRollPanel, type CombatRollResponse } from "@/app/combat-roll-panel";
 import { EncounterSidebar, type RosterRow } from "@/app/encounter-sidebar";
 import {
   type CreatureTemplate,
@@ -47,6 +50,7 @@ import type {
   SharedToken,
 } from "@/shared/contracts";
 import { movementPolicyDenial } from "@/shared/battle-map-policies.ts";
+import { adjudicatedDamage, transitionDamageWithTemporaryHp } from "@/shared/combat-rolling.ts";
 import { commandRequest } from "@/shared/command-parser.ts";
 import { buildRosterRows } from "@/shared/initiative-domain.ts";
 import {
@@ -87,6 +91,7 @@ export default function BattleMapPrototype() {
   const [authLoading, setAuthLoading] = useState(true);
   const [googleConfigured, setGoogleConfigured] = useState(false);
   const [devLoginAvailable, setDevLoginAvailable] = useState(false);
+  const [qaSessionInfo, setQaSessionInfo] = useState<null | { persona: "dm" | "player"; actor: string; expiresAt: number }>(null);
   const [openingCode, setOpeningCode] = useState<string | null>(null);
   const [openingDestination, setOpeningDestination] = useState<"map" | "setup" | null>(null);
   const [creatingScenarioFromHome, setCreatingScenarioFromHome] = useState(false);
@@ -109,6 +114,8 @@ export default function BattleMapPrototype() {
     isTokenPendingCreation,
   } = encounterSync;
   const tokenControls = useTokenControls({ participant, state, sync: encounterSync, setError, setNotice });
+  const damageNotifications = useDamageNotifications({ participant, state });
+  const damageReview = useDamageReviewQueue({ participant, state });
   const encounterActions = useEncounterActions(encounterSync);
   const {
     pendingAction: encounterAction,
@@ -123,6 +130,11 @@ export default function BattleMapPrototype() {
     updateSharedFog: updateSharedFogOptimistically,
   } = encounterActions;
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [armedAttackAttackerId, setArmedAttackAttackerId] = useState<string | null>(null);
+  const [combatChooser, setCombatChooser] = useState<null | {
+    attackerId: string; targetId: string; anchor: { x: number; y: number };
+  }>(null);
+  const [combatRollResult, setCombatRollResult] = useState<CombatRollResultNotice | null>(null);
   const [selectedMapNoteId, setSelectedMapNoteId] = useState<string | null>(null);
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
   const [busy, setBusy] = useState(false);
@@ -227,6 +239,16 @@ export default function BattleMapPrototype() {
     ? state?.encounter.mapPackage?.notes.find((note) => note.id === selectedMapNoteId) ?? null
     : null;
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
+  const openAttackTarget = useCallback((targetId: string, anchor: { x: number; y: number }) => {
+    if (!state?.features.combatRolling.enabled || !participant) return false;
+    const attacker = state.tokens.find((token) => token.id === (armedAttackAttackerId ?? effectiveSelectedTokenId)) ??
+      (participant.role === "player" ? playerCharacter : null);
+    const target = state.tokens.find((token) => token.id === targetId);
+    if (!attacker?.controlledByViewer || attacker.kind === SPELL_EFFECT_KIND || !target || target.kind === SPELL_EFFECT_KIND || attacker.id === target.id) return false;
+    setCombatChooser({ attackerId: attacker.id, targetId: target.id, anchor });
+    setArmedAttackAttackerId(null);
+    return true;
+  }, [armedAttackAttackerId, effectiveSelectedTokenId, participant, playerCharacter, state]);
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const canMoveToken = (token: SharedToken) => Boolean(
     participant && state && !movementPolicyDenial({
@@ -340,6 +362,32 @@ export default function BattleMapPrototype() {
     }
   };
 
+  const launchQaSession = async (persona: "dm" | "player") => {
+    if (!signedInIdentity?.canUseQaSessions) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api<{ participantId: string; participantName: string; sessionSecret: string; role: Role; qa: { persona: "dm" | "player"; actor: string; expiresAt: number }; state: EncounterState }>(
+        "/api/qa/session", { method: "POST", body: JSON.stringify({ persona }) },
+      );
+      const joined = { id: result.participantId, name: result.participantName, role: result.role, sessionSecret: result.sessionSecret };
+      personalUiSettings.loadForIdentity(result.participantName, result.role);
+      resetChatForParticipant(result.participantName, result.role, result.state.encounter.code);
+      startSession(joined, result.state); setQaSessionInfo(result.qa); setWorkshopOpen(false); setAppView("map");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The QA persona could not be opened.");
+    } finally { setBusy(false); }
+  };
+
+  const resetQaFixture = async () => {
+    setBusy(true); setError("");
+    try {
+      await api<{ reset: boolean }>("/api/qa/reset", { method: "POST", body: "{}" });
+      setNotice("Combat Rolling QA fixture reset.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The QA fixture could not be reset.");
+    } finally { setBusy(false); }
+  };
+
   const createScenarioFromHome = async ({ name, mode, sourceCode }: { name: string; mode: "party" | "duplicate"; sourceCode: string }) => {
     if (!signedInIdentity || !selectedCampaign || selectedCampaign.role !== "dm" || creatingScenarioFromHome) return false;
     setCreatingScenarioFromHome(true); setError("");
@@ -441,6 +489,32 @@ export default function BattleMapPrototype() {
     } finally { setCampaignMutationPending(false); }
   };
 
+  const saveCharacterCombatAction = async (input: { characterId: string; actionId?: string; values: import("@/shared/combat-rolling").CombatActionValues }) => {
+    if (!selectedCampaign || campaignMutationPending) return false;
+    setCampaignMutationPending(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>(`/api/campaigns/${encodeURIComponent(selectedCampaign.id)}/actions`, {
+        method: "POST", body: JSON.stringify(input),
+      });
+      acceptCampaignAccess(result); setNotice(`${input.values.name} saved.`); return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The combat action could not be saved."); return false;
+    } finally { setCampaignMutationPending(false); }
+  };
+
+  const deleteCharacterCombatAction = async (actionId: string) => {
+    if (!selectedCampaign || campaignMutationPending) return false;
+    setCampaignMutationPending(true); setError("");
+    try {
+      const result = await api<CampaignAccessResponse>(`/api/campaigns/${encodeURIComponent(selectedCampaign.id)}/actions`, {
+        method: "DELETE", body: JSON.stringify({ actionId }),
+      });
+      acceptCampaignAccess(result); setNotice("Combat action removed."); return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The combat action could not be removed."); return false;
+    } finally { setCampaignMutationPending(false); }
+  };
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4_200);
@@ -491,6 +565,7 @@ export default function BattleMapPrototype() {
         maxHp: creature.defaultHp,
         hp: creature.defaultHp,
         artAsset: creature.artAsset,
+        catalogCreatureId: creature.id,
         summonerTokenId: effectivePlacementSummonerId || undefined,
         x: point.x,
         y: point.y,
@@ -509,6 +584,7 @@ export default function BattleMapPrototype() {
         armorClass: creature.armorClass,
         hp: creature.defaultHp,
         maxHp: creature.defaultHp,
+        temporaryHp: 0,
         healthState: null,
         hidden: false,
         summonerTokenId: effectivePlacementSummonerId || null,
@@ -564,6 +640,7 @@ export default function BattleMapPrototype() {
         armorClass: null,
         hp: null,
         maxHp: null,
+        temporaryHp: 0,
         healthState: null,
         hidden: false,
         summonerTokenId: effectivePlacementSummonerId || null,
@@ -645,7 +722,10 @@ export default function BattleMapPrototype() {
     canMoveToken,
     isTokenPendingCreation,
     setNotice,
-    onSelectToken: (tokenId) => { setSelectedTokenId(tokenId); setSelectedMapNoteId(null); },
+    onSelectToken: (tokenId) => {
+      if (armedAttackAttackerId && openAttackTarget(tokenId, { x: 24, y: 24 })) return;
+      setSelectedTokenId(tokenId); setSelectedMapNoteId(null);
+    },
     onSelectMapNote: (noteId) => { setSelectedMapNoteId(noteId); setSelectedTokenId(null); },
     onArmCreature: setArmedCreatureId,
     onArmSpell: setArmedSpellId,
@@ -660,6 +740,7 @@ export default function BattleMapPrototype() {
       "Line erased.",
     ),
     onUpdateSharedFog: updateSharedFogOptimistically,
+    onAttackTarget: openAttackTarget,
   });
   const {
     preview,
@@ -685,6 +766,7 @@ export default function BattleMapPrototype() {
     onCanvasPointerUp,
     onCanvasPointerCancel,
     onCanvasWheel,
+    onCanvasContextMenu,
     onCanvasFocus,
     onCanvasKeyDown,
     changeZoom,
@@ -775,7 +857,8 @@ export default function BattleMapPrototype() {
   };
 
   const returnToCampaignHome = () => {
-    clearSession(); setWorkshopOpen(false); setError(""); setAppView("dashboard");
+    const qa = Boolean(qaSessionInfo);
+    clearSession(); setQaSessionInfo(null); setWorkshopOpen(false); setError(""); setAppView(qa ? "campaigns" : "dashboard");
     void loadCampaigns(signedInIdentity, { preserveCurrent: true });
   };
 
@@ -783,6 +866,7 @@ export default function BattleMapPrototype() {
     return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
       onCreateCampaign={createCampaign}
+      onLaunchQa={(persona) => void launchQaSession(persona)} onResetQa={() => void resetQaFixture()}
       onSignOut={() => void signOut()} />;
   }
 
@@ -797,6 +881,8 @@ export default function BattleMapPrototype() {
       onRenameEncounter={renameScenarioFromHome}
       onRenameCampaign={renameCampaign}
       onAddPlayer={addCampaignPlayer}
+      onSaveCombatAction={saveCharacterCombatAction}
+      onDeleteCombatAction={deleteCharacterCombatAction}
       onBackToCampaigns={() => { setError(""); setNotice(""); setAppView("campaigns"); }}
       onSignOut={() => void signOut()}
     />;
@@ -806,6 +892,7 @@ export default function BattleMapPrototype() {
     return <CampaignList identity={signedInIdentity} campaigns={campaigns} invitedIdentities={invitedIdentities} loading={campaignsLoading} mutationPending={campaignMutationPending} error={error}
       onEnterCampaign={(campaignId) => { setSelectedCampaignId(campaignId); setError(""); setAppView("dashboard"); }}
       onCreateCampaign={createCampaign}
+      onLaunchQa={(persona) => void launchQaSession(persona)} onResetQa={() => void resetQaFixture()}
       onSignOut={() => void signOut()} />;
   }
 
@@ -821,6 +908,34 @@ export default function BattleMapPrototype() {
         : "Connecting — loading shared encounter updates.";
   const initiativeTokens = [...state.tokens].filter((token) => token.kind !== SPELL_EFFECT_KIND && token.initiativeOrder !== null).sort((a, b) => (a.initiativeOrder ?? 999) - (b.initiativeOrder ?? 999) || a.name.localeCompare(b.name));
   const durableAnnotationCount = state.annotations.filter((annotation) => annotation.type === "drawing").length;
+  const adjudicateDamageProposal = (proposalId: string, method: Parameters<typeof adjudicatedDamage>[0]["method"], adjustedDamage?: number) => {
+    void runOptimisticCommand<{ state: EncounterState; concentrationCheckRequired: boolean }, "adjudicate-damage">(
+      "adjudicate-damage",
+      { proposalId, method, adjustedDamage },
+      (current) => {
+        const pending = current.damageProposals.find((item) => item.id === proposalId);
+        if (!pending || pending.rolledDamage === null) return current;
+        const finalDamage = adjudicatedDamage({ rolledDamage: pending.rolledDamage, method, adjustedDamage });
+        if (finalDamage === null) return current;
+        const nextStatus = method === "adjust" ? "adjusted" : method === "immune" ? "immune"
+          : method === "reject" ? "rejected" : method === "cancel" ? "cancelled" : "applied";
+        return {
+          ...current,
+          damageProposals: current.damageProposals.map((item) => item.id === proposalId
+            ? { ...item, status: nextStatus, finalDamage, adjudicationMethod: method, resolvedAt: Date.now() }
+            : item),
+          tokens: finalDamage > 0 ? current.tokens.map((token) => {
+            if (token.id !== pending.targetTokenId || token.maxHp === null || token.hp === null || token.temporaryHp === null) return token;
+            const transition = transitionDamageWithTemporaryHp({ hp: token.hp, maxHp: token.maxHp, temporaryHp: token.temporaryHp, damage: finalDamage });
+            return transition ? { ...token, hp: transition.hp, temporaryHp: transition.temporaryHp } : token;
+          }) : current.tokens,
+        };
+      },
+      "Damage review completed.",
+      undefined,
+      false,
+    );
+  };
 
   if (participant.role === "dm" && workshopOpen) return <>
     <MapWorkshop
@@ -872,6 +987,7 @@ export default function BattleMapPrototype() {
 
   return (
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
+      {qaSessionInfo ? <div className="qa-session-banner" role="status"><strong>{qaSessionInfo.persona === "dm" ? "QA DM" : "QA Player"}</strong><span>Isolated Combat Rolling QA · authenticated as {qaSessionInfo.actor}</span><button onClick={returnToCampaignHome}>Exit QA</button></div> : null}
       <BattleMapCommandBar
         participant={participant} state={state} annotationMode={annotationMode} editingSharedFog={editingSharedFog}
         chatOpen={chatOpen} chatMinimized={chatMinimized} chatUnreadTotal={chatUnreadTotal}
@@ -899,7 +1015,25 @@ export default function BattleMapPrototype() {
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <p id="battle-map-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the current tool or selects an object. Space grabs or drops a movable token. Page Up and Page Down adjust altitude while grabbed. Alt plus arrows pans. Plus and minus zoom. Escape cancels a staged keyboard action.</p>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-describedby="battle-map-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space PageUp PageDown Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight + - Escape" aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="application" tabIndex={0} />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onContextMenu={onCanvasContextMenu} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-describedby="battle-map-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space PageUp PageDown Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight + - Escape" aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="application" tabIndex={0} />
+            {combatChooser ? (() => {
+              const attacker = state.tokens.find((token) => token.id === combatChooser.attackerId);
+              const target = state.tokens.find((token) => token.id === combatChooser.targetId);
+              return attacker && target ? <CombatRollPanel
+                participant={participant} state={state} attacker={attacker} target={target} anchor={combatChooser.anchor}
+                onClose={() => setCombatChooser(null)}
+                onRoll={(payload) => runOptimisticCommand<CombatRollResponse, "roll-attack">(
+                  "roll-attack", payload, (current) => current, undefined, undefined, false,
+                )}
+                onComplete={(response) => {
+                  const roll = response.state.combatRolls.find((item) => item.id === response.rollId);
+                  setCombatChooser(null);
+                  if (roll) setCombatRollResult({ roll, proposalId: response.proposalId });
+                  else setError("The attack was rolled, but its result could not be displayed.");
+                }}
+              /> : null;
+            })() : null}
+            {participant.role === "dm" && damageReview.pendingCount > 0 && !damageReview.activeProposal ? <button type="button" className="damage-review-launcher" onClick={damageReview.reopen}>Review pending damage <span>{damageReview.pendingCount}</span></button> : null}
             <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{keyboardStatus}</div>
             {editingSharedFog ? <div className="fog-live-controls" role="group" aria-label="Shared fog corner controls"><span>Drag a corner handle to reshape the hidden area.</span><button type="button" onClick={addSharedFogPoint}>Add corner</button><button type="button" className="is-danger" disabled={selectedSharedFogVertex === null || (sharedFogPreview?.length ?? 0) <= 3} onClick={removeSharedFogPoint}>Remove selected</button><button type="button" onClick={finishSharedFogEditing}>Done</button></div> : null}
             {paletteOpen ? <CreaturePalette
@@ -969,6 +1103,7 @@ export default function BattleMapPrototype() {
           initiativeTokens={initiativeTokens} encounterAction={encounterAction} controls={tokenControls}
           onToggleGroup={(key) => setExpandedGroups((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; })}
           onSelectToken={(id) => { setSelectedTokenId(id); setSelectedMapNoteId(null); }}
+          onBeginAttack={(token) => { setArmedAttackAttackerId(token.id); setCombatChooser(null); setNotice(`Choose a visible target for ${token.name}.`); }}
           onCloseMapNote={() => setSelectedMapNoteId(null)} onResizeSpell={tokenControls.resizeSpellEffect}
           onDeleteToken={(token) => void deleteToken(token)} canMoveToken={canMoveToken}
           onHideToken={(token) => void runOptimisticCommand("update-token", { tokenId: token.id, hidden: !token.hidden }, (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, hidden: !token.hidden } : item) }), token.hidden ? "Token revealed." : "Token hidden.")}
@@ -984,12 +1119,25 @@ export default function BattleMapPrototype() {
         participant={participant} state={state} resetOpen={resetConfirmOpen} restartOpen={restartConfirmOpen}
         clearAnnotationsOpen={clearAnnotationsConfirmOpen} clearAnnotationCount={durableAnnotationCount}
         concentrationReminder={tokenControls.concentrationReminder}
+        damageNotification={damageNotifications.notification} damageNotificationRemainingCount={damageNotifications.remainingCount}
+        combatRollResult={combatRollResult}
+        damageReviewProposal={damageReview.activeProposal} damageReviewPendingCount={damageReview.pendingCount}
         lightboxHandout={lightboxHandout} handoutFitMode={handoutFitMode}
         onResetOpen={setResetConfirmOpen} onRestartOpen={setRestartConfirmOpen} onClearAnnotationsOpen={setClearAnnotationsConfirmOpen}
         onReset={() => { setResetConfirmOpen(false); void configureEncounterOptimistically("setup", "Encounter reset to setup."); }}
         onRestart={() => { setRestartConfirmOpen(false); startCombatOptimistically(); }}
         onClearAnnotations={() => { setClearAnnotationsConfirmOpen(false); void runOptimisticCommand("clear-annotations", {}, (current) => ({ ...current, annotations: current.annotations.filter((annotation) => annotation.type !== "drawing") }), `${durableAnnotationCount} ${durableAnnotationCount === 1 ? "drawing" : "drawings"} cleared. Use Undo to restore.`); }}
         onDismissConcentrationReminder={tokenControls.dismissConcentrationReminder}
+        onDismissDamageNotification={() => {
+          const notification = damageNotifications.notification;
+          damageNotifications.dismiss();
+          if (!notification?.concentrationCheckRequired) return;
+          const target = state.tokens.find((token) => token.id === notification.targetTokenId);
+          if (target) tokenControls.requireConcentrationCheck(target);
+        }}
+        onDismissCombatRollResult={() => setCombatRollResult(null)}
+        onDismissDamageReview={damageReview.deferActive}
+        onAdjudicateDamage={adjudicateDamageProposal}
         onHandoutFitMode={setHandoutFitMode}
         onCloseLightbox={() => setLightboxHandout(null)}
       />

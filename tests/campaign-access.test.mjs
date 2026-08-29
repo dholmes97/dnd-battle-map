@@ -37,7 +37,9 @@ test("human identities receive campaign-scoped roles, characters, encounters, an
 
 test("encounter entry rejects identities outside the selected campaign", async () => {
   await withWorker(async (worker, db) => {
-    const encounter = await db.prepare("SELECT code FROM encounters LIMIT 1").first();
+    const encounter = await db.prepare(
+      "SELECT code FROM encounters WHERE campaign_id = 'campaign-force-of-nature' ORDER BY id LIMIT 1",
+    ).first();
     const unknown = await worker.fetch(request(`/api/encounters/${encounter.code}/join`, {
       method: "POST",
       body: JSON.stringify({ campaignId: "campaign-force-of-nature" }),
@@ -56,7 +58,9 @@ test("encounter entry rejects identities outside the selected campaign", async (
 test("DM-created encounters stay in the selected campaign and retain character relationships", async () => {
   await withWorker(async (worker, db) => {
     const kevinCookie = await login(worker, db, "identity-kevin");
-    const encounter = await db.prepare("SELECT code FROM encounters LIMIT 1").first();
+    const encounter = await db.prepare(
+      "SELECT code FROM encounters WHERE campaign_id = 'campaign-force-of-nature' ORDER BY id LIMIT 1",
+    ).first();
     const joined = await worker.fetch(request(`/api/encounters/${encounter.code}/join`, {
       method: "POST",
       headers: { cookie: kevinCookie },

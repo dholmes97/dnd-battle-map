@@ -38,8 +38,23 @@ test("numbered migrations build and seed a fresh database", async () => {
   }
 
   assert.equal(await query(database, "PRAGMA integrity_check;"), "ok");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "1");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "3");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "7");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'temporary_hp';"), "1");
+  assert.equal(await query(database, "SELECT temporary_hp FROM tokens WHERE id = 'token-combat-qa-player';"), "5");
+  assert.equal(await query(database, "SELECT can_use_qa_sessions FROM identities WHERE id = 'identity-dan';"), "1");
+  assert.equal(await query(database, "SELECT is_qa FROM campaigns WHERE id = 'campaign-combat-rolling-qa';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM effects WHERE id = 'effect-combat-qa-bless' AND lower(trim(name)) = 'bless';"), "1");
+  assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
+  assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
+    WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM combat_action_profiles a WHERE a.creature_catalog_id = t.catalog_creature_id AND a.is_enabled = 1);`), "0");
+  assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
+    WHERE t.id = 'token-combat-qa-unconfigured' AND t.catalog_creature_id IS NULL;`), "1");
+  assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE id = 'encounter-combat-rolling-qa';"), "qa-forest-hollow-v1");
+  assert.equal(await query(database, "SELECT grid_width || 'x' || grid_height FROM encounters WHERE id = 'encounter-combat-rolling-qa';"), "16x12");
+  assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE id = 'encounter-combat-rolling-qa';"), "dnd-map-setup");
+  assert.equal(await query(database, "SELECT json_array_length(json_extract(active_map_setup_json, '$.fog.sharedPolygon')) FROM encounters WHERE id = 'encounter-combat-rolling-qa';"), "8");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'armor_class';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'altitude';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name IN ('fly_speed', 'swim_speed', 'climb_speed', 'burrow_speed');"), "4");
@@ -57,7 +72,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "19");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "17");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "18");
   assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE code = 'EMBER-KEEP';"), "grandfather-tree-roots-v1");
   assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
   assert.equal(await query(database, "SELECT json_extract(draft_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
@@ -99,7 +114,8 @@ test("numbered migrations build and seed a fresh database", async () => {
   );
   assert.equal(await query(database, "SELECT name FROM encounters WHERE code = 'EMBER-KEEP';"), "Swamp Battle");
   assert.deepEqual(
-    (await query(database, "SELECT name FROM tokens ORDER BY name;")).split("\n"),
+    (await query(database, `SELECT t.name FROM tokens t JOIN encounters e ON e.id = t.encounter_id
+      WHERE e.campaign_id = 'campaign-force-of-nature' ORDER BY t.name;`)).split("\n"),
     ["Dar'eleth", "Jelton", "Malichar"],
   );
   await sqlite(database, `
@@ -199,8 +215,8 @@ test("bootstrap migration preserves customized existing records", async () => {
   `);
 
   assert.equal(after, before);
-  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "4");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "3");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "8");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");

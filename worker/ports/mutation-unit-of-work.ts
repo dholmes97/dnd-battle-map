@@ -4,6 +4,7 @@ export type MutationCommit = {
   participantId?: string | null;
   actionType?: string | null;
   actionPayload?: Record<string, unknown> | null;
+  actionId?: string | null;
   now: number;
   bumpVersion?: boolean;
 };

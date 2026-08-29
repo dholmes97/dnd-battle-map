@@ -1,5 +1,6 @@
 import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
 import { transitionHp } from "../../shared/encounter-transitions.ts";
+import { transitionDamageWithTemporaryHp } from "../../shared/combat-rolling.ts";
 import { normalizeAltitude } from "../../shared/token-altitude.ts";
 import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
@@ -8,11 +9,12 @@ import { commandError, type CommandContextFor, type CommandOutcome } from "./typ
 
 type TokenEffectCommandName =
   | "create-spell-effect" | "create-token" | "resize-spell-effect" | "update-token"
-  | "apply-hp" | "add-effect" | "remove-effect" | "delete-token";
+  | "apply-hp" | "set-temporary-hp" | "add-effect" | "remove-effect" | "delete-token";
 type TokenEffectDependencies = {
   repository: TokenEffectRepository;
   canControl(token: TokenRow): Promise<boolean>;
   isAllowedArt(value: unknown): Promise<boolean>;
+  isCatalogCreature(id: string, artAsset: string): Promise<boolean>;
 };
 export type TokenEffectCommandContext<Name extends TokenEffectCommandName = TokenEffectCommandName> =
   CommandContextFor<Name, TokenEffectDependencies>;
@@ -43,6 +45,8 @@ export async function createSpellEffect(context: TokenEffectCommandContext<"crea
     armorClass: null,
     hp: null,
     maxHp: null,
+    temporaryHp: 0,
+    catalogCreatureId: null,
     hidden: false,
     summonerTokenId,
     artAsset: spell.artAsset,
@@ -57,6 +61,10 @@ export async function createToken(context: TokenEffectCommandContext<"create-tok
   const requestedKind = context.payload.kind;
   const requestedArt = context.payload.artAsset ?? "";
   const artAsset = await context.isAllowedArt(requestedArt) ? requestedArt : null;
+  const requestedCatalogId = cleanId(context.payload.catalogCreatureId);
+  const catalogCreatureId = requestedCatalogId && artAsset &&
+    await context.isCatalogCreature(requestedCatalogId, artAsset) ? requestedCatalogId : null;
+  if (requestedCatalogId && !catalogCreatureId) return commandError("Catalog creature does not match its token art.", 400);
   const size: CreatureSize = context.payload.size;
   const maxHp = Number.isFinite(context.payload.maxHp)
     ? Math.max(1, Math.trunc(context.payload.maxHp!))
@@ -89,6 +97,8 @@ export async function createToken(context: TokenEffectCommandContext<"create-tok
       : null,
     hp,
     maxHp,
+    temporaryHp: 0,
+    catalogCreatureId,
     hidden: context.participant.role === "dm" && Boolean(context.payload.hidden),
     summonerTokenId,
     artAsset,
@@ -143,6 +153,8 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
       : token.armor_class,
     hp: maxHp === null ? null : Math.min(maxHp, token.hp ?? maxHp),
     maxHp,
+    temporaryHp: token.temporary_hp,
+    catalogCreatureId: token.catalog_creature_id ?? null,
     hidden: context.participant.role === "dm"
       ? context.payload.hidden ?? Boolean(token.is_hidden)
       : Boolean(token.is_hidden),
@@ -169,6 +181,8 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     armor_class: next.armorClass,
     hp: next.hp,
     max_hp: next.maxHp,
+    temporary_hp: next.temporaryHp,
+    catalog_creature_id: next.catalogCreatureId,
     is_hidden: next.hidden ? 1 : 0,
     art_asset: next.artAsset,
     x: next.x,
@@ -189,12 +203,43 @@ export async function applyHp(context: TokenEffectCommandContext<"apply-hp">): P
   if (!Number.isFinite(delta) || delta === 0) {
     return commandError("Enter non-zero damage or healing.", 400);
   }
-  const { from, hp } = transitionHp(token.hp, token.max_hp, delta);
+  const from = token.hp ?? token.max_hp;
+  const fromTemporaryHp = token.temporary_hp ?? 0;
+  const transitioned = delta < 0
+    ? transitionDamageWithTemporaryHp({
+      hp: token.hp,
+      maxHp: token.max_hp,
+      temporaryHp: fromTemporaryHp,
+      damage: Math.abs(delta),
+    })
+    : { hp: transitionHp(token.hp, token.max_hp, delta).hp, temporaryHp: fromTemporaryHp };
+  if (!transitioned) return commandError("Unable to apply that HP change.", 400);
+  const { hp, temporaryHp } = transitioned;
   const concentrationCheckRequired = delta < 0 &&
     await context.repository.hasConcentration(context.encounter.id, tokenId);
-  await context.repository.updateHp(context.encounter.id, tokenId, hp, context.now);
-  await finish(context, "hp_changed", { tokenId, from, to: hp, concentrationCheckRequired });
+  await context.repository.updateHp(context.encounter.id, tokenId, hp, temporaryHp, context.now);
+  await finish(context, "hp_changed", {
+    tokenId, from, to: hp, fromTemporaryHp, toTemporaryHp: temporaryHp, concentrationCheckRequired,
+  });
   return success(context, { updated: true, concentrationCheckRequired });
+}
+
+export async function setTemporaryHp(context: TokenEffectCommandContext<"set-temporary-hp">): Promise<CommandOutcome> {
+  const tokenId = cleanId(context.payload.tokenId);
+  const token = await context.repository.findToken(context.encounter.id, tokenId);
+  if (!token) return commandError("Token not found.", 404);
+  if (!await context.canControl(token)) return commandError("You cannot change this token's temporary HP.", 403);
+  if (token.max_hp === null) return commandError("Configure maximum HP before setting temporary HP.", 409);
+  const temporaryHp = Math.trunc(context.payload.amount);
+  if (!Number.isFinite(temporaryHp) || temporaryHp < 0 || temporaryHp > 100_000) {
+    return commandError("Temporary HP must be a whole number from 0 to 100000.", 400);
+  }
+  const hp = token.hp ?? token.max_hp;
+  await context.repository.updateHp(context.encounter.id, tokenId, hp, temporaryHp, context.now);
+  await finish(context, "hp_changed", {
+    tokenId, from: hp, to: hp, fromTemporaryHp: token.temporary_hp ?? 0, toTemporaryHp: temporaryHp,
+  });
+  return success(context, { updated: true });
 }
 
 export async function addEffect(context: TokenEffectCommandContext<"add-effect">): Promise<CommandOutcome> {
@@ -288,6 +333,8 @@ function tokenSnapshot(token: TokenRow) {
     armorClass: token.armor_class,
     hp: token.hp,
     maxHp: token.max_hp,
+    temporaryHp: token.temporary_hp,
+    catalogCreatureId: token.catalog_creature_id ?? null,
     hidden: Boolean(token.is_hidden),
     summonerTokenId: token.summoner_token_id,
     initiative: token.initiative,
@@ -312,7 +359,9 @@ async function createTokenEntity(
     tokenId,
     token: {
       tokenId, name: token.name, kind: token.kind, size: token.size, x: token.x, y: token.y,
-      speed: token.speed, armorClass: token.armorClass, hp: token.hp, maxHp: token.maxHp, hidden: token.hidden,
+      speed: token.speed, armorClass: token.armorClass, hp: token.hp, maxHp: token.maxHp,
+      temporaryHp: token.temporaryHp, hidden: token.hidden,
+      catalogCreatureId: token.catalogCreatureId,
       flySpeed: token.flySpeed, swimSpeed: token.swimSpeed,
       climbSpeed: token.climbSpeed, burrowSpeed: token.burrowSpeed,
       altitude: token.altitude,
@@ -335,7 +384,7 @@ function tokenChange(previous: TokenRow, next: TokenRow) {
     flySpeed: token.fly_speed, swimSpeed: token.swim_speed,
     climbSpeed: token.climb_speed, burrowSpeed: token.burrow_speed,
     altitude: token.altitude,
-    armorClass: token.armor_class, hp: token.hp, maxHp: token.max_hp,
+    armorClass: token.armor_class, hp: token.hp, maxHp: token.max_hp, temporaryHp: token.temporary_hp,
     hidden: Boolean(token.is_hidden), artAsset: token.art_asset,
   });
   return { tokenId: previous.id, previous: view(previous), next: view(next) };

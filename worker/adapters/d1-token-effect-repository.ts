@@ -8,7 +8,7 @@ import {
 import { replayTokenEffectHistory } from "./d1-token-effect-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-  climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
+  climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
   summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
@@ -27,10 +27,10 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       const result = await db.prepare(
         `INSERT INTO tokens
          (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-          climb_speed, burrow_speed, armor_class, hp, max_hp,
+          climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id,
           is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
           movement_used, altitude, owner_participant_id, owner_name, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?
          WHERE (SELECT COUNT(*) FROM tokens WHERE encounter_id = ?) < ?`,
       ).bind(
         input.id,
@@ -49,6 +49,8 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.armorClass,
         input.hp,
         input.maxHp,
+        input.temporaryHp ?? 0,
+        input.catalogCreatureId ?? null,
         input.hidden ? 1 : 0,
         input.summonerTokenId,
         input.initiative,
@@ -68,7 +70,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
     async updateToken(input) {
       await db.prepare(
         `UPDATE tokens SET name = ?, size = ?, speed = ?, fly_speed = ?, swim_speed = ?,
-         climb_speed = ?, burrow_speed = ?, altitude = ?, armor_class = ?, hp = ?, max_hp = ?,
+         climb_speed = ?, burrow_speed = ?, altitude = ?, armor_class = ?, hp = ?, max_hp = ?, temporary_hp = ?, catalog_creature_id = ?,
          is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?
          WHERE id = ? AND encounter_id = ?`,
       ).bind(
@@ -83,6 +85,8 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.armorClass,
         input.hp,
         input.maxHp,
+        input.temporaryHp ?? 0,
+        input.catalogCreatureId ?? null,
         input.hidden ? 1 : 0,
         input.artAsset,
         input.x,
@@ -99,10 +103,10 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       ).bind(encounterId, tokenId).first<{ count: number }>();
       return (row?.count ?? 0) > 0;
     },
-    async updateHp(encounterId, tokenId, hp, now) {
+    async updateHp(encounterId, tokenId, hp, temporaryHp, now) {
       await db.prepare(
-        "UPDATE tokens SET hp = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
-      ).bind(hp, now, tokenId, encounterId).run();
+        "UPDATE tokens SET hp = ?, temporary_hp = ?, updated_at = ? WHERE id = ? AND encounter_id = ?",
+      ).bind(hp, temporaryHp, now, tokenId, encounterId).run();
     },
     async addEffect(input) {
       const counts = await db.prepare(
@@ -147,7 +151,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
                 e.expires_round, e.reminder_timing, e.created_by, e.created_at,
                 t.id AS t_id, t.name AS t_name, t.x, t.y, t.art_asset, t.kind, t.size,
                 t.speed, t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
-                t.armor_class, t.hp, t.max_hp, t.is_hidden, t.summoner_token_id, t.campaign_character_id,
+                t.armor_class, t.hp, t.max_hp, t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.summoner_token_id, t.campaign_character_id,
                 t.initiative, t.initiative_group_id, t.initiative_order,
                 t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
                 t.movement_origin_y, t.owner_participant_id, t.owner_name
@@ -161,7 +165,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         kind: string; size: TokenRow["size"]; speed: number; fly_speed: number | null;
         swim_speed: number | null; climb_speed: number | null; burrow_speed: number | null;
         armor_class: number | null; hp: number | null;
-        max_hp: number | null; is_hidden: number; summoner_token_id: string | null;
+        max_hp: number | null; temporary_hp: number; catalog_creature_id: string | null; is_hidden: number; summoner_token_id: string | null;
         campaign_character_id: string | null;
         initiative: number | null; initiative_group_id: string | null;
         initiative_order: number | null; turn_complete: number; movement_used: number; altitude: number;
@@ -184,7 +188,8 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
           kind: row.kind, size: row.size, speed: row.speed, fly_speed: row.fly_speed,
           swim_speed: row.swim_speed, climb_speed: row.climb_speed, burrow_speed: row.burrow_speed,
           armor_class: row.armor_class,
-          hp: row.hp, max_hp: row.max_hp,
+          hp: row.hp, max_hp: row.max_hp, temporary_hp: row.temporary_hp,
+          catalog_creature_id: row.catalog_creature_id,
           is_hidden: row.is_hidden, summoner_token_id: row.summoner_token_id,
           campaign_character_id: row.campaign_character_id,
           initiative: row.initiative, initiative_group_id: row.initiative_group_id,

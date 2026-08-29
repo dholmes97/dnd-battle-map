@@ -53,7 +53,7 @@ test("hot-path D1 adapters preserve encounter scope and participant ordering", a
     assert.equal((await tokenEffects.findToken(encounter.id, tokenWrite.id))?.name, tokenWrite.name);
     await tokenEffects.resizeToken(encounter.id, tokenWrite.id, "large", 4, 5, 12);
     await tokenEffects.updateToken({ ...tokenWrite, name: "Updated hot-path token", x: 4, y: 5, size: "large", now: 13 });
-    await tokenEffects.updateHp(encounter.id, tokenWrite.id, 15, 14);
+    await tokenEffects.updateHp(encounter.id, tokenWrite.id, 15, 0, 14);
     assert.equal(await tokenEffects.addEffect({
       id: "hot-effect",
       encounterId: encounter.id,

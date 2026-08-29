@@ -30,6 +30,7 @@ export type CommandParticipant = {
   name: string;
   role: Role;
   identityId?: string | null;
+  authenticatedActorIdentityId?: string | null;
   campaignMembershipId?: string | null;
 };
 
@@ -41,7 +42,7 @@ export type CommandOutcome = {
 export type CommandServices = {
   createId(): string;
   loadState(): Promise<EncounterState | null>;
-  commit(actionType: string | null, payload?: Record<string, unknown>): Promise<void>;
+  commit(actionType: string | null, payload?: Record<string, unknown>, actionId?: string | null): Promise<void>;
   commitFor(input: {
     encounterId: string;
     expectedVersion?: number | null;

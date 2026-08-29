@@ -1,0 +1,125 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  adjudicatedDamage,
+  combatRollingEnabled,
+  formatDiceFormula,
+  hasBless,
+  parseCombatRollingMode,
+  projectCombatDamageValues,
+  projectDamageAdjudication,
+  resolveAttack,
+  transitionDamageWithTemporaryHp,
+  validateCombatActionValues,
+} from "../shared/combat-rolling.ts";
+
+const damage = { count: 1, sides: 8, modifier: 5 };
+
+test("feature mode fails closed and enables only the intended campaign class", () => {
+  assert.equal(parseCombatRollingMode("broken"), "off");
+  assert.equal(combatRollingEnabled("off", true), false);
+  assert.equal(combatRollingEnabled("qa", false), false);
+  assert.equal(combatRollingEnabled("qa", true), true);
+  assert.equal(combatRollingEnabled("all", false), true);
+});
+
+test("normal, advantage, disadvantage, and Bless resolve deterministically", () => {
+  const normal = resolveAttack({ rollMode: "normal", attackDice: [10], attackBonus: 4, targetArmorClass: 15, damageFormula: damage, damageDice: [6] });
+  assert.equal(normal?.outcome, "miss");
+  const advantage = resolveAttack({ rollMode: "advantage", attackDice: [4, 16], attackBonus: 4, blessDie: 3, targetArmorClass: 22, damageFormula: damage, damageDice: [5] });
+  assert.deepEqual(advantage, {
+    attackDice: [4, 16], keptD20: 16, attackBonus: 4, blessDie: 3, attackTotal: 23,
+    outcome: "hit", damageDice: [5], damageModifier: 5, damageTotal: 10,
+  });
+  const disadvantage = resolveAttack({ rollMode: "disadvantage", attackDice: [18, 8], attackBonus: 5, blessDie: 2, targetArmorClass: 15, damageFormula: damage, damageDice: [1] });
+  assert.equal(disadvantage?.keptD20, 8);
+  assert.equal(disadvantage?.attackTotal, 15);
+  assert.equal(disadvantage?.outcome, "hit");
+});
+
+test("natural one and twenty override totals while Bless never changes critical damage", () => {
+  const one = resolveAttack({ rollMode: "normal", attackDice: [1], attackBonus: 30, blessDie: 4, targetArmorClass: 1, damageFormula: damage, damageDice: [8] });
+  assert.equal(one?.outcome, "miss");
+  const twenty = resolveAttack({ rollMode: "normal", attackDice: [20], attackBonus: -20, blessDie: 1, targetArmorClass: 40, damageFormula: damage, damageDice: [2, 7] });
+  assert.equal(twenty?.outcome, "critical");
+  assert.equal(twenty?.damageTotal, 14);
+  assert.equal(twenty?.blessDie, 1);
+});
+
+test("a missing armor class produces a review outcome without leaking a guessed value", () => {
+  const result = resolveAttack({ rollMode: "normal", attackDice: [12], attackBonus: 5, targetArmorClass: null, damageFormula: damage, damageDice: [3] });
+  assert.equal(result?.outcome, "needs-ac");
+});
+
+test("Bless uses one canonical case-insensitive effect regardless of duplicates", () => {
+  assert.equal(hasBless([{ name: " Bless " }, { name: "BLESS" }]), true);
+  assert.equal(hasBless([{ name: "Haste" }]), false);
+});
+
+test("damage adjudication applies standard adjustments and rejects invalid values", () => {
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "apply" }), 11);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "resistant" }), 5);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "vulnerable" }), 22);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "immune" }), 0);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "reject" }), 0);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "adjust", adjustedDamage: 7 }), 7);
+  assert.equal(adjudicatedDamage({ rolledDamage: 11, method: "adjust" }), null);
+});
+
+test("player projections conceal private damage adjudication details", () => {
+  const ruling = { status: "adjusted", adjudicationMethod: "adjust", adjudicationNote: "Ease the encounter" };
+  assert.deepEqual(projectDamageAdjudication({ ...ruling, canSeePrivateAdjudication: false }), {
+    status: "applied", adjudicationMethod: null, adjudicationNote: null,
+  });
+  assert.deepEqual(projectDamageAdjudication({ ...ruling, canSeePrivateAdjudication: true }), ruling);
+  assert.equal(projectDamageAdjudication({
+    status: "immune", adjudicationMethod: "immune", adjudicationNote: null, canSeePrivateAdjudication: false,
+  }).status, "applied");
+});
+
+test("damage projections never give a player both rolled and adjudicated damage", () => {
+  const ruling = {
+    damageDice: [6, 5], rolledDamage: 14, finalDamage: 7, proposalStatus: "adjusted",
+    canSeePrivateAdjudication: false,
+  };
+  assert.deepEqual(projectCombatDamageValues({ ...ruling, initiatedRoll: true, controlsTarget: false }), {
+    damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: null,
+  });
+  assert.deepEqual(projectCombatDamageValues({ ...ruling, initiatedRoll: false, controlsTarget: true }), {
+    damageDice: [], damageTotal: 7, proposalRolledDamage: 7, proposalFinalDamage: 7,
+  });
+  assert.deepEqual(projectCombatDamageValues({
+    ...ruling, finalDamage: null, proposalStatus: "pending", initiatedRoll: false, controlsTarget: true,
+  }), {
+    damageDice: [], damageTotal: null, proposalRolledDamage: null, proposalFinalDamage: null,
+  });
+  assert.deepEqual(projectCombatDamageValues({
+    ...ruling, canSeePrivateAdjudication: true, initiatedRoll: false, controlsTarget: false,
+  }), {
+    damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: 7,
+  });
+});
+
+test("damage consumes temporary HP before current HP", () => {
+  assert.deepEqual(transitionDamageWithTemporaryHp({ hp: 20, maxHp: 30, temporaryHp: 6, damage: 10 }), {
+    hp: 16, temporaryHp: 0, hpDamage: 4, temporaryHpDamage: 6,
+  });
+  assert.deepEqual(transitionDamageWithTemporaryHp({ hp: 20, maxHp: 30, temporaryHp: 20, damage: 10 }), {
+    hp: 20, temporaryHp: 10, hpDamage: 0, temporaryHpDamage: 10,
+  });
+});
+
+test("combat action values are structured, bounded, and preserve manual riders", () => {
+  const action = validateCombatActionValues({
+    name: "  Longsword   +1 ", attackBonus: 9, attackKind: "melee",
+    damage: { count: 1, sides: 8, modifier: 5 }, damageType: "slashing",
+    reachFeet: 5, rangeFeet: null, manualRider: true,
+    alternateDamage: { label: "Two-handed", formula: { count: 1, sides: 10, modifier: 5 } },
+  });
+  assert.equal(action?.name, "Longsword +1");
+  assert.equal(action?.manualRider, true);
+  assert.equal(formatDiceFormula(action.damage), "1d8+5");
+  assert.equal(formatDiceFormula({ count: 0, sides: 4, modifier: 5 }), "5");
+  assert.equal(validateCombatActionValues({ ...action, damage: "1d8+5" }), null);
+});

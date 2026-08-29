@@ -7,7 +7,7 @@ import { mapImageFromRow } from "../map-images.ts";
 import type { MapImageRow } from "../types.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-  climb_speed, burrow_speed, armor_class, hp, max_hp, is_hidden,
+  climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
   summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
@@ -61,11 +61,11 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
         ...input.tokens.map((token) => db.prepare(
           `INSERT INTO tokens
            (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-            climb_speed, burrow_speed, armor_class, hp, max_hp,
+            climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id,
             is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order,
             turn_complete, movement_used, altitude, movement_origin_x, movement_origin_y,
             owner_participant_id, owner_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, ?, NULL, NULL, NULL, NULL, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, ?, NULL, NULL, NULL, NULL, ?)`,
         ).bind(
           token.copiedId,
           input.id,
@@ -83,6 +83,8 @@ export function createD1ScenarioMapRepository(db: D1Database): ScenarioMapReposi
           token.armor_class,
           token.copiedHp,
           token.max_hp,
+          token.copiedTemporaryHp,
+          token.catalog_creature_id ?? null,
           token.copiedHidden ? 1 : 0,
           token.copiedSummonerId,
           token.campaign_character_id,

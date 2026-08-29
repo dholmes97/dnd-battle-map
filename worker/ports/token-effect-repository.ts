@@ -25,6 +25,8 @@ export type TokenWrite = {
   armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
+  temporaryHp: number;
+  catalogCreatureId: string | null;
   hidden: boolean;
   summonerTokenId: string | null;
   initiative: number | null;
@@ -45,7 +47,7 @@ export interface TokenEffectRepository {
   ): Promise<void>;
   updateToken(input: TokenWrite): Promise<void>;
   hasConcentration(encounterId: string, tokenId: string): Promise<boolean>;
-  updateHp(encounterId: string, tokenId: string, hp: number, now: number): Promise<void>;
+  updateHp(encounterId: string, tokenId: string, hp: number, temporaryHp: number, now: number): Promise<void>;
   addEffect(input: {
     id: string;
     encounterId: string;

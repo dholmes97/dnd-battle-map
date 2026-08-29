@@ -897,6 +897,7 @@ export function drawMap(
       armorClass: null,
       hp: null,
       maxHp: null,
+      temporaryHp: 0,
       healthState: null,
       hidden: false,
       summonerTokenId: null,

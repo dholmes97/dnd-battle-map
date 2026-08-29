@@ -6,6 +6,7 @@ export type ScenarioSeedToken = TokenRow & {
   copiedId: string;
   copiedSummonerId: string | null;
   copiedHp: number | null;
+  copiedTemporaryHp: number;
   copiedHidden: boolean;
   copiedAltitude: number;
 };

@@ -2,6 +2,7 @@ import type { CreatureSize } from "./creature-library";
 import type { MapImage, MapPackage } from "./map-package";
 import type { HealthBand } from "./health";
 import type { SpellAreaSize, SpellEffectDefinition } from "./spell-effects";
+import type { CombatActionProfile, CombatActionValues, CombatRollingMode, DamageAdjudication, DamageProposalStatus, RollMode } from "./combat-rolling";
 
 export type Role = "player" | "dm";
 export type EncounterStatus = "setup" | "active" | "paused";
@@ -31,6 +32,7 @@ export type SharedToken = MapPoint & {
   armorClass: number | null;
   hp: number | null;
   maxHp: number | null;
+  temporaryHp: number | null;
   healthState: HealthBand | null;
   hidden: boolean;
   summonerTokenId: string | null;
@@ -100,6 +102,7 @@ export type FogVisibility = {
 };
 
 export type EncounterState = {
+  features: { combatRolling: { mode: CombatRollingMode; enabled: boolean; draining: boolean } };
   encounter: {
     code: string;
     name: string;
@@ -124,6 +127,44 @@ export type EncounterState = {
   handouts: SharedHandout[];
   mapImages: MapImage[];
   availableArt: string[];
+  combatActions: CombatActionProfile[];
+  combatRolls: SharedCombatRoll[];
+  damageProposals: SharedDamageProposal[];
+};
+
+export type SharedCombatRoll = {
+  id: string;
+  attackerTokenId: string;
+  attackerName: string;
+  targetTokenId: string;
+  targetName: string;
+  participantName: string;
+  action: CombatActionValues;
+  actionSource: "character" | "creature-catalog" | "dm-ad-hoc";
+  rollMode: RollMode;
+  attackDice: number[];
+  keptD20: number;
+  blessDie: number | null;
+  attackTotal: number;
+  outcome: "miss" | "hit" | "critical" | "needs-ac";
+  damageDice: number[];
+  damageTotal: number | null;
+  inTurn: boolean;
+  createdAt: number;
+};
+
+export type SharedDamageProposal = {
+  id: string;
+  rollId: string;
+  targetTokenId: string;
+  status: DamageProposalStatus;
+  rolledDamage: number | null;
+  finalDamage: number | null;
+  adjudicationMethod: DamageAdjudication | null;
+  adjudicationNote: string | null;
+  concentrationCheckRequired: boolean;
+  createdAt: number;
+  resolvedAt: number | null;
 };
 
 export type ParticipantSession = { id: string; name: string; role: Role; sessionSecret: string };
@@ -137,7 +178,8 @@ export const COMMAND_NAMES = [
   "update-shared-fog", "create-spell-effect", "create-token",
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
-  "delete-token",
+  "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
+  "roll-attack", "adjudicate-damage",
 ] as const;
 
 export type CommandName = typeof COMMAND_NAMES[number];
@@ -188,6 +230,7 @@ export type CommandPayloadMap = {
     maxHp?: number;
     hidden?: boolean;
     artAsset?: string;
+    catalogCreatureId?: string;
     summonerTokenId?: string;
     x: number;
     y: number;
@@ -205,6 +248,29 @@ export type CommandPayloadMap = {
     artAsset?: string;
   };
   "apply-hp": { tokenId: string; delta: number };
+  "set-temporary-hp": { tokenId: string; amount: number };
+  "save-combat-action": {
+    actionId?: string;
+    ownerType: "character" | "creature";
+    ownerId: string;
+    values: CombatActionValues;
+  };
+  "delete-combat-action": { actionId: string };
+  "roll-attack": {
+    operationId: string;
+    attackerTokenId: string;
+    targetTokenId: string;
+    actionProfileId?: string;
+    adHocAction?: CombatActionValues;
+    rollMode: RollMode;
+    alternateDamage?: boolean;
+  };
+  "adjudicate-damage": {
+    proposalId: string;
+    method: DamageAdjudication;
+    adjustedDamage?: number;
+    note?: string;
+  };
   "add-effect": {
     tokenId: string;
     name: string;
