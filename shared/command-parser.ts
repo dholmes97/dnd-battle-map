@@ -33,7 +33,7 @@ const PARSED_COMMANDS = [
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
   "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
-  "roll-attack", "adjudicate-damage",
+  "roll-attack", "roll-damage", "adjudicate-damage",
 ] as const satisfies readonly CommandName[];
 
 export function commandParserCoverage(): { complete: boolean; missing: CommandName[] } {
@@ -219,6 +219,10 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         }) }
         : null;
     }
+    case "roll-damage":
+      return requiredString(body.operationId) && requiredString(body.rollId)
+        ? { command, payload: { operationId: body.operationId, rollId: body.rollId } }
+        : null;
     case "adjudicate-damage":
       return requiredString(body.proposalId) && damageAdjudication(body.method) &&
         optionalNumber(body.adjustedDamage) && optionalString(body.note)

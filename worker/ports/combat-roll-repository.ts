@@ -43,6 +43,7 @@ export type CombatRollRow = {
   outcome: string;
   damage_dice_json: string;
   damage_total: number;
+  damage_rolled_at: number | null;
   in_turn: number;
   created_at: number;
 };
@@ -84,6 +85,7 @@ export interface CombatRollRepository {
   creatureExists(creatureId: string): Promise<boolean>;
   hasBless(encounterId: string, tokenId: string): Promise<boolean>;
   findRollByOperation(encounterId: string, operationId: string): Promise<CombatRollRow | null>;
+  findRoll(encounterId: string, rollId: string): Promise<CombatRollRow | null>;
   createRoll(input: {
     id: string;
     encounterId: string;
@@ -104,7 +106,16 @@ export interface CombatRollRepository {
     damageDiceJson: string;
     damageTotal: number;
     inTurn: boolean;
-    proposalId: string | null;
+    now: number;
+  }): Promise<void>;
+  findProposalByRoll(encounterId: string, rollId: string): Promise<DamageProposalRow | null>;
+  recordDamage(input: {
+    encounterId: string;
+    rollId: string;
+    proposalId: string;
+    targetTokenId: string;
+    damageDiceJson: string;
+    damageTotal: number;
     now: number;
   }): Promise<void>;
   findProposal(encounterId: string, proposalId: string): Promise<DamageProposalRow | null>;

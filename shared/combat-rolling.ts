@@ -61,6 +61,10 @@ export type AttackResolution = {
   damageTotal: number;
 };
 
+export type AttackRollResolution = Pick<AttackResolution,
+  "attackDice" | "keptD20" | "attackBonus" | "blessDie" | "attackTotal" | "outcome"
+>;
+
 export type DamageAdjudication = "apply" | "resistant" | "vulnerable" | "immune" | "adjust" | "reject" | "cancel";
 export type DamageProposalStatus = "pending" | "applied" | "adjusted" | "immune" | "rejected" | "cancelled";
 
@@ -88,7 +92,7 @@ export function projectCombatDamageValues(input: {
   finalDamage: number | null;
   proposalStatus: DamageProposalStatus | null;
   canSeePrivateAdjudication: boolean;
-  initiatedRoll: boolean;
+  canSeeRolledDamage: boolean;
   controlsTarget: boolean;
 }): {
   damageDice: number[];
@@ -96,25 +100,15 @@ export function projectCombatDamageValues(input: {
   proposalRolledDamage: number | null;
   proposalFinalDamage: number | null;
 } {
-  if (input.canSeePrivateAdjudication) return {
-    damageDice: [...input.damageDice],
-    damageTotal: input.rolledDamage,
-    proposalRolledDamage: input.rolledDamage,
-    proposalFinalDamage: input.finalDamage,
-  };
-  if (input.initiatedRoll) return {
-    damageDice: [...input.damageDice],
-    damageTotal: input.rolledDamage,
-    proposalRolledDamage: input.rolledDamage,
-    proposalFinalDamage: null,
-  };
-  const appliedDamage = input.controlsTarget && input.proposalStatus !== null && input.proposalStatus !== "pending"
+  const canSeeRoll = input.canSeePrivateAdjudication || input.canSeeRolledDamage;
+  const appliedDamage = (input.canSeePrivateAdjudication || input.controlsTarget) &&
+      input.proposalStatus !== null && input.proposalStatus !== "pending"
     ? input.finalDamage
     : null;
   return {
-    damageDice: [],
-    damageTotal: appliedDamage,
-    proposalRolledDamage: appliedDamage,
+    damageDice: canSeeRoll ? [...input.damageDice] : [],
+    damageTotal: canSeeRoll ? input.rolledDamage : appliedDamage,
+    proposalRolledDamage: canSeeRoll ? input.rolledDamage : appliedDamage,
     proposalFinalDamage: appliedDamage,
   };
 }
@@ -143,28 +137,21 @@ export function damageDiceCount(formula: DiceFormula, critical: boolean): number
   return formula.count * (critical ? 2 : 1);
 }
 
-export function resolveAttack(input: {
+export function resolveAttackRoll(input: {
   rollMode: RollMode;
   attackDice: readonly number[];
   attackBonus: number;
   blessDie?: number | null;
   targetArmorClass: number | null;
-  damageFormula: DiceFormula;
-  damageDice: readonly number[];
-}): AttackResolution | null {
+}): AttackRollResolution | null {
   const keptD20 = keptD20ForMode(input.rollMode, input.attackDice);
   if (keptD20 === null || !integerBetween(input.attackBonus, -20, 30)) return null;
   const blessDie = input.blessDie ?? null;
   if (blessDie !== null && !integerBetween(blessDie, 1, 4)) return null;
-  const critical = keptD20 === 20;
-  const expectedDamageDice = damageDiceCount(input.damageFormula, critical);
-  if (!validDiceFormula(input.damageFormula) || input.damageDice.length !== expectedDamageDice ||
-      input.damageDice.some((die) => !integerBetween(die, 1, input.damageFormula.sides))) return null;
   const attackTotal = keptD20 + input.attackBonus + (blessDie ?? 0);
-  const damageTotal = Math.max(0, input.damageDice.reduce((sum, die) => sum + die, 0) + input.damageFormula.modifier);
   const outcome = keptD20 === 1
     ? "miss"
-    : critical
+    : keptD20 === 20
       ? "critical"
       : input.targetArmorClass === null
         ? "needs-ac"
@@ -178,6 +165,27 @@ export function resolveAttack(input: {
     blessDie,
     attackTotal,
     outcome,
+  };
+}
+
+export function resolveAttack(input: {
+  rollMode: RollMode;
+  attackDice: readonly number[];
+  attackBonus: number;
+  blessDie?: number | null;
+  targetArmorClass: number | null;
+  damageFormula: DiceFormula;
+  damageDice: readonly number[];
+}): AttackResolution | null {
+  const attack = resolveAttackRoll(input);
+  if (!attack) return null;
+  const critical = attack.keptD20 === 20;
+  const expectedDamageDice = damageDiceCount(input.damageFormula, critical);
+  if (!validDiceFormula(input.damageFormula) || input.damageDice.length !== expectedDamageDice ||
+      input.damageDice.some((die) => !integerBetween(die, 1, input.damageFormula.sides))) return null;
+  const damageTotal = Math.max(0, input.damageDice.reduce((sum, die) => sum + die, 0) + input.damageFormula.modifier);
+  return {
+    ...attack,
     damageDice: [...input.damageDice],
     damageModifier: input.damageFormula.modifier,
     damageTotal,

@@ -139,6 +139,7 @@ import {
   adjudicateDamage,
   deleteCombatAction,
   rollAttack,
+  rollDamage,
   saveCombatAction,
   type CombatRollCommandContext,
 } from "./commands/combat-roll-commands.ts";
@@ -1071,14 +1072,14 @@ function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile |
   } : null;
 }
 
-function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string }): EncounterState["combatRolls"][number] | null {
+function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string }, viewerId: string): EncounterState["combatRolls"][number] | null {
   let snapshot: Record<string, unknown>;
   try { snapshot = JSON.parse(row.action_snapshot_json) as Record<string, unknown>; } catch { return null; }
   const action = validateCombatActionValues(snapshot);
   const attackDice = jsonDice(row.attack_dice_json, 20);
   const damage = validateCombatActionValues(snapshot)?.damage;
-  const damageDice = jsonDice(row.damage_dice_json, damage?.sides ?? 100);
-  if (!action || !attackDice || !damageDice ||
+  const storedDamageDice = jsonDice(row.damage_dice_json, damage?.sides ?? 100);
+  if (!action || !attackDice || !storedDamageDice ||
       (row.outcome !== "miss" && row.outcome !== "hit" && row.outcome !== "critical" && row.outcome !== "needs-ac") ||
       (row.roll_mode !== "normal" && row.roll_mode !== "advantage" && row.roll_mode !== "disadvantage")) return null;
   return {
@@ -1097,8 +1098,11 @@ function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string
     blessDie: row.bless_die,
     attackTotal: row.attack_total,
     outcome: row.outcome,
-    damageDice,
-    damageTotal: row.damage_total,
+    damageDice: row.damage_rolled_at === null ? [] : storedDamageDice,
+    damageTotal: row.damage_rolled_at === null ? null : row.damage_total,
+    damageRolledAt: row.damage_rolled_at,
+    canRollDamage: row.damage_rolled_at === null && (row.outcome === "hit" || row.outcome === "critical") &&
+      row.participant_id === viewerId,
     inTurn: Boolean(row.in_turn),
     createdAt: row.created_at,
   };
@@ -1604,14 +1608,8 @@ async function encounterState(
          WHERE dp.encounter_id = ?
          ORDER BY dp.created_at DESC, dp.id DESC LIMIT 100`,
       ).bind(encounter!.id).all<DamageProposalRow & { concentration_check_required: number }>();
-  const visibleRollRows = rollRows.results.filter((roll) => {
-    const target = tokenById.get(roll.target_token_id);
-    const attacker = tokenById.get(roll.attacker_token_id);
-    if (!viewer || !target || !attacker || !visibleTokens.some((token) => token.id === target.id) ||
-        !visibleTokens.some((token) => token.id === attacker.id)) return false;
-    return viewer.role === "dm" || roll.participant_id === viewer.id || viewerControls(target);
-  });
-  const visibleRollIds = new Set(visibleRollRows.map((roll) => roll.id));
+  const projectedRollRows = viewer ? rollRows.results : [];
+  const projectedRollIds = new Set(projectedRollRows.map((roll) => roll.id));
   const proposalByRollId = new Map(proposalRows.results.map((proposal) => [proposal.roll_id, proposal]));
   const allowedActionOwners = new Set(visibleTokens.filter((token) => viewer?.role === "dm" || viewerControls(token)).flatMap((token) => [
     token.campaign_character_id ? `character:${token.campaign_character_id}` : "",
@@ -1626,10 +1624,11 @@ async function encounterState(
         : token.catalog_creature_id === action.ownerId).map((token) => token.id),
     }] : [];
   });
-  const combatRolls = visibleRollRows.flatMap((row) => {
-    const roll = sharedCombatRollFromRow(row);
+  const combatRolls = projectedRollRows.flatMap((row) => {
     const target = tokenById.get(row.target_token_id);
-    if (!roll || !viewer || !target) return [];
+    if (!viewer || !target) return [];
+    const roll = sharedCombatRollFromRow(row, viewer.id);
+    if (!roll) return [];
     const proposal = proposalByRollId.get(row.id) ?? null;
     const damage = projectCombatDamageValues({
       damageDice: roll.damageDice,
@@ -1637,13 +1636,12 @@ async function encounterState(
       finalDamage: proposal?.final_damage ?? null,
       proposalStatus: proposal?.status ?? null,
       canSeePrivateAdjudication: viewer.role === "dm",
-      initiatedRoll: row.participant_id === viewer.id,
+      canSeeRolledDamage: row.damage_rolled_at !== null,
       controlsTarget: viewerControls(target),
     });
     return [{ ...roll, damageDice: damage.damageDice, damageTotal: damage.damageTotal }];
   });
-  const damageProposals = proposalRows.results.filter((row) => visibleRollIds.has(row.roll_id)).map((row) => {
-    const roll = visibleRollRows.find((candidate) => candidate.id === row.roll_id);
+  const damageProposals = proposalRows.results.filter((row) => projectedRollIds.has(row.roll_id)).map((row) => {
     const target = tokenById.get(row.target_token_id);
     const damage = projectCombatDamageValues({
       damageDice: [],
@@ -1651,7 +1649,7 @@ async function encounterState(
       finalDamage: row.final_damage,
       proposalStatus: row.status,
       canSeePrivateAdjudication: viewer?.role === "dm",
-      initiatedRoll: Boolean(viewer && roll?.participant_id === viewer.id),
+      canSeeRolledDamage: true,
       controlsTarget: Boolean(target && viewerControls(target)),
     });
     const adjudication = projectDamageAdjudication({
@@ -2089,7 +2087,7 @@ async function handleCommand(
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
   });
   const combatRollContext = async <Name extends
-    "save-combat-action" | "delete-combat-action" | "roll-attack" | "adjudicate-damage"
+    "save-combat-action" | "delete-combat-action" | "roll-attack" | "roll-damage" | "adjudicate-damage"
   >(payload: CommandPayload<Name>): Promise<CombatRollCommandContext<Name>> => ({
     ...baseContext(payload),
     repository: createD1CombatRollRepository(mutationDb),
@@ -2124,6 +2122,7 @@ async function handleCommand(
     case "save-combat-action": outcome = await saveCombatAction(await combatRollContext(request.payload)); break;
     case "delete-combat-action": outcome = await deleteCombatAction(await combatRollContext(request.payload)); break;
     case "roll-attack": outcome = await rollAttack(await combatRollContext(request.payload)); break;
+    case "roll-damage": outcome = await rollDamage(await combatRollContext(request.payload)); break;
     case "adjudicate-damage": outcome = await adjudicateDamage(await combatRollContext(request.payload)); break;
     case "add-effect": outcome = await addEffect(tokenEffectContext(request.payload)); break;
     case "remove-effect": outcome = await removeEffect(tokenEffectContext(request.payload)); break;

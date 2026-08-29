@@ -46,8 +46,8 @@ const target = token("target", { name: "Goblin", controlledByViewer: false });
 
 function result(): CombatRollResponse {
   return {
-    state: state(), rollId: "roll", proposalId: "proposal",
-    result: { attackDice: [16, 4], keptD20: 16, blessDie: 3, attackTotal: 26, outcome: "hit", damageDice: [8], damageTotal: 12 },
+    state: state(), rollId: "roll", proposalId: null,
+    result: { attackDice: [16, 4], keptD20: 16, blessDie: 3, attackTotal: 26, outcome: "hit", damageDice: [], damageTotal: null },
   };
 }
 
@@ -61,7 +61,7 @@ describe("CombatRollPanel", () => {
     const cancelFrame = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     const onRoll = vi.fn();
     const view = render(<CombatRollPanel participant={player} state={state()} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
-    const submit = screen.getByRole("button", { name: "Roll attack & damage" }) as HTMLButtonElement;
+    const submit = screen.getByRole("button", { name: "Roll attack" }) as HTMLButtonElement;
 
     expect(submit.disabled).toBe(true);
     fireEvent.click(submit);
@@ -139,7 +139,7 @@ describe("CombatRollPanel", () => {
     render(<CombatRollPanel participant={player} state={state()} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={onComplete} />);
     await userEvent.click(screen.getByRole("radio", { name: "advantage" }));
     await userEvent.click(screen.getByRole("checkbox", { name: /Use Two-handed/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Roll attack & damage" }));
+    await userEvent.click(screen.getByRole("button", { name: "Roll attack" }));
     await waitFor(() => expect(onRoll).toHaveBeenCalledTimes(1));
     expect(onRoll.mock.calls[0][0]).toMatchObject({ rollMode: "advantage", alternateDamage: true, actionProfileId: "longsword" });
     expect(onComplete).toHaveBeenCalledWith(result());
@@ -151,13 +151,13 @@ describe("CombatRollPanel", () => {
     const { unmount } = render(<CombatRollPanel participant={player} state={state([])} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
     expect(screen.getByText("This attacker has no maintained combat actions.")).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Unsaved generic Attack" })).toBeNull();
-    expect((screen.getByRole("button", { name: "Roll attack & damage" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Roll attack" }) as HTMLButtonElement).disabled).toBe(true);
     unmount();
 
     render(<CombatRollPanel participant={dm} state={state([])} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
     expect(screen.getByRole("group", { name: "Unsaved generic Attack" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Attack bonus"), { target: { value: "5" } });
-    await userEvent.click(screen.getByRole("button", { name: "Roll attack & damage" }));
+    await userEvent.click(screen.getByRole("button", { name: "Roll attack" }));
     await waitFor(() => expect(onRoll).toHaveBeenCalledTimes(1));
     expect(onRoll.mock.calls[0][0]).toMatchObject({ actionProfileId: undefined, adHocAction: { attackBonus: 5 } });
   });

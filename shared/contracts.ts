@@ -148,6 +148,8 @@ export type SharedCombatRoll = {
   outcome: "miss" | "hit" | "critical" | "needs-ac";
   damageDice: number[];
   damageTotal: number | null;
+  damageRolledAt: number | null;
+  canRollDamage: boolean;
   inTurn: boolean;
   createdAt: number;
 };
@@ -178,7 +180,7 @@ export const COMMAND_NAMES = [
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
   "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
-  "roll-attack", "adjudicate-damage",
+  "roll-attack", "roll-damage", "adjudicate-damage",
 ] as const;
 
 export type CommandName = typeof COMMAND_NAMES[number];
@@ -264,6 +266,7 @@ export type CommandPayloadMap = {
     rollMode: RollMode;
     alternateDamage?: boolean;
   };
+  "roll-damage": { operationId: string; rollId: string };
   "adjudicate-damage": {
     proposalId: string;
     method: DamageAdjudication;

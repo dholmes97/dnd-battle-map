@@ -512,6 +512,7 @@ export const combatRolls = sqliteTable(
     outcome: text("outcome").notNull(),
     damageDiceJson: text("damage_dice_json").notNull(),
     damageTotal: integer("damage_total").notNull(),
+    damageRolledAt: integer("damage_rolled_at"),
     inTurn: integer("in_turn", { mode: "boolean" }).notNull(),
     createdAt: integer("created_at").notNull(),
   },

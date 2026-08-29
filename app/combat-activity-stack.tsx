@@ -120,12 +120,14 @@ function createCombatRevealPlan(attackTermCount: number, damageTermCount: number
   return { attackTermSteps, attackTotalStep, outcomeStep, damageTermSteps, damageTotalStep, completeStep, delays };
 }
 
-export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
+export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRollDamage }: {
   notice: CombatRollResultNotice;
   proposal?: SharedDamageProposal | null;
   onDismiss: () => void;
+  onRollDamage?: () => Promise<void>;
 }) {
   const { roll, proposalId } = notice;
+  const damagePending = (roll.outcome === "hit" || roll.outcome === "critical") && roll.damageRolledAt === null;
   const damagingHit = (roll.outcome === "hit" || roll.outcome === "critical") && roll.damageTotal !== null;
   const attackTermCount = roll.attackDice.length + 1 + (roll.blessDie === null ? 0 : 1);
   const damageTermCount = damagingHit ? roll.damageDice.length + 1 : 0;
@@ -135,10 +137,16 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
   );
   const reducedMotion = typeof window !== "undefined"
     && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  const revealPhase = `${roll.id}:${roll.damageRolledAt ?? "attack"}`;
+  const [initialRevealPhase] = useState(revealPhase);
+  const phaseStartStep = initialRevealPhase === revealPhase || roll.damageRolledAt === null
+    ? 0
+    : revealPlan.outcomeStep;
   const [revealState, setRevealState] = useState(() => ({
-    rollId: roll.id,
-    step: reducedMotion ? revealPlan.completeStep : 0,
+    phase: revealPhase,
+    step: reducedMotion ? revealPlan.completeStep : phaseStartStep,
   }));
+  const [rollingDamage, setRollingDamage] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focusedWithin, setFocusedWithin] = useState(false);
   const dismissRef = useRef(onDismiss);
@@ -167,16 +175,19 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const timers = revealPlan.delays.map((delay, index) => window.setTimeout(
-      () => setRevealState({ rollId: roll.id, step: index + 1 }),
-      delay,
-    ));
+    const phaseStartDelay = phaseStartStep > 0 ? revealPlan.delays[phaseStartStep - 1] : 0;
+    const timers = revealPlan.delays.flatMap((delay, index) => index + 1 > phaseStartStep
+      ? [window.setTimeout(
+          () => setRevealState({ phase: revealPhase, step: index + 1 }),
+          Math.max(0, delay - phaseStartDelay),
+        )]
+      : []);
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [revealPlan, roll.id]);
+  }, [phaseStartStep, revealPhase, revealPlan]);
 
-  const revealStep = revealState.rollId === roll.id
+  const revealStep = revealState.phase === revealPhase
     ? revealState.step
-    : reducedMotion ? revealPlan.completeStep : 0;
+    : reducedMotion ? revealPlan.completeStep : phaseStartStep;
   const revealed = (step: number | null) => step !== null && revealStep >= step;
   const keptDieRevealed = roll.attackDice.length > 1
     && revealed(revealPlan.attackTermSteps[roll.attackDice.length]);
@@ -186,7 +197,12 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
   const proposalMessage = damageProposalMessage(proposalId, proposal);
   const statusKind = proposalResolved
     ? proposalStatus === "rejected" || proposalStatus === "cancelled" ? "not-applied" : "applied"
-    : proposalId ? "pending" : roll.outcome;
+    : damagePending ? "waiting" : proposalId ? "pending" : roll.outcome;
+  const requestDamageRoll = async () => {
+    if (!onRollDamage || rollingDamage) return;
+    setRollingDamage(true);
+    try { await onRollDamage(); } finally { setRollingDamage(false); }
+  };
 
   return <article
     className={`combat-activity-card combat-roll-result-card is-${roll.outcome}`}
@@ -213,6 +229,12 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
         <div className={`combat-roll-total combat-roll-reveal${revealed(revealPlan.attackTotalStep) ? " is-revealed" : ""}`}><small>Attack total</small><strong>{roll.attackTotal}</strong></div>
       </div>
       <div className={`combat-roll-outcome combat-roll-reveal is-${roll.outcome}${revealed(revealPlan.outcomeStep) ? " is-revealed" : ""}`} role="status" aria-label={`Attack result: ${outcomeTitle(roll.outcome)}`}><span><small>Attack result</small><strong>{outcomeTitle(roll.outcome)}</strong></span></div>
+      {damagePending ? <div className={`combat-roll-damage-prompt combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">
+        {roll.canRollDamage && onRollDamage ? <>
+          <span>The attack hit. Pause for reactions, then roll the damage.</span>
+          <button type="button" className="combat-card-action" disabled={rollingDamage} onClick={() => void requestDamageRoll()}>{rollingDamage ? "Rolling damage…" : "Roll damage"}</button>
+        </> : <span><strong>{roll.participantName}</strong> hit. Waiting for the damage roll.</span>}
+      </div> : null}
       {damagingHit ? <div className={`combat-roll-result-stage combat-roll-damage-stage combat-roll-stage-reveal${damageStageRevealed ? " is-revealed" : ""}`} aria-label={`${roll.action.damageType} damage total ${roll.damageTotal}`}>
         <div className="combat-roll-dice" aria-label="Damage dice">
           {roll.damageDice.map((die, index) => <span className={`combat-roll-term is-damage${revealed(revealPlan.damageTermSteps[index]) ? " is-revealed" : ""}`} key={`${die}-${index}`}><small>d{roll.action.damage.sides}</small><strong>{die}</strong></span>)}
@@ -220,13 +242,13 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
         </div>
         <div className={`combat-roll-total combat-roll-reveal${revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
       </div> : null}
-      <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
+      {damagePending ? null : <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
         ? "The attack missed. No damage proposal was created."
         : roll.outcome === "needs-ac"
           ? "The target's armor class is unavailable. No damage proposal was created; the DM can resolve the attack from this roll."
           : proposalMessage
             ? proposalMessage
-            : "The attack landed, but no damage proposal was created."}</p>
+            : "The attack landed, but no damage proposal was created."}</p>}
       {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Additional effect:</strong> {roll.action.manualRiderText}</p> : null}
     </div>
   </article>;
@@ -276,30 +298,40 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
   </article>;
 }
 
-const MAX_VISIBLE_REVIEWS = 3;
+const MAX_VISIBLE_CARDS_PER_TYPE = 3;
 
-export function CombatActivityStack({ state, rollResult, damageNotifications, damageReviewProposals, damageReviewPendingCount, onDismissRollResult, onDismissDamageNotification, onDismissDamageReview, onAdjudicateDamage }: {
+export function CombatActivityStack({ state, rollResults, damageNotifications, damageReviewProposals, damageReviewPendingCount, onDismissRollResult, onRollDamage, onDismissDamageNotification, onDismissDamageReview, onAdjudicateDamage }: {
   state: EncounterState;
-  rollResult: CombatRollResultNotice | null;
+  rollResults: CombatRollResultNotice[];
   damageNotifications: DamageNotification[];
   damageReviewProposals: SharedDamageProposal[];
   damageReviewPendingCount: number;
-  onDismissRollResult: () => void;
+  onDismissRollResult: (rollId: string) => void;
+  onRollDamage: (rollId: string) => Promise<void>;
   onDismissDamageNotification: (notification: DamageNotification) => void;
   onDismissDamageReview: (proposalId: string) => void;
   onAdjudicateDamage: (proposalId: string, method: DamageAdjudication, adjustedDamage?: number) => void;
 }) {
-  const visibleReviews = damageReviewProposals.slice(0, MAX_VISIBLE_REVIEWS);
-  const visibleNotifications = damageNotifications.slice(0, MAX_VISIBLE_REVIEWS);
-  const rollResultProposal = rollResult?.proposalId
-    ? state.damageProposals.find((proposal) => proposal.id === rollResult.proposalId) ?? null
-    : null;
-  const hiddenCount = Math.max(0, damageReviewPendingCount - visibleReviews.length)
+  const visibleRollResults = rollResults.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
+  const visibleReviews = damageReviewProposals.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
+  const visibleNotifications = damageNotifications.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
+  const hiddenCount = Math.max(0, rollResults.length - visibleRollResults.length)
+    + Math.max(0, damageReviewPendingCount - visibleReviews.length)
     + Math.max(0, damageNotifications.length - visibleNotifications.length);
-  if (!rollResult && visibleReviews.length === 0 && visibleNotifications.length === 0) return null;
+  if (visibleRollResults.length === 0 && visibleReviews.length === 0 && visibleNotifications.length === 0) return null;
 
   return <aside className="combat-activity-stack" aria-label="Combat activity">
-    {rollResult ? <CombatRollResultCard key={rollResult.roll.id} notice={rollResult} proposal={rollResultProposal} onDismiss={onDismissRollResult} /> : null}
+    {visibleRollResults.map((notice) => {
+      const roll = state.combatRolls.find((item) => item.id === notice.roll.id) ?? notice.roll;
+      const proposal = state.damageProposals.find((item) => item.rollId === roll.id) ?? null;
+      return <CombatRollResultCard
+        key={roll.id}
+        notice={{ roll, proposalId: proposal?.id ?? notice.proposalId }}
+        proposal={proposal}
+        onDismiss={() => onDismissRollResult(roll.id)}
+        onRollDamage={roll.canRollDamage ? () => onRollDamage(roll.id) : undefined}
+      />;
+    })}
     {visibleReviews.map((proposal) => <DamageReviewCard
       key={proposal.id}
       proposal={proposal}

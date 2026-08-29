@@ -1,7 +1,7 @@
 import {
   adjudicatedDamage,
   damageDiceCount,
-  resolveAttack,
+  resolveAttackRoll,
   transitionDamageWithTemporaryHp,
   validateCombatActionValues,
   type CombatActionValues,
@@ -13,7 +13,7 @@ import type { CombatActionProfileRow, CombatRollRepository } from "../ports/comb
 import type { TokenRow } from "../types.ts";
 import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
-type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-attack" | "adjudicate-damage";
+type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-attack" | "roll-damage" | "adjudicate-damage";
 type CombatDependencies = {
   repository: CombatRollRepository;
   canControl(token: TokenRow): Promise<boolean>;
@@ -68,7 +68,10 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
   const operationId = cleanOperationId(context.payload.operationId);
   if (!operationId) return commandError("A valid operation ID is required.", 400);
   const prior = await context.repository.findRollByOperation(context.encounter.id, operationId);
-  if (prior) return success(context, { rolled: true, rollId: prior.id, recovered: true });
+  if (prior) {
+    const proposal = await context.repository.findProposalByRoll(context.encounter.id, prior.id);
+    return success(context, { rolled: true, rollId: prior.id, proposalId: proposal?.id ?? null, recovered: true });
+  }
   const attacker = await context.repository.findToken(context.encounter.id, cleanId(context.payload.attackerTokenId));
   const target = await context.repository.findToken(context.encounter.id, cleanId(context.payload.targetTokenId));
   if (!attacker || !target) return commandError("Attacker or target not found.", 404);
@@ -83,25 +86,15 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
     : values.damage;
   const bless = await context.repository.hasBless(context.encounter.id, attacker.id);
   const attackDice = Array.from({ length: context.payload.rollMode === "normal" ? 1 : 2 }, () => context.rollDie(20));
-  const kept = context.payload.rollMode === "advantage" ? Math.max(...attackDice)
-    : context.payload.rollMode === "disadvantage" ? Math.min(...attackDice)
-      : attackDice[0];
-  const critical = kept === 20;
-  const damageDice = rollFormulaDice(formula, critical, context.rollDie);
-  const resolution = resolveAttack({
+  const resolution = resolveAttackRoll({
     rollMode: context.payload.rollMode,
     attackDice,
     attackBonus: values.attackBonus,
     blessDie: bless ? context.rollDie(4) : null,
     targetArmorClass: target.armor_class,
-    damageFormula: formula,
-    damageDice,
   });
   if (!resolution) return commandError("Unable to resolve that attack.", 400);
   const rollId = context.services.createId();
-  const proposalId = resolution.outcome === "hit" || resolution.outcome === "critical"
-    ? context.services.createId()
-    : null;
   const snapshot = {
     ...values,
     damage: formula,
@@ -127,28 +120,68 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
     blessDie: resolution.blessDie,
     attackTotal: resolution.attackTotal,
     outcome: resolution.outcome,
-    damageDiceJson: JSON.stringify(resolution.damageDice),
-    damageTotal: resolution.damageTotal,
+    damageDiceJson: "[]",
+    damageTotal: 0,
     inTurn: context.encounter.status === "active" && attacker.initiative_order !== null &&
       attacker.initiative_order === context.encounter.activeInitiativeOrder,
-    proposalId,
     now: context.now,
   });
   await context.services.commit(null);
   return success(context, {
     rolled: true,
     rollId,
-    proposalId,
+    proposalId: null,
     result: {
       attackDice: resolution.attackDice,
       keptD20: resolution.keptD20,
       blessDie: resolution.blessDie,
       attackTotal: resolution.attackTotal,
       outcome: resolution.outcome,
-      damageDice: resolution.damageDice,
-      damageTotal: resolution.damageTotal,
+      damageDice: [],
+      damageTotal: null,
     },
   });
+}
+
+export async function rollDamage(context: CombatRollCommandContext<"roll-damage">): Promise<CommandOutcome> {
+  const operationId = cleanOperationId(context.payload.operationId);
+  if (!operationId) return commandError("A valid operation ID is required.", 400);
+  const roll = await context.repository.findRoll(context.encounter.id, cleanId(context.payload.rollId));
+  if (!roll) return commandError("Combat roll not found.", 404);
+  if (roll.participant_id !== context.participant.id && context.participant.role !== "dm") {
+    return commandError("Only the original roller or the DM can roll this damage.", 403);
+  }
+  if (roll.outcome !== "hit" && roll.outcome !== "critical") {
+    return commandError("That attack did not produce damage to roll.", 409);
+  }
+  const existingProposal = await context.repository.findProposalByRoll(context.encounter.id, roll.id);
+  if (roll.damage_rolled_at !== null || existingProposal) {
+    return success(context, {
+      damageRolled: true,
+      rollId: roll.id,
+      proposalId: existingProposal?.id ?? null,
+      recovered: true,
+    });
+  }
+
+  let snapshot: unknown;
+  try { snapshot = JSON.parse(roll.action_snapshot_json); } catch { return commandError("The attack snapshot is invalid.", 409); }
+  const action = validateCombatActionValues(snapshot);
+  if (!action) return commandError("The attack snapshot is invalid.", 409);
+  const damageDice = rollFormulaDice(action.damage, roll.outcome === "critical", context.rollDie);
+  const damageTotal = Math.max(0, damageDice.reduce((sum, die) => sum + die, 0) + action.damage.modifier);
+  const proposalId = context.services.createId();
+  await context.repository.recordDamage({
+    encounterId: context.encounter.id,
+    rollId: roll.id,
+    proposalId,
+    targetTokenId: roll.target_token_id,
+    damageDiceJson: JSON.stringify(damageDice),
+    damageTotal,
+    now: context.now,
+  });
+  await context.services.commit(null);
+  return success(context, { damageRolled: true, rollId: roll.id, proposalId, damageDice, damageTotal });
 }
 
 export async function adjudicateDamage(context: CombatRollCommandContext<"adjudicate-damage">): Promise<CommandOutcome> {

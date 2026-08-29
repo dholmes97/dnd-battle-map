@@ -22,12 +22,13 @@ import { useChatHandouts } from "@/app/use-chat-handouts";
 import { useTokenControls } from "@/app/use-token-controls";
 import { useDamageNotifications } from "@/app/use-damage-notifications";
 import { useDamageReviewQueue } from "@/app/use-damage-review-queue";
+import { useCombatRollNotifications } from "@/app/use-combat-roll-notifications";
 import type { EncounterSummary } from "@/app/encounter-summary";
 import { useCreatureCatalog } from "@/app/use-creature-catalog";
 import { useEncounterActions } from "@/app/use-encounter-actions";
 import { useMapAssets } from "@/app/use-map-assets";
 import { BattleMapCommandBar, type AnnotationMode } from "@/app/battle-map-command-bar";
-import { CombatActivityStack, type CombatRollResultNotice } from "@/app/combat-activity-stack";
+import { CombatActivityStack } from "@/app/combat-activity-stack";
 import { EncounterDialogs } from "@/app/encounter-dialogs";
 import { useHistoryShortcuts } from "@/app/use-history-shortcuts";
 import { useSpellDismissShortcut } from "@/app/use-spell-dismiss-shortcut";
@@ -118,6 +119,7 @@ export default function BattleMapPrototype() {
   const tokenControls = useTokenControls({ participant, state, sync: encounterSync, setError, setNotice });
   const damageNotifications = useDamageNotifications({ participant, state });
   const damageReview = useDamageReviewQueue({ participant, state });
+  const combatRollNotifications = useCombatRollNotifications({ participant, state });
   const encounterActions = useEncounterActions(encounterSync);
   const {
     pendingAction: encounterAction,
@@ -136,7 +138,6 @@ export default function BattleMapPrototype() {
   const [combatChooser, setCombatChooser] = useState<null | {
     attackerId: string; targetId: string; anchor: { x: number; y: number };
   }>(null);
-  const [combatRollResult, setCombatRollResult] = useState<CombatRollResultNotice | null>(null);
   const [selectedMapNoteId, setSelectedMapNoteId] = useState<string | null>(null);
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
   const [busy, setBusy] = useState(false);
@@ -939,6 +940,16 @@ export default function BattleMapPrototype() {
       false,
     );
   };
+  const rollDamage = async (rollId: string) => {
+    await runOptimisticCommand<{ state: EncounterState; rollId: string; proposalId: string }, "roll-damage">(
+      "roll-damage",
+      { operationId: crypto.randomUUID(), rollId },
+      (current) => current,
+      undefined,
+      undefined,
+      false,
+    );
+  };
 
   if (participant.role === "dm" && workshopOpen) return <>
     <MapWorkshop
@@ -1032,7 +1043,7 @@ export default function BattleMapPrototype() {
                 onComplete={(response) => {
                   const roll = response.state.combatRolls.find((item) => item.id === response.rollId);
                   setCombatChooser(null);
-                  if (roll) setCombatRollResult({ roll, proposalId: response.proposalId });
+                  if (roll) combatRollNotifications.enqueue({ roll, proposalId: response.proposalId });
                   else setError("The attack was rolled, but its result could not be displayed.");
                 }}
               /> : null;
@@ -1121,11 +1132,12 @@ export default function BattleMapPrototype() {
       </div>
       <CombatActivityStack
         state={state}
-        rollResult={combatRollResult}
+        rollResults={combatRollNotifications.notifications}
         damageNotifications={damageNotifications.notifications}
         damageReviewProposals={damageReview.visibleProposals}
         damageReviewPendingCount={damageReview.pendingCount}
-        onDismissRollResult={() => setCombatRollResult(null)}
+        onDismissRollResult={combatRollNotifications.dismiss}
+        onRollDamage={rollDamage}
         onDismissDamageNotification={(notification) => {
           damageNotifications.dismiss(notification.id);
           if (!notification.concentrationCheckRequired) return;

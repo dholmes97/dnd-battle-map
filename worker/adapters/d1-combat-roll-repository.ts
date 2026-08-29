@@ -118,6 +118,11 @@ export function createD1CombatRollRepository(db: D1Database): CombatRollReposito
         "SELECT * FROM combat_rolls WHERE encounter_id = ? AND operation_id = ?",
       ).bind(encounterId, operationId).first<CombatRollRow>() ?? null;
     },
+    async findRoll(encounterId, rollId) {
+      return await db.prepare(
+        "SELECT * FROM combat_rolls WHERE encounter_id = ? AND id = ?",
+      ).bind(encounterId, rollId).first<CombatRollRow>() ?? null;
+    },
     async createRoll(input) {
       await db.prepare(
         `INSERT INTO combat_rolls
@@ -133,13 +138,24 @@ export function createD1CombatRollRepository(db: D1Database): CombatRollReposito
         input.attackDiceJson, input.keptD20, input.blessDie, input.attackTotal, input.outcome,
         input.damageDiceJson, input.damageTotal, input.inTurn ? 1 : 0, input.now,
       ).run();
-      if (input.proposalId) {
-        await db.prepare(
+    },
+    async findProposalByRoll(encounterId, rollId) {
+      return await db.prepare(
+        "SELECT * FROM damage_proposals WHERE encounter_id = ? AND roll_id = ?",
+      ).bind(encounterId, rollId).first<DamageProposalRow>() ?? null;
+    },
+    async recordDamage(input) {
+      await db.batch([
+        db.prepare(
+          `UPDATE combat_rolls SET damage_dice_json = ?, damage_total = ?, damage_rolled_at = ?
+           WHERE encounter_id = ? AND id = ? AND damage_rolled_at IS NULL`,
+        ).bind(input.damageDiceJson, input.damageTotal, input.now, input.encounterId, input.rollId),
+        db.prepare(
           `INSERT INTO damage_proposals
            (id, encounter_id, roll_id, target_token_id, status, rolled_damage, created_at)
            VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
-        ).bind(input.proposalId, input.encounterId, input.id, input.targetTokenId, input.damageTotal, input.now).run();
-      }
+        ).bind(input.proposalId, input.encounterId, input.rollId, input.targetTokenId, input.damageTotal, input.now),
+      ]);
     },
     async findProposal(encounterId, proposalId) {
       return await db.prepare(

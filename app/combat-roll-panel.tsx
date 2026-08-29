@@ -23,7 +23,7 @@ export type CombatRollResponse = {
     attackTotal: number;
     outcome: "miss" | "hit" | "critical" | "needs-ac";
     damageDice: number[];
-    damageTotal: number;
+    damageTotal: number | null;
   };
 };
 
@@ -245,6 +245,6 @@ export function CombatRollPanel({
       </div>
       {selectedAction?.manualRider ? <p className="combat-rider-warning"><strong>Additional effect:</strong> {selectedAction.manualRiderText}</p> : null}
     </div>
-    <footer><button className="combat-roll-submit" type="button" disabled={!submitArmed || pending || (!selectedAction && !genericAvailable)} onClick={() => void submit()}>{pending ? "Rolling…" : "Roll attack & damage"}</button></footer>
+    <footer><button className="combat-roll-submit" type="button" disabled={!submitArmed || pending || (!selectedAction && !genericAvailable)} onClick={() => void submit()}>{pending ? "Rolling…" : "Roll attack"}</button></footer>
   </section>;
 }

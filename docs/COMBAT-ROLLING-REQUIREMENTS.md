@@ -89,7 +89,8 @@ The initial feature does not:
 - **Target:** The visible creature token against which the action is resolved.
 - **Combat action profile:** A bounded, structured record containing final
   values needed to roll one action.
-- **Roll record:** The immutable server-generated dice and resolution result.
+- **Roll record:** The durable server-generated attack result, later completed
+  by a separately requested immutable damage roll when the attack hits.
 - **Damage proposal:** The durable pending request created from a successful
   damaging roll.
 - **Adjudication:** The DM's decision to apply, modify, nullify, or reject a
@@ -411,28 +412,32 @@ When Bless is active on the attacker, the chooser also shows a non-editable
 or choose the value of that die in the roll surface.
 
 After a successful submission, the compact attack chooser closes and the
-initiating participant sees the individual dice, total, hit/miss/critical
-outcome, and pending adjudication state in a compact non-modal combat card at
+initiating participant sees the individual attack dice, total, and
+hit/miss/critical outcome in a compact non-modal combat card at
 the edge of the viewport. The map remains visible and interactive around it.
 The card has enough room for later dice animation and reads chronologically
 from top to bottom: a narrative header naming who is attacking whom with which
-action, the attack roll and total, the Hit/Miss/Critical verdict, and only then
-the damage roll when the attack landed.
+action, the attack roll and total, and the Hit/Miss/Critical verdict. A miss is
+complete. A hit pauses there so reactions such as Silvery Barbs can be resolved
+before damage exists. Only the original roller receives a `Roll damage` action;
+all other participants see that the table is waiting for that damage roll.
 Within that sequence, authoritative die values reveal from left to right with
 a short landing beat. Advantage and disadvantage d20s land neutrally; only
 after both are visible does a short beat identify the kept die. The verdict
-appears one second after the attack total;
-on a hit, damage dice then reveal left to right before the damage total. This
-is presentation only—the client never generates or changes a server result—and
+appears one second after the attack total. When the roller explicitly requests
+damage, the server generates it and the shared card resumes: damage dice reveal
+left to right before the damage total. The client never generates or changes a
+server result, and
 reduced-motion preference reveals the completed result immediately.
 Closing the card removes only that result; another attack requires a fresh
 target interaction rather than reusing the prior chooser. Dice animation is
 local presentation that lands on the server-provided results; animation frames
 never cross the network and animation cannot generate or change the result.
 
-For a DM-originated damaging hit, the roll-result card and already-pending
-damage-approval card may appear together in the combat activity tray. They are
-independent non-modal cards and never obscure the entire battlefield.
+For a DM-originated damaging hit, the DM rolls damage through the same second
+step. Only then may the roll-result card and damage-approval card appear
+together in the combat activity tray. They are independent non-modal cards and
+never obscure the entire battlefield.
 
 An initiating participant's roll-result card follows its linked damage proposal
 through resolution. Pending text changes in place to `Damage applied.` for an
@@ -501,7 +506,7 @@ Bless is the MVP's one automatic effect-to-roll rule.
   A due reminder does not silently remove or disable it.
 - The immutable roll snapshot records that Bless applied and records its
   individual d4 result. Removing Bless after roll creation does not rewrite the
-  roll or its damage proposal.
+  attack roll or later damage proposal.
 - The MVP applies Bless only to supported attack rolls. Its saving-throw benefit
   belongs to the later saving-throw expansion.
 
@@ -514,10 +519,13 @@ an explicit DM-review/configuration outcome rather than an assumed value.
 
 ### Damage timing
 
-For speed, an attack submission may roll attack and damage together in one
-authoritative operation. Damage dice are retained in the immutable roll record
-even if the attack misses, but a miss does not create an applicable damage
-proposal. Presentation need not emphasize unused damage.
+Attack and damage are separate authoritative operations. The attack command
+generates only d20s, Bless when applicable, the total, and the outcome. A miss
+creates no damage dice and no proposal. A hit remains durable with damage
+unrolled until the original roller requests `Roll damage`; the DM may perform
+that command only as an authorization fallback. That second idempotent command
+generates the damage dice, completes the roll record, and creates exactly one
+damage proposal. Until it happens, no DM approval card exists.
 
 On a natural 20, the MVP doubles each configured damage die count and applies
 the flat modifier once. A static-damage action with no dice does not gain extra
@@ -525,7 +533,8 @@ damage from the generic critical rule.
 
 ## Damage proposal and DM adjudication
 
-A successful damaging player roll creates a durable encounter-scoped proposal.
+A completed damage roll for a successful attack creates a durable
+encounter-scoped proposal.
 It is not a transient toast. A new proposal automatically adds an adjudication
 card to the DM's edge-aligned combat activity tray; review controls must not be
 buried in the initiative sidebar. Pending cards are ordered oldest first, with
@@ -628,8 +637,9 @@ rolling.
 
 ## Live synchronization and presentation
 
-- Creating a roll, creating or closing a proposal, and applying HP all advance
-  encounter state through bounded operation IDs and server request IDs.
+- Creating an attack roll, completing its damage roll, creating or closing a
+  proposal, and applying HP all advance encounter state through bounded
+  operation IDs and server request IDs.
 - Pending roll/proposal reducers must survive ordinary live refreshes and roll
   back only the rejected operation.
 - A target token and the rest of the map never become globally disabled while
@@ -642,15 +652,18 @@ rolling.
   does not disclose whether the DM applied resistance, vulnerability, immunity,
   or a manual adjustment. Adjudication method and notes remain DM-private in
   live projections and history.
-- Participants who cannot see a target must not learn that target's identity,
-  action, HP, AC, or result through roll projection or notifications.
+- Every participant in the encounter receives each new combat roll as a public
+  table event, regardless of current token visibility. The shared event includes
+  the snapshotted attacker, target, action, individual dice, modifiers, total,
+  and result. Rolled damage joins that same public event only after the original
+  roller requests it. Exact AC, HP, and DM adjudication remain private.
 - Exact post-damage monster HP remains private; players receive only their
   existing permitted health representation.
 
-The initial projection should guarantee full roll and proposal visibility to
-the initiating participant, the DM, and the target's controller. Whether
-non-involved players also see public dice animations is an open presentation
-choice listed below; it must not delay the core actor-to-DM workflow.
+The projection guarantees full roll visibility to every encounter participant.
+Damage proposal status may support the shared roll card, but adjudication
+controls, method, notes, and adjusted final damage remain restricted to the DM
+and the affected controller as applicable.
 
 ## Roll and adjudication history
 
@@ -676,8 +689,8 @@ Undo/Redo stack semantics. Each record should preserve:
 - adjudication method and final applied amount; and
 - linkage to the HP history action when one exists.
 
-History shown to a participant must be server-filtered using the same encounter
-visibility and private-stat rules as live state. Diagnostic logs remain
+Roll history is public to every participant in the encounter. Private target
+stats and adjudication details remain server-filtered. Diagnostic logs remain
 privacy-safe and must not emit complete private combat records.
 
 ## Character-sheet authority and maintenance
@@ -810,6 +823,8 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Bless cannot overcome a natural 1 or change natural-20 critical behavior
 - Bless never changes or doubles damage
 - Critical damage dice and flat-modifier behavior
+- Hit pauses before damage, and only the later authorized command rolls it
+- Damage-command retries recover one immutable result and one proposal
 - Static-damage critical behavior
 - Resistance rounding down, vulnerability doubling, immunity, adjustment, and
   rejection
@@ -830,6 +845,8 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Focus management and Escape behavior
 - Roll-mode and alternate-damage selection
 - Successful rolls close the chooser and add the authoritative result card
+- Hit cards expose `Roll damage` only to the original roller while observers
+  see a waiting state; the shared damage animation starts after that command
 - Another attack requires a fresh target interaction after result dismissal
 - DM roll results and multiple damage-adjudication cards coexist in the bounded
   combat activity tray without blocking the map
@@ -848,6 +865,9 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 ### Required Worker/repository tests
 
 - Player can roll only from a controlled attacker
+- Only the original roller or the DM can complete a successful attack's damage
+- A miss cannot roll damage, and concurrent/retried damage commands create at
+  most one damage result and proposal
 - DM can roll from any authorized encounter creature
 - Submitted targets must exist in the encounter; target visibility is not
   re-authorized by the roll command
@@ -873,18 +893,20 @@ and guaranteed cleanup consistent with the existing live-suite policy.
 - Proposal state, HP, encounter version, and history commit atomically
 - Restart/reset cancellation and pause preservation
 - Collection quotas, request bounds, and projection limits
-- Roll history projection obeys token visibility and private-stat policy
+- Roll history is public to encounter participants while private target stats
+  and adjudication details remain filtered
 - QA session capability, campaign isolation, expiry, revocation, and actor/persona
   audit fields
 
 ### Required live multi-client stories
 
-1. Player rolls a hit; DM sees one pending proposal; DM applies it; both clients
-   converge on the authorized target health representation.
-2. Player rolls a hit; DM selects Resistant; odd damage rounds down once; both
+1. Player rolls a hit; every client pauses without damage or a proposal. The
+   player rolls damage; every client sees it, the DM receives one proposal, and
+   applying it converges on the authorized target health representation.
+2. Player rolls a hit, then damage; DM selects Resistant; odd damage rounds down once; both
    clients see the resolved status.
-3. DM rolls a monster attack against a player; the player sees the permitted
-   roll/result; no HP changes until the DM applies it.
+3. DM rolls a monster attack against a player; the player sees the hit and then
+   the separately requested damage; no HP changes until the DM applies it.
 4. Two rapid player submissions remain distinct and ordered; retrying either
    operation does not create another roll.
 5. Two DM Apply attempts race; exactly one HP mutation wins.
@@ -971,12 +993,9 @@ before their affected UI or schema is built:
 1. **Placed creature action policy:** reference the live catalog profile or copy
    a placement-time action snapshot. Historical roll snapshots are required in
    either case.
-2. **General table visibility:** show pending and resolved rolls only to the
-   actor, target controller, and DM, or also show public dice animation to every
-   participant who can see both tokens. Private AC and HP may never be exposed.
-3. **Resolved-history window:** determine the bounded number or age of roll
+2. **Resolved-history window:** determine the bounded number or age of roll
    records projected to clients before older records move to an on-demand view.
-4. **Adjusted-damage note:** decide whether Adjust stores only a structured
+3. **Adjusted-damage note:** decide whether Adjust stores only a structured
    category or also permits a short free-form DM note.
 
 Saving throws, multiple damage components, automatic effects other than Bless,

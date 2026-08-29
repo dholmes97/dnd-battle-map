@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { adjudicateDamage, rollAttack } from "../worker/commands/combat-roll-commands.ts";
+import { adjudicateDamage, rollAttack, rollDamage } from "../worker/commands/combat-roll-commands.ts";
 
 function token(id, overrides = {}) {
   return {
@@ -26,6 +26,21 @@ function action(overrides = {}) {
   };
 }
 
+function storedRoll(overrides = {}) {
+  return {
+    id: "roll", encounter_id: "encounter", operation_id: "attack-operation", participant_id: "participant",
+    attacker_token_id: "attacker", target_token_id: "target", action_profile_id: "action",
+    action_source: "manual-character", action_snapshot_json: JSON.stringify({
+      name: "Longsword", attackBonus: 7, attackKind: "melee",
+      damage: { count: 1, sides: 8, modifier: 4 }, damageType: "slashing",
+      reachFeet: 5, rangeFeet: null, manualRider: false, manualRiderText: null, alternateDamage: null,
+    }),
+    roll_mode: "normal", attack_dice_json: "[14]", kept_d20: 14, bless_die: null,
+    attack_total: 21, outcome: "hit", damage_dice_json: "[]", damage_total: 0,
+    damage_rolled_at: null, in_turn: 1, created_at: 1, ...overrides,
+  };
+}
+
 function context(overrides = {}) {
   const attacker = token("attacker", { name: "Hero", kind: "character", campaign_character_id: "character" });
   const target = token("target", { name: "Goblin" });
@@ -43,7 +58,10 @@ function context(overrides = {}) {
     creatureExists: async () => true,
     hasBless: async () => false,
     findRollByOperation: async () => null,
+    findRoll: async () => null,
     createRoll: async (value) => calls.push(["roll", value]),
+    findProposalByRoll: async () => null,
+    recordDamage: async (value) => calls.push(["damage", value]),
     findProposal: async () => null,
     resolveProposal: async (value) => calls.push(["resolve", value]),
     updateHp: async (...args) => calls.push(["hp", ...args]),
@@ -88,7 +106,7 @@ function context(overrides = {}) {
 
 test("a configured roll uses authoritative Bless, dice, action values, and actor audit identity", async () => {
   const value = context({
-    dice: [14, 6, 3],
+    dice: [14, 3],
     repository: { hasBless: async () => true },
   });
   const result = await rollAttack(value);
@@ -99,6 +117,67 @@ test("a configured roll uses authoritative Bless, dice, action values, and actor
   assert.equal(written.actionSnapshotJson.includes('"blessApplied":true'), true);
   assert.equal(written.attackDiceJson, "[14]");
   assert.equal(written.blessDie, 3);
+  assert.equal(written.damageDiceJson, "[]");
+  assert.equal(written.damageTotal, 0);
+  assert.equal(result.payload.proposalId, null);
+  assert.equal(result.payload.result.damageTotal, null);
+});
+
+test("damage is rolled only in the second authorized command and then creates the proposal", async () => {
+  const value = context({
+    payload: { operationId: "damage-operation", rollId: "roll" },
+    dice: [6],
+    repository: { findRoll: async () => storedRoll() },
+  });
+  const result = await rollDamage(value);
+  const written = value.calls.find(([kind]) => kind === "damage")[1];
+
+  assert.equal(result.payload.damageTotal, 10);
+  assert.deepEqual(result.payload.damageDice, [6]);
+  assert.equal(written.damageDiceJson, "[6]");
+  assert.equal(written.damageTotal, 10);
+  assert.equal(written.proposalId, result.payload.proposalId);
+  assert.equal(value.calls.some(([kind]) => kind === "commit"), true);
+});
+
+test("critical damage doubles only the dice rolled in the second command", async () => {
+  const value = context({
+    payload: { operationId: "critical-damage", rollId: "roll" },
+    dice: [2, 7],
+    repository: { findRoll: async () => storedRoll({ outcome: "critical", kept_d20: 20 }) },
+  });
+  const result = await rollDamage(value);
+  assert.deepEqual(result.payload.damageDice, [2, 7]);
+  assert.equal(result.payload.damageTotal, 13);
+});
+
+test("damage rolling is restricted to the original roller or DM and is idempotent", async () => {
+  const otherPlayer = context({
+    participant: { id: "other", name: "Other", role: "player", identityId: "other" },
+    payload: { operationId: "other-damage", rollId: "roll" },
+    repository: { findRoll: async () => storedRoll() },
+  });
+  assert.equal((await rollDamage(otherPlayer)).status, 403);
+
+  const missed = context({
+    payload: { operationId: "missed-damage", rollId: "roll" },
+    repository: { findRoll: async () => storedRoll({ outcome: "miss" }) },
+  });
+  assert.equal((await rollDamage(missed)).status, 409);
+
+  let rolled = false;
+  const recovered = context({
+    payload: { operationId: "repeat-damage", rollId: "roll" },
+    rollDie: () => { rolled = true; return 8; },
+    repository: {
+      findRoll: async () => storedRoll({ damage_dice_json: "[5]", damage_total: 9, damage_rolled_at: 20 }),
+      findProposalByRoll: async () => ({ id: "proposal" }),
+    },
+  });
+  const result = await rollDamage(recovered);
+  assert.equal(result.payload.recovered, true);
+  assert.equal(result.payload.proposalId, "proposal");
+  assert.equal(rolled, false);
 });
 
 test("a target without armor class records the roll without creating a damage proposal", async () => {
@@ -114,7 +193,7 @@ test("a target without armor class records the roll without creating a damage pr
 
   assert.equal(result.payload.result.outcome, "needs-ac");
   assert.equal(result.payload.proposalId, null);
-  assert.equal(written.proposalId, null);
+  assert.equal(written.damageDiceJson, "[]");
 });
 
 test("a player cannot roll an uncontrolled attacker", async () => {

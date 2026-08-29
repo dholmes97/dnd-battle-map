@@ -68,24 +68,27 @@ test("player projections conceal private damage adjudication details", () => {
   }).status, "applied");
 });
 
-test("damage projections never give a player both rolled and adjudicated damage", () => {
+test("damage projections make the roll public without revealing private adjudication", () => {
   const ruling = {
     damageDice: [6, 5], rolledDamage: 14, finalDamage: 7, proposalStatus: "adjusted",
     canSeePrivateAdjudication: false,
   };
-  assert.deepEqual(projectCombatDamageValues({ ...ruling, initiatedRoll: true, controlsTarget: false }), {
+  assert.deepEqual(projectCombatDamageValues({ ...ruling, canSeeRolledDamage: true, controlsTarget: false }), {
     damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: null,
   });
-  assert.deepEqual(projectCombatDamageValues({ ...ruling, initiatedRoll: false, controlsTarget: true }), {
-    damageDice: [], damageTotal: 7, proposalRolledDamage: 7, proposalFinalDamage: 7,
-  });
-  assert.deepEqual(projectCombatDamageValues({
-    ...ruling, finalDamage: null, proposalStatus: "pending", initiatedRoll: false, controlsTarget: true,
-  }), {
+  assert.deepEqual(projectCombatDamageValues({ ...ruling, canSeeRolledDamage: false, controlsTarget: false }), {
     damageDice: [], damageTotal: null, proposalRolledDamage: null, proposalFinalDamage: null,
   });
+  assert.deepEqual(projectCombatDamageValues({ ...ruling, canSeeRolledDamage: true, controlsTarget: true }), {
+    damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: 7,
+  });
   assert.deepEqual(projectCombatDamageValues({
-    ...ruling, canSeePrivateAdjudication: true, initiatedRoll: false, controlsTarget: false,
+    ...ruling, finalDamage: null, proposalStatus: "pending", canSeeRolledDamage: true, controlsTarget: true,
+  }), {
+    damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: null,
+  });
+  assert.deepEqual(projectCombatDamageValues({
+    ...ruling, canSeePrivateAdjudication: true, canSeeRolledDamage: true, controlsTarget: false,
   }), {
     damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: 7,
   });

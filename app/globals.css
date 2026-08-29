@@ -1615,6 +1615,9 @@ input:focus {
 .combat-roll-result-card .combat-roll-total { min-width: 5.2rem; }
 .combat-roll-result-card .combat-roll-total strong { font-size: 2.25rem; }
 .combat-roll-result-card .combat-roll-outcome strong { font-size: 1.05rem; }
+.combat-roll-result-card .combat-roll-damage-prompt { min-height: 3rem; padding: 0.52rem; display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; border: 1px solid rgba(151, 119, 58, 0.72); border-radius: 0.5rem; background: rgba(88, 66, 29, 0.16); color: #d8c9a7; font-size: 0.66rem; line-height: 1.35; }
+.combat-roll-result-card .combat-roll-damage-prompt > span { min-width: 0; }
+.combat-roll-result-card .combat-roll-damage-prompt .combat-card-action { flex: 0 0 auto; min-width: 7.4rem; min-height: 2.3rem; }
 .combat-roll-result-card .combat-roll-damage-stage { min-height: 4.8rem; }
 .combat-roll-result-card .combat-roll-result-status { padding: 0.45rem 0.52rem; font-size: 0.65rem; }
 .combat-roll-result-card.is-miss .combat-roll-result-status { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
@@ -1641,6 +1644,7 @@ input:focus {
 .damage-notification-card > footer { padding: 0 0.68rem 0.62rem; display: flex; justify-content: flex-end; }
 .combat-card-action { min-height: 1.9rem; padding: 0.32rem 0.6rem; border: 1px solid #74613b; border-radius: 0.4rem; background: rgba(79, 61, 29, 0.56); color: #efd58e; font-size: 0.62rem; font-weight: 800; }
 .combat-card-action:hover, .combat-card-action:focus-visible { border-color: #b99145; background: rgba(112, 82, 32, 0.65); }
+.combat-card-action:disabled { cursor: wait; opacity: 0.62; }
 .combat-activity-overflow { flex: 0 0 auto; align-self: flex-start; padding: 0.38rem 0.62rem; pointer-events: auto; border: 1px solid rgba(184, 145, 71, 0.55); border-radius: 999px; background: rgba(28, 24, 18, 0.94); color: #dbc184; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.44); font-size: 0.6rem; font-weight: 800; }
 .handout-lightbox > section { width: min(72rem, 100%); height: min(90vh, 52rem); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #66573d; border-radius: 0.78rem; background: #11110f; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.78); }
 .handout-lightbox header { min-height: 3.5rem; padding: 0.65rem 0.75rem 0.65rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #39342d; background: linear-gradient(180deg, #29251f, #1d1b18); }

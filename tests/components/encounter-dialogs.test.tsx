@@ -35,6 +35,8 @@ const damageRoll: SharedCombatRoll = {
   outcome: "hit",
   damageDice: [7],
   damageTotal: 11,
+  damageRolledAt: 2,
+  canRollDamage: false,
   inTurn: true,
   createdAt: 1,
 };
@@ -113,6 +115,56 @@ describe("DamageReviewCard", () => {
 });
 
 describe("CombatRollResultCard", () => {
+  it("pauses after a hit until the original roller explicitly rolls damage", async () => {
+    vi.useFakeTimers();
+    const onRollDamage = vi.fn(async () => undefined);
+    const pendingDamageRoll: SharedCombatRoll = {
+      ...damageRoll,
+      damageDice: [],
+      damageTotal: null,
+      damageRolledAt: null,
+      canRollDamage: true,
+    };
+    const view = render(<CombatRollResultCard
+      notice={{ roll: pendingDamageRoll, proposalId: null }}
+      onDismiss={vi.fn()}
+      onRollDamage={onRollDamage}
+    />);
+
+    expect(screen.queryByLabelText("Damage dice")).toBeNull();
+    expect(screen.getByRole("button", { name: "Dismiss roll result" })).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1_780));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Roll damage" })));
+    expect(onRollDamage).toHaveBeenCalledOnce();
+
+    view.rerender(<CombatRollResultCard
+      notice={{ roll: damageRoll, proposalId: damageProposal.id }}
+      proposal={damageProposal}
+      onDismiss={vi.fn()}
+      onRollDamage={onRollDamage}
+    />);
+    const damageTerms = screen.getByLabelText("Damage dice").querySelectorAll(".combat-roll-term");
+    expect(damageTerms[0].classList.contains("is-revealed")).toBe(false);
+    act(() => vi.advanceTimersByTime(280));
+    expect(damageTerms[0].classList.contains("is-revealed")).toBe(true);
+
+    view.unmount();
+    vi.useRealTimers();
+  });
+
+  it("shows observers that damage is waiting without giving them the roll action", () => {
+    render(<CombatRollResultCard notice={{ roll: {
+      ...damageRoll,
+      damageDice: [],
+      damageTotal: null,
+      damageRolledAt: null,
+      canRollDamage: false,
+    }, proposalId: null }} onDismiss={vi.fn()} />);
+
+    expect(screen.getByText("Dan").closest("span")?.textContent).toContain("Waiting for the damage roll.");
+    expect(screen.queryByRole("button", { name: "Roll damage" })).toBeNull();
+  });
+
   it("presents authoritative dice and damage in a dedicated result surface", () => {
     const onDismiss = vi.fn();
     render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={onDismiss} />);
@@ -337,11 +389,15 @@ describe("combat surface separation", () => {
     const secondProposal = { ...damageProposal, id: "proposal-review-2", rollId: secondRoll.id, targetTokenId: secondRoll.targetTokenId, createdAt: 2 };
     render(<CombatActivityStack
       state={{ combatRolls: [damageRoll, secondRoll], damageProposals: [damageProposal, secondProposal] } as EncounterState}
-      rollResult={{ roll: damageRoll, proposalId: damageProposal.id }}
+      rollResults={[
+        { roll: damageRoll, proposalId: damageProposal.id },
+        { roll: secondRoll, proposalId: secondProposal.id },
+      ]}
       damageNotifications={[]}
       damageReviewProposals={[damageProposal, secondProposal]}
       damageReviewPendingCount={2}
       onDismissRollResult={vi.fn()}
+      onRollDamage={vi.fn(async () => undefined)}
       onDismissDamageNotification={vi.fn()}
       onDismissDamageReview={vi.fn()}
       onAdjudicateDamage={vi.fn()}
@@ -349,6 +405,7 @@ describe("combat surface separation", () => {
 
     expect(screen.getByRole("complementary", { name: "Combat activity" })).toBeTruthy();
     expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Dar'eleth is attacking Goblin Raider with Longsword +1." })).toBeTruthy();
     expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
     expect(screen.getByRole("article", { name: "Apply damage to Goblin Raider?" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
