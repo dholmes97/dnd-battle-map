@@ -96,6 +96,9 @@ describe("EncounterSidebar initiative disclosure", () => {
     const detail = screen.getByRole("region", { name: "Dar'eleth details" });
     expect(within(detail).getByText("AC")).toBeTruthy();
     expect(within(detail).getByText("18")).toBeTruthy();
+    expect(within(detail).queryByText("Size")).toBeNull();
+    expect(within(detail).getByText("character: Dan")).toBeTruthy();
+    expect(within(detail).queryByText(/controlled by/i)).toBeNull();
   });
 
   it("offers an inline altitude editor on a controlled token card", () => {
@@ -111,9 +114,23 @@ describe("EncounterSidebar initiative disclosure", () => {
   it("keeps temporary HP available while combat rolling is off", () => {
     renderSidebar(17);
     const input = screen.getByRole("textbox", { name: "Dar'eleth temporary HP" });
-    expect(input.closest(".hp-row")).toBeTruthy();
+    expect(input.closest(".token-meta")).toBeTruthy();
+    expect(input.closest(".hp-row")).toBeNull();
     expect(input.closest("label")?.textContent).toContain("Temp HP");
     expect(screen.queryByRole("button", { name: "Attack…" })).toBeNull();
+  });
+
+  it("keeps the add-effect action on the same wrapping line as existing effects", () => {
+    const blessed = {
+      ...tokenWithInitiative(17), id: "blessed", name: "Blessed Hero",
+      effects: [{ id: "effect-1", name: "Bless", type: "concentration", durationRounds: 10, expiresRound: 11, reminderTiming: "end", due: false }],
+    };
+    renderSidebar(17, true, blessed);
+    const detail = screen.getByRole("region", { name: "Blessed Hero details" });
+    const effect = within(detail).getByText(/Bless · R11/);
+    const addEffect = within(detail).getByRole("button", { name: "+ Effect" });
+
+    expect(effect.closest(".effect-list")?.contains(addEffect)).toBe(true);
   });
 
   it("keeps secondary movement speeds in a restrained speed tooltip", () => {

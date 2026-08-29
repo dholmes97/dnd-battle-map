@@ -450,6 +450,15 @@ For a DM-originated damaging hit, the roll-result card and already-pending
 damage-approval card may appear together in the combat activity tray. They are
 independent non-modal cards and never obscure the entire battlefield.
 
+An initiating participant's roll-result card follows its linked damage proposal
+through resolution. Pending text changes in place to `Damage applied.` for an
+accepted resolution or `No damage was applied.` for rejection or cancellation,
+without revealing resistance, vulnerability, immunity, or a custom DM
+adjustment. A resolved card remains visible for approximately three seconds and
+then dismisses automatically. Hover or keyboard focus pauses that countdown;
+reduced-motion preference removes visual transitions but preserves the same
+reading time.
+
 The initiating surface must not globally block token movement or unrelated map
 interactions while the roll or adjudication is pending.
 

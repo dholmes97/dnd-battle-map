@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import IconActionButton from "@/app/icon-action-button";
 import type { DamageNotification } from "@/app/use-damage-notifications";
 import type { DamageAdjudication } from "@/shared/combat-rolling";
 import type { EncounterState, SharedCombatRoll, SharedDamageProposal } from "@/shared/contracts";
 
 export type CombatRollResultNotice = { roll: SharedCombatRoll; proposalId: string | null };
+
+const RESOLVED_ROLL_DISMISS_MS = 3_000;
+
+function terminalProposalStatus(status: SharedDamageProposal["status"] | null) {
+  return status !== null && status !== "pending";
+}
+
+function damageProposalMessage(proposalId: string | null, proposal: SharedDamageProposal | null) {
+  if (!proposalId) return null;
+  if (proposal?.status === "rejected" || proposal?.status === "cancelled") return "No damage was applied.";
+  if (proposal && terminalProposalStatus(proposal.status)) return "Damage applied.";
+  return "Damage is pending DM approval.";
+}
 
 function damageSummary(notification: DamageNotification) {
   const temporaryHpLost = notification.temporaryHpBefore === null || notification.temporaryHpAfter === null
@@ -107,8 +120,9 @@ function createCombatRevealPlan(attackTermCount: number, damageTermCount: number
   return { attackTermSteps, attackTotalStep, outcomeStep, damageTermSteps, damageTotalStep, completeStep, delays };
 }
 
-export function CombatRollResultCard({ notice, onDismiss }: {
+export function CombatRollResultCard({ notice, proposal = null, onDismiss }: {
   notice: CombatRollResultNotice;
+  proposal?: SharedDamageProposal | null;
   onDismiss: () => void;
 }) {
   const { roll, proposalId } = notice;
@@ -125,6 +139,31 @@ export function CombatRollResultCard({ notice, onDismiss }: {
     rollId: roll.id,
     step: reducedMotion ? revealPlan.completeStep : 0,
   }));
+  const [hovered, setHovered] = useState(false);
+  const [focusedWithin, setFocusedWithin] = useState(false);
+  const dismissRef = useRef(onDismiss);
+  const remainingDismissMsRef = useRef(RESOLVED_ROLL_DISMISS_MS);
+  const proposalStatus = proposal?.status ?? (proposalId ? "pending" : null);
+  const proposalResolved = terminalProposalStatus(proposalStatus);
+  const dismissalPaused = hovered || focusedWithin;
+
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  useEffect(() => {
+    remainingDismissMsRef.current = RESOLVED_ROLL_DISMISS_MS;
+  }, [proposalStatus, roll.id]);
+
+  useEffect(() => {
+    if (!proposalResolved || dismissalPaused) return;
+    const startedAt = Date.now();
+    const timer = window.setTimeout(() => dismissRef.current(), remainingDismissMsRef.current);
+    return () => {
+      window.clearTimeout(timer);
+      remainingDismissMsRef.current = Math.max(0, remainingDismissMsRef.current - (Date.now() - startedAt));
+    };
+  }, [dismissalPaused, proposalResolved, proposalStatus, roll.id]);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -144,8 +183,22 @@ export function CombatRollResultCard({ notice, onDismiss }: {
   const damageStageRevealed = revealPlan.damageTermSteps.some(revealed);
   const titleId = `combat-roll-result-title-${roll.id}`;
   const statusId = `combat-roll-result-status-${roll.id}`;
+  const proposalMessage = damageProposalMessage(proposalId, proposal);
+  const statusKind = proposalResolved
+    ? proposalStatus === "rejected" || proposalStatus === "cancelled" ? "not-applied" : "applied"
+    : proposalId ? "pending" : roll.outcome;
 
-  return <article className={`combat-activity-card combat-roll-result-card is-${roll.outcome}`} aria-labelledby={titleId} aria-describedby={statusId}>
+  return <article
+    className={`combat-activity-card combat-roll-result-card is-${roll.outcome}`}
+    aria-labelledby={titleId}
+    aria-describedby={statusId}
+    onMouseEnter={() => setHovered(true)}
+    onMouseLeave={() => setHovered(false)}
+    onFocus={() => setFocusedWithin(true)}
+    onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusedWithin(false);
+    }}
+  >
     <header>
       <span><small>Combat roll</small><strong id={titleId}><span>{roll.attackerName}</span> is attacking <span>{roll.targetName}</span> with <span>{roll.action.name}</span>.</strong></span>
       <IconActionButton label="Dismiss roll result" variant="close" onClick={onDismiss} />
@@ -167,12 +220,12 @@ export function CombatRollResultCard({ notice, onDismiss }: {
         </div>
         <div className={`combat-roll-total combat-roll-reveal${revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
       </div> : null}
-      <p className={`combat-roll-result-status combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId}>{roll.outcome === "miss"
+      <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
         ? "The attack missed. No damage proposal was created."
         : roll.outcome === "needs-ac"
           ? "The target's armor class is unavailable. No damage proposal was created; the DM can resolve the attack from this roll."
-          : proposalId
-            ? "Damage is pending DM approval."
+          : proposalMessage
+            ? proposalMessage
             : "The attack landed, but no damage proposal was created."}</p>
       {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Manual rider:</strong> {roll.action.manualRiderText}</p> : null}
     </div>
@@ -238,12 +291,15 @@ export function CombatActivityStack({ state, rollResult, damageNotifications, da
 }) {
   const visibleReviews = damageReviewProposals.slice(0, MAX_VISIBLE_REVIEWS);
   const visibleNotifications = damageNotifications.slice(0, MAX_VISIBLE_REVIEWS);
+  const rollResultProposal = rollResult?.proposalId
+    ? state.damageProposals.find((proposal) => proposal.id === rollResult.proposalId) ?? null
+    : null;
   const hiddenCount = Math.max(0, damageReviewPendingCount - visibleReviews.length)
     + Math.max(0, damageNotifications.length - visibleNotifications.length);
   if (!rollResult && visibleReviews.length === 0 && visibleNotifications.length === 0) return null;
 
   return <aside className="combat-activity-stack" aria-label="Combat activity">
-    {rollResult ? <CombatRollResultCard key={rollResult.roll.id} notice={rollResult} onDismiss={onDismissRollResult} /> : null}
+    {rollResult ? <CombatRollResultCard key={rollResult.roll.id} notice={rollResult} proposal={rollResultProposal} onDismiss={onDismissRollResult} /> : null}
     {visibleReviews.map((proposal) => <DamageReviewCard
       key={proposal.id}
       proposal={proposal}

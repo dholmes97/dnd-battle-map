@@ -133,6 +133,70 @@ describe("CombatRollResultCard", () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
+  it("changes a resolved proposal in place and dismisses it after three seconds", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} proposal={damageProposal} onDismiss={onDismiss} />);
+
+    expect(screen.getByText("Damage is pending DM approval.")).toBeTruthy();
+    view.rerender(<CombatRollResultCard
+      notice={{ roll: damageRoll, proposalId: damageProposal.id }}
+      proposal={{ ...damageProposal, status: "applied", resolvedAt: 2 }}
+      onDismiss={onDismiss}
+    />);
+    expect(screen.getByText("Damage applied.")).toBeTruthy();
+
+    act(() => vi.advanceTimersByTime(2_999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onDismiss).toHaveBeenCalledOnce();
+
+    view.unmount();
+    vi.useRealTimers();
+  });
+
+  it("reports rejection without exposing an adjudication detail", () => {
+    render(<CombatRollResultCard
+      notice={{ roll: damageRoll, proposalId: damageProposal.id }}
+      proposal={{ ...damageProposal, status: "rejected", resolvedAt: 2 }}
+      onDismiss={vi.fn()}
+    />);
+
+    expect(screen.getByText("No damage was applied.")).toBeTruthy();
+    expect(screen.queryByText(/resistant|adjusted|immune/i)).toBeNull();
+  });
+
+  it("pauses the resolved-card countdown for hover and keyboard focus", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    const view = render(<CombatRollResultCard
+      notice={{ roll: damageRoll, proposalId: damageProposal.id }}
+      proposal={{ ...damageProposal, status: "applied", resolvedAt: 2 }}
+      onDismiss={onDismiss}
+    />);
+    const card = screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." });
+    const close = screen.getByRole("button", { name: "Dismiss roll result" });
+
+    fireEvent.mouseEnter(card);
+    act(() => vi.advanceTimersByTime(3_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    fireEvent.mouseLeave(card);
+    act(() => vi.advanceTimersByTime(1_000));
+    fireEvent.focus(close);
+    act(() => vi.advanceTimersByTime(3_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    fireEvent.blur(close, { relatedTarget: null });
+    act(() => vi.advanceTimersByTime(1_999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onDismiss).toHaveBeenCalledOnce();
+
+    view.unmount();
+    vi.useRealTimers();
+  });
+
   it("does not present damage for a miss", () => {
     render(<CombatRollResultCard notice={{ roll: { ...damageRoll, outcome: "miss", damageDice: [7], damageTotal: 11 }, proposalId: null }} onDismiss={vi.fn()} />);
     expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
@@ -214,17 +278,28 @@ describe("CombatRollResultCard", () => {
     vi.useRealTimers();
   });
 
-  it("reveals the completed result immediately when reduced motion is preferred", () => {
+  it("reveals immediately but preserves resolved reading time when reduced motion is preferred", () => {
+    vi.useFakeTimers();
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = vi.fn(() => ({ matches: true })) as unknown as typeof window.matchMedia;
-    const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
+    const onDismiss = vi.fn();
+    const view = render(<CombatRollResultCard
+      notice={{ roll: damageRoll, proposalId: damageProposal.id }}
+      proposal={{ ...damageProposal, status: "applied", resolvedAt: 2 }}
+      onDismiss={onDismiss}
+    />);
 
     expect(screen.getByRole("status", { name: "Attack result: Hit" }).classList.contains("is-revealed")).toBe(true);
     expect(screen.getByLabelText("slashing damage total 11").classList.contains("is-revealed")).toBe(true);
-    expect(screen.getByText("Damage is pending DM approval.").classList.contains("is-revealed")).toBe(true);
+    expect(screen.getByText("Damage applied.").classList.contains("is-revealed")).toBe(true);
+    act(() => vi.advanceTimersByTime(2_999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onDismiss).toHaveBeenCalledOnce();
 
     view.unmount();
     window.matchMedia = originalMatchMedia;
+    vi.useRealTimers();
   });
 });
 
@@ -259,7 +334,7 @@ describe("combat surface separation", () => {
     const secondRoll = { ...damageRoll, id: "roll-review-2", targetTokenId: "target-2", targetName: "Goblin Raider" };
     const secondProposal = { ...damageProposal, id: "proposal-review-2", rollId: secondRoll.id, targetTokenId: secondRoll.targetTokenId, createdAt: 2 };
     render(<CombatActivityStack
-      state={{ combatRolls: [damageRoll, secondRoll] } as EncounterState}
+      state={{ combatRolls: [damageRoll, secondRoll], damageProposals: [damageProposal, secondProposal] } as EncounterState}
       rollResult={{ roll: damageRoll, proposalId: damageProposal.id }}
       damageNotifications={[]}
       damageReviewProposals={[damageProposal, secondProposal]}
