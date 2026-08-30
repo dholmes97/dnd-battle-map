@@ -69,6 +69,34 @@ describe("CampaignHome", () => {
     expect(screen.getByRole("button", { name: `Editing ${moonbow.name}` })).toHaveProperty("disabled", true);
   });
 
+  it("requires confirmation before deleting a combat action", async () => {
+    const longsword: CombatActionProfile = {
+      id: "action-longsword", ownerType: "character", ownerId: "character-dareleth",
+      applicableTokenIds: [], source: "character", enabled: true, sortOrder: 10,
+      name: "Longsword +1", attackBonus: 9, attackKind: "melee",
+      damage: { count: 1, sides: 8, modifier: 5 }, damageType: "slashing",
+      reachFeet: 5, rangeFeet: null, manualRider: false, manualRiderText: null, alternateDamage: null,
+    };
+    const playerCampaign = campaign("player");
+    const onDeleteCombatAction = vi.fn(async () => true);
+    home(player, {
+      campaign: { ...playerCampaign, characters: [{ ...playerCampaign.characters[0], combatActions: [longsword] }] },
+      onDeleteCombatAction,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete Longsword +1" }));
+    expect(onDeleteCombatAction).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Delete Longsword +1?" })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Keep action" }));
+    await userEvent.click(screen.getByRole("button", { name: "Keep action" }));
+    expect(onDeleteCombatAction).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete Longsword +1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete action" }));
+    expect(onDeleteCombatAction).toHaveBeenCalledOnce();
+    expect(onDeleteCombatAction).toHaveBeenCalledWith("action-longsword");
+  });
+
   it("defaults to the most recently updated encounter and switches the nearby actions", async () => {
     const onOpenEncounter = vi.fn();
     home(player, { campaign: { ...campaign("player"), encounters: [...encounters].reverse() }, onOpenEncounter });

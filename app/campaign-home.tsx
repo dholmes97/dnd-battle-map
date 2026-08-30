@@ -4,6 +4,7 @@ import { Fragment, useState, type Dispatch, type FormEvent, type SetStateAction 
 import Image from "next/image";
 import type { JoinIdentity } from "@/app/join-screen";
 import type { EncounterSummary } from "@/app/encounter-summary";
+import { ModalDialog } from "@/app/modal-dialog";
 import type { CampaignAccessSummary, CampaignMemberSummary } from "@/shared/campaigns";
 import {
   DAMAGE_TYPES,
@@ -94,6 +95,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
 }) {
   const [characterId, setCharacterId] = useState(campaign.characters[0]?.id ?? "");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<CombatActionProfile | null>(null);
   const [draft, setDraft] = useState<ActionDraft>(EMPTY_ACTION);
   const character = campaign.characters.find((item) => item.id === characterId) ?? campaign.characters[0] ?? null;
   const actions = character?.combatActions ?? [];
@@ -140,7 +142,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       .then((saved) => { if (saved) setEditingId(null); });
   };
   const editor = (title: string) => <CombatActionEditor title={title} draft={draft} setDraft={setDraft} pending={pending} saveEnabled={Boolean(values())} onCancel={() => setEditingId(null)} onSubmit={submitEditor} />;
-  return <section className="campaign-combat-actions" aria-labelledby="combat-actions-title">
+  return <><section className="campaign-combat-actions" aria-labelledby="combat-actions-title">
     <div className="campaign-section-heading"><div><div className="eyebrow">Tactical mirror</div><h2 id="combat-actions-title">Combat actions</h2></div><button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button></div>
     <p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>
     {campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}
@@ -150,12 +152,18 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
         <article className={editingId === action.id ? "is-editing" : undefined}>
           <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div>
           <button type="button" aria-label={`${editingId === action.id ? "Editing" : "Edit"} ${action.name}`} disabled={pending || editingId === action.id} onClick={() => begin(action)}>{editingId === action.id ? "Editing" : "Edit"}</button>
-          <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => void onDelete(action.id)}>Delete</button>
+          <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => setPendingDelete(action)}>Delete</button>
         </article>
         {editingId === action.id ? editor(`Editing ${action.name}`) : null}
       </Fragment>) : editingId !== "new" ? <p>No maintained actions yet.</p> : null}
     </div>
-  </section>;
+  </section>
+  {pendingDelete ? <ModalDialog labelledBy="delete-combat-action-title" describedBy="delete-combat-action-description" closeOnBackdrop onDismiss={() => setPendingDelete(null)}>
+    <div className="eyebrow">Combat action</div>
+    <h2 id="delete-combat-action-title">Delete {pendingDelete.name}?</h2>
+    <p id="delete-combat-action-description">This permanently removes the action from {character.name}&apos;s attack list. It will need to be added again if you change your mind.</p>
+    <div className="button-row"><button className="secondary-button" data-dialog-initial-focus onClick={() => setPendingDelete(null)}>Keep action</button><button className="danger-button" disabled={pending} onClick={() => void onDelete(pendingDelete.id).then((deleted) => { if (deleted) setPendingDelete(null); })}>{pending ? "Deleting…" : "Delete action"}</button></div>
+  </ModalDialog> : null}</>;
 }
 
 export function CampaignHome({ identity, campaign, invitedIdentities, loading, openingCode, openingDestination, renamingCode, error, notice, creating, campaignMutationPending, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onRenameCampaign, onAddPlayer, onSaveCombatAction, onDeleteCombatAction, onBackToCampaigns, onSignOut }: {

@@ -342,7 +342,9 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
     }}
   >
     <header>
-      <span><small>{automaticDamage ? "Automatic damage" : privateDmRoll ? "Private DM roll" : "Combat roll"}</small><strong id={titleId}><span>{roll.attackerName}</span> {automaticDamage ? "uses" : "is attacking"} <span>{roll.targetName}</span> with <span>{roll.action.name}</span>.</strong></span>
+      <span><small>{automaticDamage ? "Automatic damage" : privateDmRoll ? "Private DM roll" : "Combat roll"}</small><strong id={titleId}>{automaticDamage
+        ? <><span>{roll.attackerName}</span> uses <span>{roll.action.name}</span> on <span>{roll.targetName}</span>.</>
+        : <><span>{roll.attackerName}</span> is attacking <span>{roll.targetName}</span> with <span>{roll.action.name}</span>.</>}</strong></span>
       <IconActionButton label="Dismiss roll result" variant="close" onClick={onDismiss} />
     </header>
     <div className="combat-roll-result-content">

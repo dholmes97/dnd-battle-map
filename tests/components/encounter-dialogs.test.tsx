@@ -196,6 +196,29 @@ describe("CombatRollResultCard", () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
+  it("describes automatic damage as using the action on the target", () => {
+    render(<CombatRollResultCard notice={{ roll: {
+      ...damageRoll,
+      action: {
+        ...damageRoll.action,
+        name: "Magic Missile (7th level, 7 charges)",
+        resolutionMode: "automatic-damage",
+        damage: { count: 9, sides: 4, modifier: 9 },
+        damageType: "force",
+      },
+      attackDice: [],
+      keptD20: 0,
+      attackTotal: 0,
+      damageDice: [],
+      damageTotal: null,
+      damageRolledAt: null,
+      canRollDamage: true,
+    }, proposalId: null }} onDismiss={vi.fn()} onRollDamage={vi.fn(async () => undefined)} />);
+
+    expect(screen.getByRole("article", { name: "Dar'eleth uses Magic Missile (7th level, 7 charges) on Orc Warrior." })).toBeTruthy();
+    expect(screen.queryByText(/uses Orc Warrior with/)).toBeNull();
+  });
+
   it("changes a resolved proposal in place and dismisses it after three seconds", () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
