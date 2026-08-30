@@ -1,5 +1,5 @@
 export const LIVE_POLL_MIN_DELAY_MS = 250;
-export const LIVE_POLL_ACTIVE_MAX_DELAY_MS = 3_000;
+export const LIVE_POLL_ACTIVE_MAX_DELAY_MS = 750;
 export const LIVE_POLL_IDLE_MAX_DELAY_MS = 8_000;
 export const LIVE_POLL_JITTER_RATIO = 0.1;
 

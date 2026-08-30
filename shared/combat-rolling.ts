@@ -100,7 +100,7 @@ export function projectCombatDamageValues(input: {
   proposalRolledDamage: number | null;
   proposalFinalDamage: number | null;
 } {
-  const canSeeRoll = input.canSeePrivateAdjudication || input.canSeeRolledDamage;
+  const canSeeRoll = input.canSeeRolledDamage;
   const appliedDamage = (input.canSeePrivateAdjudication || input.controlsTarget) &&
       input.proposalStatus !== null && input.proposalStatus !== "pending"
     ? input.finalDamage

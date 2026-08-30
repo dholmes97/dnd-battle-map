@@ -79,6 +79,12 @@ test("damage projections make the roll public without revealing private adjudica
   assert.deepEqual(projectCombatDamageValues({ ...ruling, canSeeRolledDamage: false, controlsTarget: false }), {
     damageDice: [], damageTotal: null, proposalRolledDamage: null, proposalFinalDamage: null,
   });
+  assert.deepEqual(projectCombatDamageValues({
+    ...ruling, finalDamage: null, proposalStatus: null,
+    canSeePrivateAdjudication: true, canSeeRolledDamage: false, controlsTarget: false,
+  }), {
+    damageDice: [], damageTotal: null, proposalRolledDamage: null, proposalFinalDamage: null,
+  });
   assert.deepEqual(projectCombatDamageValues({ ...ruling, canSeeRolledDamage: true, controlsTarget: true }), {
     damageDice: [6, 5], damageTotal: 14, proposalRolledDamage: 14, proposalFinalDamage: 7,
   });

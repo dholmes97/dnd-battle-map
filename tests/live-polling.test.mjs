@@ -10,15 +10,15 @@ import {
   unchangedPollDelay,
 } from "../shared/live-polling.ts";
 
-test("unchanged foreground polls back off to activity-aware jittered ceilings", () => {
+test("unchanged foreground polls use an exact active ceiling and a jittered idle ceiling", () => {
   assert.deepEqual([0, 1].map((count) => unchangedPollDelay(count, "active", "dan")), [250, 500]);
-  assert.ok(unchangedPollDelay(20, "active", "dan") >= LIVE_POLL_ACTIVE_MAX_DELAY_MS * 0.9);
-  assert.ok(unchangedPollDelay(20, "active", "dan") <= LIVE_POLL_ACTIVE_MAX_DELAY_MS * 1.1);
+  assert.equal(unchangedPollDelay(20, "active", "dan"), LIVE_POLL_ACTIVE_MAX_DELAY_MS);
+  assert.equal(unchangedPollDelay(20, "active", "barry"), LIVE_POLL_ACTIVE_MAX_DELAY_MS);
   assert.ok(unchangedPollDelay(20, "idle", "dan") >= LIVE_POLL_IDLE_MAX_DELAY_MS * 0.9);
   assert.ok(unchangedPollDelay(20, "idle", "dan") <= LIVE_POLL_IDLE_MAX_DELAY_MS * 1.1);
   assert.notEqual(
-    unchangedPollDelay(20, "active", "dan"),
-    unchangedPollDelay(20, "active", "barry"),
+    unchangedPollDelay(20, "idle", "dan"),
+    unchangedPollDelay(20, "idle", "barry"),
   );
   assert.equal(livePollingMode("active"), "active");
   assert.equal(livePollingMode("setup"), "idle");
@@ -37,7 +37,7 @@ test("a received update resets the next foreground poll to the fast cadence", ()
   assert.equal(scheduleAfterPoll(2, false, "active", "dan").unchangedPolls, 3);
 });
 
-test("four idle participants stay within the measured hourly request budget", () => {
+test("four visible participants stay within the measured hourly request budget", () => {
   const participants = ["dan", "barry", "scott", "kevin"];
   const requestsInHour = (mode) => participants.reduce((total, participant) => {
     let elapsed = 0;
@@ -54,7 +54,7 @@ test("four idle participants stay within the measured hourly request budget", ()
 
   const activeRequests = requestsInHour("active");
   const idleRequests = requestsInHour("idle");
-  assert.ok(activeRequests < 5_500, `active encounter made ${activeRequests} requests/hour`);
+  assert.ok(activeRequests < 19_500, `active encounter made ${activeRequests} requests/hour`);
   assert.ok(idleRequests < 2_200, `setup/paused encounter made ${idleRequests} requests/hour`);
   assert.ok(activeRequests > idleRequests);
 });

@@ -112,12 +112,13 @@ consumption, with caller cancellation preserved. For optimistic operations the
 deadline begins when the reducer paints, so time spent waiting in the serialized
 request queue consumes the same bounded budget instead of restarting it.
 
-Unchanged visible polls use deterministic participant-specific jitter and an
-activity-aware ceiling: approximately three seconds during active combat and
-eight seconds during setup or a deliberate DM pause. A changed encounter
-version, page focus, or restored visibility returns the client to the fast 250ms
-cadence. This keeps active play responsive without making every idle participant
-spend one Worker request and D1 version lookup per second.
+Unchanged visible polls use an activity-aware ceiling: 750ms during active
+combat and approximately eight seconds during setup or a deliberate DM pause,
+with deterministic participant-specific jitter on delays of at least one
+second. A changed encounter version, page focus, or restored visibility returns
+the client to the fast 250ms cadence. The active cadence deliberately favors
+shared table responsiveness; setup and pause retain the longer backoff to avoid
+needless Worker requests and D1 version lookups.
 
 Every browser encounter request carries a bounded operation ID and every Worker
 response carries a server-generated request ID, echoes the operation ID, and
