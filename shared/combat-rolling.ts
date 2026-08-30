@@ -6,6 +6,9 @@ export type RollMode = (typeof ROLL_MODES)[number];
 export const ATTACK_KINDS = ["melee", "ranged"] as const;
 export type AttackKind = (typeof ATTACK_KINDS)[number];
 
+export const ACTION_RESOLUTION_MODES = ["attack-vs-ac", "automatic-damage"] as const;
+export type ActionResolutionMode = (typeof ACTION_RESOLUTION_MODES)[number];
+
 export const DAMAGE_TYPES = [
   "acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic",
   "piercing", "poison", "psychic", "radiant", "slashing", "thunder", "untyped",
@@ -28,6 +31,7 @@ export type AlternateDamage = {
 
 export type CombatActionValues = {
   name: string;
+  resolutionMode?: ActionResolutionMode;
   attackBonus: number;
   attackKind: AttackKind;
   damage: DiceFormula;
@@ -307,6 +311,11 @@ export function validateCombatActionValues(
 ): CombatActionValues | null {
   if (!isRecord(value)) return null;
   const name = cleanText(value.name, 64);
+  const resolutionMode = value.resolutionMode === undefined
+    ? "attack-vs-ac"
+    : ACTION_RESOLUTION_MODES.includes(value.resolutionMode as ActionResolutionMode)
+      ? value.resolutionMode as ActionResolutionMode
+      : null;
   const attackBonus = integer(value.attackBonus);
   const attackKind = value.attackKind === "melee" || value.attackKind === "ranged" ? value.attackKind : null;
   const damage = validateDiceFormula(value.damage);
@@ -323,11 +332,11 @@ export function validateCombatActionValues(
   const alternateDamage = value.alternateDamage === null || value.alternateDamage === undefined
     ? null
     : validateAlternateDamage(value.alternateDamage);
-  if (!name || !integerBetween(attackBonus, -20, 30) || !attackKind || !damage || !damageType ||
+  if (!name || !resolutionMode || !integerBetween(attackBonus, -20, 30) || !attackKind || !damage || !damageType ||
       reachFeet === undefined || rangeFeet === undefined || manualRider === null ||
       (manualRider && !manualRiderText) ||
       (value.alternateDamage !== null && value.alternateDamage !== undefined && !alternateDamage)) return null;
-  return { name, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, manualRiderText, alternateDamage };
+  return { name, resolutionMode, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, manualRiderText, alternateDamage };
 }
 
 export function validateDiceFormula(value: unknown): DiceFormula | null {

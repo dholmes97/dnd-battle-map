@@ -84,15 +84,20 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
   const formula = context.payload.alternateDamage && values.alternateDamage
     ? values.alternateDamage.formula
     : values.damage;
-  const bless = await context.repository.hasBless(context.encounter.id, attacker.id);
-  const attackDice = Array.from({ length: context.payload.rollMode === "normal" ? 1 : 2 }, () => context.rollDie(20));
-  const resolution = resolveAttackRoll({
-    rollMode: context.payload.rollMode,
-    attackDice,
-    attackBonus: values.attackBonus,
-    blessDie: bless ? context.rollDie(4) : null,
-    targetArmorClass: target.armor_class,
-  });
+  const automaticDamage = values.resolutionMode === "automatic-damage";
+  const bless = automaticDamage ? false : await context.repository.hasBless(context.encounter.id, attacker.id);
+  const attackDice = automaticDamage
+    ? []
+    : Array.from({ length: context.payload.rollMode === "normal" ? 1 : 2 }, () => context.rollDie(20));
+  const resolution = automaticDamage
+    ? { attackDice: [], keptD20: 0, attackBonus: 0, blessDie: null, attackTotal: 0, outcome: "hit" as const }
+    : resolveAttackRoll({
+        rollMode: context.payload.rollMode,
+        attackDice,
+        attackBonus: values.attackBonus,
+        blessDie: bless ? context.rollDie(4) : null,
+        targetArmorClass: target.armor_class,
+      });
   if (!resolution) return commandError("Unable to resolve that attack.", 400);
   const rollId = context.services.createId();
   const snapshot = {
@@ -120,7 +125,7 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
     blessDie: resolution.blessDie,
     attackTotal: resolution.attackTotal,
     outcome: resolution.outcome,
-    dmPrivate: context.participant.role === "dm",
+    dmPrivate: context.participant.role === "dm" && !automaticDamage,
     damageDiceJson: "[]",
     damageTotal: 0,
     inTurn: context.encounter.status === "active" && attacker.initiative_order !== null &&
@@ -301,6 +306,7 @@ function actionValues(row: CombatActionProfileRow): CombatActionValues | null {
   try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
   return validateCombatActionValues({
     name: row.name,
+    resolutionMode: row.resolution_mode,
     attackBonus: row.attack_bonus,
     attackKind: row.attack_kind,
     damage: { count: row.damage_dice_count, sides: row.damage_die_size, modifier: row.damage_modifier },

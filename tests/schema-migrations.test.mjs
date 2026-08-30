@@ -75,6 +75,33 @@ test("numbered migrations build and seed a fresh database", async () => {
       FROM combat_action_profiles WHERE id = 'character-malichar-glimmering-moonbow-v1';`),
     "1d6+6 piercing:Also deals 1d6 radiant damage. The additional radiant die is not yet included in the automatic damage roll.",
   );
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-dareleth' AND source_ref = 'dareleth-sheet-2026-08-30';"), "13");
+  assert.deepEqual(
+    (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
+      FROM combat_action_profiles
+      WHERE campaign_character_id = 'character-dareleth' AND name LIKE 'Guiding Bolt%'
+      ORDER BY sort_order;`)).split("\n"),
+    ["Guiding Bolt:4d6", "Guiding Bolt (2nd level):5d6", "Guiding Bolt (3rd level):6d6"],
+  );
+  assert.deepEqual(
+    (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier || ':' || resolution_mode
+      FROM combat_action_profiles
+      WHERE campaign_character_id = 'character-dareleth' AND name LIKE 'Magic Missile%'
+      ORDER BY sort_order;`)).split("\n"),
+    [
+      "Magic Missile (1st level, 1 charge):3d4+3:automatic-damage",
+      "Magic Missile (2nd level, 2 charges):4d4+4:automatic-damage",
+      "Magic Missile (3rd level, 3 charges):5d4+5:automatic-damage",
+      "Magic Missile (4th level, 4 charges):6d4+6:automatic-damage",
+      "Magic Missile (5th level, 5 charges):7d4+7:automatic-damage",
+      "Magic Missile (6th level, 6 charges):8d4+8:automatic-damage",
+      "Magic Missile (7th level, 7 charges):9d4+9:automatic-damage",
+    ],
+  );
+  assert.equal(
+    await query(database, "SELECT manual_rider_text FROM combat_action_profiles WHERE id = 'character-dareleth-javelin-of-lightning-v1';"),
+    "When activated, also deals 4d6 lightning damage and expends 1 charge. The additional lightning dice are not yet included in the automatic damage roll.",
+  );
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM combat_action_profiles a WHERE a.creature_catalog_id = t.catalog_creature_id AND a.is_enabled = 1);`), "0");

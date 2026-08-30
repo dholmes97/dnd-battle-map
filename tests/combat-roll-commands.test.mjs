@@ -18,7 +18,7 @@ function token(id, overrides = {}) {
 function action(overrides = {}) {
   return {
     id: "action", campaign_character_id: "character", creature_catalog_id: null,
-    name: "Longsword", attack_bonus: 7, attack_kind: "melee", damage_dice_count: 1,
+    name: "Longsword", resolution_mode: "attack-vs-ac", attack_bonus: 7, attack_kind: "melee", damage_dice_count: 1,
     damage_die_size: 8, damage_modifier: 4, damage_type: "slashing", reach_feet: 5,
     range_feet: null, manual_rider: 0, alternate_damage_json: null,
     source_kind: "manual-character", source_ref: null, sort_order: 0, is_enabled: 1,
@@ -124,6 +124,31 @@ test("a configured roll uses authoritative Bless, dice, action values, and actor
   assert.equal(written.dmPrivate, false);
   assert.equal(result.payload.proposalId, null);
   assert.equal(result.payload.result.damageTotal, null);
+});
+
+test("automatic-damage actions skip the attack and Bless rolls", async () => {
+  let blessChecks = 0;
+  const value = context({
+    repository: {
+      findActionForToken: async () => action({
+        name: "Magic Missile (1 charge)", resolution_mode: "automatic-damage", attack_bonus: 0,
+        attack_kind: "ranged", damage_dice_count: 3, damage_die_size: 4,
+        damage_modifier: 3, damage_type: "force", reach_feet: null, range_feet: 120,
+      }),
+      hasBless: async () => { blessChecks += 1; return true; },
+    },
+  });
+  const result = await rollAttack(value);
+  const written = value.calls.find(([kind]) => kind === "roll")[1];
+  assert.equal(result.payload.result.outcome, "hit");
+  assert.equal(result.payload.result.attackTotal, 0);
+  assert.deepEqual(result.payload.result.attackDice, []);
+  assert.equal(written.attackDiceJson, "[]");
+  assert.equal(written.keptD20, 0);
+  assert.equal(written.blessDie, null);
+  assert.equal(written.dmPrivate, false);
+  assert.equal(blessChecks, 0);
+  assert.match(written.actionSnapshotJson, /"resolutionMode":"automatic-damage"/);
 });
 
 test("DM attacks are stored privately and require a released verdict", async () => {

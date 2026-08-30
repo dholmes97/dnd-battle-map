@@ -133,6 +133,34 @@ describe("CombatRollPanel", () => {
     expect((screen.getByRole("radio", { name: "normal" }) as HTMLInputElement).checked).toBe(true);
   });
 
+  it("presents automatic-damage actions without attack-roll controls", async () => {
+    const magicMissile: CombatActionProfile = {
+      ...action,
+      id: "magic-missile-7",
+      name: "Magic Missile (7 charges)",
+      resolutionMode: "automatic-damage",
+      attackBonus: 0,
+      attackKind: "ranged",
+      damage: { count: 9, sides: 4, modifier: 9 },
+      damageType: "force",
+      reachFeet: null,
+      rangeFeet: 120,
+      alternateDamage: null,
+    };
+    const onRoll = vi.fn(async (payload: CommandPayload<"roll-attack">) => { void payload; return result(); });
+    render(<CombatRollPanel participant={player} state={state([magicMissile])} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
+
+    expect(screen.getByRole("option", { name: "Magic Missile (7 charges) · automatic · 9d4+9" })).toBeTruthy();
+    expect(screen.getByText("Hits automatically")).toBeTruthy();
+    expect(screen.queryByRole("radiogroup", { name: "Roll mode" })).toBeNull();
+    expect(screen.queryByText("Bless +1d4 automatic")).toBeNull();
+    const submit = screen.getByRole("button", { name: "Use action" }) as HTMLButtonElement;
+    await waitFor(() => expect(submit.disabled).toBe(false));
+    fireEvent.click(submit);
+    await waitFor(() => expect(onRoll).toHaveBeenCalledOnce());
+    expect(onRoll.mock.calls[0][0]).toMatchObject({ actionProfileId: "magic-missile-7", rollMode: "normal" });
+  });
+
   it("submits roll options and hands the authoritative result to the modal owner", async () => {
     const onRoll = vi.fn(async (payload: CommandPayload<"roll-attack">) => { void payload; return result(); });
     const onComplete = vi.fn();
@@ -157,7 +185,9 @@ describe("CombatRollPanel", () => {
     render(<CombatRollPanel participant={dm} state={state([])} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
     expect(screen.getByRole("group", { name: "Unsaved generic Attack" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Attack bonus"), { target: { value: "5" } });
-    await userEvent.click(screen.getByRole("button", { name: "Roll attack" }));
+    const submit = screen.getByRole("button", { name: "Roll attack" }) as HTMLButtonElement;
+    await waitFor(() => expect(submit.disabled).toBe(false));
+    fireEvent.click(submit);
     await waitFor(() => expect(onRoll).toHaveBeenCalledTimes(1));
     expect(onRoll.mock.calls[0][0]).toMatchObject({ actionProfileId: undefined, adHocAction: { attackBonus: 5 } });
   });

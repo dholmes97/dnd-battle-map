@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CampaignHome } from "@/app/campaign-home";
 import type { JoinIdentity } from "@/app/join-screen";
 import type { CampaignAccessSummary } from "@/shared/campaigns";
+import type { CombatActionProfile } from "@/shared/combat-rolling";
 
 const encounters = [
   { code: "EMBER-KEEP", name: "Ember Keep", status: "active" as const, updatedAt: 1_782_000_000_000 },
@@ -45,6 +46,27 @@ describe("CampaignHome", () => {
     await userEvent.click(screen.getByRole("button", { name: "+ Action" }));
     expect(screen.getByRole("checkbox", { name: "Has additional effect" })).toBeTruthy();
     expect(screen.queryByText(/manual rider/i)).toBeNull();
+  });
+
+  it("opens a compact named editor directly beneath the selected combat action", async () => {
+    const moonbow: CombatActionProfile = {
+      id: "action-moonbow", ownerType: "character", ownerId: "character-dareleth",
+      applicableTokenIds: [], source: "character", enabled: true, sortOrder: 10,
+      name: "Glimmering Moonbow, Shortbow", attackBonus: 10, attackKind: "ranged",
+      damage: { count: 1, sides: 6, modifier: 6 }, damageType: "piercing",
+      reachFeet: null, rangeFeet: 80, manualRider: true,
+      manualRiderText: "The target glimmers until the next turn.", alternateDamage: null,
+    };
+    const playerCampaign = campaign("player");
+    home(player, { campaign: { ...playerCampaign, characters: [{ ...playerCampaign.characters[0], combatActions: [moonbow] }] } });
+
+    const row = screen.getByText(moonbow.name).closest("article");
+    await userEvent.click(screen.getByRole("button", { name: `Edit ${moonbow.name}` }));
+    const editor = screen.getByRole("form", { name: `Editing ${moonbow.name}` });
+
+    expect(row?.classList.contains("is-editing")).toBe(true);
+    expect(row?.nextElementSibling).toBe(editor);
+    expect(screen.getByRole("button", { name: `Editing ${moonbow.name}` })).toHaveProperty("disabled", true);
   });
 
   it("defaults to the most recently updated encounter and switches the nearby actions", async () => {

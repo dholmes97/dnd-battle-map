@@ -295,6 +295,13 @@
       "when": 1788116347664,
       "tag": "0041_malichar-actions",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1788119919737,
+      "tag": "0042_dareleth-actions-repair-malichar",
+      "breakpoints": true
     }
   ]
 }

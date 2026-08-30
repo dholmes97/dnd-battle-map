@@ -12,7 +12,7 @@ const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, 
   summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
-const ACTION_COLUMNS = `id, campaign_character_id, creature_catalog_id, name, attack_bonus, attack_kind,
+const ACTION_COLUMNS = `id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
   damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
   manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at`;
 

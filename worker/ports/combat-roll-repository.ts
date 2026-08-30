@@ -6,6 +6,7 @@ export type CombatActionProfileRow = {
   campaign_character_id: string | null;
   creature_catalog_id: string | null;
   name: string;
+  resolution_mode: "attack-vs-ac" | "automatic-damage";
   attack_bonus: number;
   attack_kind: "melee" | "ranged";
   damage_dice_count: number;

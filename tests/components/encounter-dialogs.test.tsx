@@ -98,6 +98,8 @@ describe("DamageReviewCard", () => {
     expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
     expect(screen.getByText("2 pending")).toBeTruthy();
     expect(screen.getByText("Dar'eleth")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Void attack" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Cancel proposal" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Resistant/ }));
     expect(onAdjudicate).toHaveBeenCalledWith("proposal-review-1", "resistant", undefined);
   });
@@ -137,7 +139,7 @@ describe("CombatRollResultCard", () => {
 
     expect(screen.queryByLabelText("Damage dice")).toBeNull();
     expect(screen.getByRole("button", { name: "Dismiss roll result" })).toBeTruthy();
-    act(() => vi.advanceTimersByTime(1_780));
+    act(() => vi.advanceTimersByTime(2_210));
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Roll damage" })));
     expect(onRollDamage).toHaveBeenCalledOnce();
 
@@ -149,8 +151,13 @@ describe("CombatRollResultCard", () => {
     />);
     const damageTerms = screen.getByLabelText("Damage dice").querySelectorAll(".combat-roll-term");
     expect(damageTerms[0].classList.contains("is-revealed")).toBe(false);
-    act(() => vi.advanceTimersByTime(280));
+    act(() => vi.advanceTimersByTime(329));
+    expect(damageTerms[0].classList.contains("is-revealed")).toBe(false);
+    act(() => vi.advanceTimersByTime(1));
     expect(damageTerms[0].classList.contains("is-revealed")).toBe(true);
+    expect(damageTerms[0].classList.contains("is-rolling")).toBe(true);
+    act(() => vi.advanceTimersByTime(720));
+    expect(damageTerms[0].classList.contains("is-rolling")).toBe(false);
 
     view.unmount();
     vi.useRealTimers();
@@ -195,7 +202,7 @@ describe("CombatRollResultCard", () => {
     const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} proposal={damageProposal} onDismiss={onDismiss} />);
 
     expect(screen.getByText("Damage is pending DM approval.")).toBeTruthy();
-    act(() => vi.advanceTimersByTime(2_540));
+    act(() => vi.advanceTimersByTime(3_490));
     view.rerender(<CombatRollResultCard
       notice={{ roll: damageRoll, proposalId: damageProposal.id }}
       proposal={{ ...damageProposal, status: "applied", resolvedAt: 2 }}
@@ -237,6 +244,7 @@ describe("CombatRollResultCard", () => {
     const card = screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." });
     const close = screen.getByRole("button", { name: "Dismiss roll result" });
 
+    act(() => vi.advanceTimersByTime(3_490));
     fireEvent.mouseEnter(card);
     act(() => vi.advanceTimersByTime(3_000));
     expect(onDismiss).not.toHaveBeenCalled();
@@ -267,7 +275,7 @@ describe("CombatRollResultCard", () => {
     expect(screen.getByText("The attack missed. No damage proposal was created.")).toBeTruthy();
     expect(screen.queryByText(/Auto dismiss/)).toBeNull();
 
-    act(() => vi.advanceTimersByTime(1_780));
+    act(() => vi.advanceTimersByTime(2_210));
     expect(screen.getByText("Auto dismiss in 10")).toBeTruthy();
     act(() => vi.advanceTimersByTime(1_000));
     expect(screen.getByText("Auto dismiss in 9")).toBeTruthy();
@@ -296,6 +304,28 @@ describe("CombatRollResultCard", () => {
     expect(screen.queryByText(/manual rider/i)).toBeNull();
   });
 
+  it("reveals flat damage without inventing an animated die", () => {
+    vi.useFakeTimers();
+    const view = render(<CombatRollResultCard notice={{ roll: {
+      ...damageRoll,
+      action: { ...damageRoll.action, damage: { count: 0, sides: 8, modifier: 4 } },
+      damageDice: [],
+      damageTotal: 4,
+    }, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
+
+    const damageStage = screen.getByLabelText("slashing damage total 4");
+    expect(screen.getByLabelText("Damage dice").querySelector(".is-damage")).toBeNull();
+    act(() => vi.advanceTimersByTime(2_330));
+    expect(damageStage.classList.contains("is-revealed")).toBe(true);
+    act(() => vi.advanceTimersByTime(100));
+    expect(screen.getByText("Flat damage").closest(".combat-roll-term")?.classList.contains("is-revealed")).toBe(true);
+    act(() => vi.advanceTimersByTime(120));
+    expect(damageStage.querySelector(".combat-roll-total")?.classList.contains("is-revealed")).toBe(true);
+
+    view.unmount();
+    vi.useRealTimers();
+  });
+
   it("reveals authoritative attack, verdict, and damage results in story order", () => {
     vi.useFakeTimers();
     const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
@@ -307,11 +337,19 @@ describe("CombatRollResultCard", () => {
     const damageTotal = damageStage.querySelector(".combat-roll-total")!;
 
     expect(attackTerms[0].classList.contains("is-revealed")).toBe(false);
-    act(() => vi.advanceTimersByTime(140));
+    act(() => vi.advanceTimersByTime(100));
     expect(attackTerms[0].classList.contains("is-revealed")).toBe(true);
+    expect(attackTerms[0].classList.contains("is-rolling")).toBe(true);
     expect(attackTerms[1].classList.contains("is-revealed")).toBe(false);
-    act(() => vi.advanceTimersByTime(480));
+    const firstPreview = attackTerms[0].querySelector("strong")?.textContent;
+    act(() => vi.advanceTimersByTime(110));
+    expect(attackTerms[0].querySelector("strong")?.textContent).not.toBe(firstPreview);
+    act(() => vi.advanceTimersByTime(610));
+    expect(attackTerms[0].classList.contains("is-rolling")).toBe(false);
+    expect(attackTerms[0].querySelector("strong")?.textContent).toBe("15");
+    act(() => vi.advanceTimersByTime(110));
     expect(attackTerms[1].classList.contains("is-revealed")).toBe(true);
+    act(() => vi.advanceTimersByTime(120));
     expect(attackTotal.classList.contains("is-revealed")).toBe(true);
     expect(outcome.classList.contains("is-revealed")).toBe(false);
     act(() => vi.advanceTimersByTime(999));
@@ -321,10 +359,16 @@ describe("CombatRollResultCard", () => {
     expect(damageStage.classList.contains("is-revealed")).toBe(false);
     act(() => vi.advanceTimersByTime(280));
     expect(damageStage.classList.contains("is-revealed")).toBe(true);
-    expect(damageTerms[0].classList.contains("is-revealed")).toBe(true);
+    expect(damageTerms[0].classList.contains("is-revealed")).toBe(false);
     expect(damageTerms[1].classList.contains("is-revealed")).toBe(false);
-    act(() => vi.advanceTimersByTime(480));
+    act(() => vi.advanceTimersByTime(50));
+    expect(damageTerms[0].classList.contains("is-revealed")).toBe(true);
+    expect(damageTerms[0].classList.contains("is-rolling")).toBe(true);
+    act(() => vi.advanceTimersByTime(720));
+    expect(damageTerms[0].classList.contains("is-rolling")).toBe(false);
+    act(() => vi.advanceTimersByTime(110));
     expect(damageTerms[1].classList.contains("is-revealed")).toBe(true);
+    act(() => vi.advanceTimersByTime(120));
     expect(damageTotal.classList.contains("is-revealed")).toBe(true);
 
     view.unmount();
@@ -342,13 +386,20 @@ describe("CombatRollResultCard", () => {
     }, proposalId: damageProposal.id }} onDismiss={vi.fn()} />);
     const dice = screen.getByLabelText("Attack dice").querySelectorAll(".combat-roll-term");
 
-    act(() => vi.advanceTimersByTime(140));
+    act(() => vi.advanceTimersByTime(100));
     expect(dice[0].classList.contains("is-revealed")).toBe(true);
     expect(dice[0].classList.contains("is-kept")).toBe(false);
-    act(() => vi.advanceTimersByTime(200));
+    act(() => vi.advanceTimersByTime(130));
     expect(dice[1].classList.contains("is-revealed")).toBe(true);
     expect(dice[0].classList.contains("is-kept")).toBe(false);
-    act(() => vi.advanceTimersByTime(200));
+    act(() => vi.advanceTimersByTime(590));
+    expect(dice[0].classList.contains("is-rolling")).toBe(false);
+    expect(dice[1].classList.contains("is-rolling")).toBe(true);
+    expect(dice[0].classList.contains("is-kept")).toBe(false);
+    act(() => vi.advanceTimersByTime(130));
+    expect(dice[1].classList.contains("is-rolling")).toBe(false);
+    expect(dice[0].classList.contains("is-kept")).toBe(false);
+    act(() => vi.advanceTimersByTime(110));
     expect(dice[0].classList.contains("is-kept")).toBe(true);
 
     view.unmount();

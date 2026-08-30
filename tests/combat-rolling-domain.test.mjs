@@ -184,6 +184,7 @@ test("combat action values are structured, bounded, and preserve manual riders",
     alternateDamage: { label: "Two-handed", formula: { count: 1, sides: 10, modifier: 5 } },
   });
   assert.equal(action?.name, "Longsword +1");
+  assert.equal(action?.resolutionMode, "attack-vs-ac");
   assert.equal(action?.manualRider, true);
   assert.match(action?.manualRiderText ?? "", /Consult the source stat block/);
   assert.equal(validateCombatActionValues({
@@ -192,4 +193,6 @@ test("combat action values are structured, bounded, and preserve manual riders",
   assert.equal(formatDiceFormula(action.damage), "1d8+5");
   assert.equal(formatDiceFormula({ count: 0, sides: 4, modifier: 5 }), "5");
   assert.equal(validateCombatActionValues({ ...action, damage: "1d8+5" }), null);
+  assert.equal(validateCombatActionValues({ ...action, resolutionMode: "automatic-damage" })?.resolutionMode, "automatic-damage");
+  assert.equal(validateCombatActionValues({ ...action, resolutionMode: "saving-throw" }), null);
 });

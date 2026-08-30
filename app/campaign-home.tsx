@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import Image from "next/image";
 import type { JoinIdentity } from "@/app/join-screen";
 import type { EncounterSummary } from "@/app/encounter-summary";
@@ -52,6 +52,40 @@ const EMPTY_ACTION: ActionDraft = {
   alternate: false, alternateLabel: "Two-handed", alternateCount: "1", alternateSides: "10", alternateModifier: "0",
 };
 
+function CombatActionEditor({ title, draft, setDraft, pending, saveEnabled, onCancel, onSubmit }: {
+  title: string;
+  draft: ActionDraft;
+  setDraft: Dispatch<SetStateAction<ActionDraft>>;
+  pending: boolean;
+  saveEnabled: boolean;
+  onCancel: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return <form className="campaign-action-editor" aria-label={title} onSubmit={onSubmit}>
+    <div className="campaign-action-editor-heading"><strong>{title}</strong><span>Map-roll values only</span></div>
+    <label className="campaign-action-field-name">Action name<input autoFocus maxLength={64} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label>
+    <label className="campaign-action-field-bonus">Attack bonus<input type="number" min="-20" max="30" value={draft.attackBonus} onChange={(event) => setDraft((current) => ({ ...current, attackBonus: event.target.value }))} /></label>
+    <label className="campaign-action-field-kind">Kind<select value={draft.attackKind} onChange={(event) => setDraft((current) => ({ ...current, attackKind: event.target.value as "melee" | "ranged" }))}><option value="melee">Melee</option><option value="ranged">Ranged</option></select></label>
+    <label className="campaign-action-field-count">Dice<input type="number" min="0" max="20" value={draft.count} onChange={(event) => setDraft((current) => ({ ...current, count: event.target.value }))} /></label>
+    <label className="campaign-action-field-die">Die<select value={draft.sides} onChange={(event) => setDraft((current) => ({ ...current, sides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label>
+    <label className="campaign-action-field-modifier">Damage modifier<input type="number" min="-50" max="100" value={draft.modifier} onChange={(event) => setDraft((current) => ({ ...current, modifier: event.target.value }))} /></label>
+    <label className="campaign-action-field-type">Damage type<select value={draft.damageType} onChange={(event) => setDraft((current) => ({ ...current, damageType: event.target.value }))}>{DAMAGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+    <label className="campaign-action-field-reach">Reach (ft)<input type="number" min="0" value={draft.reachFeet} onChange={(event) => setDraft((current) => ({ ...current, reachFeet: event.target.value }))} /></label>
+    <label className="campaign-action-field-range">Range (ft)<input type="number" min="0" value={draft.rangeFeet} onChange={(event) => setDraft((current) => ({ ...current, rangeFeet: event.target.value }))} /></label>
+    <div className="campaign-action-options">
+      <label className="campaign-action-check"><input aria-label="Has additional effect" type="checkbox" checked={draft.manualRider} onChange={(event) => setDraft((current) => ({ ...current, manualRider: event.target.checked }))} />Additional effect</label>
+      <label className="campaign-action-check"><input type="checkbox" checked={draft.alternate} onChange={(event) => setDraft((current) => ({ ...current, alternate: event.target.checked }))} />Alternate damage</label>
+    </div>
+    {draft.alternate ? <div className="campaign-action-alternate-fields">
+      <label>Alternate label<input value={draft.alternateLabel} onChange={(event) => setDraft((current) => ({ ...current, alternateLabel: event.target.value }))} /></label>
+      <label>Dice<input type="number" min="0" max="20" value={draft.alternateCount} onChange={(event) => setDraft((current) => ({ ...current, alternateCount: event.target.value }))} /></label>
+      <label>Die<select value={draft.alternateSides} onChange={(event) => setDraft((current) => ({ ...current, alternateSides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label>
+      <label>Modifier<input type="number" value={draft.alternateModifier} onChange={(event) => setDraft((current) => ({ ...current, alternateModifier: event.target.value }))} /></label>
+    </div> : null}
+    <div className="campaign-action-editor-buttons"><button type="button" onClick={onCancel}>Cancel</button><button className="primary-button" disabled={pending || !saveEnabled}>{pending ? "Saving…" : "Save action"}</button></div>
+  </form>;
+}
+
 function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
   campaign: CampaignAccessSummary;
   pending: boolean;
@@ -98,7 +132,30 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
     };
   };
   if (!character) return null;
-  return <section className="campaign-combat-actions" aria-labelledby="combat-actions-title"><div className="campaign-section-heading"><div><div className="eyebrow">Tactical mirror</div><h2 id="combat-actions-title">Combat actions</h2></div><button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button></div><p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>{campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}<div className="campaign-action-list">{actions.length ? actions.map((action) => <article key={action.id}><div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div><button onClick={() => begin(action)}>Edit</button><button className="is-danger" disabled={pending} onClick={() => void onDelete(action.id)}>Delete</button></article>) : <p>No maintained actions yet.</p>}</div>{editingId ? <form className="campaign-action-editor" onSubmit={(event) => { event.preventDefault(); const next = values(); if (!next) return; void onSave({ characterId: character.id, actionId: editingId === "new" ? undefined : editingId, values: next }).then((saved) => { if (saved) setEditingId(null); }); }}><label>Action name<input autoFocus maxLength={64} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label><label>Attack bonus<input type="number" min="-20" max="30" value={draft.attackBonus} onChange={(event) => setDraft((current) => ({ ...current, attackBonus: event.target.value }))} /></label><label>Kind<select value={draft.attackKind} onChange={(event) => setDraft((current) => ({ ...current, attackKind: event.target.value as "melee" | "ranged" }))}><option value="melee">Melee</option><option value="ranged">Ranged</option></select></label><label>Dice count<input type="number" min="0" max="20" value={draft.count} onChange={(event) => setDraft((current) => ({ ...current, count: event.target.value }))} /></label><label>Die<select value={draft.sides} onChange={(event) => setDraft((current) => ({ ...current, sides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label><label>Damage modifier<input type="number" min="-50" max="100" value={draft.modifier} onChange={(event) => setDraft((current) => ({ ...current, modifier: event.target.value }))} /></label><label>Damage type<select value={draft.damageType} onChange={(event) => setDraft((current) => ({ ...current, damageType: event.target.value }))}>{DAMAGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></label><label>Reach (ft)<input type="number" min="0" value={draft.reachFeet} onChange={(event) => setDraft((current) => ({ ...current, reachFeet: event.target.value }))} /></label><label>Range (ft)<input type="number" min="0" value={draft.rangeFeet} onChange={(event) => setDraft((current) => ({ ...current, rangeFeet: event.target.value }))} /></label><label className="campaign-action-check"><input type="checkbox" checked={draft.manualRider} onChange={(event) => setDraft((current) => ({ ...current, manualRider: event.target.checked }))} />Has additional effect</label><label className="campaign-action-check"><input type="checkbox" checked={draft.alternate} onChange={(event) => setDraft((current) => ({ ...current, alternate: event.target.checked }))} />Alternate damage</label>{draft.alternate ? <><label>Alternate label<input value={draft.alternateLabel} onChange={(event) => setDraft((current) => ({ ...current, alternateLabel: event.target.value }))} /></label><label>Alt dice count<input type="number" min="0" max="20" value={draft.alternateCount} onChange={(event) => setDraft((current) => ({ ...current, alternateCount: event.target.value }))} /></label><label>Alt die<select value={draft.alternateSides} onChange={(event) => setDraft((current) => ({ ...current, alternateSides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></label><label>Alt modifier<input type="number" value={draft.alternateModifier} onChange={(event) => setDraft((current) => ({ ...current, alternateModifier: event.target.value }))} /></label></> : null}<div className="campaign-action-editor-buttons"><button type="button" onClick={() => setEditingId(null)}>Cancel</button><button className="primary-button" disabled={pending || !values()}>{pending ? "Saving…" : "Save action"}</button></div></form> : null}</section>;
+  const submitEditor = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next = values();
+    if (!next || !editingId) return;
+    void onSave({ characterId: character.id, actionId: editingId === "new" ? undefined : editingId, values: next })
+      .then((saved) => { if (saved) setEditingId(null); });
+  };
+  const editor = (title: string) => <CombatActionEditor title={title} draft={draft} setDraft={setDraft} pending={pending} saveEnabled={Boolean(values())} onCancel={() => setEditingId(null)} onSubmit={submitEditor} />;
+  return <section className="campaign-combat-actions" aria-labelledby="combat-actions-title">
+    <div className="campaign-section-heading"><div><div className="eyebrow">Tactical mirror</div><h2 id="combat-actions-title">Combat actions</h2></div><button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button></div>
+    <p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>
+    {campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}
+    <div className="campaign-action-list">
+      {editingId === "new" ? editor("New combat action") : null}
+      {actions.length ? actions.map((action) => <Fragment key={action.id}>
+        <article className={editingId === action.id ? "is-editing" : undefined}>
+          <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div>
+          <button type="button" aria-label={`${editingId === action.id ? "Editing" : "Edit"} ${action.name}`} disabled={pending || editingId === action.id} onClick={() => begin(action)}>{editingId === action.id ? "Editing" : "Edit"}</button>
+          <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => void onDelete(action.id)}>Delete</button>
+        </article>
+        {editingId === action.id ? editor(`Editing ${action.name}`) : null}
+      </Fragment>) : editingId !== "new" ? <p>No maintained actions yet.</p> : null}
+    </div>
+  </section>;
 }
 
 export function CampaignHome({ identity, campaign, invitedIdentities, loading, openingCode, openingDestination, renamingCode, error, notice, creating, campaignMutationPending, onOpenEncounter, onSetupEncounter, onCreateEncounter, onRenameEncounter, onRenameCampaign, onAddPlayer, onSaveCombatAction, onDeleteCombatAction, onBackToCampaigns, onSignOut }: {

@@ -5,6 +5,7 @@ import IconActionButton from "@/app/icon-action-button";
 import type { DamageNotification } from "@/app/use-damage-notifications";
 import type { DamageAdjudication } from "@/shared/combat-rolling";
 import type { EncounterState, SharedCombatRoll, SharedDamageProposal } from "@/shared/contracts";
+import { deterministicDiePreviewValues } from "@/shared/dice-animation";
 
 export type CombatRollResultNotice = { roll: SharedCombatRoll; proposalId: string | null };
 
@@ -79,46 +80,116 @@ function signedModifier(modifier: number) {
   return modifier >= 0 ? `+${modifier}` : `${modifier}`;
 }
 
+const DIE_ROLL_DURATION_MS = 720;
+
+function AnimatedDieTerm({ label, finalValue, sides, seed, startDelay, settleDelay, skipAnimation, className = "", selected = false }: {
+  label: string;
+  finalValue: number;
+  sides: number;
+  seed: string;
+  startDelay: number;
+  settleDelay: number;
+  skipAnimation: boolean;
+  className?: string;
+  selected?: boolean;
+}) {
+  const previewValues = useMemo(() => deterministicDiePreviewValues(seed, sides), [seed, sides]);
+  const [frame, setFrame] = useState(skipAnimation ? previewValues.length : -1);
+  const settled = skipAnimation || frame >= previewValues.length;
+  const visible = skipAnimation || frame >= 0;
+  const displayValue = frame < 0 || settled ? finalValue : previewValues[frame] ?? finalValue;
+
+  useEffect(() => {
+    if (skipAnimation) return;
+    const rollingDuration = Math.max(1, settleDelay - startDelay);
+    const timers = previewValues.map((_, index) => window.setTimeout(
+      () => setFrame(index),
+      Math.max(0, startDelay + Math.round(
+        rollingDuration * 0.7 * Math.pow(index / Math.max(1, previewValues.length - 1), 1.5),
+      )),
+    ));
+    timers.push(window.setTimeout(() => setFrame(previewValues.length), Math.max(0, settleDelay)));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [previewValues, settleDelay, skipAnimation, startDelay]);
+
+  return <span
+    className={`combat-roll-term${className}${visible ? " is-revealed" : ""}${visible && !settled ? " is-rolling" : ""}${settled && selected ? " is-kept" : ""}`}
+    aria-hidden={settled ? undefined : true}
+    aria-label={settled ? `${label} ${finalValue}` : undefined}
+  ><small>{label}</small><strong>{displayValue}</strong></span>;
+}
+
 type CombatRevealPlan = {
   attackTermSteps: number[];
+  attackTermStartDelays: Array<number | null>;
   attackTotalStep: number;
   outcomeStep: number;
+  damageStageStep: number | null;
   damageTermSteps: number[];
+  damageTermStartDelays: Array<number | null>;
   damageTotalStep: number | null;
   completeStep: number;
   delays: number[];
 };
 
-function createCombatRevealPlan(attackTermCount: number, damageTermCount: number): CombatRevealPlan {
+function createCombatRevealPlan(attackDiceCount: number, hasBlessDie: boolean, damageDiceCount: number, hasDamageStage: boolean): CombatRevealPlan {
   const delays: number[] = [];
   const addStep = (delay: number) => {
     delays.push(delay);
     return delays.length;
   };
-  let cursor = 140;
-  const attackTermSteps = Array.from({ length: attackTermCount }, () => {
-    const step = addStep(cursor);
-    cursor += 200;
-    return step;
-  });
-  cursor += 80;
+  const attackDieStartDelays = Array.from({ length: attackDiceCount }, (_, index) => 100 + index * 130);
+  const attackDieSteps = attackDieStartDelays.map((startDelay) => addStep(startDelay + DIE_ROLL_DURATION_MS));
+  let cursor = attackDieStartDelays.length
+    ? attackDieStartDelays.at(-1)! + DIE_ROLL_DURATION_MS
+    : 140;
+  let blessStep: number | null = null;
+  let blessStartDelay: number | null = null;
+  if (hasBlessDie) {
+    blessStartDelay = attackDieStartDelays.length ? attackDieStartDelays.at(-1)! + 130 : 100;
+    blessStep = addStep(blessStartDelay + DIE_ROLL_DURATION_MS);
+    cursor = blessStartDelay + DIE_ROLL_DURATION_MS;
+  }
+  cursor += 110;
+  const attackModifierStep = addStep(cursor);
+  const attackTermSteps = [...attackDieSteps, attackModifierStep, ...(blessStep === null ? [] : [blessStep])];
+  const attackTermStartDelays = [...attackDieStartDelays, null, ...(blessStartDelay === null ? [] : [blessStartDelay])];
+  cursor += 120;
   const attackTotalStep = addStep(cursor);
   cursor += 1_000;
   const outcomeStep = addStep(cursor);
+  let damageStageStep: number | null = null;
   const damageTermSteps: number[] = [];
+  const damageTermStartDelays: Array<number | null> = [];
   let damageTotalStep: number | null = null;
-  if (damageTermCount > 0) {
+  if (hasDamageStage) {
     cursor += 280;
-    for (let index = 0; index < damageTermCount; index += 1) {
-      damageTermSteps.push(addStep(cursor));
-      cursor += 200;
-    }
-    cursor += 80;
+    damageStageStep = addStep(cursor);
+    const damageDieStartDelays = Array.from({ length: damageDiceCount }, (_, index) => cursor + 50 + index * 110);
+    damageTermStartDelays.push(...damageDieStartDelays);
+    damageTermSteps.push(...damageDieStartDelays.map((startDelay) => addStep(startDelay + DIE_ROLL_DURATION_MS)));
+    cursor = damageDieStartDelays.length
+      ? damageDieStartDelays.at(-1)! + DIE_ROLL_DURATION_MS + 110
+      : cursor + 100;
+    damageTermStartDelays.push(null);
+    damageTermSteps.push(addStep(cursor));
+    cursor += 120;
     damageTotalStep = addStep(cursor);
   }
   cursor += 160;
   const completeStep = addStep(cursor);
-  return { attackTermSteps, attackTotalStep, outcomeStep, damageTermSteps, damageTotalStep, completeStep, delays };
+  return {
+    attackTermSteps,
+    attackTermStartDelays,
+    attackTotalStep,
+    outcomeStep,
+    damageStageStep,
+    damageTermSteps,
+    damageTermStartDelays,
+    damageTotalStep,
+    completeStep,
+    delays,
+  };
 }
 
 function useAutoDismissCountdown({ durationMs, paused, onDismiss }: {
@@ -175,6 +246,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   onFinalizeDamage?: (proposalId: string, method: DamageAdjudication, adjustedDamage?: number) => void;
 }) {
   const { roll, proposalId } = notice;
+  const automaticDamage = roll.action.resolutionMode === "automatic-damage";
   const privateDmRoll = roll.rollPrivacy === "dm-private";
   const summaryOnly = roll.rollPrivacy === "dm-summary";
   const calculatedOutcome = roll.calculatedOutcome ?? roll.outcome;
@@ -182,11 +254,14 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const visibleOutcome = awaitingVerdictRelease ? calculatedOutcome : roll.outcome;
   const damagePending = !awaitingVerdictRelease && (roll.outcome === "hit" || roll.outcome === "critical") && roll.damageRolledAt === null;
   const damagingHit = (roll.outcome === "hit" || roll.outcome === "critical") && roll.damageTotal !== null;
-  const attackTermCount = summaryOnly ? 0 : roll.attackDice.length + 1 + (roll.blessDie === null ? 0 : 1);
-  const damageTermCount = damagingHit && !summaryOnly ? roll.damageDice.length + 1 : 0;
   const revealPlan = useMemo(
-    () => createCombatRevealPlan(attackTermCount, damageTermCount),
-    [attackTermCount, damageTermCount],
+    () => createCombatRevealPlan(
+      summaryOnly || automaticDamage ? 0 : roll.attackDice.length,
+      !summaryOnly && !automaticDamage && roll.blessDie !== null,
+      damagingHit && !summaryOnly ? roll.damageDice.length : 0,
+      damagingHit && !summaryOnly,
+    ),
+    [automaticDamage, damagingHit, roll.attackDice.length, roll.blessDie, roll.damageDice.length, summaryOnly],
   );
   const reducedMotion = typeof window !== "undefined"
     && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
@@ -196,6 +271,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const phaseStartStep = initialRevealPhase === revealPhase || roll.damageRolledAt === null
     ? 0
     : revealPlan.outcomeStep;
+  const phaseStartDelay = phaseStartStep > 0 ? revealPlan.delays[phaseStartStep - 1] : 0;
   const [revealState, setRevealState] = useState(() => ({
     phase: revealPhase,
     step: skipAnimation ? revealPlan.completeStep : phaseStartStep,
@@ -211,7 +287,6 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
 
   useEffect(() => {
     if (skipAnimation) return;
-    const phaseStartDelay = phaseStartStep > 0 ? revealPlan.delays[phaseStartStep - 1] : 0;
     const timers = revealPlan.delays.flatMap((delay, index) => index + 1 > phaseStartStep
       ? [window.setTimeout(
           () => setRevealState({ phase: revealPhase, step: index + 1 }),
@@ -219,7 +294,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
         )]
       : []);
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [phaseStartStep, revealPhase, revealPlan, skipAnimation]);
+  }, [phaseStartDelay, phaseStartStep, revealPhase, revealPlan, skipAnimation]);
 
   const revealStep = revealState.phase === revealPhase
     ? revealState.step
@@ -227,7 +302,8 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const revealed = (step: number | null) => step !== null && revealStep >= step;
   const keptDieRevealed = roll.attackDice.length > 1
     && revealed(revealPlan.attackTermSteps[roll.attackDice.length]);
-  const damageStageRevealed = summaryOnly && damagingHit || revealPlan.damageTermSteps.some(revealed);
+  const damageStageRevealed = summaryOnly && damagingHit || revealed(revealPlan.damageStageStep);
+  const relativeDelay = (delay: number | null) => Math.max(0, (delay ?? 0) - phaseStartDelay);
   const titleId = `combat-roll-result-title-${roll.id}`;
   const statusId = `combat-roll-result-status-${roll.id}`;
   const proposalMessage = damageProposalMessage(proposalId, proposal);
@@ -251,7 +327,8 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   };
   const acceptedOutcome = calculatedOutcome === "critical" ? "critical" : calculatedOutcome === "hit" ? "hit" : "miss";
   const overrideOutcome = acceptedOutcome === "miss" ? "hit" : "miss";
-  const outcomeLabel = awaitingVerdictRelease ? "Calculated result" : privateDmRoll ? "Released result" : "Attack result";
+  const outcomeLabel = automaticDamage ? "Resolution" : awaitingVerdictRelease ? "Calculated result" : privateDmRoll ? "Released result" : "Attack result";
+  const visibleOutcomeTitle = automaticDamage ? "Automatic hit" : outcomeTitle(visibleOutcome);
 
   return <article
     className={`combat-activity-card combat-roll-result-card is-${roll.outcome}`}
@@ -265,19 +342,39 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
     }}
   >
     <header>
-      <span><small>{privateDmRoll ? "Private DM roll" : "Combat roll"}</small><strong id={titleId}><span>{roll.attackerName}</span> is attacking <span>{roll.targetName}</span> with <span>{roll.action.name}</span>.</strong></span>
+      <span><small>{automaticDamage ? "Automatic damage" : privateDmRoll ? "Private DM roll" : "Combat roll"}</small><strong id={titleId}><span>{roll.attackerName}</span> {automaticDamage ? "uses" : "is attacking"} <span>{roll.targetName}</span> with <span>{roll.action.name}</span>.</strong></span>
       <IconActionButton label="Dismiss roll result" variant="close" onClick={onDismiss} />
     </header>
     <div className="combat-roll-result-content">
-      {!summaryOnly ? <div className="combat-roll-result-stage" aria-label={`Attack total ${roll.attackTotal}`}>
+      {!summaryOnly && !automaticDamage ? <div className="combat-roll-result-stage" aria-label={`Attack total ${roll.attackTotal}`}>
         <div className="combat-roll-dice" aria-label="Attack dice">
-          {roll.attackDice.map((die, index) => <span className={`combat-roll-term${die === roll.keptD20 && keptDieRevealed ? " is-kept" : ""}${revealed(revealPlan.attackTermSteps[index]) ? " is-revealed" : ""}`} key={`${die}-${index}`}><small>d20</small><strong>{die}</strong></span>)}
+          {roll.attackDice.map((die, index) => <AnimatedDieTerm
+            key={`${revealPhase}:attack:${index}`}
+            label="d20"
+            finalValue={die}
+            sides={20}
+            seed={`${roll.id}:attack:${index}`}
+            startDelay={relativeDelay(revealPlan.attackTermStartDelays[index])}
+            settleDelay={relativeDelay(revealPlan.delays[revealPlan.attackTermSteps[index] - 1])}
+            skipAnimation={skipAnimation || phaseStartStep > 0}
+            selected={die === roll.keptD20 && keptDieRevealed}
+          />)}
           <span className={`combat-roll-term is-modifier${revealed(revealPlan.attackTermSteps[roll.attackDice.length]) ? " is-revealed" : ""}`}><small>Attack bonus</small><strong>{signedModifier(roll.action.attackBonus)}</strong></span>
-          {roll.blessDie !== null ? <span className={`combat-roll-term is-bless${revealed(revealPlan.attackTermSteps[roll.attackDice.length + 1]) ? " is-revealed" : ""}`}><small>Bless d4</small><strong>{roll.blessDie}</strong></span> : null}
+          {roll.blessDie !== null ? <AnimatedDieTerm
+            key={`${revealPhase}:bless`}
+            label="Bless d4"
+            finalValue={roll.blessDie}
+            sides={4}
+            seed={`${roll.id}:bless`}
+            startDelay={relativeDelay(revealPlan.attackTermStartDelays[roll.attackDice.length + 1])}
+            settleDelay={relativeDelay(revealPlan.delays[revealPlan.attackTermSteps[roll.attackDice.length + 1] - 1])}
+            skipAnimation={skipAnimation || phaseStartStep > 0}
+            className=" is-bless"
+          /> : null}
         </div>
         <div className={`combat-roll-total combat-roll-reveal${revealed(revealPlan.attackTotalStep) ? " is-revealed" : ""}`}><small>Attack total</small><strong>{roll.attackTotal}</strong></div>
       </div> : null}
-      <div className={`combat-roll-outcome combat-roll-reveal is-${visibleOutcome}${revealed(revealPlan.outcomeStep) ? " is-revealed" : ""}`} role="status" aria-label={`${outcomeLabel}: ${outcomeTitle(visibleOutcome)}`}><span><small>{outcomeLabel}</small><strong>{outcomeTitle(visibleOutcome)}</strong></span></div>
+      <div className={`combat-roll-outcome combat-roll-reveal is-${visibleOutcome}${revealed(revealPlan.outcomeStep) ? " is-revealed" : ""}`} role="status" aria-label={`${outcomeLabel}: ${visibleOutcomeTitle}`}><span><small>{outcomeLabel}</small><strong>{visibleOutcomeTitle}</strong></span></div>
       {awaitingVerdictRelease ? <div className={`dm-attack-verdict combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="group" aria-label={`Release attack result for ${roll.targetName}`}>
         <span>This roll is private. Release the calculated result or override what the table sees.</span>
         <div>
@@ -287,13 +384,23 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
       </div> : null}
       {damagePending ? <div className={`combat-roll-damage-prompt combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">
         {roll.canRollDamage && onRollDamage ? <>
-          <span>The attack hit. Pause for reactions, then roll the damage.</span>
+          <span>{automaticDamage ? "The action hits automatically. Roll the damage." : "The attack hit. Pause for reactions, then roll the damage."}</span>
           <span className="combat-roll-damage-actions"><button type="button" className="combat-card-action is-primary" disabled={rollingDamage} onClick={() => void requestDamageRoll()}>{rollingDamage ? "Rolling damage…" : "Roll damage"}</button>{privateDmRoll && roll.canReleaseOutcome && onReleaseOutcome ? <button type="button" className="combat-card-action" disabled={releasingOutcome} onClick={() => void releaseOutcome("miss")}>Resolve as miss</button> : null}</span>
         </> : summaryOnly ? <span>The attack was released as a hit. Waiting for the DM to roll damage.</span> : <span><strong>{roll.participantName}</strong> hit. Waiting for the damage roll.</span>}
       </div> : null}
       {damagingHit ? <div className={`combat-roll-result-stage combat-roll-damage-stage combat-roll-stage-reveal${summaryOnly ? " is-summary" : ""}${damageStageRevealed ? " is-revealed" : ""}`} aria-label={`${roll.action.damageType} damage total ${roll.damageTotal}`}>
         {!summaryOnly ? <div className="combat-roll-dice" aria-label="Damage dice">
-          {roll.damageDice.map((die, index) => <span className={`combat-roll-term is-damage${revealed(revealPlan.damageTermSteps[index]) ? " is-revealed" : ""}`} key={`${die}-${index}`}><small>d{roll.action.damage.sides}</small><strong>{die}</strong></span>)}
+          {roll.damageDice.map((die, index) => <AnimatedDieTerm
+            key={`${revealPhase}:damage:${index}`}
+            label={`d${roll.action.damage.sides}`}
+            finalValue={die}
+            sides={roll.action.damage.sides}
+            seed={`${roll.id}:damage:${index}`}
+            startDelay={relativeDelay(revealPlan.damageTermStartDelays[index])}
+            settleDelay={relativeDelay(revealPlan.delays[revealPlan.damageTermSteps[index] - 1])}
+            skipAnimation={skipAnimation}
+            className=" is-damage"
+          />)}
           <span className={`combat-roll-term is-modifier${revealed(revealPlan.damageTermSteps[roll.damageDice.length]) ? " is-revealed" : ""}`}><small>{roll.damageDice.length ? "Damage bonus" : "Flat damage"}</small><strong>{signedModifier(roll.action.damage.modifier)}</strong></span>
         </div> : null}
         <div className={`combat-roll-total combat-roll-reveal${summaryOnly || revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
@@ -337,7 +444,7 @@ function DmDamageFinalizer({ id, proposal, roll, revealed, onFinalize }: {
       <label htmlFor={`dm-final-damage-${proposal.id}`}>Different amount</label>
       <div><input id={`dm-final-damage-${proposal.id}`} aria-label={`Final damage for ${roll.targetName}`} type="number" min="0" max="1000" inputMode="numeric" value={adjustedDamage} onChange={(event) => setAdjustedDamage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && validAdjustment) finalize("adjust", adjustedValue); }} /><button type="button" disabled={!validAdjustment} onClick={() => finalize("adjust", adjustedValue)}>Apply &amp; reveal</button></div>
     </div>
-    {!privateDmRoll ? <div className="dm-damage-finalizer-secondary"><button type="button" className="text-button is-danger" onClick={() => finalize("reject")}>Reject attack</button><button type="button" className="text-button" onClick={() => finalize("cancel")}>Cancel proposal</button></div> : null}
+    {!privateDmRoll ? <div className="dm-damage-finalizer-secondary"><button type="button" className="text-button is-danger" onClick={() => finalize("reject")}>Void attack</button></div> : null}
   </section>;
 }
 
@@ -381,7 +488,7 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
         <div><input id={`adjust-damage-${proposal.id}`} aria-label={`Adjusted damage for ${targetName}`} type="number" min="0" max="1000" inputMode="numeric" value={adjustedDamage} onChange={(event) => setAdjustedDamage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && validAdjustment) adjudicate("adjust", adjustedValue); }} /><button type="button" disabled={!validAdjustment} onClick={() => adjudicate("adjust", adjustedValue)}>Apply</button></div>
       </div>
     </div>
-    <footer><button type="button" className="text-button is-danger" onClick={() => adjudicate("reject")}>Reject attack</button><button type="button" className="text-button" onClick={() => adjudicate("cancel")}>Cancel proposal</button></footer>
+    <footer><button type="button" className="text-button is-danger" onClick={() => adjudicate("reject")}>Void attack</button></footer>
   </article>;
 }
 

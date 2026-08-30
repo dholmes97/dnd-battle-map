@@ -225,13 +225,29 @@ button:disabled { cursor: not-allowed; }
 .campaign-combat-actions > label { max-width: 20rem; }
 .campaign-action-list { display: grid; gap: 0.4rem; margin-top: 0.7rem; }
 .campaign-action-list article { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.45rem; padding: 0.55rem; border: 1px solid #38332d; border-radius: 0.45rem; background: #181614; }
+.campaign-action-list article.is-editing { border-color: #8b713f; border-radius: 0.45rem 0.45rem 0 0; background: #211c15; box-shadow: 0 0 0 1px rgba(245, 198, 92, 0.06) inset; }
 .campaign-action-list article > div { display: grid; gap: 0.1rem; }
 .campaign-action-list article span { color: #a49a8c; font-size: 0.68rem; }
-.campaign-action-editor { margin-top: 0.8rem; padding: 0.75rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; border: 1px solid #5a4c34; border-radius: 0.55rem; background: #211d18; }
-.campaign-action-editor label { display: grid; gap: 0.2rem; color: #aa9f90; font-size: 0.65rem; }
-.campaign-action-editor .campaign-action-check { display: flex; align-items: center; gap: 0.35rem; }
-.campaign-action-editor .campaign-action-check input { min-height: auto; }
-.campaign-action-editor-buttons { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 0.45rem; }
+.campaign-action-editor { padding: 0.62rem; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; gap: 0.42rem; border: 1px solid #7a6439; border-radius: 0.55rem; background: #211d18; }
+.campaign-action-list article.is-editing + .campaign-action-editor { margin-top: -0.4rem; border-top-color: #514528; border-radius: 0 0 0.55rem 0.55rem; }
+.campaign-action-editor-heading { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; padding-bottom: 0.42rem; border-bottom: 1px solid #443a29; }
+.campaign-action-editor-heading strong { color: #ead39c; font-family: Georgia, "Times New Roman", serif; font-size: 0.9rem; font-weight: 550; }
+.campaign-action-editor-heading span { color: #887e6f; font-size: 0.56rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.campaign-action-editor label { min-width: 0; margin: 0; display: grid; gap: 0.18rem; color: #aa9f90; font-size: 0.59rem; }
+.campaign-action-editor input:not([type="checkbox"]), .campaign-action-editor select { min-width: 0; min-height: 2.18rem; padding: 0.38rem 0.48rem; border-radius: 0.4rem; font-size: 0.68rem; }
+.campaign-action-editor select { padding-right: 1.75rem; background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.6rem) 50%; background-size: 0.26rem 0.26rem, 0.26rem 0.26rem; }
+.campaign-action-field-name { grid-column: span 4; }
+.campaign-action-field-bonus, .campaign-action-field-kind, .campaign-action-field-modifier { grid-column: span 2; }
+.campaign-action-field-count, .campaign-action-field-die { grid-column: span 1; }
+.campaign-action-field-type { grid-column: span 3; }
+.campaign-action-field-reach, .campaign-action-field-range { grid-column: span 2; }
+.campaign-action-options { grid-column: span 5; min-height: 2.18rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.65rem; }
+.campaign-action-editor .campaign-action-check { display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.campaign-action-editor .campaign-action-check input { width: 0.82rem; height: 0.82rem; min-height: auto; margin: 0; accent-color: #d2aa56; }
+.campaign-action-alternate-fields { grid-column: 1 / -1; padding-top: 0.42rem; display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 0.42rem; border-top: 1px solid #443a29; }
+.campaign-action-editor-buttons { grid-column: 1 / -1; padding-top: 0.42rem; display: flex; justify-content: flex-end; gap: 0.38rem; border-top: 1px solid #443a29; }
+.campaign-action-editor-buttons button { width: auto; min-height: 2.1rem; padding: 0.34rem 0.68rem; border-radius: 0.4rem; font-size: 0.64rem; }
+.campaign-action-editor-buttons .primary-button { min-width: 8.5rem; }
 .campaign-section-heading { margin-bottom: 1.25rem; display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
 .campaign-section-actions { display: flex; align-items: center; gap: 0.55rem; }
 .campaign-section-actions > span { padding: 0.35rem 0.55rem; border: 1px solid #3a3631; border-radius: 999px; color: #91897e; font-size: 0.64rem; font-weight: 700; }
@@ -1538,6 +1554,8 @@ input:focus {
 .combat-roll-dice > span { width: 4.3rem; min-height: 4.3rem; padding: 0.4rem; display: grid; place-items: center; align-content: center; gap: 0.1rem; border: 1px solid #4e483f; border-radius: 0.75rem; background: #211f1b; color: #d7ccbc; box-shadow: inset 0 0 1rem rgba(0, 0, 0, 0.28); }
 .combat-roll-term { visibility: hidden; opacity: 0; transform: translateY(-0.24rem) scale(0.96); transition: opacity 180ms ease-out, transform 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out, box-shadow 180ms ease-out; }
 .combat-roll-term.is-revealed { visibility: visible; opacity: 1; transform: translateY(0) scale(1); }
+.combat-roll-term.is-rolling { border-color: #77623a; color: #e3c77d; box-shadow: inset 0 0 1rem rgba(176, 139, 67, 0.1), 0 0 0.75rem rgba(176, 139, 67, 0.08); }
+.combat-roll-term.is-rolling strong { opacity: 0.82; transform: translateY(-0.04rem); }
 .combat-roll-dice > span.is-kept { border-color: #b08b43; color: #f1d48b; box-shadow: inset 0 0 1rem rgba(176, 139, 67, 0.12), 0 0 1.2rem rgba(176, 139, 67, 0.1); }
 .combat-roll-dice > span.is-modifier { border-color: #615b52; color: #ded5c8; }
 .combat-roll-dice > span.is-bless { border-color: #8f7a45; color: #f0d476; }
@@ -1659,14 +1677,19 @@ input:focus {
 .dm-attack-verdict .combat-card-action.is-primary { border-color: #a5823d; background: #49371c; color: #f2d58d; }
 .combat-roll-result-card .combat-roll-damage-stage { min-height: 4.8rem; }
 .combat-roll-result-card .combat-roll-damage-stage.is-summary { min-height: 4.25rem; grid-template-columns: 1fr; justify-items: end; }
-.dm-damage-finalizer { padding: 0.58rem; display: grid; gap: 0.55rem; border: 1px solid rgba(138, 112, 64, 0.72); border-radius: 0.5rem; background: rgba(71, 55, 29, 0.18); }
-.dm-damage-finalizer > p { margin: 0; color: #cfc1a5; font-size: 0.65rem; line-height: 1.4; }
+.dm-damage-finalizer { padding: 0.48rem; display: grid; gap: 0.38rem; border: 1px solid rgba(138, 112, 64, 0.72); border-radius: 0.5rem; background: rgba(71, 55, 29, 0.18); }
+.dm-damage-finalizer > p { margin: 0; color: #cfc1a5; font-size: 0.6rem; line-height: 1.3; }
 .dm-damage-finalizer > p strong { color: #efd38d; }
-.dm-damage-finalizer .damage-review-decisions button { min-height: 2.35rem; padding: 0.36rem 0.42rem; text-align: center; }
-.dm-damage-finalizer .damage-review-adjust { margin-top: 0; padding-top: 0.48rem; }
-.dm-damage-finalizer .damage-review-adjust input, .dm-damage-finalizer .damage-review-adjust button { min-height: 2rem; }
+.dm-damage-finalizer .damage-review-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; }
+.dm-damage-finalizer .damage-review-decisions button { min-height: 1.95rem; padding: 0.24rem 0.3rem; text-align: center; }
+.dm-damage-finalizer .damage-review-decisions button strong { font-size: 0.58rem; }
+.dm-damage-finalizer .damage-review-decisions button span { font-size: 0.54rem; }
+.dm-damage-finalizer .damage-review-adjust { margin-top: 0; grid-template-columns: 5.4rem minmax(0, 1fr); align-items: center; gap: 0.32rem; }
+.dm-damage-finalizer .damage-review-adjust > div { grid-template-columns: 4.25rem auto; justify-content: start; gap: 0.3rem; }
+.dm-damage-finalizer .damage-review-adjust input { width: 4.25rem; text-align: right; }
+.dm-damage-finalizer .damage-review-adjust input, .dm-damage-finalizer .damage-review-adjust button { min-height: 1.9rem; }
 .dm-damage-finalizer-secondary { display: flex; justify-content: flex-end; gap: 0.25rem; }
-.dm-damage-finalizer-secondary .text-button { min-height: 1.85rem; padding-inline: 0.42rem; font-size: 0.58rem; }
+.dm-damage-finalizer-secondary .text-button { min-height: 1.65rem; padding: 0.16rem 0.34rem; font-size: 0.55rem; }
 .combat-roll-result-card .combat-roll-result-status { padding: 0.45rem 0.52rem; font-size: 0.65rem; }
 .combat-roll-result-card.is-miss .combat-roll-result-status { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
 .combat-roll-result-card .combat-roll-result-status.is-not-applied { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
@@ -1676,19 +1699,20 @@ input:focus {
 .damage-review-card { border-color: rgba(165, 127, 55, 0.9); box-shadow: 0 16px 42px rgba(0, 0, 0, 0.66), 0 0 30px rgba(210, 170, 86, 0.1); }
 .damage-review-card > header { background: linear-gradient(180deg, rgba(49, 40, 26, 0.96), rgba(29, 26, 21, 0.94)); }
 .damage-review-card .damage-review-count { margin-left: auto; }
-.damage-review-card .damage-review-content { padding: 0.68rem; gap: 0.52rem; }
+.damage-review-card .damage-review-content { padding: 0.58rem 0.68rem; gap: 0.4rem; }
 .damage-review-card .damage-review-content > p { font-size: 0.7rem; line-height: 1.4; }
-.damage-review-card .damage-review-total { padding: 0.5rem 0.62rem; }
-.damage-review-card .damage-review-total > strong { font-size: 1.55rem; }
+.damage-review-card .damage-review-total { padding: 0.36rem 0.52rem; }
+.damage-review-card .damage-review-total > strong { font-size: 1.35rem; }
 .damage-review-card .damage-review-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.34rem; }
-.damage-review-card .damage-review-decisions button { min-height: 2.5rem; padding: 0.36rem 0.42rem; text-align: center; }
+.damage-review-card .damage-review-decisions button { min-height: 2rem; padding: 0.25rem 0.32rem; text-align: center; }
 .damage-review-card .damage-review-decisions button strong { font-size: 0.64rem; }
 .damage-review-card .damage-review-decisions button span { font-size: 0.58rem; }
 .damage-review-card .damage-review-adjust { grid-template-columns: 6.4rem minmax(0, 1fr); align-items: center; gap: 0.4rem; }
-.damage-review-card .damage-review-adjust > div { grid-template-columns: minmax(0, 1fr) auto; gap: 0.34rem; }
-.damage-review-card .damage-review-adjust input, .damage-review-card .damage-review-adjust button { min-height: 2rem; }
-.damage-review-card > footer { padding: 0 0.68rem 0.62rem; display: flex; gap: 0.25rem; }
-.damage-review-card > footer .text-button { min-height: 1.85rem; padding-inline: 0.42rem; font-size: 0.58rem; }
+.damage-review-card .damage-review-adjust > div { grid-template-columns: 4.25rem auto; justify-content: start; gap: 0.34rem; }
+.damage-review-card .damage-review-adjust input { width: 4.25rem; text-align: right; }
+.damage-review-card .damage-review-adjust input, .damage-review-card .damage-review-adjust button { min-height: 1.9rem; }
+.damage-review-card > footer { padding: 0 0.68rem 0.48rem; display: flex; justify-content: flex-end; gap: 0.25rem; }
+.damage-review-card > footer .text-button { min-height: 1.65rem; padding: 0.16rem 0.34rem; font-size: 0.55rem; }
 .damage-notification-card-content { padding: 0.68rem; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); align-items: center; gap: 0.62rem; }
 .damage-notification-card .damage-notification-sigil { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border: 1px solid #9b7937; border-radius: 50%; color: #edc76c; box-shadow: inset 0 0 0 0.28rem rgba(155, 121, 55, 0.08); }
 .damage-notification-card .damage-notification-copy { gap: 0.3rem; font-size: 0.68rem; line-height: 1.38; }
@@ -2068,6 +2092,11 @@ input:focus {
   .campaign-create-footer { grid-column: auto; align-items: stretch; flex-direction: column; }
   .campaign-create-footer .primary-button { width: 100%; }
   .campaign-character-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campaign-action-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campaign-action-field-name, .campaign-action-field-type, .campaign-action-options, .campaign-action-alternate-fields, .campaign-action-editor-buttons { grid-column: 1 / -1; }
+  .campaign-action-field-bonus, .campaign-action-field-kind, .campaign-action-field-count, .campaign-action-field-die, .campaign-action-field-modifier, .campaign-action-field-reach, .campaign-action-field-range { grid-column: span 1; }
+  .campaign-action-options { justify-content: flex-start; flex-wrap: wrap; }
+  .campaign-action-alternate-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .campaign-party-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .campaign-management-panel { grid-template-columns: 1fr; }
   .scenario-card-grid { grid-template-columns: 1fr; }

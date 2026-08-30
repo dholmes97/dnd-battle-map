@@ -123,6 +123,7 @@ export function CombatRollPanel({
   const panelRef = useRef<HTMLElement>(null);
   const [position, setPosition] = useState<CombatPanelPosition | null>(null);
   const selectedAction = actions.find((action) => action.id === actionId) ?? actions[0] ?? null;
+  const automaticDamage = selectedAction?.resolutionMode === "automatic-damage";
   const genericAvailable = participant.role === "dm" && actions.length === 0;
   const bless = hasBless(attacker.effects);
 
@@ -235,16 +236,16 @@ export function CombatRollPanel({
   >
     <header><div><small>Attack</small><strong><span>{attacker.name}</span><b aria-hidden="true">→</b><span>{target.name}</span></strong></div><IconActionButton variant="close" label="Close attack chooser" onClick={onClose} /></header>
     <div className="combat-roll-panel-body">
-      {actions.length ? <label className="combat-action-picker"><span>Action</span><select value={selectedAction?.id ?? ""} onChange={(event) => { setActionId(event.target.value); setAlternateDamage(false); }}>{actions.map((action) => <option key={action.id} value={action.id}>{action.name} · {action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)}</option>)}</select></label> : null}
+      {actions.length ? <label className="combat-action-picker"><span>Action</span><select value={selectedAction?.id ?? ""} onChange={(event) => { setActionId(event.target.value); setAlternateDamage(false); }}>{actions.map((action) => <option key={action.id} value={action.id}>{action.name} · {action.resolutionMode === "automatic-damage" ? "automatic" : `${action.attackBonus >= 0 ? "+" : ""}${action.attackBonus}`} · {formatDiceFormula(action.damage)}</option>)}</select></label> : null}
       {genericAvailable ? <fieldset className="combat-generic-form"><legend>Unsaved generic Attack</legend><label>Name<input value={generic.name} maxLength={64} onChange={(event) => setGeneric((current) => ({ ...current, name: event.target.value }))} /></label><label>Attack bonus<input type="number" min="-20" max="30" value={generic.attackBonus} onChange={(event) => setGeneric((current) => ({ ...current, attackBonus: event.target.value }))} /></label><label>Damage dice<span><input aria-label="Damage die count" type="number" min="0" max="20" value={generic.count} onChange={(event) => setGeneric((current) => ({ ...current, count: event.target.value }))} /><select aria-label="Damage die size" value={generic.sides} onChange={(event) => setGeneric((current) => ({ ...current, sides: event.target.value }))}>{SUPPORTED_DIE_SIDES.map((side) => <option key={side} value={side}>d{side}</option>)}</select></span></label><label>Modifier<input type="number" min="-50" max="100" value={generic.modifier} onChange={(event) => setGeneric((current) => ({ ...current, modifier: event.target.value }))} /></label><label>Damage type<select value={generic.damageType} onChange={(event) => setGeneric((current) => ({ ...current, damageType: event.target.value }))}>{DAMAGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></label></fieldset> : null}
       {!actions.length && !genericAvailable ? <p className="combat-empty">This attacker has no maintained combat actions.</p> : null}
-      <div className="combat-roll-mode" role="radiogroup" aria-label="Roll mode"><span>Roll</span><div>{(["normal", "advantage", "disadvantage"] as RollMode[]).map((mode) => <label key={mode} className={rollMode === mode ? "is-selected" : ""}><input type="radio" name="roll-mode" checked={rollMode === mode} onChange={() => setRollMode(mode)} /><span>{mode}</span></label>)}</div></div>
+      {!automaticDamage ? <div className="combat-roll-mode" role="radiogroup" aria-label="Roll mode"><span>Roll</span><div>{(["normal", "advantage", "disadvantage"] as RollMode[]).map((mode) => <label key={mode} className={rollMode === mode ? "is-selected" : ""}><input type="radio" name="roll-mode" checked={rollMode === mode} onChange={() => setRollMode(mode)} /><span>{mode}</span></label>)}</div></div> : <p className="combat-bless">Hits automatically</p>}
       <div className="combat-roll-options">
         {selectedAction?.alternateDamage ? <label className="combat-alternate"><input type="checkbox" checked={alternateDamage} onChange={(event) => setAlternateDamage(event.target.checked)} />Use {selectedAction.alternateDamage.label} ({formatDiceFormula(selectedAction.alternateDamage.formula)})</label> : null}
-        {bless ? <p className="combat-bless">Bless +1d4 automatic</p> : null}
+        {bless && !automaticDamage ? <p className="combat-bless">Bless +1d4 automatic</p> : null}
       </div>
       {selectedAction?.manualRider ? <p className="combat-rider-warning"><strong>Additional effect:</strong> {selectedAction.manualRiderText}</p> : null}
     </div>
-    <footer><button className="combat-roll-submit" type="button" disabled={!submitArmed || pending || (!selectedAction && !genericAvailable)} onClick={() => void submit()}>{pending ? "Rolling…" : "Roll attack"}</button></footer>
+    <footer><button className="combat-roll-submit" type="button" disabled={!submitArmed || pending || (!selectedAction && !genericAvailable)} onClick={() => void submit()}>{pending ? "Rolling…" : automaticDamage ? "Use action" : "Roll attack"}</button></footer>
   </section>;
 }

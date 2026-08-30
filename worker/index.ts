@@ -1274,6 +1274,7 @@ function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile |
   try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
   const values = validateCombatActionValues({
     name: row.name,
+    resolutionMode: row.resolution_mode,
     attackBonus: row.attack_bonus,
     attackKind: row.attack_kind,
     damage: { count: row.damage_dice_count, sides: row.damage_die_size, modifier: row.damage_modifier },
@@ -1822,7 +1823,7 @@ async function encounterState(
       (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
   const actionRows = await env.DB.prepare(
-        `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name,
+        `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name, cap.resolution_mode,
                 cap.attack_bonus, cap.attack_kind, cap.damage_dice_count, cap.damage_die_size,
                 cap.damage_modifier, cap.damage_type, cap.reach_feet, cap.range_feet,
                 cap.manual_rider, cap.manual_rider_text, cap.alternate_damage_json, cap.source_kind, cap.source_ref,
