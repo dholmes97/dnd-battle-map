@@ -267,6 +267,13 @@
       "when": 1788041623175,
       "tag": "0037_long_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1788056056064,
+      "tag": "0038_nosy_bucky",
+      "breakpoints": true
     }
   ]
 }

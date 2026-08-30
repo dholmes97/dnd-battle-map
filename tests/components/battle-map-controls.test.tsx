@@ -19,7 +19,7 @@ function commandBar(overrides: Partial<Parameters<typeof BattleMapCommandBar>[0]
     durableAnnotationCount: 0,
     onAnnotationMode: vi.fn(), onToggleFogEditor: vi.fn(), onRequestClearAnnotations: vi.fn(), onToggleChat: vi.fn(), onToggleCreatures: vi.fn(), onToggleSpells: vi.fn(), onOpenDashboard: vi.fn(), onHistory: vi.fn(), onFit: vi.fn(), onZoom: vi.fn(), onResetZoom: vi.fn(), onGridOpacityChange: vi.fn(), onColoredTokenCentersChange: vi.fn(), onHealthRingsChange: vi.fn(), onFogModeChange: vi.fn(), onVisionDoorChange: vi.fn(), onStrictMovementChange: vi.fn(), onToggleSidebar: vi.fn(), onTogglePresenting: vi.fn(), onCorrectTurn: vi.fn(), ...overrides,
   };
-  render(<BattleMapCommandBar {...props} />); return props;
+  const view = render(<BattleMapCommandBar {...props} />); return Object.assign(props, { rerender: view.rerender });
 }
 
 describe("BattleMapCommandBar", () => {
@@ -40,11 +40,29 @@ describe("BattleMapCommandBar", () => {
     const roll = { id: "roll-1", attackerName: "Dar'eleth", targetName: "Goblin", outcome: "hit", damageTotal: 8, action: { name: "Longsword +1", damageType: "slashing" } };
     commandBar({ state: { ...state, combatRolls: [roll] } as EncounterState });
     expect(screen.queryByRole("region", { name: "Combat Log" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Combat Log, 1 roll" }));
+    await userEvent.click(screen.getByRole("button", { name: "Combat Log" }));
     const log = screen.getByRole("region", { name: "Combat Log" });
     expect(log.querySelector(".combat-log-scroll")).toBeTruthy();
     expect(log.textContent).toContain("Dar'eleth → Goblin");
     expect(log.textContent).toContain("8 slashing");
+    const close = screen.getByRole("button", { name: "Close Combat Log" });
+    expect(close.querySelector("svg.icon-action-glyph")).toBeTruthy();
+    expect(close.textContent).toBe("");
+  });
+  it("counts only new combat rolls and marks them read when the log opens", async () => {
+    const existingRoll = { id: "roll-1", attackerName: "Dar'eleth", targetName: "Goblin", outcome: "miss", damageTotal: null, action: { name: "Longsword +1", damageType: "slashing" } };
+    const props = commandBar({ state: { ...state, combatRolls: [existingRoll] } as EncounterState });
+    expect(screen.getByRole("button", { name: "Combat Log" }).querySelector(".combat-log-count")).toBeNull();
+
+    const newRoll = { ...existingRoll, id: "roll-2", attackerName: "Jelton" };
+    const nextProps = { ...props, state: { ...state, combatRolls: [existingRoll, newRoll] } as EncounterState };
+    props.rerender(<BattleMapCommandBar {...nextProps} />);
+    expect(screen.getByRole("button", { name: "Combat Log, 1 unread roll" }).querySelector(".combat-log-count")?.textContent).toBe("1");
+
+    await userEvent.click(screen.getByRole("button", { name: "Combat Log, 1 unread roll" }));
+    expect(screen.getByRole("button", { name: "Combat Log" }).querySelector(".combat-log-count")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Close Combat Log" }));
+    expect(screen.getByRole("button", { name: "Combat Log" }).querySelector(".combat-log-count")).toBeNull();
   });
   it("opens turn correction from the DM round control", async () => {
     const onCorrectTurn = vi.fn();

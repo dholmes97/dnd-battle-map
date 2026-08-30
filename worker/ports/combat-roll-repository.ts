@@ -41,6 +41,9 @@ export type CombatRollRow = {
   bless_die: number | null;
   attack_total: number;
   outcome: string;
+  dm_private: number;
+  released_outcome: string | null;
+  outcome_released_at: number | null;
   damage_dice_json: string;
   damage_total: number;
   damage_rolled_at: number | null;
@@ -103,9 +106,16 @@ export interface CombatRollRepository {
     blessDie: number | null;
     attackTotal: number;
     outcome: string;
+    dmPrivate: boolean;
     damageDiceJson: string;
     damageTotal: number;
     inTurn: boolean;
+    now: number;
+  }): Promise<void>;
+  releaseAttackOutcome(input: {
+    encounterId: string;
+    rollId: string;
+    outcome: "miss" | "hit" | "critical";
     now: number;
   }): Promise<void>;
   findProposalByRoll(encounterId: string, rollId: string): Promise<DamageProposalRow | null>;

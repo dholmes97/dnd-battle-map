@@ -131,6 +131,8 @@ export type EncounterState = {
   damageProposals: SharedDamageProposal[];
 };
 
+export type CombatRollOutcome = "miss" | "hit" | "critical" | "needs-ac";
+
 export type SharedCombatRoll = {
   id: string;
   attackerTokenId: string;
@@ -145,7 +147,11 @@ export type SharedCombatRoll = {
   keptD20: number;
   blessDie: number | null;
   attackTotal: number;
-  outcome: "miss" | "hit" | "critical" | "needs-ac";
+  outcome: CombatRollOutcome;
+  calculatedOutcome: CombatRollOutcome | null;
+  releasedOutcome: CombatRollOutcome | null;
+  rollPrivacy: "public" | "dm-private" | "dm-summary";
+  canReleaseOutcome: boolean;
   damageDice: number[];
   damageTotal: number | null;
   damageRolledAt: number | null;
@@ -180,7 +186,7 @@ export const COMMAND_NAMES = [
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
   "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
-  "roll-attack", "roll-damage", "adjudicate-damage",
+  "roll-attack", "release-attack-outcome", "roll-damage", "adjudicate-damage",
 ] as const;
 
 export type CommandName = typeof COMMAND_NAMES[number];
@@ -266,6 +272,7 @@ export type CommandPayloadMap = {
     rollMode: RollMode;
     alternateDamage?: boolean;
   };
+  "release-attack-outcome": { rollId: string; outcome: "miss" | "hit" | "critical" };
   "roll-damage": { operationId: string; rollId: string };
   "adjudicate-damage": {
     proposalId: string;

@@ -33,10 +33,14 @@ const damageRoll: SharedCombatRoll = {
   blessDie: null,
   attackTotal: 22,
   outcome: "hit",
+  calculatedOutcome: null,
+  releasedOutcome: "hit",
+  rollPrivacy: "public",
   damageDice: [7],
   damageTotal: 11,
   damageRolledAt: 2,
   canRollDamage: false,
+  canReleaseOutcome: false,
   inTurn: true,
   createdAt: 1,
 };
@@ -374,6 +378,113 @@ describe("CombatRollResultCard", () => {
     window.matchMedia = originalMatchMedia;
     vi.useRealTimers();
   });
+
+  it("keeps a DM attack private until the DM releases or overrides its verdict", async () => {
+    const onReleaseOutcome = vi.fn(async () => undefined);
+    const privateRoll: SharedCombatRoll = {
+      ...damageRoll,
+      rollPrivacy: "dm-private",
+      calculatedOutcome: "hit",
+      releasedOutcome: null,
+      damageDice: [],
+      damageTotal: null,
+      damageRolledAt: null,
+      canRollDamage: false,
+      canReleaseOutcome: true,
+    };
+    render(<CombatRollResultCard
+      notice={{ roll: privateRoll, proposalId: null }}
+      onDismiss={vi.fn()}
+      onReleaseOutcome={onReleaseOutcome}
+    />);
+
+    expect(screen.getByText("Private DM roll")).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Calculated result: Hit" })).toBeTruthy();
+    expect(screen.getByLabelText("Attack dice")).toBeTruthy();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Release Hit" })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Override: Miss" })));
+    expect(onReleaseOutcome).toHaveBeenNthCalledWith(1, "hit");
+    expect(onReleaseOutcome).toHaveBeenNthCalledWith(2, "miss");
+  });
+
+  it("shows players only the released DM verdict until final damage is released", () => {
+    const summaryRoll: SharedCombatRoll = {
+      ...damageRoll,
+      rollPrivacy: "dm-summary",
+      calculatedOutcome: null,
+      releasedOutcome: "hit",
+      action: {
+        ...damageRoll.action,
+        attackBonus: 0,
+        damage: { ...damageRoll.action.damage, count: 0, modifier: 0 },
+      },
+      attackDice: [],
+      keptD20: 0,
+      blessDie: null,
+      attackTotal: 0,
+      damageDice: [],
+      damageTotal: null,
+      damageRolledAt: null,
+      canRollDamage: false,
+      canReleaseOutcome: false,
+    };
+    render(<CombatRollResultCard notice={{ roll: summaryRoll, proposalId: null }} onDismiss={vi.fn()} />);
+
+    expect(screen.getByRole("status", { name: "Attack result: Hit" })).toBeTruthy();
+    expect(screen.getByText("The attack was released as a hit. Waiting for the DM to roll damage.")).toBeTruthy();
+    expect(screen.queryByLabelText("Attack dice")).toBeNull();
+    expect(screen.queryByText("Attack total")).toBeNull();
+    expect(screen.queryByText("Attack bonus")).toBeNull();
+  });
+
+  it("lets the DM apply and reveal private damage without a second review card", () => {
+    const onFinalizeDamage = vi.fn();
+    render(<CombatRollResultCard
+      notice={{ roll: {
+        ...damageRoll,
+        rollPrivacy: "dm-private",
+        calculatedOutcome: "hit",
+        releasedOutcome: "hit",
+        canReleaseOutcome: false,
+      }, proposalId: damageProposal.id }}
+      proposal={damageProposal}
+      onDismiss={vi.fn()}
+      onFinalizeDamage={onFinalizeDamage}
+    />);
+
+    expect(screen.getByLabelText("Finalize damage against Orc Warrior")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Apply and reveal 11 damage" }));
+    expect(onFinalizeDamage).toHaveBeenCalledWith(damageProposal.id, "apply", undefined);
+    expect(screen.queryByText("Damage is pending DM approval.")).toBeNull();
+  });
+
+  it("reveals only the DM's finalized damage total to players", () => {
+    render(<CombatRollResultCard
+      notice={{ roll: {
+        ...damageRoll,
+        rollPrivacy: "dm-summary",
+        calculatedOutcome: null,
+        releasedOutcome: "hit",
+        action: {
+          ...damageRoll.action,
+          attackBonus: 0,
+          damage: { ...damageRoll.action.damage, count: 0, modifier: 0 },
+        },
+        attackDice: [],
+        keptD20: 0,
+        attackTotal: 0,
+        damageDice: [],
+        damageTotal: 6,
+        damageRolledAt: 3,
+      }, proposalId: damageProposal.id }}
+      proposal={{ ...damageProposal, status: "applied", rolledDamage: 6, finalDamage: 6, resolvedAt: 3 }}
+      onDismiss={vi.fn()}
+    />);
+
+    expect(screen.getByLabelText("slashing damage total 6")).toBeTruthy();
+    expect(screen.queryByLabelText("Damage dice")).toBeNull();
+    expect(screen.queryByText("Damage bonus")).toBeNull();
+  });
 });
 
 describe("combat surface separation", () => {
@@ -417,6 +528,7 @@ describe("combat surface separation", () => {
       damageReviewPendingCount={2}
       onDismissRollResult={vi.fn()}
       onRollDamage={vi.fn(async () => undefined)}
+      onReleaseAttackOutcome={vi.fn(async () => undefined)}
       onDismissDamageNotification={vi.fn()}
       onDismissDamageReview={vi.fn()}
       onAdjudicateDamage={vi.fn()}

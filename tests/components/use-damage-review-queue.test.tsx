@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useDamageReviewQueue } from "@/app/use-damage-review-queue";
-import type { EncounterState, ParticipantSession, SharedDamageProposal } from "@/shared/contracts";
+import type { EncounterState, ParticipantSession, SharedCombatRoll, SharedDamageProposal } from "@/shared/contracts";
 
 function proposal(id: string, createdAt: number): SharedDamageProposal {
   return { id, rollId: `roll-${id}`, targetTokenId: "target", status: "pending", rolledDamage: 5, finalDamage: null, adjudicationMethod: null, adjudicationNote: null, concentrationCheckRequired: false, createdAt, resolvedAt: null };
@@ -30,6 +30,19 @@ describe("useDamageReviewQueue", () => {
     const participant = { id: "player", name: "Dan", role: "player", sessionSecret: "secret" } as ParticipantSession;
     const state = { damageProposals: [proposal("one", 1)] } as EncounterState;
     const { result } = renderHook(() => useDamageReviewQueue({ participant, state }));
+    expect(result.current.activeProposal).toBeNull();
+    expect(result.current.pendingCount).toBe(0);
+  });
+
+  it("keeps a private DM damage roll in its attack card instead of duplicating it in the review queue", () => {
+    const participant = { id: "dm", name: "Kevin", role: "dm", sessionSecret: "secret" } as ParticipantSession;
+    const pending = proposal("private", 1);
+    const state = {
+      damageProposals: [pending],
+      combatRolls: [{ id: pending.rollId, rollPrivacy: "dm-private" } as SharedCombatRoll],
+    } as EncounterState;
+    const { result } = renderHook(() => useDamageReviewQueue({ participant, state }));
+
     expect(result.current.activeProposal).toBeNull();
     expect(result.current.pendingCount).toBe(0);
   });

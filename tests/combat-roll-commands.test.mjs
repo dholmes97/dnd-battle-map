@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { adjudicateDamage, rollAttack, rollDamage } from "../worker/commands/combat-roll-commands.ts";
+import { adjudicateDamage, releaseAttackOutcome, rollAttack, rollDamage } from "../worker/commands/combat-roll-commands.ts";
 
 function token(id, overrides = {}) {
   return {
@@ -36,7 +36,8 @@ function storedRoll(overrides = {}) {
       reachFeet: 5, rangeFeet: null, manualRider: false, manualRiderText: null, alternateDamage: null,
     }),
     roll_mode: "normal", attack_dice_json: "[14]", kept_d20: 14, bless_die: null,
-    attack_total: 21, outcome: "hit", damage_dice_json: "[]", damage_total: 0,
+    attack_total: 21, outcome: "hit", dm_private: 0, released_outcome: null, outcome_released_at: null,
+    damage_dice_json: "[]", damage_total: 0,
     damage_rolled_at: null, in_turn: 1, created_at: 1, ...overrides,
   };
 }
@@ -60,6 +61,7 @@ function context(overrides = {}) {
     findRollByOperation: async () => null,
     findRoll: async () => null,
     createRoll: async (value) => calls.push(["roll", value]),
+    releaseAttackOutcome: async (value) => calls.push(["release", value]),
     findProposalByRoll: async () => null,
     recordDamage: async (value) => calls.push(["damage", value]),
     findProposal: async () => null,
@@ -119,8 +121,77 @@ test("a configured roll uses authoritative Bless, dice, action values, and actor
   assert.equal(written.blessDie, 3);
   assert.equal(written.damageDiceJson, "[]");
   assert.equal(written.damageTotal, 0);
+  assert.equal(written.dmPrivate, false);
   assert.equal(result.payload.proposalId, null);
   assert.equal(result.payload.result.damageTotal, null);
+});
+
+test("DM attacks are stored privately and require a released verdict", async () => {
+  const dmParticipant = { id: "dm", name: "DM", role: "dm", authenticatedActorIdentityId: "identity-dm" };
+  const attack = context({ participant: dmParticipant, dice: [14] });
+  const attackResult = await rollAttack(attack);
+  assert.equal(attackResult.payload.result.outcome, "hit");
+  assert.equal(attack.calls.find(([kind]) => kind === "roll")[1].dmPrivate, true);
+
+  const unreleasedDamage = context({
+    participant: dmParticipant,
+    payload: { operationId: "dm-damage-unreleased", rollId: "roll" },
+    repository: { findRoll: async () => storedRoll({ participant_id: "dm", dm_private: 1 }) },
+  });
+  assert.equal((await rollDamage(unreleasedDamage)).status, 409);
+
+  const release = context({
+    participant: dmParticipant,
+    payload: { rollId: "roll", outcome: "hit" },
+    repository: { findRoll: async () => storedRoll({ participant_id: "dm", dm_private: 1 }) },
+  });
+  assert.equal((await releaseAttackOutcome(release)).payload.outcome, "hit");
+  assert.deepEqual(release.calls.find(([kind]) => kind === "release")[1], {
+    encounterId: "encounter", rollId: "roll", outcome: "hit", now: 100,
+  });
+
+  const damage = context({
+    participant: dmParticipant,
+    payload: { operationId: "dm-damage-released", rollId: "roll" },
+    dice: [6],
+    repository: {
+      findRoll: async () => storedRoll({
+        participant_id: "dm", dm_private: 1, released_outcome: "hit", outcome_released_at: 99,
+      }),
+    },
+  });
+  assert.equal((await rollDamage(damage)).payload.damageTotal, 10);
+});
+
+test("only the DM can release or override a private attack verdict", async () => {
+  const player = context({
+    payload: { rollId: "roll", outcome: "hit" },
+    repository: { findRoll: async () => storedRoll({ dm_private: 1 }) },
+  });
+  assert.equal((await releaseAttackOutcome(player)).status, 403);
+
+  const dmParticipant = { id: "dm", name: "DM", role: "dm", authenticatedActorIdentityId: "identity-dm" };
+  const publicRoll = context({
+    participant: dmParticipant,
+    payload: { rollId: "roll", outcome: "hit" },
+    repository: { findRoll: async () => storedRoll() },
+  });
+  assert.equal((await releaseAttackOutcome(publicRoll)).status, 409);
+
+  const falseCritical = context({
+    participant: dmParticipant,
+    payload: { rollId: "roll", outcome: "critical" },
+    repository: { findRoll: async () => storedRoll({ participant_id: "dm", dm_private: 1 }) },
+  });
+  assert.equal((await releaseAttackOutcome(falseCritical)).status, 400);
+
+  const override = context({
+    participant: dmParticipant,
+    payload: { rollId: "roll", outcome: "miss" },
+    repository: { findRoll: async () => storedRoll({ participant_id: "dm", dm_private: 1 }) },
+  });
+  assert.equal((await releaseAttackOutcome(override)).payload.outcome, "miss");
+  assert.equal(override.calls.find(([kind]) => kind === "release")[1].outcome, "miss");
 });
 
 test("damage is rolled only in the second authorized command and then creates the proposal", async () => {

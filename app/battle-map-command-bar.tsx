@@ -67,6 +67,7 @@ function proposalStatusLabel(status: EncounterState["damageProposals"][number]["
 
 export function BattleMapCommandBar(props: CommandBarProps) {
   const [combatLogOpen, setCombatLogOpen] = useState(false);
+  const [readCombatRollIds, setReadCombatRollIds] = useState<Set<string>>(() => new Set(props.state.combatRolls.map((roll) => roll.id)));
   const [roundEditorOpen, setRoundEditorOpen] = useState(false);
   const [roundDraft, setRoundDraft] = useState("");
   const [activeOrderDraft, setActiveOrderDraft] = useState(0);
@@ -76,6 +77,25 @@ export function BattleMapCommandBar(props: CommandBarProps) {
   const initiativeOrders = [...new Set(state.tokens.flatMap((token) => token.initiativeOrder === null ? [] : [token.initiativeOrder]))].sort((a, b) => a - b);
   const canCorrectTurn = participant.role === "dm" && state.encounter.status !== "setup" && initiativeOrders.length > 0;
   const correctedRound = /^\d+$/.test(roundDraft) && Number(roundDraft) >= 1 ? Number(roundDraft) : null;
+  const unreadCombatRollCount = combatLogOpen ? 0 : state.combatRolls.filter((roll) => !readCombatRollIds.has(roll.id)).length;
+  const markCombatRollsRead = () => {
+    setReadCombatRollIds((current) => {
+      const unreadRollIds = state.combatRolls.flatMap((roll) => current.has(roll.id) ? [] : [roll.id]);
+      if (unreadRollIds.length === 0) return current;
+      const next = new Set(current);
+      unreadRollIds.forEach((rollId) => next.add(rollId));
+      return next;
+    });
+  };
+  const toggleCombatLog = () => {
+    markCombatRollsRead();
+    setCombatLogOpen((open) => !open);
+    setRoundEditorOpen(false);
+  };
+  const closeCombatLog = () => {
+    if (combatLogOpen) markCombatRollsRead();
+    setCombatLogOpen(false);
+  };
   return <div className="command-bar" aria-label="Map tools and encounter status">
     <div className="map-tool-group" role="group" aria-label="Tactical tools">
       {tool("move", "move", "Move tokens", "V")}{tool("ping", "ping", "Ping map", "P")}{tool("drawing", "line", "Draw line", "L")}{tool("erase", "erase", "Erase line", "E")}
@@ -86,9 +106,9 @@ export function BattleMapCommandBar(props: CommandBarProps) {
     <div className="map-tool-group" role="group" aria-label="Map content">
       <button className={`icon-tool chat-launcher${props.chatOpen ? " tool-active" : ""}`} aria-label={props.chatUnreadTotal > 0 ? `Chat, ${props.chatUnreadTotal} unread messages` : "Chat"} data-tooltip="Chat" aria-pressed={props.chatOpen} onClick={props.onToggleChat}><Icon name="chat" />{props.chatUnreadTotal > 0 ? <span className="chat-unread-badge" aria-hidden="true">{Math.min(99, props.chatUnreadTotal)}</span> : null}</button>
       <div className="toolbar-popover-anchor combat-log-menu">
-        <button type="button" className={`icon-tool${combatLogOpen ? " tool-active" : ""}`} aria-label={`Combat Log${state.combatRolls.length ? `, ${state.combatRolls.length} ${state.combatRolls.length === 1 ? "roll" : "rolls"}` : ""}`} aria-controls="combat-log-panel" aria-expanded={combatLogOpen} data-tooltip="Combat Log" onClick={() => { setCombatLogOpen((open) => !open); setRoundEditorOpen(false); }}><Icon name="combatLog" />{state.combatRolls.length ? <span className="combat-log-count" aria-hidden="true">{Math.min(99, state.combatRolls.length)}</span> : null}</button>
+        <button type="button" className={`icon-tool${combatLogOpen ? " tool-active" : ""}`} aria-label={unreadCombatRollCount > 0 ? `Combat Log, ${unreadCombatRollCount} unread ${unreadCombatRollCount === 1 ? "roll" : "rolls"}` : "Combat Log"} aria-controls="combat-log-panel" aria-expanded={combatLogOpen} data-tooltip="Combat Log" onClick={toggleCombatLog}><Icon name="combatLog" />{unreadCombatRollCount > 0 ? <span className="combat-log-count" aria-hidden="true">{Math.min(99, unreadCombatRollCount)}</span> : null}</button>
         {combatLogOpen ? <section id="combat-log-panel" className="toolbar-popover combat-log-panel" aria-label="Combat Log">
-          <header><span><small>Combat Log</small><strong>{state.combatRolls.length ? `${state.combatRolls.length} ${state.combatRolls.length === 1 ? "roll" : "rolls"}` : "No rolls yet"}</strong></span><IconActionButton variant="close" label="Close Combat Log" onClick={() => setCombatLogOpen(false)} /></header>
+          <header><span><small>Combat Log</small><strong>{state.combatRolls.length ? `${state.combatRolls.length} ${state.combatRolls.length === 1 ? "roll" : "rolls"}` : "No rolls yet"}</strong></span><IconActionButton variant="close" label="Close Combat Log" onClick={closeCombatLog} /></header>
           <div className="combat-log-scroll">{state.combatRolls.length ? <ol>{state.combatRolls.map((roll) => { const proposal = state.damageProposals.find((item) => item.rollId === roll.id); return <li key={roll.id}><strong>{roll.attackerName} → {roll.targetName}</strong><span>{roll.action.name}</span><small>{combatOutcomeLabel(roll.outcome)}{roll.damageTotal === null ? "" : ` · ${roll.damageTotal} ${roll.action.damageType}`}{proposal ? ` · ${proposalStatusLabel(proposal.status)}` : ""}</small></li>; })}</ol> : <p>No combat rolls have been made.</p>}</div>
         </section> : null}
       </div>
@@ -98,7 +118,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
     <div className="map-tool-group" role="group" aria-label="Action history"><button className="icon-tool" aria-label="Undo last action" data-tooltip="Undo — Ctrl/Cmd + Z" onClick={() => props.onHistory("undo")} disabled={props.busy || state.undo.available === 0}><Icon name="undo" /></button><button className="icon-tool" aria-label="Redo last action" data-tooltip="Redo — Ctrl + Y or Cmd + Shift + Z" onClick={() => props.onHistory("redo")} disabled={props.busy || state.undo.redoAvailable === 0}><Icon name="redo" /></button></div>
     <div className="encounter-identity"><strong>{state.encounter.name}</strong><span>{state.encounter.status}</span></div>
     <div className="toolbar-popover-anchor round-menu">
-      {participant.role === "dm" ? <button type="button" className={`round-counter${roundEditorOpen ? " tool-active" : ""}`} aria-label={canCorrectTurn ? `Round ${state.encounter.currentRound}, correct turn` : state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"} aria-controls={canCorrectTurn ? "round-editor-panel" : undefined} aria-expanded={canCorrectTurn ? roundEditorOpen : undefined} data-tooltip={canCorrectTurn ? "Correct round and active turn" : undefined} disabled={!canCorrectTurn} onClick={() => { const opening = !roundEditorOpen; setRoundEditorOpen(opening); if (opening) { setRoundDraft(String(Math.max(1, state.encounter.currentRound))); setActiveOrderDraft(state.encounter.activeInitiativeOrder ?? initiativeOrders[0]); } setCombatLogOpen(false); }}><span>Round</span><strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong></button>
+      {participant.role === "dm" ? <button type="button" className={`round-counter${roundEditorOpen ? " tool-active" : ""}`} aria-label={canCorrectTurn ? `Round ${state.encounter.currentRound}, correct turn` : state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"} aria-controls={canCorrectTurn ? "round-editor-panel" : undefined} aria-expanded={canCorrectTurn ? roundEditorOpen : undefined} data-tooltip={canCorrectTurn ? "Correct round and active turn" : undefined} disabled={!canCorrectTurn} onClick={() => { const opening = !roundEditorOpen; setRoundEditorOpen(opening); if (opening) { setRoundDraft(String(Math.max(1, state.encounter.currentRound))); setActiveOrderDraft(state.encounter.activeInitiativeOrder ?? initiativeOrders[0]); } closeCombatLog(); }}><span>Round</span><strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong></button>
         : <div className="round-counter" aria-label={state.encounter.currentRound > 0 ? `Current round ${state.encounter.currentRound}` : "Combat has not started"}><span>Round</span><strong>{state.encounter.currentRound > 0 ? state.encounter.currentRound : "—"}</strong></div>}
       {roundEditorOpen && canCorrectTurn ? <section id="round-editor-panel" className="toolbar-popover round-editor-panel" aria-label="Correct turn">
         <header><span><small>Combat position</small><strong>Correct turn</strong></span><IconActionButton variant="close" label="Close turn correction" onClick={() => setRoundEditorOpen(false)} /></header>

@@ -3,9 +3,11 @@ import test from "node:test";
 
 import {
   adjudicatedDamage,
+  combatRollDisclosure,
   formatDiceFormula,
   hasBless,
   projectCombatDamageValues,
+  projectCombatAttackDetails,
   projectDamageAdjudication,
   resolveAttack,
   transitionDamageWithTemporaryHp,
@@ -66,6 +68,71 @@ test("player projections conceal private damage adjudication details", () => {
   assert.equal(projectDamageAdjudication({
     status: "immune", adjudicationMethod: "immune", adjudicationNote: null, canSeePrivateAdjudication: false,
   }).status, "applied");
+});
+
+test("private DM attacks reveal only released verdicts and finalized damage to players", () => {
+  assert.deepEqual(combatRollDisclosure({
+    dmPrivate: true, viewerRole: "player", outcomeReleased: false, proposalStatus: null,
+  }), {
+    includeRoll: false,
+    revealAttackDetails: false,
+    includeDamageProposal: false,
+    revealDamageDetails: false,
+  });
+  assert.deepEqual(combatRollDisclosure({
+    dmPrivate: true, viewerRole: "player", outcomeReleased: true, proposalStatus: "pending",
+  }), {
+    includeRoll: true,
+    revealAttackDetails: false,
+    includeDamageProposal: false,
+    revealDamageDetails: false,
+  });
+  assert.deepEqual(combatRollDisclosure({
+    dmPrivate: true, viewerRole: "player", outcomeReleased: true, proposalStatus: "adjusted",
+  }), {
+    includeRoll: true,
+    revealAttackDetails: false,
+    includeDamageProposal: true,
+    revealDamageDetails: true,
+  });
+  assert.deepEqual(combatRollDisclosure({
+    dmPrivate: true, viewerRole: "dm", outcomeReleased: false, proposalStatus: "pending",
+  }), {
+    includeRoll: true,
+    revealAttackDetails: true,
+    includeDamageProposal: true,
+    revealDamageDetails: true,
+  });
+});
+
+test("private DM attack projections remove dice, modifiers, range, and additional effects", () => {
+  const action = {
+    name: "Bite", attackBonus: 8, attackKind: "melee",
+    damage: { count: 2, sides: 6, modifier: 5 }, damageType: "piercing",
+    reachFeet: 10, rangeFeet: null, manualRider: true,
+    manualRiderText: "The target is grappled.",
+    alternateDamage: { label: "Enraged", formula: { count: 3, sides: 6, modifier: 5 } },
+  };
+  const player = projectCombatAttackDetails({
+    dmPrivate: true, viewerRole: "player", action,
+    attackDice: [17], keptD20: 17, blessDie: 3, attackTotal: 28,
+  });
+  assert.deepEqual(player.attackDice, []);
+  assert.equal(player.attackTotal, 0);
+  assert.equal(player.action.attackBonus, 0);
+  assert.deepEqual(player.action.damage, { count: 0, sides: 6, modifier: 0 });
+  assert.equal(player.action.reachFeet, null);
+  assert.equal(player.action.manualRider, false);
+  assert.equal(player.action.manualRiderText, null);
+  assert.equal(player.action.alternateDamage, null);
+
+  const dm = projectCombatAttackDetails({
+    dmPrivate: true, viewerRole: "dm", action,
+    attackDice: [17], keptD20: 17, blessDie: 3, attackTotal: 28,
+  });
+  assert.deepEqual(dm, {
+    action, attackDice: [17], keptD20: 17, blessDie: 3, attackTotal: 28,
+  });
 });
 
 test("damage projections make the roll public without revealing private adjudication", () => {

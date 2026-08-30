@@ -51,6 +51,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-combat-qa-player-2' AND is_enabled = 1;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM effects WHERE id = 'effect-combat-qa-bless' AND lower(trim(name)) = 'bless';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_rolls') WHERE name IN ('dm_private', 'released_outcome', 'outcome_released_at');"), "3");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL

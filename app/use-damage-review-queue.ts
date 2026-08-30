@@ -10,9 +10,10 @@ export function useDamageReviewQueue({ participant, state }: {
   const [deferredProposalIds, setDeferredProposalIds] = useState<ReadonlySet<string>>(() => new Set());
   const pendingProposals = useMemo(() => participant?.role === "dm"
     ? [...(state?.damageProposals ?? [])]
-      .filter((proposal) => proposal.status === "pending")
+      .filter((proposal) => proposal.status === "pending" &&
+        (state?.combatRolls ?? []).find((roll) => roll.id === proposal.rollId)?.rollPrivacy !== "dm-private")
       .sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id))
-    : [], [participant?.role, state?.damageProposals]);
+    : [], [participant?.role, state?.combatRolls, state?.damageProposals]);
   const visibleProposals = pendingProposals.filter((proposal) => !deferredProposalIds.has(proposal.id));
   const activeProposal = visibleProposals[0] ?? null;
 

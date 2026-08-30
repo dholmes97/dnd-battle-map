@@ -68,6 +68,77 @@ export type AttackRollResolution = Pick<AttackResolution,
 export type DamageAdjudication = "apply" | "resistant" | "vulnerable" | "immune" | "adjust" | "reject" | "cancel";
 export type DamageProposalStatus = "pending" | "applied" | "adjusted" | "immune" | "rejected" | "cancelled";
 
+export type CombatRollDisclosure = {
+  includeRoll: boolean;
+  revealAttackDetails: boolean;
+  includeDamageProposal: boolean;
+  revealDamageDetails: boolean;
+};
+
+/**
+ * Keeps the DM's attack math private until the DM deliberately releases a
+ * verdict, then exposes only the released narrative and finalized damage to
+ * players. This is shared so the Worker projection has one testable policy.
+ */
+export function combatRollDisclosure(input: {
+  dmPrivate: boolean;
+  viewerRole: "dm" | "player";
+  outcomeReleased: boolean;
+  proposalStatus: DamageProposalStatus | null;
+}): CombatRollDisclosure {
+  if (!input.dmPrivate || input.viewerRole === "dm") {
+    return {
+      includeRoll: true,
+      revealAttackDetails: true,
+      includeDamageProposal: true,
+      revealDamageDetails: true,
+    };
+  }
+  const damageFinalized = input.proposalStatus !== null && input.proposalStatus !== "pending";
+  return {
+    includeRoll: input.outcomeReleased,
+    revealAttackDetails: false,
+    includeDamageProposal: damageFinalized,
+    revealDamageDetails: damageFinalized,
+  };
+}
+
+export function projectCombatAttackDetails(input: {
+  dmPrivate: boolean;
+  viewerRole: "dm" | "player";
+  action: CombatActionValues;
+  attackDice: readonly number[];
+  keptD20: number;
+  blessDie: number | null;
+  attackTotal: number;
+}) {
+  if (!input.dmPrivate || input.viewerRole === "dm") {
+    return {
+      action: input.action,
+      attackDice: [...input.attackDice],
+      keptD20: input.keptD20,
+      blessDie: input.blessDie,
+      attackTotal: input.attackTotal,
+    };
+  }
+  return {
+    action: {
+      ...input.action,
+      attackBonus: 0,
+      damage: { ...input.action.damage, count: 0, modifier: 0 },
+      reachFeet: null,
+      rangeFeet: null,
+      manualRider: false,
+      manualRiderText: null,
+      alternateDamage: null,
+    },
+    attackDice: [],
+    keptD20: 0,
+    blessDie: null,
+    attackTotal: 0,
+  };
+}
+
 export function projectDamageAdjudication(input: {
   status: DamageProposalStatus;
   adjudicationMethod: DamageAdjudication | null;

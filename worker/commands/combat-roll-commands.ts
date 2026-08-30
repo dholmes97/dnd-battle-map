@@ -13,7 +13,7 @@ import type { CombatActionProfileRow, CombatRollRepository } from "../ports/comb
 import type { TokenRow } from "../types.ts";
 import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
 
-type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-attack" | "roll-damage" | "adjudicate-damage";
+type CombatCommandName = "save-combat-action" | "delete-combat-action" | "roll-attack" | "release-attack-outcome" | "roll-damage" | "adjudicate-damage";
 type CombatDependencies = {
   repository: CombatRollRepository;
   canControl(token: TokenRow): Promise<boolean>;
@@ -120,6 +120,7 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
     blessDie: resolution.blessDie,
     attackTotal: resolution.attackTotal,
     outcome: resolution.outcome,
+    dmPrivate: context.participant.role === "dm",
     damageDiceJson: "[]",
     damageTotal: 0,
     inTurn: context.encounter.status === "active" && attacker.initiative_order !== null &&
@@ -143,6 +144,32 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
   });
 }
 
+export async function releaseAttackOutcome(context: CombatRollCommandContext<"release-attack-outcome">): Promise<CommandOutcome> {
+  const dmError = requireDm(context);
+  if (dmError) return dmError;
+  const roll = await context.repository.findRoll(context.encounter.id, cleanId(context.payload.rollId));
+  if (!roll) return commandError("Combat roll not found.", 404);
+  if (!roll.dm_private) return commandError("Only private DM attacks have a releasable verdict.", 409);
+  if (context.payload.outcome !== "miss" && context.payload.outcome !== "hit" && context.payload.outcome !== "critical") {
+    return commandError("Choose a valid attack verdict.", 400);
+  }
+  if (context.payload.outcome === "critical" && roll.outcome !== "critical") {
+    return commandError("Only a calculated critical hit can be released as critical.", 400);
+  }
+  if (roll.released_outcome === context.payload.outcome) {
+    return success(context, { released: true, rollId: roll.id, outcome: context.payload.outcome, recovered: true });
+  }
+  if (roll.damage_rolled_at !== null) return commandError("The released verdict cannot change after damage is rolled.", 409);
+  await context.repository.releaseAttackOutcome({
+    encounterId: context.encounter.id,
+    rollId: roll.id,
+    outcome: context.payload.outcome,
+    now: context.now,
+  });
+  await context.services.commit(null);
+  return success(context, { released: true, rollId: roll.id, outcome: context.payload.outcome });
+}
+
 export async function rollDamage(context: CombatRollCommandContext<"roll-damage">): Promise<CommandOutcome> {
   const operationId = cleanOperationId(context.payload.operationId);
   if (!operationId) return commandError("A valid operation ID is required.", 400);
@@ -151,7 +178,11 @@ export async function rollDamage(context: CombatRollCommandContext<"roll-damage"
   if (roll.participant_id !== context.participant.id && context.participant.role !== "dm") {
     return commandError("Only the original roller or the DM can roll this damage.", 403);
   }
-  if (roll.outcome !== "hit" && roll.outcome !== "critical") {
+  const damageOutcome = roll.dm_private ? roll.released_outcome : roll.outcome;
+  if (roll.dm_private && damageOutcome === null) {
+    return commandError("Release the attack verdict before rolling damage.", 409);
+  }
+  if (damageOutcome !== "hit" && damageOutcome !== "critical") {
     return commandError("That attack did not produce damage to roll.", 409);
   }
   const existingProposal = await context.repository.findProposalByRoll(context.encounter.id, roll.id);
@@ -168,7 +199,7 @@ export async function rollDamage(context: CombatRollCommandContext<"roll-damage"
   try { snapshot = JSON.parse(roll.action_snapshot_json); } catch { return commandError("The attack snapshot is invalid.", 409); }
   const action = validateCombatActionValues(snapshot);
   if (!action) return commandError("The attack snapshot is invalid.", 409);
-  const damageDice = rollFormulaDice(action.damage, roll.outcome === "critical", context.rollDie);
+  const damageDice = rollFormulaDice(action.damage, damageOutcome === "critical", context.rollDie);
   const damageTotal = Math.max(0, damageDice.reduce((sum, die) => sum + die, 0) + action.damage.modifier);
   const proposalId = context.services.createId();
   await context.repository.recordDamage({

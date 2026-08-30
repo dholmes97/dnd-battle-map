@@ -961,6 +961,24 @@ export default function BattleMapPrototype() {
       false,
     );
   };
+  const releaseAttackOutcome = async (rollId: string, outcome: "miss" | "hit" | "critical") => {
+    await runOptimisticCommand<{ state: EncounterState; rollId: string; outcome: string }, "release-attack-outcome">(
+      "release-attack-outcome",
+      { rollId, outcome },
+      (current) => ({
+        ...current,
+        combatRolls: current.combatRolls.map((roll) => roll.id === rollId ? {
+          ...roll,
+          outcome,
+          releasedOutcome: outcome,
+          canReleaseOutcome: roll.damageRolledAt === null && (outcome === "hit" || outcome === "critical"),
+        } : roll),
+      }),
+      undefined,
+      undefined,
+      false,
+    );
+  };
 
   if (participant.role === "dm" && workshopOpen) return <>
     <MapWorkshop
@@ -1149,6 +1167,7 @@ export default function BattleMapPrototype() {
         damageReviewPendingCount={damageReview.pendingCount}
         onDismissRollResult={combatRollNotifications.dismiss}
         onRollDamage={rollDamage}
+        onReleaseAttackOutcome={releaseAttackOutcome}
         onDismissDamageNotification={(notification) => {
           damageNotifications.dismiss(notification.id);
           if (!notification.concentrationCheckRequired) return;

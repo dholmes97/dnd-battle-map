@@ -128,16 +128,22 @@ export function createD1CombatRollRepository(db: D1Database): CombatRollReposito
         `INSERT INTO combat_rolls
          (id, encounter_id, operation_id, participant_id, authenticated_actor_identity_id,
           attacker_token_id, target_token_id, action_profile_id, action_source, action_snapshot_json,
-          roll_mode, attack_dice_json, kept_d20, bless_die, attack_total, outcome,
+          roll_mode, attack_dice_json, kept_d20, bless_die, attack_total, outcome, dm_private,
           damage_dice_json, damage_total, in_turn, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         input.id, input.encounterId, input.operationId, input.participantId,
         input.authenticatedActorIdentityId, input.attackerTokenId, input.targetTokenId,
         input.actionProfileId, input.actionSource, input.actionSnapshotJson, input.rollMode,
         input.attackDiceJson, input.keptD20, input.blessDie, input.attackTotal, input.outcome,
-        input.damageDiceJson, input.damageTotal, input.inTurn ? 1 : 0, input.now,
+        input.dmPrivate ? 1 : 0, input.damageDiceJson, input.damageTotal, input.inTurn ? 1 : 0, input.now,
       ).run();
+    },
+    async releaseAttackOutcome(input) {
+      await db.prepare(
+        `UPDATE combat_rolls SET released_outcome = ?, outcome_released_at = ?
+         WHERE encounter_id = ? AND id = ? AND dm_private = 1 AND damage_rolled_at IS NULL`,
+      ).bind(input.outcome, input.now, input.encounterId, input.rollId).run();
     },
     async findProposalByRoll(encounterId, rollId) {
       return await db.prepare(

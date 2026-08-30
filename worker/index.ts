@@ -40,10 +40,13 @@ import {
   type CommandName,
   type CommandPayload,
   type EncounterState,
+  type Role,
   type SharedToken,
 } from "../shared/contracts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
 import {
+  combatRollDisclosure,
+  projectCombatAttackDetails,
   projectCombatDamageValues,
   projectDamageAdjudication,
   validateCombatActionValues,
@@ -138,6 +141,7 @@ import { createD1TokenEffectRepository } from "./adapters/d1-token-effect-reposi
 import {
   adjudicateDamage,
   deleteCombatAction,
+  releaseAttackOutcome,
   rollAttack,
   rollDamage,
   saveCombatAction,
@@ -1072,7 +1076,7 @@ function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile |
   } : null;
 }
 
-function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string }, viewerId: string): EncounterState["combatRolls"][number] | null {
+function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string }, viewerId: string, viewerRole: Role): EncounterState["combatRolls"][number] | null {
   let snapshot: Record<string, unknown>;
   try { snapshot = JSON.parse(row.action_snapshot_json) as Record<string, unknown>; } catch { return null; }
   const action = validateCombatActionValues(snapshot);
@@ -1082,6 +1086,21 @@ function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string
   if (!action || !attackDice || !storedDamageDice ||
       (row.outcome !== "miss" && row.outcome !== "hit" && row.outcome !== "critical" && row.outcome !== "needs-ac") ||
       (row.roll_mode !== "normal" && row.roll_mode !== "advantage" && row.roll_mode !== "disadvantage")) return null;
+  const dmPrivate = Boolean(row.dm_private);
+  const canSeePrivateRoll = !dmPrivate || viewerRole === "dm";
+  const releasedOutcome = dmPrivate && (row.released_outcome === "miss" || row.released_outcome === "hit" || row.released_outcome === "critical")
+    ? row.released_outcome
+    : dmPrivate ? null : row.outcome;
+  const effectiveOutcome = releasedOutcome ?? row.outcome;
+  const projectedAttack = projectCombatAttackDetails({
+    dmPrivate,
+    viewerRole,
+    action,
+    attackDice,
+    keptD20: row.kept_d20,
+    blessDie: row.bless_die,
+    attackTotal: row.attack_total,
+  });
   return {
     id: row.id,
     attackerTokenId: row.attacker_token_id,
@@ -1089,19 +1108,24 @@ function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string
     targetTokenId: row.target_token_id,
     targetName: typeof snapshot.targetName === "string" ? snapshot.targetName : "Target",
     participantName: row.participant_name,
-    action,
+    action: projectedAttack.action,
     actionSource: row.action_source === "dm-generic-ad-hoc" ? "dm-ad-hoc"
       : row.action_source.includes("catalog") ? "creature-catalog" : "character",
     rollMode: row.roll_mode,
-    attackDice,
-    keptD20: row.kept_d20,
-    blessDie: row.bless_die,
-    attackTotal: row.attack_total,
-    outcome: row.outcome,
-    damageDice: row.damage_rolled_at === null ? [] : storedDamageDice,
-    damageTotal: row.damage_rolled_at === null ? null : row.damage_total,
-    damageRolledAt: row.damage_rolled_at,
-    canRollDamage: row.damage_rolled_at === null && (row.outcome === "hit" || row.outcome === "critical") &&
+    attackDice: projectedAttack.attackDice,
+    keptD20: projectedAttack.keptD20,
+    blessDie: projectedAttack.blessDie,
+    attackTotal: projectedAttack.attackTotal,
+    outcome: effectiveOutcome,
+    calculatedOutcome: dmPrivate && viewerRole === "dm" ? row.outcome : null,
+    releasedOutcome,
+    rollPrivacy: dmPrivate ? viewerRole === "dm" ? "dm-private" : "dm-summary" : "public",
+    canReleaseOutcome: dmPrivate && viewerRole === "dm" && row.damage_rolled_at === null &&
+      (releasedOutcome === null || releasedOutcome === "hit" || releasedOutcome === "critical"),
+    damageDice: row.damage_rolled_at === null || !canSeePrivateRoll ? [] : storedDamageDice,
+    damageTotal: row.damage_rolled_at === null || !canSeePrivateRoll ? null : row.damage_total,
+    damageRolledAt: canSeePrivateRoll ? row.damage_rolled_at : null,
+    canRollDamage: row.damage_rolled_at === null && (effectiveOutcome === "hit" || effectiveOutcome === "critical") &&
       row.participant_id === viewerId,
     inTurn: Boolean(row.in_turn),
     createdAt: row.created_at,
@@ -1608,9 +1632,14 @@ async function encounterState(
          WHERE dp.encounter_id = ?
          ORDER BY dp.created_at DESC, dp.id DESC LIMIT 100`,
       ).bind(encounter!.id).all<DamageProposalRow & { concentration_check_required: number }>();
-  const projectedRollRows = viewer ? rollRows.results : [];
-  const projectedRollIds = new Set(projectedRollRows.map((roll) => roll.id));
   const proposalByRollId = new Map(proposalRows.results.map((proposal) => [proposal.roll_id, proposal]));
+  const projectedRollRows = viewer ? rollRows.results.filter((row) => combatRollDisclosure({
+    dmPrivate: Boolean(row.dm_private),
+    viewerRole: viewer.role,
+    outcomeReleased: row.outcome_released_at !== null,
+    proposalStatus: proposalByRollId.get(row.id)?.status ?? null,
+  }).includeRoll) : [];
+  const projectedRollIds = new Set(projectedRollRows.map((roll) => roll.id));
   const allowedActionOwners = new Set(visibleTokens.filter((token) => viewer?.role === "dm" || viewerControls(token)).flatMap((token) => [
     token.campaign_character_id ? `character:${token.campaign_character_id}` : "",
     token.catalog_creature_id ? `creature:${token.catalog_creature_id}` : "",
@@ -1627,9 +1656,18 @@ async function encounterState(
   const combatRolls = projectedRollRows.flatMap((row) => {
     const target = tokenById.get(row.target_token_id);
     if (!viewer || !target) return [];
-    const roll = sharedCombatRollFromRow(row, viewer.id);
+    const roll = sharedCombatRollFromRow(row, viewer.id, viewer.role);
     if (!roll) return [];
     const proposal = proposalByRollId.get(row.id) ?? null;
+    if (row.dm_private && viewer.role !== "dm") {
+      const released = proposal !== null && proposal.status !== "pending" && proposal.resolved_at !== null;
+      return [{
+        ...roll,
+        damageDice: [],
+        damageTotal: released ? proposal.final_damage : null,
+        damageRolledAt: released ? proposal.resolved_at : null,
+      }];
+    }
     const damage = projectCombatDamageValues({
       damageDice: roll.damageDice,
       rolledDamage: row.damage_total,
@@ -1641,8 +1679,38 @@ async function encounterState(
     });
     return [{ ...roll, damageDice: damage.damageDice, damageTotal: damage.damageTotal }];
   });
-  const damageProposals = proposalRows.results.filter((row) => projectedRollIds.has(row.roll_id)).map((row) => {
+  const projectedRollRowById = new Map(projectedRollRows.map((row) => [row.id, row]));
+  const damageProposals = proposalRows.results.filter((row) => {
+    if (!projectedRollIds.has(row.roll_id)) return false;
+    const roll = projectedRollRowById.get(row.roll_id);
+    return Boolean(viewer && combatRollDisclosure({
+      dmPrivate: Boolean(roll?.dm_private),
+      viewerRole: viewer.role,
+      outcomeReleased: roll?.outcome_released_at !== null,
+      proposalStatus: row.status,
+    }).includeDamageProposal);
+  }).map((row) => {
     const target = tokenById.get(row.target_token_id);
+    const roll = projectedRollRowById.get(row.roll_id);
+    if (roll?.dm_private && viewer?.role !== "dm") {
+      const adjudication = projectDamageAdjudication({
+        status: row.status,
+        adjudicationMethod: isDamageAdjudication(row.adjudication_method) ? row.adjudication_method : null,
+        adjudicationNote: row.adjudication_note,
+        canSeePrivateAdjudication: false,
+      });
+      return {
+        id: row.id,
+        rollId: row.roll_id,
+        targetTokenId: row.target_token_id,
+        ...adjudication,
+        rolledDamage: row.final_damage,
+        finalDamage: row.final_damage,
+        concentrationCheckRequired: Boolean(row.concentration_check_required),
+        createdAt: row.created_at,
+        resolvedAt: row.resolved_at,
+      };
+    }
     const damage = projectCombatDamageValues({
       damageDice: [],
       rolledDamage: row.rolled_damage,
@@ -2087,7 +2155,7 @@ async function handleCommand(
     canControl: (token) => canControlToken(env, encounter.id, token, participant),
   });
   const combatRollContext = async <Name extends
-    "save-combat-action" | "delete-combat-action" | "roll-attack" | "roll-damage" | "adjudicate-damage"
+    "save-combat-action" | "delete-combat-action" | "roll-attack" | "release-attack-outcome" | "roll-damage" | "adjudicate-damage"
   >(payload: CommandPayload<Name>): Promise<CombatRollCommandContext<Name>> => ({
     ...baseContext(payload),
     repository: createD1CombatRollRepository(mutationDb),
@@ -2122,6 +2190,7 @@ async function handleCommand(
     case "save-combat-action": outcome = await saveCombatAction(await combatRollContext(request.payload)); break;
     case "delete-combat-action": outcome = await deleteCombatAction(await combatRollContext(request.payload)); break;
     case "roll-attack": outcome = await rollAttack(await combatRollContext(request.payload)); break;
+    case "release-attack-outcome": outcome = await releaseAttackOutcome(await combatRollContext(request.payload)); break;
     case "roll-damage": outcome = await rollDamage(await combatRollContext(request.payload)); break;
     case "adjudicate-damage": outcome = await adjudicateDamage(await combatRollContext(request.payload)); break;
     case "add-effect": outcome = await addEffect(tokenEffectContext(request.payload)); break;

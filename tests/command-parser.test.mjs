@@ -68,6 +68,11 @@ test("command parser accepts empty, map, and optional payload variants", () => {
     ok: true,
     request: { command: "roll-damage", payload: { operationId: "damage-operation", rollId: "roll-1" } },
   });
+  assert.deepEqual(parseCommandRequest({ command: "release-attack-outcome", rollId: "roll-1", outcome: "miss" }), {
+    ok: true,
+    request: { command: "release-attack-outcome", payload: { rollId: "roll-1", outcome: "miss" } },
+  });
+  assert.equal(parseCommandRequest({ command: "release-attack-outcome", rollId: "roll-1", outcome: "needs-ac" }).ok, false);
   const creature = parseCommandRequest({
     command: "create-token", name: "Dragon", kind: "monster", size: "large", speed: 40,
     flySpeed: 80, swimSpeed: 40, x: 3, y: 4,
