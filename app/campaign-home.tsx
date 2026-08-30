@@ -94,12 +94,20 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
   onDelete(actionId: string): Promise<boolean>;
 }) {
   const [characterId, setCharacterId] = useState(campaign.characters[0]?.id ?? "");
+  const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CombatActionProfile | null>(null);
   const [draft, setDraft] = useState<ActionDraft>(EMPTY_ACTION);
   const character = campaign.characters.find((item) => item.id === characterId) ?? campaign.characters[0] ?? null;
   const actions = character?.combatActions ?? [];
+  const totalActions = campaign.characters.reduce((total, item) => total + (item.combatActions?.length ?? 0), 0);
+  const actionSummary = totalActions === 0
+    ? "No map-roll actions configured"
+    : campaign.characters.length === 1
+      ? `${totalActions} ${totalActions === 1 ? "action" : "actions"} for ${character?.name ?? "this character"}`
+      : `${totalActions} ${totalActions === 1 ? "action" : "actions"} across ${campaign.characters.length} characters`;
   const begin = (action?: CombatActionProfile) => {
+    setExpanded(true);
     setEditingId(action?.id ?? "new");
     setDraft(action ? {
       name: action.name, attackBonus: String(action.attackBonus), attackKind: action.attackKind,
@@ -142,21 +150,29 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       .then((saved) => { if (saved) setEditingId(null); });
   };
   const editor = (title: string) => <CombatActionEditor title={title} draft={draft} setDraft={setDraft} pending={pending} saveEnabled={Boolean(values())} onCancel={() => setEditingId(null)} onSubmit={submitEditor} />;
-  return <><section className="campaign-combat-actions" aria-labelledby="combat-actions-title">
-    <div className="campaign-section-heading"><div><div className="eyebrow">Tactical mirror</div><h2 id="combat-actions-title">Combat actions</h2></div><button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button></div>
-    <p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>
-    {campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}
-    <div className="campaign-action-list">
-      {editingId === "new" ? editor("New combat action") : null}
-      {actions.length ? actions.map((action) => <Fragment key={action.id}>
-        <article className={editingId === action.id ? "is-editing" : undefined}>
-          <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div>
-          <button type="button" aria-label={`${editingId === action.id ? "Editing" : "Edit"} ${action.name}`} disabled={pending || editingId === action.id} onClick={() => begin(action)}>{editingId === action.id ? "Editing" : "Edit"}</button>
-          <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => setPendingDelete(action)}>Delete</button>
-        </article>
-        {editingId === action.id ? editor(`Editing ${action.name}`) : null}
-      </Fragment>) : editingId !== "new" ? <p>No maintained actions yet.</p> : null}
+  return <><section className={`campaign-combat-actions${expanded ? " is-expanded" : ""}`} aria-labelledby="combat-actions-title">
+    <div className="campaign-combat-actions-summary">
+      <div><div className="eyebrow">Character setup</div><h2 id="combat-actions-title">Combat actions</h2><p>{actionSummary}</p></div>
+      <button type="button" aria-expanded={expanded} aria-controls="campaign-combat-actions-content" onClick={() => setExpanded((open) => !open)}>{expanded ? "Hide actions" : "Manage actions"}<span aria-hidden="true">{expanded ? "−" : "+"}</span></button>
     </div>
+    {expanded ? <div id="campaign-combat-actions-content" className="campaign-combat-actions-content">
+      <p>Keep only the attack bonus and damage formula needed for map rolls. D&amp;D Beyond remains the complete character sheet.</p>
+      <div className="campaign-combat-actions-toolbar">
+        {campaign.characters.length > 1 ? <label>Character<select value={character.id} onChange={(event) => { setCharacterId(event.target.value); setEditingId(null); }} disabled={pending}>{campaign.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <strong>{character.name}</strong>}
+        <button className="campaign-create-button" type="button" onClick={() => begin()}>+ Action</button>
+      </div>
+      <div className="campaign-action-list">
+        {editingId === "new" ? editor("New combat action") : null}
+        {actions.length ? actions.map((action) => <Fragment key={action.id}>
+          <article className={editingId === action.id ? "is-editing" : undefined}>
+            <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div>
+            <button type="button" aria-label={`${editingId === action.id ? "Editing" : "Edit"} ${action.name}`} disabled={pending || editingId === action.id} onClick={() => begin(action)}>{editingId === action.id ? "Editing" : "Edit"}</button>
+            <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => setPendingDelete(action)}>Delete</button>
+          </article>
+          {editingId === action.id ? editor(`Editing ${action.name}`) : null}
+        </Fragment>) : editingId !== "new" ? <p>No maintained actions yet.</p> : null}
+      </div>
+    </div> : null}
   </section>
   {pendingDelete ? <ModalDialog labelledBy="delete-combat-action-title" describedBy="delete-combat-action-description" closeOnBackdrop onDismiss={() => setPendingDelete(null)}>
     <div className="eyebrow">Combat action</div>
@@ -243,7 +259,6 @@ export function CampaignHome({ identity, campaign, invitedIdentities, loading, o
       {error ? <div className="form-error" role="alert">{error}</div> : null}
       {!error && notice ? <div className="campaign-notice" role="status">{notice}</div> : null}
       <section className="campaign-party" aria-labelledby="campaign-party-title"><div className="campaign-section-heading"><div><div className="eyebrow">At this table</div><h2 id="campaign-party-title">Party</h2></div>{isDm ? <button className="campaign-create-button" type="button" onClick={() => setShowCampaignManager((open) => !open)} aria-expanded={showCampaignManager}>{showCampaignManager ? "Done" : "Manage campaign"}</button> : null}</div><div className="campaign-party-grid">{members.map((member) => <PartyMemberCard member={member} key={member.membershipId} />)}</div>{isDm && showCampaignManager ? <div className="campaign-management-panel"><section><h3>Campaign name</h3><div className="campaign-management-row"><input aria-label="Campaign name" maxLength={64} value={campaignName} onChange={(event) => setCampaignName(event.target.value)} disabled={campaignMutationPending} /><button type="button" disabled={campaignMutationPending || campaignName.trim().length < 3 || campaignName.trim() === campaign.name} onClick={() => void onRenameCampaign(campaignName.trim())}>{campaignMutationPending ? "Saving…" : "Save name"}</button></div></section><section><h3>Add a player or character</h3>{availablePlayers.length ? <><label>Player<select value={newPlayerId} onChange={(event) => setNewPlayerId(event.target.value)}><option value="">Choose a person</option>{availablePlayers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.displayName}</option>)}</select></label><div className="campaign-character-fields"><label>Character name<input value={characterName} maxLength={64} onChange={(event) => setCharacterName(event.target.value)} placeholder={selectedExistingMember ? "Required" : "Optional for now"} /></label><label>Class<input value={characterClass} maxLength={64} onChange={(event) => setCharacterClass(event.target.value)} /></label><label>Max HP<input inputMode="numeric" value={characterMaxHp} onChange={(event) => setCharacterMaxHp(event.target.value)} /></label><label>AC<input inputMode="numeric" value={characterArmorClass} onChange={(event) => setCharacterArmorClass(event.target.value)} /></label><label>Speed<input inputMode="numeric" value={characterSpeed} onChange={(event) => setCharacterSpeed(event.target.value)} /></label></div><button className="primary-button" type="button" disabled={campaignMutationPending || !newPlayerId || (selectedExistingMember && !characterName.trim())} onClick={() => void onAddPlayer({ identityId: newPlayerId, character: characterName.trim() ? { name: characterName.trim(), className: characterClass.trim(), maxHp: Number(characterMaxHp), armorClass: Number(characterArmorClass), speed: Number(characterSpeed) } : null }).then((added) => { if (added) { setNewPlayerId(""); setCharacterName(""); setCharacterClass(""); } })}>{campaignMutationPending ? "Adding…" : selectedExistingMember ? "Add character" : "Add player"}</button></> : <p>Every invited player has a character in this campaign.</p>}</section></div> : null}</section>
-      <CharacterCombatActions campaign={campaign} pending={campaignMutationPending} onSave={onSaveCombatAction} onDelete={onDeleteCombatAction} />
       <section className="campaign-scenarios" aria-labelledby="encounter-list-title">
         <div className="campaign-section-heading"><div><div className="eyebrow">{isDm ? "Encounters you run" : "Encounters you play"}</div><h2 id="encounter-list-title">Encounters</h2></div><div className="campaign-section-actions"><span>{encounters.length} {encounters.length === 1 ? "encounter" : "encounters"}</span>{isDm ? <button className="campaign-create-button" type="button" onClick={() => setShowCreator((open) => !open)} aria-expanded={showCreator}>{showCreator ? "Cancel" : "+ New encounter"}</button> : null}</div></div>
         {isDm && showCreator ? <section className="campaign-create-panel" aria-labelledby="create-encounter-title">
@@ -260,6 +275,8 @@ export function CampaignHome({ identity, campaign, invitedIdentities, loading, o
           {isDm && editingSelectedEncounter ? <div className="scenario-rename-form"><label htmlFor={`rename-${selectedEncounter.code}`}>Encounter name</label><input id={`rename-${selectedEncounter.code}`} autoFocus maxLength={64} value={renameName} disabled={Boolean(renamingCode)} onChange={(event) => setRenameName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void saveSelectedEncounterRename(); } else if (event.key === "Escape") setEditingCode(null); }} /><div><button type="button" onClick={() => setEditingCode(null)} disabled={Boolean(renamingCode)}>Cancel</button><button type="button" onClick={() => void saveSelectedEncounterRename()} disabled={Boolean(renamingCode) || renameName.trim().length < 3 || renameName.trim() === selectedEncounter.name}>{renamingCode === selectedEncounter.code ? "Saving…" : "Save name"}</button></div></div> : null}
         </div>}
       </section>
+
+      <CharacterCombatActions campaign={campaign} pending={campaignMutationPending} onSave={onSaveCombatAction} onDelete={onDeleteCombatAction} />
 
       <section className="campaign-coming-soon" aria-labelledby="campaign-tools-title"><div><div className="eyebrow">Coming next</div><h2 id="campaign-tools-title">Beyond the battle map</h2></div><p>This space is ready for party notes, recaps, character resources, handouts, and other between-session tools as the campaign grows.</p></section>
     </div>

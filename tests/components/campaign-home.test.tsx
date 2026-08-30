@@ -32,10 +32,14 @@ describe("CampaignHome", () => {
   it("gives a player a personal landing page with encounter entry and no creation controls", async () => {
     const props = home(player);
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
-    expect(screen.getAllByText("Dar'eleth")).toHaveLength(2);
+    expect(screen.getByText("Dar'eleth")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Dar'eleth portrait" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Combat actions" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Encounters" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Manage actions" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "+ Action" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Encounters" }).closest("section")?.nextElementSibling)
+      .toBe(screen.getByRole("heading", { name: "Combat actions" }).closest("section"));
     expect(screen.queryByRole("button", { name: /New encounter/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /Enter encounter/ }));
     expect(props.onOpenEncounter).toHaveBeenCalledWith("EMBER-KEEP");
@@ -43,6 +47,7 @@ describe("CampaignHome", () => {
 
   it("uses plain language for attack effects that need a table ruling", async () => {
     home(player);
+    await userEvent.click(screen.getByRole("button", { name: "Manage actions" }));
     await userEvent.click(screen.getByRole("button", { name: "+ Action" }));
     expect(screen.getByRole("checkbox", { name: "Has additional effect" })).toBeTruthy();
     expect(screen.queryByText(/manual rider/i)).toBeNull();
@@ -60,6 +65,8 @@ describe("CampaignHome", () => {
     const playerCampaign = campaign("player");
     home(player, { campaign: { ...playerCampaign, characters: [{ ...playerCampaign.characters[0], combatActions: [moonbow] }] } });
 
+    expect(screen.getByText("1 action for Dar'eleth")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Manage actions" }));
     const row = screen.getByText(moonbow.name).closest("article");
     await userEvent.click(screen.getByRole("button", { name: `Edit ${moonbow.name}` }));
     const editor = screen.getByRole("form", { name: `Editing ${moonbow.name}` });
@@ -84,6 +91,7 @@ describe("CampaignHome", () => {
       onDeleteCombatAction,
     });
 
+    await userEvent.click(screen.getByRole("button", { name: "Manage actions" }));
     await userEvent.click(screen.getByRole("button", { name: "Delete Longsword +1" }));
     expect(onDeleteCombatAction).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Delete Longsword +1?" })).toBeTruthy();

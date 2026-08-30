@@ -220,9 +220,19 @@ button:disabled { cursor: not-allowed; }
 .campaign-management-row { display: flex; align-items: center; gap: 0.5rem; }
 .campaign-management-row button, .campaign-management-panel > section > .primary-button { min-height: 2.5rem; padding: 0.55rem 0.8rem; border: 1px solid #79623a; border-radius: 0.5rem; background: rgba(245, 198, 92, 0.07); color: #e2c477; font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
 .campaign-scenarios { margin-top: clamp(3.2rem, 7vw, 5rem); }
-.campaign-combat-actions { margin-top: clamp(2.5rem, 6vw, 4rem); padding: 1rem; border: 1px solid #413b33; border-radius: 0.8rem; background: rgba(20, 18, 16, 0.86); }
-.campaign-combat-actions > p { color: #91887c; font-size: 0.76rem; }
-.campaign-combat-actions > label { max-width: 20rem; }
+.campaign-combat-actions { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border: 1px solid #413b33; border-radius: 0.8rem; background: rgba(20, 18, 16, 0.8); transition: border-color 140ms ease, background 140ms ease; }
+.campaign-combat-actions.is-expanded { border-color: #574b39; background: rgba(20, 18, 16, 0.9); }
+.campaign-combat-actions-summary { min-height: 4.35rem; padding: 0.78rem 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.campaign-combat-actions-summary h2 { margin: 0.12rem 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.18rem; font-weight: 500; }
+.campaign-combat-actions-summary p { margin: 0.2rem 0 0; color: #91887c; font-size: 0.66rem; }
+.campaign-combat-actions-summary > button { min-height: 2.25rem; padding: 0.42rem 0.62rem 0.42rem 0.72rem; display: inline-flex; align-items: center; gap: 0.7rem; border: 1px solid #50483d; border-radius: 0.48rem; background: rgba(255, 255, 255, 0.018); color: #c6bbaa; font-size: 0.66rem; font-weight: 750; white-space: nowrap; }
+.campaign-combat-actions-summary > button:hover { border-color: #7a684c; background: rgba(245, 198, 92, 0.06); color: #ead193; }
+.campaign-combat-actions-summary > button span { color: #d3b66f; font-size: 0.95rem; line-height: 1; }
+.campaign-combat-actions-content { padding: 0.85rem 0.9rem 0.9rem; border-top: 1px solid #37322c; }
+.campaign-combat-actions-content > p { margin: 0 0 0.75rem; color: #91887c; font-size: 0.72rem; }
+.campaign-combat-actions-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 0.8rem; }
+.campaign-combat-actions-toolbar > label { width: min(20rem, 100%); margin: 0; }
+.campaign-combat-actions-toolbar > strong { padding-bottom: 0.35rem; font-size: 0.76rem; }
 .campaign-action-list { display: grid; gap: 0.4rem; margin-top: 0.7rem; }
 .campaign-action-list article { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.45rem; padding: 0.55rem; border: 1px solid #38332d; border-radius: 0.45rem; background: #181614; }
 .campaign-action-list article.is-editing { border-color: #8b713f; border-radius: 0.45rem 0.45rem 0 0; background: #211c15; box-shadow: 0 0 0 1px rgba(245, 198, 92, 0.06) inset; }
@@ -2096,6 +2106,10 @@ input:focus {
   .campaign-create-footer { grid-column: auto; align-items: stretch; flex-direction: column; }
   .campaign-create-footer .primary-button { width: 100%; }
   .campaign-character-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campaign-combat-actions-summary { align-items: flex-start; }
+  .campaign-combat-actions-summary > button { margin-top: 0.15rem; }
+  .campaign-combat-actions-toolbar { align-items: stretch; flex-direction: column; }
+  .campaign-combat-actions-toolbar .campaign-create-button { align-self: flex-end; }
   .campaign-action-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .campaign-action-field-name, .campaign-action-field-type, .campaign-action-options, .campaign-action-alternate-fields, .campaign-action-editor-buttons { grid-column: 1 / -1; }
   .campaign-action-field-bonus, .campaign-action-field-kind, .campaign-action-field-count, .campaign-action-field-die, .campaign-action-field-modifier, .campaign-action-field-reach, .campaign-action-field-range { grid-column: span 1; }
