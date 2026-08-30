@@ -68,6 +68,13 @@ test("numbered migrations build and seed a fresh database", async () => {
       "Guiding Bolt (5th level):8d6",
     ],
   );
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND source_ref = 'malichar-sheet-2026-08-30';"), "5");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND lower(name) = 'dagger';"), "1");
+  assert.equal(
+    await query(database, `SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier || ' ' || damage_type || ':' || manual_rider_text
+      FROM combat_action_profiles WHERE id = 'character-malichar-glimmering-moonbow-v1';`),
+    "1d6+6 piercing:Also deals 1d6 radiant damage. The additional radiant die is not yet included in the automatic damage roll.",
+  );
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM combat_action_profiles a WHERE a.creature_catalog_id = t.catalog_creature_id AND a.is_enabled = 1);`), "0");
