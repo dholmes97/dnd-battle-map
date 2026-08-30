@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CombatRollResultNotice } from "@/app/combat-activity-stack";
 import type { EncounterState, ParticipantSession } from "@/shared/contracts";
 
@@ -17,14 +17,27 @@ export function useCombatRollNotifications({ participant, state }: {
   participant: ParticipantSession | null;
   state: EncounterState | null;
 }) {
+  const currentSessionKey = participant && state ? `${participant.id}:${state.encounter.code}` : "";
   const [queue, setQueue] = useState<CombatRollResultNotice[]>([]);
-  const sessionKeyRef = useRef("");
-  const seenRollIdsRef = useRef(new Set<string>());
-  const damageRolledIdsRef = useRef(new Set<string>());
+  const [sessionKey, setSessionKey] = useState(currentSessionKey);
+  const [seenRollIds, setSeenRollIds] = useState<ReadonlySet<string>>(
+    () => new Set(state?.combatRolls.map((roll) => roll.id) ?? []),
+  );
+  const [damageRolledIds, setDamageRolledIds] = useState<ReadonlySet<string>>(
+    () => new Set(state?.combatRolls.filter((roll) => roll.damageRolledAt !== null).map((roll) => roll.id) ?? []),
+  );
+  const pendingNotificationRollIds = useMemo(() => participant && state && sessionKey === currentSessionKey
+    ? state.combatRolls
+      .filter((roll) => !seenRollIds.has(roll.id) ||
+        roll.damageRolledAt !== null && !damageRolledIds.has(roll.id))
+      .map((roll) => roll.id)
+    : [], [currentSessionKey, damageRolledIds, participant, seenRollIds, sessionKey, state]);
 
   const enqueue = useCallback((notice: CombatRollResultNotice) => {
-    seenRollIdsRef.current.add(notice.roll.id);
-    if (notice.roll.damageRolledAt !== null) damageRolledIdsRef.current.add(notice.roll.id);
+    setSeenRollIds((current) => new Set(current).add(notice.roll.id));
+    if (notice.roll.damageRolledAt !== null) {
+      setDamageRolledIds((current) => new Set(current).add(notice.roll.id));
+    }
     setQueue((current) => current.some((item) => item.roll.id === notice.roll.id)
       ? current.map((item) => item.roll.id === notice.roll.id ? notice : item)
       : [...current, notice]);
@@ -32,32 +45,35 @@ export function useCombatRollNotifications({ participant, state }: {
 
   useEffect(() => {
     if (!participant || !state) {
-      sessionKeyRef.current = "";
-      seenRollIdsRef.current = new Set();
-      damageRolledIdsRef.current = new Set();
-      queueMicrotask(() => setQueue([]));
+      if (!sessionKey && queue.length === 0 && seenRollIds.size === 0 && damageRolledIds.size === 0) return;
+      queueMicrotask(() => {
+        setSessionKey("");
+        setSeenRollIds(new Set());
+        setDamageRolledIds(new Set());
+        setQueue([]);
+      });
       return;
     }
 
-    const sessionKey = `${participant.id}:${state.encounter.code}`;
-    if (sessionKeyRef.current !== sessionKey) {
-      sessionKeyRef.current = sessionKey;
-      seenRollIdsRef.current = new Set(state.combatRolls.map((roll) => roll.id));
-      damageRolledIdsRef.current = new Set(state.combatRolls
-        .filter((roll) => roll.damageRolledAt !== null)
-        .map((roll) => roll.id));
-      queueMicrotask(() => setQueue([]));
+    const nextSessionKey = `${participant.id}:${state.encounter.code}`;
+    if (sessionKey !== nextSessionKey) {
+      queueMicrotask(() => {
+        setSessionKey(nextSessionKey);
+        setSeenRollIds(new Set(state.combatRolls.map((roll) => roll.id)));
+        setDamageRolledIds(new Set(state.combatRolls
+          .filter((roll) => roll.damageRolledAt !== null)
+          .map((roll) => roll.id)));
+        setQueue([]);
+      });
       return;
     }
 
     const unseenRolls = state.combatRolls
-      .filter((roll) => !seenRollIdsRef.current.has(roll.id))
+      .filter((roll) => !seenRollIds.has(roll.id))
       .toSorted((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id));
-    for (const roll of unseenRolls) seenRollIdsRef.current.add(roll.id);
     const newlyDamagedRolls = state.combatRolls
-      .filter((roll) => roll.damageRolledAt !== null && !damageRolledIdsRef.current.has(roll.id))
+      .filter((roll) => roll.damageRolledAt !== null && !damageRolledIds.has(roll.id))
       .toSorted((left, right) => (left.damageRolledAt ?? 0) - (right.damageRolledAt ?? 0) || left.id.localeCompare(right.id));
-    for (const roll of newlyDamagedRolls) damageRolledIdsRef.current.add(roll.id);
     const unseenIds = new Set(unseenRolls.map((roll) => roll.id));
     const eventRolls = [...unseenRolls, ...newlyDamagedRolls.filter((roll) => !unseenIds.has(roll.id))];
     if (eventRolls.length === 0) return;
@@ -71,11 +87,15 @@ export function useCombatRollNotifications({ participant, state }: {
       const queuedIds = new Set(updated.map((notice) => notice.roll.id));
       return [...updated, ...notices.filter((notice) => !queuedIds.has(notice.roll.id))];
     }));
-  }, [participant, state]);
+    queueMicrotask(() => {
+      setSeenRollIds((current) => new Set([...current, ...unseenRolls.map((roll) => roll.id)]));
+      setDamageRolledIds((current) => new Set([...current, ...newlyDamagedRolls.map((roll) => roll.id)]));
+    });
+  }, [damageRolledIds, participant, queue.length, seenRollIds, sessionKey, state]);
 
   const dismiss = useCallback((rollId?: string) => setQueue((current) => rollId
     ? current.filter((notice) => notice.roll.id !== rollId)
     : current.slice(1)), []);
 
-  return { notifications: queue, enqueue, dismiss };
+  return { notifications: queue, pendingNotificationRollIds, enqueue, dismiss };
 }

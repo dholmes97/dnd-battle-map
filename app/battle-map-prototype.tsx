@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -129,8 +130,12 @@ export default function BattleMapPrototype() {
   } = encounterSync;
   const tokenControls = useTokenControls({ participant, state, sync: encounterSync, setError, setNotice });
   const damageNotifications = useDamageNotifications({ participant, state });
-  const damageReview = useDamageReviewQueue({ participant, state });
   const combatRollNotifications = useCombatRollNotifications({ participant, state });
+  const representedDamageReviewRollIds = useMemo(() => [
+    ...combatRollNotifications.notifications.map((notice) => notice.roll.id),
+    ...combatRollNotifications.pendingNotificationRollIds,
+  ], [combatRollNotifications.notifications, combatRollNotifications.pendingNotificationRollIds]);
+  const damageReview = useDamageReviewQueue({ participant, state, representedRollIds: representedDamageReviewRollIds });
   const encounterActions = useEncounterActions(encounterSync);
   const {
     pendingAction: encounterAction,
@@ -1161,6 +1166,7 @@ export default function BattleMapPrototype() {
       </div>
       <CombatActivityStack
         state={state}
+        canAdjudicateDamage={participant.role === "dm"}
         rollResults={combatRollNotifications.notifications}
         damageNotifications={damageNotifications.notifications}
         damageReviewProposals={damageReview.visibleProposals}

@@ -481,7 +481,9 @@ describe("CombatRollResultCard", () => {
       onDismiss={vi.fn()}
     />);
 
-    expect(screen.getByLabelText("slashing damage total 6")).toBeTruthy();
+    expect(screen.getByLabelText("slashing damage total 6").classList.contains("is-revealed")).toBe(true);
+    expect(screen.getByText("slashing damage")).toBeTruthy();
+    expect(screen.getByText("6")).toBeTruthy();
     expect(screen.queryByLabelText("Damage dice")).toBeNull();
     expect(screen.queryByText("Damage bonus")).toBeNull();
   });
@@ -514,11 +516,13 @@ describe("combat surface separation", () => {
     expect(screen.getByRole("alertdialog", { name: "Concentration check required" })).toBeTruthy();
   });
 
-  it("shows a roll result and multiple DM damage reviews together without a modal", () => {
+  it("keeps each live DM damage review inside its matching roll card", () => {
+    const onAdjudicateDamage = vi.fn();
     const secondRoll = { ...damageRoll, id: "roll-review-2", targetTokenId: "target-2", targetName: "Goblin Raider" };
     const secondProposal = { ...damageProposal, id: "proposal-review-2", rollId: secondRoll.id, targetTokenId: secondRoll.targetTokenId, createdAt: 2 };
     render(<CombatActivityStack
       state={{ combatRolls: [damageRoll, secondRoll], damageProposals: [damageProposal, secondProposal] } as EncounterState}
+      canAdjudicateDamage
       rollResults={[
         { roll: damageRoll, proposalId: damageProposal.id },
         { roll: secondRoll, proposalId: secondProposal.id },
@@ -531,14 +535,38 @@ describe("combat surface separation", () => {
       onReleaseAttackOutcome={vi.fn(async () => undefined)}
       onDismissDamageNotification={vi.fn()}
       onDismissDamageReview={vi.fn()}
-      onAdjudicateDamage={vi.fn()}
+      onAdjudicateDamage={onAdjudicateDamage}
     />);
 
     expect(screen.getByRole("complementary", { name: "Combat activity" })).toBeTruthy();
     expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
     expect(screen.getByRole("article", { name: "Dar'eleth is attacking Goblin Raider with Longsword +1." })).toBeTruthy();
-    expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
-    expect(screen.getByRole("article", { name: "Apply damage to Goblin Raider?" })).toBeTruthy();
+    expect(screen.getByLabelText("Finalize damage against Orc Warrior")).toBeTruthy();
+    expect(screen.getByLabelText("Finalize damage against Goblin Raider")).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeNull();
+    expect(screen.queryByRole("article", { name: "Apply damage to Goblin Raider?" })).toBeNull();
+    expect(screen.queryByText("Damage is pending DM approval.")).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: "Apply full 11 damage" })[0]);
+    expect(onAdjudicateDamage).toHaveBeenCalledWith(damageProposal.id, "apply", undefined);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("keeps the standalone damage review as a fallback after its roll card is unavailable", () => {
+    render(<CombatActivityStack
+      state={{ combatRolls: [damageRoll], damageProposals: [damageProposal] } as EncounterState}
+      canAdjudicateDamage
+      rollResults={[]}
+      damageNotifications={[]}
+      damageReviewProposals={[damageProposal]}
+      damageReviewPendingCount={1}
+      onDismissRollResult={vi.fn()}
+      onRollDamage={vi.fn(async () => undefined)}
+      onReleaseAttackOutcome={vi.fn(async () => undefined)}
+      onDismissDamageNotification={vi.fn()}
+      onDismissDamageReview={vi.fn()}
+      onAdjudicateDamage={vi.fn()}
+    />);
+
+    expect(screen.getByRole("article", { name: "Apply damage to Orc Warrior?" })).toBeTruthy();
   });
 });

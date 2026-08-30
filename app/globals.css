@@ -1665,6 +1665,8 @@ input:focus {
 .dm-damage-finalizer .damage-review-decisions button { min-height: 2.35rem; padding: 0.36rem 0.42rem; text-align: center; }
 .dm-damage-finalizer .damage-review-adjust { margin-top: 0; padding-top: 0.48rem; }
 .dm-damage-finalizer .damage-review-adjust input, .dm-damage-finalizer .damage-review-adjust button { min-height: 2rem; }
+.dm-damage-finalizer-secondary { display: flex; justify-content: flex-end; gap: 0.25rem; }
+.dm-damage-finalizer-secondary .text-button { min-height: 1.85rem; padding-inline: 0.42rem; font-size: 0.58rem; }
 .combat-roll-result-card .combat-roll-result-status { padding: 0.45rem 0.52rem; font-size: 0.65rem; }
 .combat-roll-result-card.is-miss .combat-roll-result-status { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
 .combat-roll-result-card .combat-roll-result-status.is-not-applied { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }

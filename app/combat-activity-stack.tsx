@@ -206,6 +206,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const [focusedWithin, setFocusedWithin] = useState(false);
   const proposalStatus = proposal?.status ?? (proposalId ? "pending" : null);
   const proposalResolved = terminalProposalStatus(proposalStatus);
+  const inlineDamageReview = damagingHit && proposal?.status === "pending" && Boolean(onFinalizeDamage);
   const dismissalPaused = hovered || focusedWithin;
 
   useEffect(() => {
@@ -295,10 +296,10 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
           {roll.damageDice.map((die, index) => <span className={`combat-roll-term is-damage${revealed(revealPlan.damageTermSteps[index]) ? " is-revealed" : ""}`} key={`${die}-${index}`}><small>d{roll.action.damage.sides}</small><strong>{die}</strong></span>)}
           <span className={`combat-roll-term is-modifier${revealed(revealPlan.damageTermSteps[roll.damageDice.length]) ? " is-revealed" : ""}`}><small>{roll.damageDice.length ? "Damage bonus" : "Flat damage"}</small><strong>{signedModifier(roll.action.damage.modifier)}</strong></span>
         </div> : null}
-        <div className={`combat-roll-total combat-roll-reveal${revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
+        <div className={`combat-roll-total combat-roll-reveal${summaryOnly || revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
       </div> : null}
-      {privateDmRoll && damagingHit && proposal?.status === "pending" && onFinalizeDamage ? <DmDamageFinalizer id={statusId} proposal={proposal} roll={roll} onFinalize={onFinalizeDamage} /> : null}
-      {damagePending || awaitingVerdictRelease || privateDmRoll && proposal?.status === "pending" ? null : <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
+      {inlineDamageReview && proposal && onFinalizeDamage ? <DmDamageFinalizer id={statusId} proposal={proposal} roll={roll} revealed={revealed(revealPlan.completeStep)} onFinalize={onFinalizeDamage} /> : null}
+      {damagePending || awaitingVerdictRelease || inlineDamageReview ? null : <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
         ? "The attack missed. No damage proposal was created."
         : roll.outcome === "needs-ac"
           ? "The target's armor class is unavailable. No damage proposal was created; the DM can resolve the attack from this roll."
@@ -311,10 +312,11 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   </article>;
 }
 
-function DmDamageFinalizer({ id, proposal, roll, onFinalize }: {
+function DmDamageFinalizer({ id, proposal, roll, revealed, onFinalize }: {
   id: string;
   proposal: SharedDamageProposal;
   roll: SharedCombatRoll;
+  revealed: boolean;
   onFinalize: (proposalId: string, method: DamageAdjudication, adjustedDamage?: number) => void;
 }) {
   const [adjustedDamage, setAdjustedDamage] = useState("");
@@ -322,18 +324,20 @@ function DmDamageFinalizer({ id, proposal, roll, onFinalize }: {
   const adjustedValue = Number(adjustedDamage);
   const validAdjustment = adjustedDamage.trim() !== "" && Number.isInteger(adjustedValue) && adjustedValue >= 0 && adjustedValue <= 1000;
   const finalize = (method: DamageAdjudication, amount?: number) => onFinalize(proposal.id, method, amount);
-  return <section className="dm-damage-finalizer" id={id} aria-label={`Finalize damage against ${roll.targetName}`}>
-    <p><strong>Private damage roll.</strong> Choose the final amount to apply and reveal to the table.</p>
+  const privateDmRoll = roll.rollPrivacy === "dm-private";
+  return <section className={`dm-damage-finalizer combat-roll-reveal${revealed ? " is-revealed" : ""}`} id={id} aria-label={`Finalize damage against ${roll.targetName}`}>
+    <p><strong>{privateDmRoll ? "Private damage roll." : "DM damage approval."}</strong> {privateDmRoll ? "Choose the final amount to apply and reveal to the table." : "Apply the rolled damage or choose a different result."}</p>
     <div className="damage-review-decisions" role="group" aria-label={`Final damage for ${roll.targetName}`}>
-      <button type="button" className="is-primary" aria-label={`Apply and reveal ${proposal.rolledDamage} damage`} onClick={() => finalize("apply")}><strong>Apply &amp; reveal</strong><span>{proposal.rolledDamage}</span></button>
+      <button type="button" className="is-primary" aria-label={privateDmRoll ? `Apply and reveal ${proposal.rolledDamage} damage` : `Apply full ${proposal.rolledDamage} damage`} onClick={() => finalize("apply")}><strong>{privateDmRoll ? "Apply & reveal" : "Apply full"}</strong><span>{proposal.rolledDamage}</span></button>
       <button type="button" onClick={() => finalize("resistant")}><strong>Resistant</strong><span>{Math.floor(proposal.rolledDamage / 2)}</span></button>
       <button type="button" onClick={() => finalize("vulnerable")}><strong>Vulnerable</strong><span>{Math.min(1000, proposal.rolledDamage * 2)}</span></button>
-      <button type="button" onClick={() => finalize("immune")}><strong>No damage</strong><span>0</span></button>
+      <button type="button" onClick={() => finalize("immune")}><strong>{privateDmRoll ? "No damage" : "Immune"}</strong><span>0</span></button>
     </div>
     <div className="damage-review-adjust">
       <label htmlFor={`dm-final-damage-${proposal.id}`}>Different amount</label>
       <div><input id={`dm-final-damage-${proposal.id}`} aria-label={`Final damage for ${roll.targetName}`} type="number" min="0" max="1000" inputMode="numeric" value={adjustedDamage} onChange={(event) => setAdjustedDamage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && validAdjustment) finalize("adjust", adjustedValue); }} /><button type="button" disabled={!validAdjustment} onClick={() => finalize("adjust", adjustedValue)}>Apply &amp; reveal</button></div>
     </div>
+    {!privateDmRoll ? <div className="dm-damage-finalizer-secondary"><button type="button" className="text-button is-danger" onClick={() => finalize("reject")}>Reject attack</button><button type="button" className="text-button" onClick={() => finalize("cancel")}>Cancel proposal</button></div> : null}
   </section>;
 }
 
@@ -383,8 +387,9 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
 
 const MAX_VISIBLE_CARDS_PER_TYPE = 3;
 
-export function CombatActivityStack({ state, rollResults, damageNotifications, damageReviewProposals, damageReviewPendingCount, onDismissRollResult, onRollDamage, onReleaseAttackOutcome, onDismissDamageNotification, onDismissDamageReview, onAdjudicateDamage }: {
+export function CombatActivityStack({ state, canAdjudicateDamage, rollResults, damageNotifications, damageReviewProposals, damageReviewPendingCount, onDismissRollResult, onRollDamage, onReleaseAttackOutcome, onDismissDamageNotification, onDismissDamageReview, onAdjudicateDamage }: {
   state: EncounterState;
+  canAdjudicateDamage: boolean;
   rollResults: CombatRollResultNotice[];
   damageNotifications: DamageNotification[];
   damageReviewProposals: SharedDamageProposal[];
@@ -397,7 +402,10 @@ export function CombatActivityStack({ state, rollResults, damageNotifications, d
   onAdjudicateDamage: (proposalId: string, method: DamageAdjudication, adjustedDamage?: number) => void;
 }) {
   const visibleRollResults = rollResults.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
-  const visibleReviews = damageReviewProposals.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
+  const visibleRollIds = new Set(visibleRollResults.map((notice) => notice.roll.id));
+  const visibleReviews = damageReviewProposals
+    .filter((proposal) => !visibleRollIds.has(proposal.rollId))
+    .slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
   const visibleNotifications = damageNotifications.slice(0, MAX_VISIBLE_CARDS_PER_TYPE);
   const hiddenCount = Math.max(0, rollResults.length - visibleRollResults.length)
     + Math.max(0, damageReviewPendingCount - visibleReviews.length)
@@ -415,7 +423,7 @@ export function CombatActivityStack({ state, rollResults, damageNotifications, d
         onDismiss={() => onDismissRollResult(roll.id)}
         onRollDamage={roll.canRollDamage ? () => onRollDamage(roll.id) : undefined}
         onReleaseOutcome={roll.canReleaseOutcome ? (outcome) => onReleaseAttackOutcome(roll.id, outcome) : undefined}
-        onFinalizeDamage={roll.rollPrivacy === "dm-private" ? onAdjudicateDamage : undefined}
+        onFinalizeDamage={canAdjudicateDamage && proposal?.status === "pending" ? onAdjudicateDamage : undefined}
       />;
     })}
     {visibleReviews.map((proposal) => <DamageReviewCard

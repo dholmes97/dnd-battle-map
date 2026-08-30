@@ -46,4 +46,22 @@ describe("useDamageReviewQueue", () => {
     expect(result.current.activeProposal).toBeNull();
     expect(result.current.pendingCount).toBe(0);
   });
+
+  it("suppresses the fallback while a public roll card represents the proposal", () => {
+    const participant = { id: "dm", name: "Kevin", role: "dm", sessionSecret: "secret" } as ParticipantSession;
+    const pending = proposal("represented", 1);
+    const state = {
+      damageProposals: [pending],
+      combatRolls: [{ id: pending.rollId, rollPrivacy: "public" } as SharedCombatRoll],
+    } as EncounterState;
+    const { result, rerender } = renderHook(({ representedRollIds }) => useDamageReviewQueue({ participant, state, representedRollIds }), {
+      initialProps: { representedRollIds: [pending.rollId] as string[] },
+    });
+
+    expect(result.current.activeProposal).toBeNull();
+    expect(result.current.pendingCount).toBe(0);
+    rerender({ representedRollIds: [] });
+    expect(result.current.activeProposal?.id).toBe(pending.id);
+    expect(result.current.pendingCount).toBe(1);
+  });
 });

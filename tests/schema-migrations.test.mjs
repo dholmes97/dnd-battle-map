@@ -54,6 +54,20 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_rolls') WHERE name IN ('dm_private', 'released_outcome', 'outcome_released_at');"), "3");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND source_ref = 'jelton-sheet-2026-08-30';"), "10");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND lower(name) = 'guiding bolt';"), "0");
+  assert.deepEqual(
+    (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
+      FROM combat_action_profiles
+      WHERE campaign_character_id = 'character-jelton' AND name LIKE 'Guiding Bolt (%'
+      ORDER BY sort_order;`)).split("\n"),
+    [
+      "Guiding Bolt (2nd level):5d6",
+      "Guiding Bolt (3rd level):6d6",
+      "Guiding Bolt (4th level):7d6",
+      "Guiding Bolt (5th level):8d6",
+    ],
+  );
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM combat_action_profiles a WHERE a.creature_catalog_id = t.catalog_creature_id AND a.is_enabled = 1);`), "0");
