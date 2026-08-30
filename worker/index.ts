@@ -271,6 +271,20 @@ function creatureContentType(key: string): string {
   return "image/png";
 }
 
+const CATALOG_DISPLAY_ASSET_PREFIX = "/creature-assets/display/v1/";
+
+function catalogDisplayAssetUrl(value: string | null): string | null {
+  if (!value) return value;
+  if (value.startsWith(CATALOG_DISPLAY_ASSET_PREFIX)) return value;
+  const match = value.match(/^\/creature-assets\/(tokens\/(?!provisioned\/)[a-z0-9/_-]+)\.png$/i);
+  return match ? `${CATALOG_DISPLAY_ASSET_PREFIX}${match[1]}.webp` : value;
+}
+
+function canonicalCatalogTokenAsset(value: string): string {
+  const match = value.match(/^\/creature-assets\/display\/v1\/(tokens\/[a-z0-9/_-]+)\.webp$/i);
+  return match ? `/creature-assets/${match[1]}.png` : value;
+}
+
 async function creatureAssetBytes(env: Env, request: Request, key: string): Promise<ArrayBuffer | null> {
   const storageKey = `creature-catalog/original/${key}`;
   if (env.MAP_ASSETS) {
@@ -361,6 +375,35 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
     }
   }
   return new Response(bytes, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": thumbnail ? "original-thumbnail-fallback" : "r2-original" } });
+}
+
+async function handleCreatureDisplayAsset(request: Request, env: Env, rawKey: string): Promise<Response> {
+  const key = cleanCreatureAssetKey(rawKey);
+  if (!key || !/\.webp$/i.test(key)) return new Response("Not found", { status: 404 });
+  if (env.MAP_ASSETS) {
+    const stored = await env.MAP_ASSETS.get(`creature-catalog/display/${key}`);
+    if (stored) {
+      return new Response(stored.body, {
+        headers: {
+          "cache-control": "public, max-age=31536000, immutable",
+          "content-type": "image/webp",
+          "etag": stored.httpEtag,
+          "x-content-type-options": "nosniff",
+          "x-creature-asset-source": "r2-display-webp-v1",
+        },
+      });
+    }
+  }
+  const originalKey = key.replace(/\.webp$/i, ".png");
+  return new Response(null, {
+    status: 307,
+    headers: {
+      "cache-control": "no-store",
+      location: new URL(`/creature-assets/${originalKey}`, request.url).toString(),
+      "x-content-type-options": "nosniff",
+      "x-creature-asset-source": "original-display-fallback",
+    },
+  });
 }
 
 function json(data: unknown, init: ResponseInit = {}): Response {
@@ -738,7 +781,7 @@ async function handleCreatureCatalog(request: Request, env: Env): Promise<Respon
         climb: creature.climb_speed,
         burrow: creature.burrow_speed,
       },
-      artAsset: creature.token_asset,
+      artAsset: catalogDisplayAssetUrl(creature.token_asset),
       thumbnailAsset: creature.thumbnail_asset,
     })),
     families: families.results.map((entry) => entry.family),
@@ -1201,7 +1244,7 @@ async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
   if (!artAsset) return false;
   const creature = await env.DB.prepare(
     "SELECT 1 AS found FROM creature_catalog WHERE token_asset = ? AND is_active = 1 LIMIT 1",
-  ).bind(artAsset).first<{ found: number }>();
+  ).bind(canonicalCatalogTokenAsset(artAsset)).first<{ found: number }>();
   return Boolean(creature);
 }
 
@@ -1952,7 +1995,7 @@ async function encounterState(
         name: token.name,
         x: token.x,
         y: token.y,
-        artAsset: token.art_asset,
+        artAsset: catalogDisplayAssetUrl(token.art_asset),
         kind: token.kind,
         size: token.size,
         speed: token.speed,
@@ -2321,7 +2364,7 @@ async function handleCommand(
     isAllowedArt: (value) => isAllowedTokenArt(env, value),
     isCatalogCreature: async (id, artAsset) => Boolean(await env.DB.prepare(
       "SELECT 1 AS found FROM creature_catalog WHERE id = ? AND token_asset = ? AND is_active = 1 LIMIT 1",
-    ).bind(id, artAsset).first()),
+    ).bind(id, canonicalCatalogTokenAsset(artAsset)).first()),
   });
   const historyContext = <Name extends "undo" | "redo">(
     payload: CommandPayload<Name>,
@@ -2809,6 +2852,11 @@ const worker = {
       } catch (error) {
         return apiFailure(error, "Creature display asset import error", "The creature display assets could not be imported.");
       }
+    }
+
+    if (url.pathname.startsWith(CATALOG_DISPLAY_ASSET_PREFIX)) {
+      const key = url.pathname.slice(CATALOG_DISPLAY_ASSET_PREFIX.length);
+      return handleCreatureDisplayAsset(request, env, key);
     }
 
     if (url.pathname.startsWith("/creature-assets/")) {

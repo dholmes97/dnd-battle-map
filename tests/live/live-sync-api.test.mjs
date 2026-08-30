@@ -195,15 +195,50 @@ test("the creature catalog pages metadata and serves artwork only on request", a
   const catalog = await catalogResponse.json();
   assert.equal(catalog.items.length, 1);
   assert.equal(catalog.items[0].name, "Ember Imp");
-  assert.equal(catalog.items[0].artAsset, "/creature-assets/tokens/creatures/imp-01.png");
+  assert.equal(catalog.items[0].artAsset, "/creature-assets/display/v1/tokens/creatures/imp-01.webp");
   assert.match(catalog.items[0].thumbnailAsset, /variant=thumbnail&v=3$/);
   assert.ok(catalog.families.includes("fiend"));
+  const artworkResponse = await fetch(`${baseUrl}${catalog.items[0].artAsset}`);
+  assert.equal(artworkResponse.status, 200);
+  const artworkContentType = artworkResponse.headers.get("content-type") ?? "";
+  assert.match(artworkContentType, /^image\/(?:webp|png)$/);
+  if (artworkContentType.startsWith("image/webp")) {
+    assert.equal(artworkResponse.headers.get("x-creature-asset-source"), "r2-display-webp-v1");
+  }
   const thumbnailResponse = await fetch(`${baseUrl}${catalog.items[0].thumbnailAsset}`);
   assert.equal(thumbnailResponse.status, 200);
   assert.match(thumbnailResponse.headers.get("content-type") ?? "", /^image\//);
   const thumbnailBytes = (await thumbnailResponse.arrayBuffer()).byteLength;
   assert.ok(thumbnailBytes > 1_000);
   assert.ok(thumbnailBytes < 100_000, `Thumbnail should stay lightweight, received ${thumbnailBytes} bytes`);
+});
+
+test("versioned WebP catalog art remains placement-ready", async () => {
+  const catalogResponse = await fetch(`${baseUrl}/api/creatures?limit=8&q=Ember%20Imp`);
+  assert.equal(catalogResponse.status, 200);
+  const creature = (await catalogResponse.json()).items[0];
+  const dm = (await joinIdentity(FIXED_IDENTITIES.kevin)).participant;
+  const created = await command(dm, "create-token", {
+    name: `WebP Smoke Imp ${Date.now()}`,
+    kind: "monster",
+    size: creature.size,
+    speed: creature.speeds.walk,
+    armorClass: creature.armorClass,
+    hp: creature.defaultHp,
+    maxHp: creature.defaultHp,
+    artAsset: creature.artAsset,
+    catalogCreatureId: creature.id,
+    x: 1.5,
+    y: 1.5,
+  });
+  assert.equal(created.response.status, 200);
+  try {
+    const token = created.body.state.tokens.find((candidate) => candidate.id === created.body.tokenId);
+    assert.equal(token.artAsset, "/creature-assets/display/v1/tokens/creatures/imp-01.webp");
+  } finally {
+    const removed = await command(dm, "delete-token", { tokenId: created.body.tokenId });
+    assert.equal(removed.response.status, 200);
+  }
 });
 
 test("fixed identities independently move disposable summons without reservations", async () => {
@@ -688,7 +723,7 @@ test("initiative, turn groups, tactical state, visibility, setup, and undo stay 
     createdIds.push(inheritedSummonId);
     const inheritedSummonToken = inheritedSummon.body.state.tokens.find((token) => token.id === inheritedSummonId);
     assert.equal(inheritedSummonToken.controller.name, "Scott");
-    assert.equal(inheritedSummonToken.artAsset, "/creature-assets/tokens/creatures/imp-01.png");
+    assert.equal(inheritedSummonToken.artAsset, "/creature-assets/display/v1/tokens/creatures/imp-01.webp");
 
     const summon = await command(dm, "create-token", {
       name: `Griffon ${suffix}`,
