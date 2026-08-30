@@ -29,6 +29,10 @@ export const MAX_SHARED_FOG_INPUT_POINTS = 100;
 export const CATALOG_IMAGE_MAX_ENCODED_CHARACTERS = 2_800_000;
 export const CATALOG_IMAGE_MAX_BYTES = 2_000_000;
 export const CATALOG_IMPORT_MAX_DECODED_BYTES = 20 * 1024 * 1024;
+export const CATALOG_DISPLAY_IMPORT_JSON_MAX_BYTES = 10 * 1024 * 1024;
+export const CATALOG_DISPLAY_MAX_BYTES = 1_000_000;
+export const CATALOG_DISPLAY_IMPORT_MAX_DECODED_BYTES = 8 * 1024 * 1024;
+export const MAX_CATALOG_ASSET_VARIANTS = 4_000;
 export const CATALOG_ORIGINAL_MAX_EDGE = 2_048;
 export const CATALOG_ORIGINAL_MAX_PIXELS = 4_194_304;
 export const CATALOG_THUMBNAIL_MAX_EDGE = 512;
@@ -49,4 +53,5 @@ export const RATE_LIMIT_POLICIES = Object.freeze({
   handoutUpload: { limit: 10, windowMs: 60_000 },
   catalogImport: { limit: 2, windowMs: 60_000 },
   catalogActionImport: { limit: 30, windowMs: 60_000 },
+  catalogDisplayImport: { limit: 60, windowMs: 60_000 },
 });

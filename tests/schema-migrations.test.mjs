@@ -14,6 +14,7 @@ import {
   MAX_IDENTITIES,
   MAX_CHAT_MESSAGES_PER_ENCOUNTER,
   MAX_CATALOG_ENTRIES,
+  MAX_CATALOG_ASSET_VARIANTS,
   MAX_EFFECTS_PER_ENCOUNTER,
   MAX_EFFECTS_PER_TOKEN,
   MAX_HANDOUT_ROWS_PER_ENCOUNTER,
@@ -78,7 +79,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'resource-guardrails-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'state-integrity-v1';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('request_rate_limits', 'operation_leases', 'mutation_assertions', 'storage_write_intents', 'storage_cleanup_outbox');"), "5");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "19");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'limit_%';"), "20");
   assert.equal(await query(database, "SELECT COUNT(*) FROM map_images WHERE is_active = 1;"), "18");
   assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE code = 'EMBER-KEEP';"), "grandfather-tree-roots-v1");
   assert.equal(await query(database, "SELECT json_extract(active_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
@@ -334,6 +335,8 @@ test("resource-limit migration constants stay aligned with application policies"
   assert.match(migration, new RegExp("FROM `effects` WHERE `encounter_id` = NEW\\.`encounter_id`\\) >= " + MAX_EFFECTS_PER_ENCOUNTER));
   assert.match(migration, new RegExp("AND `token_id` = NEW\\.`token_id`\\) >= " + MAX_EFFECTS_PER_TOKEN));
   assert.match(migration, new RegExp("FROM `creature_catalog`\\) >= " + MAX_CATALOG_ENTRIES));
+  const catalogAssetMigration = await readFile(new URL("../drizzle/0039_slippery_steve_rogers.sql", import.meta.url), "utf8");
+  assert.match(catalogAssetMigration, new RegExp("FROM `creature_asset_variants`\\) >= " + MAX_CATALOG_ASSET_VARIANTS));
   const mapMigration = await readFile(new URL("../drizzle/0028_volatile_bruce_banner.sql", import.meta.url), "utf8");
   assert.match(mapMigration, new RegExp("FROM `map_images`\\) >= " + MAX_MAP_IMAGES));
   const campaignMigration = await readFile(new URL("../drizzle/0029_wonderful_sentinel.sql", import.meta.url), "utf8");

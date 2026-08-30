@@ -63,6 +63,25 @@ test("reference-aware cleanup never deletes a winning content-addressed asset", 
   });
 });
 
+test("reference-aware cleanup preserves a committed creature display variant", async () => {
+  await withDatabase(async (db) => {
+    const now = 1_900_000_000_000;
+    const creature = await db.prepare("SELECT id FROM creature_catalog ORDER BY id LIMIT 1").first();
+    await db.prepare(
+      `INSERT INTO creature_asset_variants
+       (id, creature_catalog_id, variant, version, r2_key, content_type, width, height,
+        byte_length, sha256, created_at, updated_at)
+       VALUES ('display-reference', ?, 'display', 1, 'creature-display-key', 'image/webp',
+        1254, 1254, 100, 'hash', ?, ?)`,
+    ).bind(creature.id, now, now).run();
+    await queueStorageCleanupStatement(db, "creature-display-key", "test-reference", now).run();
+    const deleted = [];
+    await reconcileStorageLifecycle(db, { delete: async (key) => deleted.push(key) }, now);
+    assert.deepEqual(deleted, []);
+    assert.equal(await scalar(db, "SELECT COUNT(*) AS value FROM storage_cleanup_outbox WHERE completed_at IS NOT NULL", undefined), 1);
+  });
+});
+
 test("stale write intents become retryable cleanup work", async () => {
   await withDatabase(async (db) => {
     const createdAt = 1_900_000_000_000;

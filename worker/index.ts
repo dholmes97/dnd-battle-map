@@ -55,7 +55,7 @@ import {
 } from "../shared/combat-rolling.ts";
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
 import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
-import { inspectCatalogPng, type CatalogImageVariant } from "../shared/catalog-image.ts";
+import { inspectCatalogPng, inspectCatalogWebp, type CatalogImageVariant } from "../shared/catalog-image.ts";
 import { validateCatalogActionImport } from "../shared/catalog-action-import.ts";
 import { indexRowsByKey } from "../shared/projection-index.ts";
 import {
@@ -67,6 +67,9 @@ import {
 } from "../shared/request-correlation.ts";
 import {
   API_JSON_BODY_MAX_BYTES,
+  CATALOG_DISPLAY_IMPORT_JSON_MAX_BYTES,
+  CATALOG_DISPLAY_IMPORT_MAX_DECODED_BYTES,
+  CATALOG_DISPLAY_MAX_BYTES,
   CATALOG_IMAGE_MAX_BYTES,
   CATALOG_IMAGE_MAX_ENCODED_CHARACTERS,
   CATALOG_IMPORT_JSON_MAX_BYTES,
@@ -74,6 +77,7 @@ import {
   HANDOUT_MULTIPART_MAX_BYTES,
   MAX_ACTIONS_PER_ENCOUNTER,
   MAX_ANNOTATIONS_PER_ENCOUNTER,
+  MAX_CATALOG_ASSET_VARIANTS,
   MAX_CATALOG_ENTRIES,
   MAX_CATALOG_FAMILIES,
   MAX_EFFECTS_PER_ENCOUNTER,
@@ -930,6 +934,181 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
   const total = await env.DB.prepare("SELECT COUNT(*) AS count FROM creature_catalog WHERE is_active = 1")
     .first<{ count: number }>();
   return json({ imported: prepared.map((creature) => creature.id), count: prepared.length, total: total?.count ?? 0 });
+}
+
+function cleanCatalogSourceKey(value: unknown): string {
+  return typeof value === "string" && /^tokens\/[a-z0-9/_-]+\.png$/i.test(value) ? value : "";
+}
+
+function decodeCatalogDisplayImage(value: unknown): Uint8Array | null {
+  if (typeof value !== "string" || value.length === 0 || value.length > Math.ceil(CATALOG_DISPLAY_MAX_BYTES * 4 / 3) + 64) return null;
+  try {
+    const decoded = atob(value.replace(/^data:image\/webp;base64,/i, ""));
+    if (decoded.length === 0 || decoded.length > CATALOG_DISPLAY_MAX_BYTES) return null;
+    const bytes = new Uint8Array(decoded.length);
+    for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
+    return inspectCatalogWebp(bytes) ? bytes : null;
+  } catch {
+    return null;
+  }
+}
+
+async function sha256Bytes(bytes: Uint8Array): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", Uint8Array.from(bytes).buffer));
+  return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function handleCreatureDisplayAssetImport(request: Request, env: Env): Promise<Response> {
+  if (!authorizedCatalogImport(request, env)) {
+    return json({ error: "Catalog import authorization failed." }, { status: 401 });
+  }
+  if (!env.MAP_ASSETS) return json({ error: "Creature asset storage is unavailable." }, { status: 503 });
+  await ensureSchema(env);
+  if (request.method === "GET") {
+    const summary = await env.DB.prepare(
+      `SELECT COUNT(*) AS object_count, COALESCE(SUM(byte_length), 0) AS byte_count
+       FROM creature_asset_variants WHERE variant = 'display' AND version = 1`,
+    ).first<{ object_count: number; byte_count: number }>();
+    return json({ variant: "display", version: 1, objectCount: Number(summary?.object_count) || 0, byteCount: Number(summary?.byte_count) || 0 });
+  }
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, { status: 405, headers: { allow: "GET, POST" } });
+  }
+  const rateLimited = await enforceRateLimit(
+    request, env, "catalog-display-import", RATE_LIMIT_POLICIES.catalogDisplayImport, "authorized-importer",
+  );
+  if (rateLimited) return rateLimited;
+  const leaseKey = "catalog-display-import";
+  const lease = await acquireOperationLease(env.DB, leaseKey, 120_000);
+  if (!lease) return json({ error: "Another display-asset import is already running.", code: "operation_in_progress" }, { status: 409 });
+  try {
+    return await importCreatureDisplayAssets(request, env, env.MAP_ASSETS);
+  } finally {
+    await releaseOperationLease(env.DB, leaseKey, lease);
+  }
+}
+
+async function importCreatureDisplayAssets(request: Request, env: Env, storage: R2Bucket): Promise<Response> {
+  const body = await readBoundedJsonObject(request, CATALOG_DISPLAY_IMPORT_JSON_MAX_BYTES);
+  const entries = Array.isArray(body.assets) ? body.assets : [];
+  if (entries.length === 0 || entries.length > 10) {
+    return json({ error: "Import one to ten display assets per batch." }, { status: 400 });
+  }
+  const prepared: Array<{
+    sourceKey: string; displayKey: string; bytes: Uint8Array; width: number; height: number; sha256: string;
+  }> = [];
+  const sourceKeys = new Set<string>();
+  let decodedBytes = 0;
+  for (const raw of entries) {
+    if (!raw || typeof raw !== "object") return json({ error: "Every display asset must be an object." }, { status: 400 });
+    const entry = raw as Record<string, unknown>;
+    const sourceKey = cleanCatalogSourceKey(entry.sourceKey);
+    const bytes = decodeCatalogDisplayImage(entry.imageBase64);
+    const dimensions = bytes ? inspectCatalogWebp(bytes) : null;
+    const expectedSha256 = cleanText(entry.sha256, 64).toLowerCase();
+    if (!sourceKey || sourceKeys.has(sourceKey) || !bytes || !dimensions || !/^[a-f0-9]{64}$/.test(expectedSha256)) {
+      return json({ error: "Display assets require unique catalog PNG source keys and valid bounded WebP bytes." }, { status: 400 });
+    }
+    const actualSha256 = await sha256Bytes(bytes);
+    if (actualSha256 !== expectedSha256 || Number(entry.width) !== dimensions.width || Number(entry.height) !== dimensions.height) {
+      return json({ error: `Display asset checksum or dimensions do not match ${sourceKey}.` }, { status: 400 });
+    }
+    decodedBytes += bytes.byteLength;
+    if (decodedBytes > CATALOG_DISPLAY_IMPORT_MAX_DECODED_BYTES) {
+      return json({ error: "The decoded display-asset batch is too large." }, { status: 413 });
+    }
+    sourceKeys.add(sourceKey);
+    prepared.push({
+      sourceKey,
+      displayKey: `creature-catalog/display/${sourceKey.replace(/\.png$/i, ".webp")}`,
+      bytes,
+      width: dimensions.width,
+      height: dimensions.height,
+      sha256: actualSha256,
+    });
+  }
+  const catalog = await env.DB.prepare(
+    `SELECT id, token_asset FROM creature_catalog
+     WHERE token_asset IN (${prepared.map(() => "?").join(", ")})`,
+  ).bind(...prepared.map((asset) => `/creature-assets/${asset.sourceKey}`)).all<{ id: string; token_asset: string }>();
+  const catalogByAsset = new Map(catalog.results.map((row) => [row.token_asset, row.id]));
+  const missing = prepared.filter((asset) => !catalogByAsset.has(`/creature-assets/${asset.sourceKey}`)).map((asset) => asset.sourceKey);
+  if (missing.length) return json({ error: "Every display asset must belong to an existing catalog creature.", missing }, { status: 409 });
+  const existing = await env.DB.prepare(
+    `SELECT creature_catalog_id, r2_key, width, height, byte_length, sha256
+     FROM creature_asset_variants WHERE r2_key IN (${prepared.map(() => "?").join(", ")})`,
+  ).bind(...prepared.map((asset) => asset.displayKey)).all<{
+    creature_catalog_id: string; r2_key: string; width: number; height: number; byte_length: number; sha256: string;
+  }>();
+  const existingByKey = new Map(existing.results.map((row) => [row.r2_key, row]));
+  for (const asset of prepared) {
+    const row = existingByKey.get(asset.displayKey);
+    if (row && (row.sha256 !== asset.sha256 || row.byte_length !== asset.bytes.byteLength ||
+      row.width !== asset.width || row.height !== asset.height ||
+      row.creature_catalog_id !== catalogByAsset.get(`/creature-assets/${asset.sourceKey}`))) {
+      return json({ error: `Immutable display asset already exists with different metadata: ${asset.displayKey}.` }, { status: 409 });
+    }
+  }
+  const newAssets = prepared.filter((asset) => !existingByKey.has(asset.displayKey));
+  const count = await env.DB.prepare("SELECT COUNT(*) AS value FROM creature_asset_variants").first<{ value: number }>();
+  if ((Number(count?.value) || 0) + newAssets.length > MAX_CATALOG_ASSET_VARIANTS) {
+    return json({ error: "The creature asset-variant catalog has reached its limit." }, { status: 409 });
+  }
+  const operationId = crypto.randomUUID();
+  const newKeys = newAssets.map((asset) => asset.displayKey);
+  if (newKeys.length) await createStorageWriteIntent(env.DB, operationId, newKeys, Date.now());
+  try {
+    for (const asset of prepared) {
+      const stored = await storage.head(asset.displayKey);
+      const matches = stored?.size === asset.bytes.byteLength && stored.customMetadata?.sha256 === asset.sha256;
+      if (!matches) {
+        await storage.put(asset.displayKey, asset.bytes, {
+          httpMetadata: { contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" },
+          customMetadata: { sha256: asset.sha256, width: String(asset.width), height: String(asset.height), version: "1" },
+        });
+      }
+      const verified = await storage.head(asset.displayKey);
+      if (!verified || verified.size !== asset.bytes.byteLength || verified.customMetadata?.sha256 !== asset.sha256) {
+        throw new Error(`Stored display asset failed verification: ${asset.displayKey}`);
+      }
+    }
+    if (newAssets.length) {
+      const now = Date.now();
+      await env.DB.batch([
+        ...newAssets.map((asset) => env.DB.prepare(
+        `INSERT INTO creature_asset_variants
+         (id, creature_catalog_id, variant, version, r2_key, content_type, width, height, byte_length, sha256, created_at, updated_at)
+         VALUES (?, ?, 'display', 1, ?, 'image/webp', ?, ?, ?, ?, ?, ?)`,
+        ).bind(
+          `${catalogByAsset.get(`/creature-assets/${asset.sourceKey}`)}:display:1`,
+          catalogByAsset.get(`/creature-assets/${asset.sourceKey}`), asset.displayKey,
+          asset.width, asset.height, asset.bytes.byteLength, asset.sha256, now, now,
+        )),
+        env.DB.prepare("DELETE FROM storage_write_intents WHERE operation_id = ?").bind(operationId),
+      ]);
+    }
+  } catch (error) {
+    if (newKeys.length) {
+      await abandonStorageWriteIntent(env.DB, operationId, newKeys, "catalog-display-import-failed", Date.now()).catch(() => undefined);
+      await reconcileStorageLifecycle(env.DB, storage).catch(() => undefined);
+    }
+    throw error;
+  }
+  const total = await env.DB.prepare(
+    `SELECT COUNT(*) AS object_count, COALESCE(SUM(byte_length), 0) AS byte_count
+     FROM creature_asset_variants WHERE variant = 'display' AND version = 1`,
+  ).first<{ object_count: number; byte_count: number }>();
+  return json({
+    imported: newAssets.length,
+    reused: prepared.length - newAssets.length,
+    assets: prepared.map((asset) => ({
+      creatureId: catalogByAsset.get(`/creature-assets/${asset.sourceKey}`),
+      displayKey: asset.displayKey,
+      byteLength: asset.bytes.byteLength,
+      sha256: asset.sha256,
+    })),
+    total: { objectCount: Number(total?.object_count) || 0, byteCount: Number(total?.byte_count) || 0 },
+  }, { status: newAssets.length ? 201 : 200 });
 }
 
 async function handleCreatureCatalogActionImport(request: Request, env: Env): Promise<Response> {
@@ -2621,6 +2800,14 @@ const worker = {
         return await handleCreatureCatalogActionImport(request, env);
       } catch (error) {
         return apiFailure(error, "Creature catalog action import error", "The catalog actions could not be imported.");
+      }
+    }
+
+    if (url.pathname === "/api/catalog/assets/display/import") {
+      try {
+        return await handleCreatureDisplayAssetImport(request, env);
+      } catch (error) {
+        return apiFailure(error, "Creature display asset import error", "The creature display assets could not be imported.");
       }
     }
 

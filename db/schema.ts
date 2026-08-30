@@ -383,6 +383,32 @@ export const creatureCatalog = sqliteTable(
   ],
 );
 
+export const creatureAssetVariants = sqliteTable(
+  "creature_asset_variants",
+  {
+    id: text("id").primaryKey(),
+    creatureCatalogId: text("creature_catalog_id").notNull().references(() => creatureCatalog.id, { onDelete: "cascade" }),
+    variant: text("variant").notNull(),
+    version: integer("version").notNull(),
+    r2Key: text("r2_key").notNull().unique(),
+    contentType: text("content_type").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    byteLength: integer("byte_length").notNull(),
+    sha256: text("sha256").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_creature_asset_variants_creature_variant_version").on(
+      table.creatureCatalogId,
+      table.variant,
+      table.version,
+    ),
+    index("idx_creature_asset_variants_creature").on(table.creatureCatalogId),
+  ],
+);
+
 export const combatActionProfiles = sqliteTable(
   "combat_action_profiles",
   {

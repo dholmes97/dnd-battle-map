@@ -148,9 +148,10 @@ async function storageReferenceCount(db: D1Database, key: string): Promise<numbe
         WHERE a.r2_key = ? AND (
           (a.committed_at IS NOT NULL AND a.kind NOT IN ('handout-display', 'handout-thumbnail'))
           OR (a.committed_at IS NULL AND j.status != 'failed')
-        ))
+        )) +
+       (SELECT COUNT(*) FROM creature_asset_variants WHERE r2_key = ?)
        AS value`,
-  ).bind(key, key, key).first<{ value: number }>();
+  ).bind(key, key, key, key).first<{ value: number }>();
   return Number(row?.value) || 0;
 }
 
