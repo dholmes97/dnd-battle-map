@@ -117,7 +117,6 @@ export async function resetQaFixture(request: Request, env: Env, identity: Authe
     env.DB.prepare("DELETE FROM damage_proposals WHERE encounter_id = ?").bind(QA_ENCOUNTER_ID),
     env.DB.prepare("DELETE FROM combat_rolls WHERE encounter_id = ?").bind(QA_ENCOUNTER_ID),
     env.DB.prepare("DELETE FROM actions WHERE encounter_id = ?").bind(QA_ENCOUNTER_ID),
-    env.DB.prepare("DELETE FROM participants WHERE encounter_id = ? AND qa_persona IS NOT NULL").bind(QA_ENCOUNTER_ID),
     env.DB.prepare("DELETE FROM effects WHERE encounter_id = ?").bind(QA_ENCOUNTER_ID),
     env.DB.prepare(
       `INSERT OR IGNORE INTO identities

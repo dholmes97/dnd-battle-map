@@ -1,6 +1,6 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { battleMapApi } from "@/app/battle-map-api";
+import { BattleMapHttpError, battleMapApi } from "@/app/battle-map-api";
 import { useEncounterSync } from "@/app/use-encounter-sync";
 import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
 
@@ -182,6 +182,62 @@ describe("useEncounterSync live lifecycle", () => {
     act(() => document.dispatchEvent(new Event("visibilitychange")));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     expect(requested.slice(hiddenRequestCount).some((url) => url.includes("/state"))).toBe(true);
+  });
+
+  it("ends an invalid local session instead of retrying unauthorized live updates forever", async () => {
+    const onSessionInvalid = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/state")) return Response.json(state);
+      if (url.includes("/heartbeat")) return Response.json({ present: true });
+      return Response.json({ error: "Participant session is invalid." }, { status: 401 });
+    }));
+
+    const { result } = renderHook(() => useEncounterSync({
+      setError: vi.fn(),
+      setNotice: vi.fn(),
+      onSessionInvalid,
+    }));
+    act(() => result.current.startSession(participant, state));
+
+    await waitFor(() => expect(onSessionInvalid).toHaveBeenCalledTimes(1));
+    expect(result.current.participant).toBeNull();
+    expect(result.current.state).toBeNull();
+  });
+
+  it("ends an invalid local session when its state refresh is unauthorized", async () => {
+    const onSessionInvalid = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => String(input).includes("/state")
+      ? Response.json({ error: "Participant session is invalid." }, { status: 401 })
+      : Response.json({ present: true })));
+
+    const { result } = renderHook(() => useEncounterSync({
+      setError: vi.fn(),
+      setNotice: vi.fn(),
+      onSessionInvalid,
+    }));
+    act(() => result.current.startSession(participant, state));
+
+    await waitFor(() => expect(onSessionInvalid).toHaveBeenCalledTimes(1));
+    expect(result.current.participant).toBeNull();
+  });
+
+  it("ends an invalid local session when its heartbeat is unauthorized", async () => {
+    const stateRefresh = deferred<Response>();
+    const onSessionInvalid = vi.fn();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => String(input).includes("/heartbeat")
+      ? Promise.resolve(Response.json({ error: "Participant session is invalid." }, { status: 401 }))
+      : stateRefresh.promise));
+
+    const { result } = renderHook(() => useEncounterSync({
+      setError: vi.fn(),
+      setNotice: vi.fn(),
+      onSessionInvalid,
+    }));
+    act(() => result.current.startSession(participant, state));
+
+    await waitFor(() => expect(onSessionInvalid).toHaveBeenCalledTimes(1));
+    expect(result.current.participant).toBeNull();
   });
 });
 
@@ -592,6 +648,19 @@ describe("useEncounterSync optimistic interleavings", () => {
 });
 
 describe("battleMapApi deadlines", () => {
+  it("preserves the HTTP status on structured API failures", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(
+      { error: "Participant session is invalid." },
+      { status: 401 },
+    )));
+
+    await expect(battleMapApi("/api/test")).rejects.toEqual(expect.objectContaining<Partial<BattleMapHttpError>>({
+      name: "BattleMapHttpError",
+      message: "Participant session is invalid.",
+      status: 401,
+    }));
+  });
+
   it("correlates requests and includes server references on unexpected failures", async () => {
     let operationId = "";
     vi.stubGlobal("fetch", vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {

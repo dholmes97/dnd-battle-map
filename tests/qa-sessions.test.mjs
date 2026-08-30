@@ -93,7 +93,7 @@ test("the isolated QA session offers an independently controlled second player",
   assert.equal(participantWrite.bindings[5], "membership-combat-qa-player-2");
 });
 
-test("QA reset removes roll references before deleting participant sessions", async () => {
+test("QA reset clears fixture activity without invalidating open participant sessions", async () => {
   const database = new FakeDatabase();
   const response = await resetQaFixture(
     new Request("http://localhost/api/qa/reset", { method: "POST" }),
@@ -106,8 +106,7 @@ test("QA reset removes roll references before deleting participant sessions", as
   const combatRollDelete = statements.findIndex((statement) => statement.sql.includes("DELETE FROM combat_rolls"));
   const participantDelete = statements.findIndex((statement) => statement.sql.includes("DELETE FROM participants"));
   assert.notEqual(combatRollDelete, -1);
-  assert.notEqual(participantDelete, -1);
-  assert.ok(combatRollDelete < participantDelete);
+  assert.equal(participantDelete, -1);
   const guidingBolt = statements.find((statement) => statement.sql.includes("character-combat-qa-guiding-bolt-v1"));
   assert.ok(guidingBolt);
   assert.match(guidingBolt.sql, /'Guiding Bolt', 8, 'ranged', 4, 6/);

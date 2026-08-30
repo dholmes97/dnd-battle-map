@@ -462,7 +462,7 @@ input:focus {
 .combat-log-scroll li:last-child { border-bottom: 0; }
 .combat-log-scroll li > strong { min-width: 0; overflow: hidden; color: #e3d8c8; font-size: 0.69rem; text-overflow: ellipsis; white-space: nowrap; }
 .combat-log-scroll li > span { color: #b8a26f; font-size: 0.64rem; }
-.combat-log-scroll li > small { grid-column: 1 / -1; color: #9e9589; font-size: 0.62rem; }
+.combat-log-scroll li > small { grid-column: 1 / -1; color: #9e9589; font-size: 0.69rem; line-height: 1.4; }
 .combat-log-scroll > p { margin: 0; padding: 1rem 0.7rem; color: #8f877c; font-size: 0.68rem; }
 .combat-log-count { position: absolute; top: -0.18rem; right: -0.15rem; min-width: 0.85rem; height: 0.85rem; padding: 0 0.16rem; display: grid; place-items: center; border: 1px solid #17140f; border-radius: 999px; background: #a77a2b; color: #17120a; font-family: var(--font-geist-mono), monospace; font-size: 0.5rem; font-weight: 800; }
 .round-editor-panel { left: 50%; width: min(16rem, calc(100vw - 1rem)); transform: translateX(-50%); }
@@ -1622,6 +1622,9 @@ input:focus {
 .combat-roll-result-card .combat-roll-result-status { padding: 0.45rem 0.52rem; font-size: 0.65rem; }
 .combat-roll-result-card.is-miss .combat-roll-result-status { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
 .combat-roll-result-card .combat-roll-result-status.is-not-applied { border-color: #a66860; background: rgba(150, 83, 73, 0.08); color: #d4aaa4; }
+.combat-roll-result-card > .combat-auto-dismiss { min-height: 1.45rem; padding: 0 0.68rem 0.5rem; display: flex; align-items: center; justify-content: flex-end; color: #7f786d; font-family: var(--font-geist-mono), monospace; }
+.combat-roll-result-card > .combat-auto-dismiss small { font-size: 0.5rem; letter-spacing: 0.035em; }
+.combat-roll-result-card > .combat-auto-dismiss.is-paused { color: #a8997e; }
 .damage-review-card { border-color: rgba(165, 127, 55, 0.9); box-shadow: 0 16px 42px rgba(0, 0, 0, 0.66), 0 0 30px rgba(210, 170, 86, 0.1); }
 .damage-review-card > header { background: linear-gradient(180deg, rgba(49, 40, 26, 0.96), rgba(29, 26, 21, 0.94)); }
 .damage-review-card .damage-review-count { margin-left: auto; }

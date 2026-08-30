@@ -191,14 +191,18 @@ describe("CombatRollResultCard", () => {
     const view = render(<CombatRollResultCard notice={{ roll: damageRoll, proposalId: damageProposal.id }} proposal={damageProposal} onDismiss={onDismiss} />);
 
     expect(screen.getByText("Damage is pending DM approval.")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(2_540));
     view.rerender(<CombatRollResultCard
       notice={{ roll: damageRoll, proposalId: damageProposal.id }}
       proposal={{ ...damageProposal, status: "applied", resolvedAt: 2 }}
       onDismiss={onDismiss}
     />);
     expect(screen.getByText("Damage applied.")).toBeTruthy();
+    expect(screen.getByText("Auto dismiss in 3")).toBeTruthy();
 
-    act(() => vi.advanceTimersByTime(2_999));
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(screen.getByText("Auto dismiss in 2")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1_999));
     expect(onDismiss).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));
     expect(onDismiss).toHaveBeenCalledOnce();
@@ -249,12 +253,27 @@ describe("CombatRollResultCard", () => {
     vi.useRealTimers();
   });
 
-  it("does not present damage for a miss", () => {
-    render(<CombatRollResultCard notice={{ roll: { ...damageRoll, outcome: "miss", damageDice: [7], damageTotal: 11 }, proposalId: null }} onDismiss={vi.fn()} />);
+  it("does not present damage for a miss and visibly counts down its dismissal", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    const view = render(<CombatRollResultCard notice={{ roll: { ...damageRoll, outcome: "miss", damageDice: [7], damageTotal: 11 }, proposalId: null }} onDismiss={onDismiss} />);
     expect(screen.getByRole("article", { name: "Dar'eleth is attacking Orc Warrior with Longsword +1." })).toBeTruthy();
     expect(screen.getByRole("status", { name: "Attack result: Miss" })).toBeTruthy();
     expect(screen.queryByLabelText("Damage dice")).toBeNull();
     expect(screen.getByText("The attack missed. No damage proposal was created.")).toBeTruthy();
+    expect(screen.queryByText(/Auto dismiss/)).toBeNull();
+
+    act(() => vi.advanceTimersByTime(1_780));
+    expect(screen.getByText("Auto dismiss in 10")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(screen.getByText("Auto dismiss in 9")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(8_999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onDismiss).toHaveBeenCalledOnce();
+
+    view.unmount();
+    vi.useRealTimers();
   });
 
   it("shows every die in a multi-die damage roll independently", () => {

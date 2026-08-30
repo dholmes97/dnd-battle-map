@@ -7,6 +7,7 @@ import {
   DEFAULT_API_TIMEOUT_MS,
   battleMapApi,
   battleMapRequest,
+  isUnauthorizedBattleMapError,
 } from "@/app/battle-map-api";
 import { commandRequest } from "@/shared/command-parser";
 import { transitionTokenMove } from "@/shared/encounter-transitions";
@@ -105,9 +106,10 @@ export function viewerHeaders(participant: ParticipantSession) {
 type UseEncounterSyncInput = {
   setError: Dispatch<SetStateAction<string>>;
   setNotice: Dispatch<SetStateAction<string>>;
+  onSessionInvalid?: () => void;
 };
 
-export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput): EncounterSync {
+export function useEncounterSync({ setError, setNotice, onSessionInvalid }: UseEncounterSyncInput): EncounterSync {
   const [participant, setParticipant] = useState<ParticipantSession | null>(null);
   const [state, setState] = useState<EncounterState | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -120,6 +122,33 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
   const optimisticSequenceRef = useRef(0);
   const sessionGenerationRef = useRef(0);
   const optimisticRequestQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const invalidSessionHandledRef = useRef(false);
+  const onSessionInvalidRef = useRef(onSessionInvalid);
+
+  useEffect(() => {
+    onSessionInvalidRef.current = onSessionInvalid;
+  }, [onSessionInvalid]);
+
+  const clearPendingState = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    authoritativeStateRef.current = null;
+    pendingTokenIdsRef.current.clear();
+    pendingOptimisticRef.current.clear();
+    localUndoHistoryRef.current = [];
+    localRedoHistoryRef.current = [];
+    optimisticRequestQueueRef.current = Promise.resolve();
+  }, []);
+
+  const invalidateSession = useCallback(() => {
+    if (invalidSessionHandledRef.current) return;
+    invalidSessionHandledRef.current = true;
+    clearPendingState();
+    if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+    setParticipant(null);
+    setState(null);
+    setConnection("connecting");
+    onSessionInvalidRef.current?.();
+  }, [clearPendingState]);
 
   const projectPendingOperations = useCallback((authoritative: EncounterState) => {
     let projected = authoritative;
@@ -204,7 +233,10 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     };
     const listen = async () => {
       if (shouldRunLiveRequests(document.visibilityState)) {
-        try { await refresh(); } catch { scheduleLost(); }
+        try { await refresh(); } catch (caught) {
+          if (isUnauthorizedBattleMapError(caught)) { invalidateSession(); return; }
+          scheduleLost();
+        }
       }
       let unchangedPolls = 0;
       while (!disposed) {
@@ -216,7 +248,10 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
         if (refreshOnResume) {
           refreshOnResume = false;
           unchangedPolls = 0;
-          try { await refresh(); } catch { scheduleLost(); await wait(750); continue; }
+          try { await refresh(); } catch (caught) {
+            if (isUnauthorizedBattleMapError(caught)) { invalidateSession(); return; }
+            scheduleLost(); await wait(750); continue;
+          }
         }
         controller = new AbortController();
         try {
@@ -230,6 +265,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
             }),
           );
           if (disposed) return;
+          if (received.status === 401) { invalidateSession(); return; }
           if (received.status === 204) {
             markLive();
             const schedule = scheduleAfterPoll(
@@ -277,7 +313,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     };
     // The participant identity and encounter code own the long-poll lifecycle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptAuthoritativeState, joinedCode, participant?.id]);
+  }, [acceptAuthoritativeState, invalidateSession, joinedCode, participant?.id]);
 
   useEffect(() => {
     if (!participant || !joinedCode) return;
@@ -286,7 +322,10 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
       return battleMapApi<{ present: boolean }>(
         `/api/encounters/${encodeURIComponent(joinedCode)}/heartbeat`,
         { method: "POST", body: sessionPayload(participant) },
-      ).then(() => undefined).catch(() => setConnection((current) => current === "lost" ? "lost" : "reconnecting"));
+      ).then(() => undefined).catch((caught) => {
+        if (isUnauthorizedBattleMapError(caught)) { invalidateSession(); return; }
+        setConnection((current) => current === "lost" ? "lost" : "reconnecting");
+      });
     };
     const onVisible = () => { if (shouldRunLiveRequests(document.visibilityState)) void heartbeat(); };
     void heartbeat();
@@ -296,7 +335,7 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [joinedCode, participant]);
+  }, [invalidateSession, joinedCode, participant]);
 
   const refreshAfterError = async () => {
     const authoritative = authoritativeStateRef.current;
@@ -431,18 +470,9 @@ export function useEncounterSync({ setError, setNotice }: UseEncounterSyncInput)
     return result;
   };
 
-  const clearPendingState = () => {
-    sessionGenerationRef.current += 1;
-    authoritativeStateRef.current = null;
-    pendingTokenIdsRef.current.clear();
-    pendingOptimisticRef.current.clear();
-    localUndoHistoryRef.current = [];
-    localRedoHistoryRef.current = [];
-    optimisticRequestQueueRef.current = Promise.resolve();
-  };
-
   const startSession = (nextParticipant: ParticipantSession, nextState: EncounterState) => {
     clearPendingState();
+    invalidSessionHandledRef.current = false;
     authoritativeStateRef.current = nextState;
     setParticipant(nextParticipant);
     setState(nextState);

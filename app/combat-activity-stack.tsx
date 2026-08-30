@@ -9,6 +9,7 @@ import type { EncounterState, SharedCombatRoll, SharedDamageProposal } from "@/s
 export type CombatRollResultNotice = { roll: SharedCombatRoll; proposalId: string | null };
 
 const RESOLVED_ROLL_DISMISS_MS = 3_000;
+const MISSED_ROLL_DISMISS_MS = 10_000;
 
 function terminalProposalStatus(status: SharedDamageProposal["status"] | null) {
   return status !== null && status !== "pending";
@@ -120,6 +121,51 @@ function createCombatRevealPlan(attackTermCount: number, damageTermCount: number
   return { attackTermSteps, attackTotalStep, outcomeStep, damageTermSteps, damageTotalStep, completeStep, delays };
 }
 
+function useAutoDismissCountdown({ durationMs, paused, onDismiss }: {
+  durationMs: number;
+  paused: boolean;
+  onDismiss: () => void;
+}) {
+  const dismissRef = useRef(onDismiss);
+  const remainingMsRef = useRef(durationMs);
+  const [remainingSeconds, setRemainingSeconds] = useState(Math.ceil(durationMs / 1_000));
+
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  useEffect(() => {
+    if (paused) return;
+    const startedAt = Date.now();
+    const startingRemainingMs = remainingMsRef.current;
+    const updateCountdown = () => {
+      const remainingMs = Math.max(0, startingRemainingMs - (Date.now() - startedAt));
+      setRemainingSeconds(Math.max(0, Math.ceil(remainingMs / 1_000)));
+    };
+    updateCountdown();
+    const countdown = window.setInterval(updateCountdown, 250);
+    const dismissal = window.setTimeout(() => dismissRef.current(), startingRemainingMs);
+    return () => {
+      window.clearInterval(countdown);
+      window.clearTimeout(dismissal);
+      remainingMsRef.current = Math.max(0, startingRemainingMs - (Date.now() - startedAt));
+    };
+  }, [paused]);
+
+  return remainingSeconds;
+}
+
+function AutoDismissCountdown({ durationMs, paused, onDismiss }: {
+  durationMs: number;
+  paused: boolean;
+  onDismiss: () => void;
+}) {
+  const remainingSeconds = useAutoDismissCountdown({ durationMs, paused, onDismiss });
+  return <footer className={`combat-auto-dismiss${paused ? " is-paused" : ""}`}>
+    <small aria-live="off">{paused ? `Auto dismiss paused · ${remainingSeconds}` : `Auto dismiss in ${remainingSeconds}`}</small>
+  </footer>;
+}
+
 export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRollDamage }: {
   notice: CombatRollResultNotice;
   proposal?: SharedDamageProposal | null;
@@ -149,29 +195,9 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const [rollingDamage, setRollingDamage] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focusedWithin, setFocusedWithin] = useState(false);
-  const dismissRef = useRef(onDismiss);
-  const remainingDismissMsRef = useRef(RESOLVED_ROLL_DISMISS_MS);
   const proposalStatus = proposal?.status ?? (proposalId ? "pending" : null);
   const proposalResolved = terminalProposalStatus(proposalStatus);
   const dismissalPaused = hovered || focusedWithin;
-
-  useEffect(() => {
-    dismissRef.current = onDismiss;
-  }, [onDismiss]);
-
-  useEffect(() => {
-    remainingDismissMsRef.current = RESOLVED_ROLL_DISMISS_MS;
-  }, [proposalStatus, roll.id]);
-
-  useEffect(() => {
-    if (!proposalResolved || dismissalPaused) return;
-    const startedAt = Date.now();
-    const timer = window.setTimeout(() => dismissRef.current(), remainingDismissMsRef.current);
-    return () => {
-      window.clearTimeout(timer);
-      remainingDismissMsRef.current = Math.max(0, remainingDismissMsRef.current - (Date.now() - startedAt));
-    };
-  }, [dismissalPaused, proposalResolved, proposalStatus, roll.id]);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -198,6 +224,11 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const statusKind = proposalResolved
     ? proposalStatus === "rejected" || proposalStatus === "cancelled" ? "not-applied" : "applied"
     : damagePending ? "waiting" : proposalId ? "pending" : roll.outcome;
+  const autoDismissDurationMs = proposalResolved
+    ? RESOLVED_ROLL_DISMISS_MS
+    : roll.outcome === "miss" ? MISSED_ROLL_DISMISS_MS : null;
+  const autoDismissEnabled = autoDismissDurationMs !== null && revealed(revealPlan.completeStep);
+  const autoDismissKey = `${roll.id}:${proposalResolved ? proposalStatus : roll.outcome}`;
   const requestDamageRoll = async () => {
     if (!onRollDamage || rollingDamage) return;
     setRollingDamage(true);
@@ -251,6 +282,7 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
             : "The attack landed, but no damage proposal was created."}</p>}
       {roll.action.manualRider ? <p className={`damage-review-rider combat-roll-reveal${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`}><strong>Additional effect:</strong> {roll.action.manualRiderText}</p> : null}
     </div>
+    {autoDismissEnabled && autoDismissDurationMs !== null ? <AutoDismissCountdown key={autoDismissKey} durationMs={autoDismissDurationMs} paused={dismissalPaused} onDismiss={onDismiss} /> : null}
   </article>;
 }
 

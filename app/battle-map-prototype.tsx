@@ -102,7 +102,18 @@ export default function BattleMapPrototype() {
   const [campaignMutationPending, setCampaignMutationPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const encounterSync = useEncounterSync({ setError, setNotice });
+  const encounterSync = useEncounterSync({
+    setError,
+    setNotice,
+    onSessionInvalid: () => {
+      const wasQaSession = Boolean(qaSessionInfo);
+      setQaSessionInfo(null);
+      setAppView(wasQaSession ? "campaigns" : "dashboard");
+      setError(wasQaSession
+        ? "That QA persona session ended. Reopen the persona to continue."
+        : "Your encounter session ended. Reopen the encounter to continue.");
+    },
+  });
   const {
     participant,
     state,

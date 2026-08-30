@@ -9,6 +9,20 @@ export const API_TIMEOUT_MESSAGE = "The request timed out. Please try again.";
 
 type BattleMapApiOptions = RequestInit & { timeoutMs?: number };
 
+export class BattleMapHttpError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "BattleMapHttpError";
+    this.status = status;
+  }
+}
+
+export function isUnauthorizedBattleMapError(error: unknown): error is BattleMapHttpError {
+  return error instanceof BattleMapHttpError && error.status === 401;
+}
+
 export async function battleMapRequest<T>(
   url: string,
   options: BattleMapApiOptions,
@@ -57,7 +71,7 @@ export async function battleMapApi<T>(url: string, options: BattleMapApiOptions 
       const reference = response.status >= 500
         ? errorReference(response.headers.get(REQUEST_ID_HEADER))
         : "";
-      throw new Error(`${data.error ?? "Request failed."}${reference}`);
+      throw new BattleMapHttpError(`${data.error ?? "Request failed."}${reference}`, response.status);
     }
     return data;
   });
