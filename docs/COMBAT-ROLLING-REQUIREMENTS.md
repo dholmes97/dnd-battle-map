@@ -730,9 +730,10 @@ Do not introduce a broad `admin` role or arbitrary identity impersonation.
 Campaign role remains campaign-scoped, and the authenticated Google identity
 continues to identify the real human.
 
-Add a narrow durable identity capability such as `can_use_qa_sessions` to Dan's
-human identity for live production verification. This is a testing capability,
-not a campaign role and not permission to become another trusted human.
+Add a narrow durable identity capability such as `can_use_qa_sessions` to the
+four trusted human identities for live production verification. This is a
+testing capability, not a campaign role and not permission to become another
+trusted human.
 
 ### QA session requirements
 
@@ -743,9 +744,9 @@ not a campaign role and not permission to become another trusted human.
   participant ID, campaign ID, or role supplied as authority by the browser.
 - QA personas are synthetic and cannot sign in with Google, appear in the
   ordinary invited-human chooser, or be added to real campaigns.
-- The session records both the authenticated actor (`Dan`) and effective QA
+- The session records both the authenticated actor and effective QA
   persona on joins, rolls, adjudications, mutations, and audit records.
-- Creating a QA session never changes or rebinds Dan's Google account link,
+- Creating a QA session never changes or rebinds the actor's Google account link,
   durable identity, normal memberships, or ordinary auth session.
 - QA sessions are short-lived, independently revocable, and subject to strict
   active-session limits.

@@ -302,6 +302,13 @@
       "when": 1788119919737,
       "tag": "0042_dareleth-actions-repair-malichar",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1788214010960,
+      "tag": "0043_all-player-interaction-qa",
+      "breakpoints": true
     }
   ]
 }

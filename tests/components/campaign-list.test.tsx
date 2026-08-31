@@ -28,6 +28,7 @@ describe("CampaignList", () => {
     expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
     expect(screen.getByText("Dar'eleth · Paladin")).toBeTruthy();
+    expect(screen.queryByText("Production QA")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /Open campaign/ }));
     expect(onEnterCampaign).toHaveBeenCalledWith("campaign-force-of-nature");
   });
@@ -59,15 +60,22 @@ describe("CampaignList", () => {
     });
   });
 
-  it("offers three interaction QA personas with clear pending and completion feedback", async () => {
+  it("offers every capable human compact QA tools after the campaign list", async () => {
     const onLaunchQa = vi.fn();
     const props: ComponentProps<typeof CampaignList> = {
-      identity: { id: "identity-dan", displayName: "Dan", canUseQaSessions: true },
+      identity: { id: "identity-barry", displayName: "Barry", canUseQaSessions: true },
       campaigns: [], invitedIdentities: [], loading: false, mutationPending: false,
       qaPending: null, error: "", notice: "", onEnterCampaign: vi.fn(),
       onCreateCampaign: vi.fn(async () => true), onLaunchQa, onResetQa: vi.fn(), onSignOut: vi.fn(),
     };
     const view = render(<CampaignList {...props} />);
+    const summary = screen.getByText("Production QA").closest("summary");
+    const launcher = summary?.parentElement as HTMLDetailsElement;
+    expect(summary).toBeTruthy();
+    expect(launcher.open).toBe(false);
+    expect(screen.getByRole("heading", { name: "Campaigns" }).closest("section")?.nextElementSibling).toBe(launcher);
+    await userEvent.click(summary!);
+    expect(launcher.open).toBe(true);
     expect(screen.getByRole("heading", { name: "Interaction QA" })).toBeTruthy();
     expect(screen.getByText(/three windows/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Open QA DM" })).toBeTruthy();

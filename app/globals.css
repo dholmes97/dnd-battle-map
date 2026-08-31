@@ -167,10 +167,17 @@ button:disabled { cursor: not-allowed; }
 .campaign-welcome { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
 .campaign-welcome h1 { max-width: 48rem; margin: 0.55rem 0 0.7rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.4rem, 6vw, 4.7rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.98; text-shadow: 0 3px 28px rgba(0, 0, 0, 0.9); }
 .campaign-welcome p { max-width: 44rem; margin: 0; color: #c0b7aa; font-size: 1rem; line-height: 1.65; text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9); }
-.qa-session-launcher { margin: 1.5rem 0; padding: 1rem 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid rgba(242, 190, 70, 0.55); border-radius: 0.8rem; background: rgba(45, 31, 8, 0.9); box-shadow: 0 12px 35px rgba(0, 0, 0, 0.24); }
-.qa-session-launcher h2 { margin: 0.2rem 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; }
-.qa-session-launcher p { margin: 0; color: #c8b991; font-size: 0.75rem; }
-.qa-session-launcher > div:last-child { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.qa-session-launcher { max-width: 52rem; margin: 2.5rem 0 0; border: 1px solid rgba(124, 113, 95, 0.38); border-radius: 0.7rem; background: rgba(18, 19, 18, 0.58); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.qa-session-launcher summary { min-height: 3.2rem; padding: 0.7rem 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; list-style: none; color: #a9a094; cursor: pointer; }
+.qa-session-launcher summary::-webkit-details-marker { display: none; }
+.qa-session-launcher summary > span { display: grid; gap: 0.15rem; }
+.qa-session-launcher summary strong { color: #c9c0b3; font-size: 0.78rem; }
+.qa-session-launcher summary small { color: #777168; font-size: 0.62rem; }
+.qa-session-launcher[open] summary { border-bottom: 1px solid rgba(124, 113, 95, 0.28); }
+.qa-session-body { padding: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.qa-session-launcher h2 { margin: 0 0 0.2rem; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; font-weight: 500; }
+.qa-session-launcher p { max-width: 33rem; margin: 0; color: #92897d; font-size: 0.7rem; line-height: 1.45; }
+.qa-session-body > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
 .qa-session-launcher button { padding: 0.5rem 0.7rem; border: 1px solid #8f7845; border-radius: 0.45rem; background: #211a0d; color: #f0d38e; font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); transition: color 120ms ease, background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease; }
 .qa-session-launcher button:hover:not(:disabled) { border-color: #e1b855; background: #3a2b0e; color: #ffe3a1; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
 .qa-session-launcher button:focus-visible { outline: 2px solid #f3c75c; outline-offset: 2px; }
@@ -2099,6 +2106,9 @@ input:focus {
   .campaign-person { gap: 0.55rem; }
   .campaign-person span { display: none; }
   .campaign-home-content { width: min(100% - 1.5rem, 76rem); padding-top: 2.4rem; }
+  .qa-session-launcher summary small { display: none; }
+  .qa-session-body { align-items: stretch; flex-direction: column; }
+  .qa-session-body > div:last-child { justify-content: flex-start; }
   .campaign-welcome { align-items: stretch; flex-direction: column; }
   .campaign-section-heading { align-items: flex-start; }
   .campaign-section-actions { align-items: flex-end; flex-direction: column; }
