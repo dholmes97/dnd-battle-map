@@ -27,6 +27,8 @@
     "catalog:batch-expansion": "node scripts/create-creature-expansion-batches.mjs",
     "catalog:import-actions": "node scripts/import-creature-actions.mjs catalog/combat-actions/manifest.json",
     "catalog:upload-display": "node scripts/upload-creature-display-webps.mjs .working/creature-display-webp-v1/manifest.json",
+    "catalog:plan-png-retirement": "node scripts/create-creature-png-retirement-manifest.mjs",
+    "catalog:test-png-restoration": "node scripts/test-creature-png-restoration.mjs",
     "scenario:provision": "node scripts/provision-scenario.mjs",
     "scenario:mail-reply": "node scripts/scenario-mail-reply.mjs",
     "scenario:prepare-handout": "node scripts/prepare-scenario-handout.mjs",

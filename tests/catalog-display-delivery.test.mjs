@@ -26,7 +26,7 @@ test("versioned catalog display routes serve immutable WebP bytes from R2", asyn
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), webp);
 });
 
-test("a missing display variant redirects to its PNG without poisoning the versioned cache", async () => {
+test("a missing display variant fails explicitly without falling back to PNG", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("catalog-display-fallback-test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -40,10 +40,11 @@ test("a missing display variant redirects to its PNG without poisoning the versi
     executionContext(),
   );
 
-  assert.equal(response.status, 307);
+  assert.equal(response.status, 503);
   assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.equal(response.headers.get("x-creature-asset-source"), "original-display-fallback");
-  assert.equal(response.headers.get("location"), "http://localhost/creature-assets/tokens/catalog/future-creature.png");
+  assert.equal(response.headers.get("x-creature-asset-source"), "missing-display-webp-v1");
+  assert.equal(response.headers.get("location"), null);
+  assert.match(await response.text(), /unavailable/i);
 });
 
 function executionContext() {

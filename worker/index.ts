@@ -394,14 +394,14 @@ async function handleCreatureDisplayAsset(request: Request, env: Env, rawKey: st
       });
     }
   }
-  const originalKey = key.replace(/\.webp$/i, ".png");
-  return new Response(null, {
-    status: 307,
+  console.error("Catalog display WebP is missing", { key });
+  return new Response("Creature display asset unavailable", {
+    status: 503,
     headers: {
       "cache-control": "no-store",
-      location: new URL(`/creature-assets/${originalKey}`, request.url).toString(),
+      "content-type": "text/plain; charset=utf-8",
       "x-content-type-options": "nosniff",
-      "x-creature-asset-source": "original-display-fallback",
+      "x-creature-asset-source": "missing-display-webp-v1",
     },
   });
 }
