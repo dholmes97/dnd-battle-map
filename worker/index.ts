@@ -54,6 +54,7 @@ import {
   type DamageAdjudication,
 } from "../shared/combat-rolling.ts";
 import { bearerSecretMatches } from "../shared/secret-auth.ts";
+import { handleCreaturePngRetirement, retiredPngReplacement } from "./creature-png-retirement.ts";
 import { annotationGeometryIsBounded } from "../shared/annotation-geometry.ts";
 import { inspectCatalogPng, inspectCatalogWebp, type CatalogImageVariant } from "../shared/catalog-image.ts";
 import { validateCatalogActionImport } from "../shared/catalog-action-import.ts";
@@ -310,6 +311,10 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
   const key = cleanCreatureAssetKey(rawKey);
   if (!key) return new Response("Not found", { status: 404 });
   const thumbnail = new URL(request.url).searchParams.get("variant") === "thumbnail";
+  const replacement = retiredPngReplacement(key);
+  if (replacement && !thumbnail) {
+    return Response.redirect(new URL(replacement, request.url), 307);
+  }
   const provisioned = key.match(/^tokens\/provisioned\/([a-zA-Z0-9-]{1,64})\/([a-zA-Z0-9._-]{1,96})\.png$/);
   if (provisioned) {
     const committed = await env.DB.prepare(
@@ -354,6 +359,7 @@ async function handleCreatureAsset(request: Request, env: Env, rawKey: string): 
       return new Response(thumbnailBytes, { headers: { ...cacheHeaders, "content-type": creatureContentType(key), "x-creature-asset-source": env.MAP_ASSETS ? "seeded-r2-thumbnail" : "packaged-thumbnail" } });
     }
   }
+  if (replacement) return new Response("Creature thumbnail unavailable", { status: 503, headers: { "cache-control": "no-store" } });
   const bytes = await creatureAssetBytes(env, request, key);
   if (!bytes) {
     const fallbackPath = thumbnail ? `/assets/creature-thumbnails/${key}` : `/assets/${key}`;
@@ -2745,6 +2751,9 @@ const worker = {
       return handleScenarioProvisioningApi(request, env);
     }
 
+    if (url.pathname === "/api/admin/creature-png-retirement") {
+      return handleCreaturePngRetirement(request, env);
+    }
     const productionBackupMatch = url.pathname.match(PRODUCTION_BACKUP_ROUTE);
     if (productionBackupMatch) {
       try {

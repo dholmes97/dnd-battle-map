@@ -1,6 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+test("reviewed legacy PNG URLs redirect to WebP without reading or repopulating originals", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url).href);
+  const response = await worker.fetch(new Request("http://localhost/creature-assets/tokens/catalog/campaign-herald.png"), {
+    MAP_ASSETS: { get() { throw new Error("Must not read original bytes"); }, put() { throw new Error("Must not repopulate original bytes"); } },
+  }, executionContext());
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "http://localhost/creature-assets/display/v1/tokens/catalog/campaign-herald.webp");
+});
+
+test("reviewed missing thumbnails never fall back to retired originals", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url).href);
+  const response = await worker.fetch(new Request("http://localhost/creature-assets/tokens/catalog/campaign-herald.png?variant=thumbnail"), {
+    MAP_ASSETS: { async get(key) { assert.ok(key.startsWith("creature-catalog/thumbnails/")); return null; } },
+  }, executionContext());
+  assert.equal(response.status, 503);
+});
+
 test("versioned catalog display routes serve immutable WebP bytes from R2", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("catalog-display-test", `${process.pid}-${Date.now()}`);

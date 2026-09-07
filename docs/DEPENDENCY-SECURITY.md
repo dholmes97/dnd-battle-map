@@ -18,3 +18,8 @@ Drizzle Kit 0.31.10 still declares `@esbuild-kit/core-utils`, whose own dependen
 Miniflare 4 remains a direct development dependency because its stable constructor API powers the D1 unit-of-work and storage-lifecycle integration tests; the Cloudflare plugin's Miniflare 5 alpha uses a new incompatible constructor. A package-scoped override keeps Miniflare 4 on patched Undici 7.29.0. The full D1 suite is the compatibility proof, and this override should disappear when those fixtures migrate to Miniflare 5's worker-array API.
 
 Audit results are time-dependent. Re-run them immediately before publishing and triage new results against the current lockfile rather than relying on this historical baseline.
+
+On 2026-09-07 the PNG-retirement release refreshed compatible transitive build
+packages: Browserslist 4.28.9, fast-uri 3.1.7, and fflate 0.7.5 (plus Browserslist's
+browser-data dependencies). Direct framework versions remain unchanged. Both
+required dependency audits again report zero vulnerabilities.
