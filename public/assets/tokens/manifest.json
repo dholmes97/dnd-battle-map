@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "libraryVersion": "2026-08-05-creature-palette",
   "rendering": {
-    "format": "PNG",
+    "format": "WebP (creatures and monsters); PNG (characters)",
     "width": 1254,
     "height": 1254,
     "colorMode": "RGBA",
@@ -43,7 +43,7 @@
       "name": "Shadow Dire Warg",
       "category": "monster",
       "role": "Shadow-corrupted huge warg",
-      "path": "/assets/tokens/monsters/shadow-dire-warg-01.png",
+      "path": "/assets/tokens/monsters/shadow-dire-warg-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Huge black bristled dire warg with toxic yellow-green eyes and solid violet-black corruption ridges."
     },
@@ -52,7 +52,7 @@
       "name": "Hungry",
       "category": "monster",
       "role": "Gaunt Accursed horror",
-      "path": "/assets/tokens/monsters/hungry-01.png",
+      "path": "/assets/tokens/monsters/hungry-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Tall charcoal-gray starving humanoid horror with stretched hide, long arms, claws, and ember-amber eyes."
     },
@@ -61,7 +61,7 @@
       "name": "Young Green Dragon",
       "category": "monster",
       "role": "Venom-breathing forest dragon",
-      "path": "/assets/tokens/monsters/young-green-dragon-01.png",
+      "path": "/assets/tokens/monsters/young-green-dragon-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Lean young dragon with forest-green scales, olive-gold underscales, two folded wings, and a compact curled tail."
     },
@@ -70,7 +70,7 @@
       "name": "Cave Bat",
       "category": "creature",
       "role": "Nocturnal flying beast",
-      "path": "/assets/tokens/creatures/cave-bat-01.png",
+      "path": "/assets/tokens/creatures/cave-bat-01.webp",
       "sizeHint": "Tiny",
       "promptSummary": "Original charcoal cave bat tactical cutout with wide wings and a crisp readable silhouette."
     },
@@ -79,7 +79,7 @@
       "name": "Ember Imp",
       "category": "creature",
       "role": "Tiny winged fiend",
-      "path": "/assets/tokens/creatures/imp-01.png",
+      "path": "/assets/tokens/creatures/imp-01.webp",
       "sizeHint": "Tiny",
       "promptSummary": "Original rust-red winged imp with small horns, barbed tail, and playful menace."
     },
@@ -88,7 +88,7 @@
       "name": "Giant Rat",
       "category": "creature",
       "role": "Oversized vermin",
-      "path": "/assets/tokens/creatures/giant-rat-01.png",
+      "path": "/assets/tokens/creatures/giant-rat-01.webp",
       "sizeHint": "Small",
       "promptSummary": "Original bristled tunnel rat with scarred ears and an alert low stance."
     },
@@ -97,7 +97,7 @@
       "name": "Goblin Raider",
       "category": "creature",
       "role": "Small cave raider",
-      "path": "/assets/tokens/creatures/goblin-raider-01.png",
+      "path": "/assets/tokens/creatures/goblin-raider-01.webp",
       "sizeHint": "Small",
       "promptSummary": "Original wiry moss-green raider in mismatched scavenged armor with a hooked spear."
     },
@@ -106,7 +106,7 @@
       "name": "Gray Wolf",
       "category": "creature",
       "role": "Pack predator",
-      "path": "/assets/tokens/creatures/gray-wolf-01.png",
+      "path": "/assets/tokens/creatures/gray-wolf-01.webp",
       "sizeHint": "Medium",
       "promptSummary": "Original winter-gray wolf in a tense stalking pose with a strong top-down silhouette."
     },
@@ -115,7 +115,7 @@
       "name": "Skeleton Guard",
       "category": "creature",
       "role": "Animated undead sentry",
-      "path": "/assets/tokens/creatures/skeleton-guard-01.png",
+      "path": "/assets/tokens/creatures/skeleton-guard-01.webp",
       "sizeHint": "Medium",
       "promptSummary": "Original weathered skeletal guard in corroded armor carrying a chipped sword and round shield."
     },
@@ -124,7 +124,7 @@
       "name": "Shambling Zombie",
       "category": "creature",
       "role": "Slow relentless undead",
-      "path": "/assets/tokens/creatures/shambling-zombie-01.png",
+      "path": "/assets/tokens/creatures/shambling-zombie-01.webp",
       "sizeHint": "Medium",
       "promptSummary": "Original pallid shambling corpse in torn work clothes with a heavy off-balance gait."
     },
@@ -133,7 +133,7 @@
       "name": "Black Bear",
       "category": "creature",
       "role": "Woodland beast",
-      "path": "/assets/tokens/creatures/black-bear-01.png",
+      "path": "/assets/tokens/creatures/black-bear-01.webp",
       "sizeHint": "Medium",
       "promptSummary": "Original broad black bear with warm brown highlights and a grounded defensive stance."
     },
@@ -142,7 +142,7 @@
       "name": "Mimic Chest",
       "category": "creature",
       "role": "Shapechanging ambush predator",
-      "path": "/assets/tokens/creatures/mimic-chest-01.png",
+      "path": "/assets/tokens/creatures/mimic-chest-01.webp",
       "sizeHint": "Medium",
       "promptSummary": "Original battered treasure chest predator with a toothy split lid and grasping tongue."
     },
@@ -151,7 +151,7 @@
       "name": "Dire Wolf",
       "category": "creature",
       "role": "Massive pack hunter",
-      "path": "/assets/tokens/creatures/dire-wolf-01.png",
+      "path": "/assets/tokens/creatures/dire-wolf-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Original massive slate-furred wolf with thick shoulders, old scars, and an advancing pose."
     },
@@ -160,7 +160,7 @@
       "name": "Giant Cave Spider",
       "category": "creature",
       "role": "Large subterranean predator",
-      "path": "/assets/tokens/creatures/giant-cave-spider-01.png",
+      "path": "/assets/tokens/creatures/giant-cave-spider-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Original giant charcoal cave spider with ochre markings and an eight-legged readable footprint."
     },
@@ -169,7 +169,7 @@
       "name": "Ogre Brute",
       "category": "creature",
       "role": "Large giant enforcer",
-      "path": "/assets/tokens/creatures/ogre-brute-01.png",
+      "path": "/assets/tokens/creatures/ogre-brute-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Original heavyset stone-skinned brute in crude hides carrying a rough timber club."
     },
@@ -178,7 +178,7 @@
       "name": "Owlbear",
       "category": "creature",
       "role": "Large forest monstrosity",
-      "path": "/assets/tokens/creatures/owlbear-01.png",
+      "path": "/assets/tokens/creatures/owlbear-01.webp",
       "sizeHint": "Large",
       "promptSummary": "Original tawny feather-and-fur predator blending an owl-like face with a powerful bear frame."
     },
@@ -187,7 +187,7 @@
       "name": "Ancient Treant",
       "category": "creature",
       "role": "Huge awakened tree guardian",
-      "path": "/assets/tokens/creatures/ancient-treant-01.png",
+      "path": "/assets/tokens/creatures/ancient-treant-01.webp",
       "sizeHint": "Huge",
       "promptSummary": "Original ancient walking tree guardian with a hollow-knotted face, root feet, and mossy crown."
     }

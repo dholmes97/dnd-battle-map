@@ -13,6 +13,19 @@ const concentratingToken = {
 } as SharedToken;
 
 describe("useTokenControls", () => {
+  it("syncs exact HP and temporary HP with an immediate concentration warning and clears it on rejection", async () => {
+    let resolve!: (value: null) => void;
+    const send = vi.fn(() => new Promise<null>((r) => { resolve = r; }));
+    const { result } = renderHook(() => useTokenControls({ participant: null, state: null,
+      sync: { runOptimisticCommand: send } as unknown as EncounterSync, setError: vi.fn(), setNotice: vi.fn() }));
+    const token = { ...concentratingToken, temporaryHp: 5, canSyncBeyond20: true, beyond20CharacterId: "123" };
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.syncBeyond20Hp(token, "123", { hp: 20, maximumHp: 20, temporaryHp: 2 }); });
+    expect(result.current.concentrationReminder?.tokenId).toBe(token.id);
+    expect(send.mock.calls[0]).toMatchObject(["sync-beyond20-hp", { hp: 20, temporaryHp: 2, expectedHp: 20, expectedTemporaryHp: 5 }, expect.any(Function)]);
+    await act(async () => { resolve(null); await pending; });
+    expect(result.current.concentrationReminder).toBeNull();
+  });
   it("starts with no HP action armed", () => {
     const { result } = renderHook(() => useTokenControls({
       participant: null,

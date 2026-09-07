@@ -193,6 +193,7 @@ export const campaignCharacters = sqliteTable(
     controllerMembershipId: text("controller_membership_id").notNull().references(() => campaignMemberships.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
     className: text("class_name").notNull().default(""),
+    beyond20CharacterId: text("beyond20_character_id"),
     artAsset: text("art_asset"),
     size: text("size").notNull().default("medium"),
     speed: integer("speed").notNull().default(30),
@@ -205,6 +206,7 @@ export const campaignCharacters = sqliteTable(
   },
   (table) => [
     uniqueIndex("idx_campaign_characters_campaign_name").on(table.campaignId, table.name),
+    uniqueIndex("idx_campaign_characters_beyond20").on(table.campaignId, table.beyond20CharacterId),
     index("idx_campaign_characters_controller").on(table.controllerMembershipId, table.sortOrder),
   ],
 );

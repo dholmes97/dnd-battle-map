@@ -33,7 +33,7 @@ const PARSED_COMMANDS = [
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
   "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
-  "roll-attack", "release-attack-outcome", "roll-damage", "adjudicate-damage",
+  "roll-attack", "release-attack-outcome", "roll-damage", "adjudicate-damage", "link-beyond20", "sync-beyond20-hp",
 ] as const satisfies readonly CommandName[];
 
 export function commandParserCoverage(): { complete: boolean; missing: CommandName[] } {
@@ -180,6 +180,14 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         artAsset: body.artAsset,
       }) };
     }
+    case "link-beyond20":
+      return requiredString(body.tokenId) && (body.characterId === null || (typeof body.characterId === "string" && /^\d{1,20}$/.test(body.characterId)))
+        ? { command, payload: { tokenId: body.tokenId, characterId: body.characterId } } : null;
+    case "sync-beyond20-hp":
+      return requiredString(body.tokenId) && typeof body.characterId === "string" && /^\d{1,20}$/.test(body.characterId) &&
+        [body.hp, body.maximumHp, body.temporaryHp, body.expectedHp, body.expectedTemporaryHp].every((value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 100_000) &&
+        Number(body.maximumHp) > 0 && Number(body.hp) <= Number(body.maximumHp)
+        ? { command, payload: { tokenId: body.tokenId, characterId: body.characterId, hp: body.hp as number, maximumHp: body.maximumHp as number, temporaryHp: body.temporaryHp as number, expectedHp: body.expectedHp as number, expectedTemporaryHp: body.expectedTemporaryHp as number } } : null;
     case "apply-hp":
       return requiredString(body.tokenId) && finiteNumber(body.delta)
         ? { command, payload: { tokenId: body.tokenId, delta: body.delta } }

@@ -1,0 +1,2 @@
+ALTER TABLE `campaign_characters` ADD `beyond20_character_id` text;--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_campaign_characters_beyond20` ON `campaign_characters` (`campaign_id`,`beyond20_character_id`);

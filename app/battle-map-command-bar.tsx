@@ -6,10 +6,13 @@ import { Icon, UiSettingsMenu, type IconName } from "@/app/battle-map-ui";
 import type { BattleMapViewport } from "@/app/battle-map-renderer";
 import type { EncounterState, ParticipantSession } from "@/shared/contracts";
 import type { MapPackage } from "@/shared/map-package";
+import { Beyond20Diagnostics } from "@/app/beyond20-diagnostics";
+import type { Beyond20Integration } from "@/app/use-beyond20-hp-sync";
 
 export type AnnotationMode = "move" | "ping" | "drawing" | "erase" | "spotlight" | "neon-spotlight";
 
 type CommandBarProps = {
+  beyond20?: Beyond20Integration;
   participant: ParticipantSession;
   state: EncounterState;
   annotationMode: AnnotationMode;
@@ -128,6 +131,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
     <div className="map-tool-group viewport-tools" role="group" aria-label="Map view"><button className={`icon-tool${props.viewport.fit ? " tool-active" : ""}`} aria-label="Fit whole map" data-tooltip="Fit whole map — 0" aria-pressed={props.viewport.fit} onClick={props.onFit}><Icon name="fit" /></button><button className="icon-tool" aria-label="Zoom out" data-tooltip="Zoom out — minus" onClick={() => props.onZoom(-0.5)}><Icon name="zoomOut" /></button><button className="zoom-value" aria-label={`Reset zoom to 100%, currently ${zoomPercentage}%`} data-tooltip="Reset zoom to 100%" onClick={props.onResetZoom}>{zoomPercentage}%</button><button className="icon-tool" aria-label="Zoom in" data-tooltip="Zoom in — plus" onClick={() => props.onZoom(0.5)}><Icon name="zoomIn" /></button></div>
     <div className={`connection-pill connection-${props.connection}`} data-tooltip={props.connectionTooltip} role="status" aria-live="polite"><span className="connection-dot" /><em>{props.connectionLabel}</em><span className="visually-hidden">{props.connectionTooltip}</span></div>
     <div className="map-tool-group" role="group" aria-label="Layout">
+      <Beyond20Diagnostics key={`${participant.id}:${state.encounter.code}`} integration={props.beyond20} />
       <button className="icon-tool" aria-label="Back to campaign home" data-tooltip="Campaign home" onClick={props.onOpenDashboard}><Icon name="home" /></button>
       <UiSettingsMenu menuRef={props.uiSettingsRef} participant={participant} state={state} gridOpacity={props.gridOpacity} showColoredTokenCenters={props.showColoredTokenCenters} showHealthRings={props.showHealthRings} onGridOpacityChange={props.onGridOpacityChange} onColoredTokenCentersChange={props.onColoredTokenCentersChange} onHealthRingsChange={props.onHealthRingsChange} onFogModeChange={props.onFogModeChange} onVisionDoorChange={props.onVisionDoorChange} onStrictMovementChange={props.onStrictMovementChange} />
       <button className={`icon-tool${props.sidebarOpen ? "" : " tool-active"}`} aria-label={props.sidebarOpen ? "Hide encounter panel" : "Show encounter panel"} data-tooltip={"Encounter panel — \\"} aria-pressed={!props.sidebarOpen} onClick={props.onToggleSidebar}><Icon name="sidebar" /></button>

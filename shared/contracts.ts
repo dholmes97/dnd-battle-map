@@ -46,6 +46,9 @@ export type SharedToken = MapPoint & {
   effects: SharedEffect[];
   controller: { name: string };
   controlledByViewer: boolean;
+  campaignCharacterId?: string | null;
+  beyond20CharacterId?: string | null;
+  canSyncBeyond20?: boolean;
 };
 
 export type SharedAnnotation = {
@@ -186,7 +189,7 @@ export const COMMAND_NAMES = [
   "resize-spell-effect", "update-token", "apply-hp", "add-effect",
   "remove-effect", "add-annotation", "remove-annotation", "clear-annotations",
   "delete-token", "set-temporary-hp", "save-combat-action", "delete-combat-action",
-  "roll-attack", "release-attack-outcome", "roll-damage", "adjudicate-damage",
+  "roll-attack", "release-attack-outcome", "roll-damage", "adjudicate-damage", "link-beyond20", "sync-beyond20-hp",
 ] as const;
 
 export type CommandName = typeof COMMAND_NAMES[number];
@@ -255,6 +258,8 @@ export type CommandPayloadMap = {
     artAsset?: string;
   };
   "apply-hp": { tokenId: string; delta: number };
+  "link-beyond20": { tokenId: string; characterId: string | null };
+  "sync-beyond20-hp": { tokenId: string; characterId: string; hp: number; maximumHp: number; temporaryHp: number; expectedHp: number; expectedTemporaryHp: number };
   "set-temporary-hp": { tokenId: string; amount: number };
   "save-combat-action": {
     actionId?: string;

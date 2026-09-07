@@ -309,6 +309,13 @@
       "when": 1788214010960,
       "tag": "0043_all-player-interaction-qa",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1788812949922,
+      "tag": "0044_complete_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

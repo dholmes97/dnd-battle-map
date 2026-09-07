@@ -4,6 +4,8 @@ import {
   handleImageOptimization,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { createD1Beyond20Repository } from "./adapters/d1-beyond20-repository.ts";
+import { linkBeyond20, syncBeyond20Hp } from "./commands/beyond20-commands.ts";
 import {
   CHARACTER_ART_ASSETS,
   type CreatureSize,
@@ -1708,14 +1710,14 @@ async function encounterState(
     .bind(encounter!.id, MAX_TOKENS_PER_ENCOUNTER)
     .all<TokenRow>();
   const characterControllers = await env.DB.prepare(
-    `SELECT cc.id AS character_id, cm.identity_id, i.display_name
+    `SELECT cc.id AS character_id, cc.beyond20_character_id, cm.identity_id, i.display_name
      FROM campaign_characters cc
      JOIN campaign_memberships cm ON cm.id = cc.controller_membership_id
      JOIN identities i ON i.id = cm.identity_id
      WHERE cc.campaign_id = ? AND cc.is_active = 1
      ORDER BY cc.sort_order, cc.id LIMIT ?`,
   ).bind(encounter!.campaign_id, MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<{
-    character_id: string; identity_id: string; display_name: string;
+    character_id: string; beyond20_character_id: string | null; identity_id: string; display_name: string;
   }>();
   const dungeonMaster = await env.DB.prepare(
     `SELECT cm.identity_id, i.display_name
@@ -1997,8 +1999,12 @@ async function encounterState(
     tokens: visibleTokens.map((token) => {
       const controlledByViewer = viewerControls(token);
       const canSeePrivateStats = viewer?.role === "dm" || controlledByViewer;
+      const sheetCharacter = characterControllers.results.find((row) => row.character_id === token.campaign_character_id);
       return {
         id: token.id,
+        campaignCharacterId: canSeePrivateStats ? token.campaign_character_id ?? null : null,
+        beyond20CharacterId: canSeePrivateStats ? sheetCharacter?.beyond20_character_id ?? null : null,
+        canSyncBeyond20: Boolean(sheetCharacter && viewer?.identity_id === sheetCharacter.identity_id && !token.summoner_token_id),
         name: token.name,
         x: token.x,
         y: token.y,
@@ -2410,6 +2416,8 @@ async function handleCommand(
     case "end-turn": outcome = await advanceTurn(initiativeCombatContext<"end-turn">(request.payload), false); break;
     case "advance-turn": outcome = await advanceTurn(initiativeCombatContext<"advance-turn">(request.payload), true); break;
     case "correct-turn": outcome = await correctTurn(initiativeCombatContext(request.payload)); break;
+    case "link-beyond20": outcome = await linkBeyond20({ ...baseContext<"link-beyond20">(request.payload), links: createD1Beyond20Repository(mutationDb), tokens: createD1TokenEffectRepository(mutationDb) }); break;
+    case "sync-beyond20-hp": outcome = await syncBeyond20Hp({ ...baseContext<"sync-beyond20-hp">(request.payload), links: createD1Beyond20Repository(mutationDb), tokens: createD1TokenEffectRepository(mutationDb) }); break;
     case "create-spell-effect": outcome = await createSpellEffect(tokenEffectContext(request.payload)); break;
     case "create-token": outcome = await createToken(tokenEffectContext(request.payload)); break;
     case "resize-spell-effect": outcome = await resizeSpellEffect(tokenEffectContext(request.payload)); break;

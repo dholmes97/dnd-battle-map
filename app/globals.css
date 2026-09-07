@@ -2221,3 +2221,22 @@ input:focus {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+.beyond20-diagnostics > summary { list-style: none; font-size: 0.65rem; cursor: pointer; }
+.beyond20-diagnostics > summary::-webkit-details-marker { display: none; }
+.beyond20-diagnostics:not([open]) > .beyond20-panel { display: none; }
+.beyond20-panel { right: 0; width: min(20rem, calc(100vw - 2rem)); padding: 0.65rem; max-height: min(32rem, 75dvh); overflow: auto; font-size: 0.875rem; line-height: 1.4; }
+.beyond20-panel p { margin: 0.35rem 0; }
+.beyond20-panel header, .beyond20-panel footer, .beyond20-control { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.beyond20-panel footer { margin-top: 0.5rem; border-top: 1px solid #ffffff20; padding-top: 0.4rem; }
+.beyond20-panel footer p { font-size: 0.75rem; }
+.beyond20-panel footer button { white-space: nowrap; padding: 0.25rem 0.45rem; font-size: 0.75rem; }
+.beyond20-panel label { display: flex; gap: 0.45rem; align-items: center; margin: 0; }
+.beyond20-panel input[type="checkbox"] { width: 1rem; height: 1rem; min-width: 1rem; flex: 0 0 1rem; margin: 0; padding: 0; }
+.beyond20-control { margin-top: 0.45rem; }
+.beyond20-link { color: #c8bd9f; overflow-wrap: anywhere; }
+.beyond20-help > button { width: 1.5rem; height: 1.5rem; padding: 0; border-radius: 50%; font-size: 0.75rem; }
+.beyond20-help > [role="tooltip"] { display: none; position: absolute; left: 0.5rem; right: 0.5rem; top: 2.5rem; z-index: 5; padding: 0.6rem; border: 1px solid #81704a; border-radius: 0.4rem; background: #17191b; color: #f0ece4; box-shadow: 0 4px 16px #0009; font-weight: normal; }
+.beyond20-help:hover > [role="tooltip"], .beyond20-help:focus-within > [role="tooltip"] { display: block; }
+.beyond20-events { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
+.beyond20-events summary { cursor: pointer; overflow-wrap: anywhere; }
+.beyond20-events pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.75rem; }

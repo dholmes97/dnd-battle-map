@@ -83,7 +83,7 @@ export type EncounterSync = {
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const OPTIMISTIC_HISTORY_COMMANDS = new Set<CommandName>([
-  "set-initiative", "set-initiative-group", "apply-hp", "add-effect", "remove-effect",
+  "set-initiative", "set-initiative-group", "apply-hp", "sync-beyond20-hp", "add-effect", "remove-effect",
   "add-annotation", "remove-annotation", "create-token", "update-token",
   "create-spell-effect", "resize-spell-effect",
 ]);

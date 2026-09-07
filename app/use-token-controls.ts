@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
+import { beyond20HpTransition, type Beyond20HpSnapshot } from "@/shared/beyond20-hp";
 import type { EncounterSync } from "@/app/use-encounter-sync";
 import { tokenRadiusCells, type CreatureSize } from "@/shared/creature-library";
 import type { EncounterState, ParticipantSession, SharedEffect, SharedToken } from "@/shared/contracts";
@@ -192,6 +193,29 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     }
   };
 
+  const syncBeyond20Hp = async (token: SharedToken, characterId: string, snapshot: Beyond20HpSnapshot) => {
+    if (!token.canSyncBeyond20 || token.beyond20CharacterId !== characterId) { setError("This sheet isn't linked to your campaign character."); return false; }
+    const next = beyond20HpTransition(token, snapshot);
+    if ("error" in next) { setError(next.error); return false; }
+    if (!next.changed) return true;
+    const reminder = { id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name };
+    const localCheck = next.decreased && token.effects.some((effect) => effect.type === "concentration");
+    if (localCheck) setConcentrationReminder(reminder);
+    const result = await sync.runOptimisticCommand<{ state: EncounterState; updated: boolean; concentrationCheckRequired: boolean }, "sync-beyond20-hp">(
+      "sync-beyond20-hp",
+      { tokenId: token.id, characterId, ...snapshot, expectedHp: token.hp!, expectedTemporaryHp: token.temporaryHp ?? 0 },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? {
+        ...item, hp: next.hp, temporaryHp: next.temporaryHp, healthState: transitionHp(next.hp, snapshot.maximumHp, 0).healthState,
+      } : item) }),
+    );
+    if (!result || !result.concentrationCheckRequired) {
+      if (localCheck) setConcentrationReminder((current) => current?.id === reminder.id ? null : current);
+    } else if (!localCheck) setConcentrationReminder(reminder);
+    if (!result) return false;
+    if (result.updated) setNotice(`${token.name}: HP updated from D&D Beyond to ${snapshot.hp}/${snapshot.maximumHp} (${snapshot.temporaryHp} temporary).`);
+    return true;
+  };
+
   const saveTemporaryHp = async (token: SharedToken) => {
     const draft = temporaryHpDrafts[token.id];
     if (draft === undefined) return;
@@ -308,7 +332,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
     requireConcentrationCheck: (token: SharedToken) => setConcentrationReminder({ id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name }),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
+    applyHpToToken, syncBeyond20Hp, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
   };
 }
 

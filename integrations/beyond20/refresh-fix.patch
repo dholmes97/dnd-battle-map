@@ -1,0 +1,118 @@
+diff --git a/src/extension/background.js b/src/extension/background.js
+index 432487f..a9d969f 100755
+--- a/src/extension/background.js
++++ b/src/extension/background.js
+@@ -3,6 +3,7 @@ var fvtt_tabs = []
+ var custom_tabs = []
+ var roll20_tabs = []
+ var tabRemovalTimers = {};
++var customTabChecks = new Map();
+ var currentPermissions = {origins: []};
+ var openedChangelog = false;
+ var webNavigationReady = false;
+@@ -354,9 +355,43 @@ function injectFVTTScripts(tabs) {
+     insertCSSs(tabs, ["libs/css/alertify.css", "libs/css/alertify-themes/default.css", "libs/css/alertify-themes/beyond20.css", "dist/beyond20.css"])
+     executeScripts(tabs, ["libs/alertify.min.js", "libs/jquery-3.4.1.min.js", "dist/fvtt.js"])
+ }
+-function injectGenericSiteScripts(tabs) {
++function injectGenericSiteScripts(tabs, callback) {
+     insertCSSs(tabs, ["libs/css/alertify.css", "libs/css/alertify-themes/default.css", "libs/css/alertify-themes/beyond20.css", "dist/beyond20.css"])
+-    executeScripts(tabs, ["libs/alertify.min.js", "libs/jquery-3.4.1.min.js", "dist/generic_site.js"])
++    executeScripts(tabs, ["libs/alertify.min.js", "libs/jquery-3.4.1.min.js", "dist/generic_site.js"], callback)
++}
++
++function ensureCustomTab(tab) {
++    const pending = customTabChecks.get(tab.id);
++    if (pending) {
++        pending.tab = tab;
++        pending.again = true;
++        return;
++    }
++    const check = { tab, again: false };
++    customTabChecks.set(tab.id, check);
++    const finish = () => {
++        if (customTabChecks.get(tab.id) !== check) return;
++        customTabChecks.delete(tab.id);
++        if (check.again) ensureCustomTab(check.tab);
++    };
++    // A tab ID survives navigation; its content script does not. Probe the
++    // current document instead of treating the old registration as liveness.
++    chrome.tabs.sendMessage(tab.id, { action: "beyond20-custom-site-ping" }, response => {
++        const missing = chrome.runtime.lastError || !response || response.beyond20 !== true;
++        if (customTabChecks.get(tab.id) !== check) return;
++        if (!missing) {
++            addCustomTab(tab);
++            finish();
++            return;
++        }
++        removeCustomTab(tab.id);
++        injectGenericSiteScripts([tab], () => {
++            // Reading lastError consumes failures when the tab navigated or
++            // closed during injection; the next completed load can retry.
++            if (chrome.runtime.lastError) console.warn("Beyond20 custom-site injection:", chrome.runtime.lastError.message);
++            finish();
++        });
++    });
+ }
+ function injectRoll20Scripts(tabs, frame_id = 0) {
+     insertCSSs(tabs, ["libs/css/alertify.css", "libs/css/alertify-themes/default.css", "libs/css/alertify-themes/beyond20.css", "dist/beyond20.css"], undefined, frame_id)
+@@ -422,6 +457,12 @@ function onTabsUpdated(id, changes, tab) {
+         if (tabRemovalTimers[id]) {
+             clearTimeout(tabRemovalTimers[id]);
+         }
++        if (!isFVTT(tab.title) && !isRoll20(tab.title) &&
++            (isCustomDomainUrl(tab) || isSupportedVTT(tab))) {
++            const origin = `${new URL(tab.url).protocol}//${new URL(tab.url).hostname}/*`;
++            if (currentPermissions.origins.some(pattern => urlMatches(tab.url, pattern) || urlMatches(origin, pattern))) ensureCustomTab(tab);
++            return;
++        }
+         if (!isFVTTTabAdded(tab) && !isCustomTabAdded(tab)) {
+             // We cannot use the url or its origin, because Firefox, in its great magnificent wisdom
+             // decided that ports in the origin would break the whole permissions system
+@@ -444,6 +485,7 @@ function onTabsUpdated(id, changes, tab) {
+ }
+ 
+ function onTabRemoved(id, info) {
++    customTabChecks.delete(id);
+     removeFVTTTab(id)
+     removeCustomTab(id)
+     removeRoll20Tab(id)
+@@ -492,7 +534,7 @@ chromeOrBrowser.permissions.getAll((permissions) => {
+             );
+             console.log("Permissions : ", pattern, fvttTabs, customTabs, roll20NoSlashTabs);
+             executeScripts(fvttTabs, ["dist/fvtt_test.js"]);
+-            injectGenericSiteScripts(customTabs);
++            customTabs.forEach(ensureCustomTab);
+             if (roll20NoSlashTabs.length > 0) {
+                 injectRoll20Scripts(roll20NoSlashTabs);
+                 for (const tab of roll20NoSlashTabs) addRoll20Tab(tab);
+@@ -540,4 +582,4 @@ if (manifest.manifest_version >= 3) {
+     setInterval(() => {
+         chrome.storage.local.get({"ignore": "me"}, () => {});
+     }, 20000);
+-}
+\ No newline at end of file
++}
+diff --git a/src/generic-site/content-script.js b/src/generic-site/content-script.js
+index 9aab888..e0a1d1c 100644
+--- a/src/generic-site/content-script.js
++++ b/src/generic-site/content-script.js
+@@ -4,6 +4,10 @@ console.log("Beyond20: Custom Domain module loaded:", site);
+ var settings = getDefaultSettings();
+ var characterInternal = null;
+ function handleMessage(request, sender, sendResponse) {
++    if (request.action === "beyond20-custom-site-ping") {
++        sendResponse({ beyond20: true });
++        return;
++    }
+     console.log("Received Beyond20 message : ", request);
+     if (request.action == "settings") {
+         if (request.type == "general") {
+@@ -54,4 +58,4 @@ registered_events.push(addCustomEventListener("SendMessage", sendMessageToBeyond
+ registered_events.push(addCustomEventListener("disconnect", disconnectAllEvents));
+ 
+ updateSettings();
+-chrome.runtime.sendMessage({ "action": "register-generic-tab" });
+\ No newline at end of file
++chrome.runtime.sendMessage({ "action": "register-generic-tab" });
+

@@ -9,21 +9,21 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-async function pngFiles(directory, prefix = "") {
+async function imageFiles(directory, prefix = "") {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(entries.map(async (entry) => {
     const path = `${prefix}${entry.name}`;
-    if (entry.isDirectory()) return pngFiles(new URL(`${entry.name}/`, directory), `${path}/`);
-    return entry.isFile() && entry.name.endsWith(".png") ? [path] : [];
+    if (entry.isDirectory()) return imageFiles(new URL(`${entry.name}/`, directory), `${path}/`);
+    return entry.isFile() && /\.(png|webp)$/.test(entry.name) ? [path] : [];
   }));
   return nested.flat();
 }
 
-test("the token manifest is a complete one-to-one inventory of shipped token PNGs", async () => {
+test("the token manifest is a complete one-to-one inventory of shipped token images", async () => {
   const manifest = JSON.parse(await source("public/assets/tokens/manifest.json"));
   const ids = manifest.assets.map(({ id }) => id);
   const declared = manifest.assets.map(({ path }) => path.replace(/^\/assets\/tokens\//, "")).sort();
-  const shipped = (await pngFiles(tokensRoot)).sort();
+  const shipped = (await imageFiles(tokensRoot)).sort();
 
   assert.equal(new Set(ids).size, ids.length, "token IDs must be unique");
   assert.equal(new Set(declared).size, declared.length, "token paths must be unique");

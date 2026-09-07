@@ -1037,6 +1037,11 @@ export default function BattleMapPrototype() {
     <main className={`app-shell${presenting ? " is-presenting" : ""}${sidebarOpen ? "" : " is-collapsed"}`}>
       {qaSessionInfo ? <div className="qa-session-banner" role="status"><strong>{qaSessionInfo.persona === "dm" ? "QA DM" : qaSessionInfo.persona === "player1" ? "QA Player 1" : "QA Player 2"}</strong><span>Isolated Interaction QA · authenticated as {qaSessionInfo.actor}</span><button onClick={returnToCampaignHome}>Exit QA</button></div> : null}
       <BattleMapCommandBar
+        beyond20={{ identityId: signedInIdentity?.id, participant, state, onSyncHp: tokenControls.syncBeyond20Hp, onLink: async (tokenId, characterId) => Boolean(await encounterSync.runOptimisticCommand(
+          "link-beyond20", { tokenId, characterId },
+          (current) => ({ ...current, tokens: current.tokens.map((token) => token.id === tokenId ? { ...token, beyond20CharacterId: characterId } : token) }),
+          characterId ? "D&D Beyond sheet linked." : "D&D Beyond sheet unlinked.", undefined, false,
+        )) }}
         participant={participant} state={state} annotationMode={annotationMode} editingSharedFog={editingSharedFog}
         chatOpen={chatOpen} chatMinimized={chatMinimized} chatUnreadTotal={chatUnreadTotal}
         paletteOpen={paletteOpen} spellPaletteOpen={spellPaletteOpen} busy={busy} viewport={viewport}
