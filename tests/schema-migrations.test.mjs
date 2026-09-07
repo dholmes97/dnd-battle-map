@@ -272,7 +272,9 @@ test("bootstrap migration preserves customized existing records", async () => {
     SELECT name || '|' || family || '|' || default_hp || '|' || armor_class || '|' || is_active || '|' || updated_at FROM creature_catalog WHERE id = 'cave-bat';
   `);
 
-  assert.equal(after, before);
+  // The one-time sheet-link migration wakes Force of Nature encounter polls;
+  // all authored fields, timestamps, HP, and catalog customization stay intact.
+  assert.equal(after, before.replace("Keep This Scenario|42|", "Keep This Scenario|43|"));
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "3");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "9");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");

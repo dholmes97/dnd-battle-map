@@ -9,8 +9,9 @@ campaign-character links, not name-based ownership rules:
 - Malichar (`character-malichar`): `163508159`
 - Jelton (`character-jelton`): `119657366`
 
-Publishing source does not itself populate these live database values. Confirm
-the links through an authenticated DM session after the schema is deployed.
+The explicitly authorized one-time data migration `0045_force_of_nature_beyond20_links`
+fills missing links on these three records during deployment. It preserves existing
+DM-maintained links, ownership, and HP. Subsequent link changes use the DM controls.
 
 This is a locally modified Beyond20 extension, not an official release or an
 application deployment. It is based on the official `v2.20.1` tag, commit
