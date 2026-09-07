@@ -31,8 +31,7 @@ for(let batch=from;batch<=through;batch++){
   const name=`batch-${String(batch).padStart(3,'0')}-${apply?'applied':'dry-run'}-${Date.now()}.json`;
   await writeFile(resolve(receiptDirectory,name),JSON.stringify(receipt,null,2)+'\n',{flag:'wx',mode:0o600});
   // Check the old URL too: redirects must preserve every legacy reference after originals disappear.
-  const delivery=[];
-  for(const c of candidates){
+  const delivery=await Promise.all(candidates.map(async (c)=>{
     const legacy='/creature-assets/'+c.original.key.slice('creature-catalog/original/'.length);
     const r=await fetch(origin+legacy,{signal:AbortSignal.timeout(20000)});
     const bytes=Buffer.from(await r.arrayBuffer());
@@ -41,8 +40,8 @@ for(let batch=from;batch<=through;batch++){
     const thumbnail=await fetch(origin+legacy+'?variant=thumbnail',{signal:AbortSignal.timeout(20000)});
     if(!thumbnail.ok)throw Error(`Thumbnail delivery failed: ${c.creatureId}`);
     await sharp(Buffer.from(await thumbnail.arrayBuffer())).raw().toBuffer();
-    delivery.push({creatureId:c.creatureId,webpSha256:c.replacement.sha256,legacyRedirect:r.redirected,thumbnailVerified:true});
-  }
+    return {creatureId:c.creatureId,webpSha256:c.replacement.sha256,legacyRedirect:r.redirected,thumbnailVerified:true};
+  }));
   await writeFile(resolve(receiptDirectory,name.replace('.json','-delivery.json')),JSON.stringify({batch,checkedAt:new Date().toISOString(),delivery},null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(`Batch ${batch}: ${apply?'deleted':'verified'} ${receipt.candidateCount} originals; all WebPs, legacy URLs, and thumbnails verified.`);
 }

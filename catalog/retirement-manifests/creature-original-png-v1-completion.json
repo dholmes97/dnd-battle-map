@@ -1,0 +1,33 @@
+{
+  "localCompletedBatches": 100,
+  "localVerifiedDeliveryBatches": 100,
+  "checkedAt": "2026-09-07T16:13:07.582Z",
+  "originalsDeleted": 1000,
+  "originalsRemaining": [],
+  "webpsPresent": 1000,
+  "protectedObjectsUnchanged": 2040,
+  "unexpectedChanges": [],
+  "batchReceiptCount": 100,
+  "originalBytesRemoved": 1319474088,
+  "receiptBytes": 440257,
+  "beforeStorageBytes": 1584470415,
+  "afterStorageBytes": 265436584,
+  "totalObjects": 2140,
+  "operation": "retire-creature-catalog-original-pngs",
+  "status": "complete",
+  "sourceSnapshot": "production-2026-08-30T21-52-22-261Z",
+  "manifestSha256": "43a690e25cf66a690ae578c8f2533732bbee322de09d42761371ad27c2a48ed1",
+  "cleanupCredentialDisabled": true,
+  "disabledVerifiedAt": "2026-09-07T16:14:38.370Z",
+  "canaryBrowsers": [
+    "chromium",
+    "webkit"
+  ],
+  "releaseValidation": {
+    "nodeTests": 255,
+    "componentTests": 170,
+    "browserTests": 26,
+    "dependencyVulnerabilities": 0
+  },
+  "netStorageBytesReclaimed": 1319033831
+}

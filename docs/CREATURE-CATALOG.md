@@ -75,3 +75,19 @@ Only after reviewing the canary, continue with `--apply --from 1 --through 99`.
 Stop on any failed check and inspect receipts before resuming. Restoration means
 re-uploading only the exact missing originals from the verified snapshot under
 their original keys; never roll back current D1 data for an image-only recovery.
+
+### Completed 2026-09-07
+
+All 1,000 manifest-listed original PNGs were deleted in 100 ten-object batches.
+The canary rendered in Chromium and WebKit; every batch's WebP checksum, legacy
+URL delivery, and thumbnail decoding passed. The final R2 inventory confirmed
+all 1,000 WebPs and every other pre-existing non-target object (2,040 total) were
+unchanged. Total storage fell from 1,584,470,415 to 265,436,584 bytes, including
+440,257 bytes of durable batch receipts. Net space reclaimed: 1,319,033,831 bytes.
+
+The August 30 snapshot was independently reverified and all 1,000 PNGs restored
+and checked locally before deletion. The temporary cleanup environment keys
+were removed, the same application version redeployed, and the old credential
+was confirmed rejected with HTTP 401. The final machine-readable record is
+`catalog/retirement-manifests/creature-original-png-v1-completion.json`; detailed
+local execution and browser receipts are in `.working/png-retirement-2026-09-07/`.
