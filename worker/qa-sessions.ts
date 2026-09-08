@@ -156,7 +156,7 @@ export async function resetQaFixture(request: Request, env: Env, identity: Authe
         damage_die_size = excluded.damage_die_size, damage_modifier = excluded.damage_modifier,
         damage_type = excluded.damage_type, reach_feet = excluded.reach_feet, range_feet = excluded.range_feet,
         manual_rider = excluded.manual_rider, manual_rider_text = excluded.manual_rider_text,
-        alternate_damage_json = excluded.alternate_damage_json,
+        alternate_damage_json = excluded.alternate_damage_json, extra_damage_json = NULL,
         sort_order = excluded.sort_order, is_enabled = excluded.is_enabled, updated_at = excluded.updated_at`,
     ).bind(now, now),
     env.DB.prepare(
@@ -174,7 +174,7 @@ export async function resetQaFixture(request: Request, env: Env, identity: Authe
         damage_die_size = excluded.damage_die_size, damage_modifier = excluded.damage_modifier,
         damage_type = excluded.damage_type, reach_feet = excluded.reach_feet, range_feet = excluded.range_feet,
         manual_rider = excluded.manual_rider, manual_rider_text = excluded.manual_rider_text,
-        alternate_damage_json = excluded.alternate_damage_json, sort_order = excluded.sort_order,
+        alternate_damage_json = excluded.alternate_damage_json, extra_damage_json = NULL, sort_order = excluded.sort_order,
         is_enabled = excluded.is_enabled, updated_at = excluded.updated_at`,
     ).bind(now, now, now, now),
     env.DB.prepare(

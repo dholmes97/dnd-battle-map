@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
+import { createD1CombatRollRepository } from "../worker/adapters/d1-combat-roll-repository.ts";
 
 test("human identities receive campaign-scoped roles, characters, encounters, and sessions", async () => {
   await withWorker(async (worker, db) => {
@@ -19,6 +20,8 @@ test("human identities receive campaign-scoped roles, characters, encounters, an
       { name: "Dar'eleth", className: "Paladin" },
     ]);
     assert.equal(danAccess.items[0].encounters.length, 1);
+    const enchantedAction = danAccess.items[0].characters[0].combatActions.find((action) => action.id === "character-dareleth-longsword-v1");
+    assert.equal(enchantedAction.extraDamage[0].damageType, "radiant", "campaign action editing receives the saved enchantment");
 
     const code = danAccess.items[0].encounters[0].code;
     const joined = await worker.fetch(request(`/api/encounters/${code}/join`, {
@@ -32,6 +35,27 @@ test("human identities receive campaign-scoped roles, characters, encounters, an
     assert.equal(session.role, "player", "the server resolves role from campaign membership");
     assert.equal(session.state.tokens.find((token) => token.name === "Dar'eleth").controlledByViewer, true);
     assert.equal(session.state.tokens.find((token) => token.name === "Jelton").controlledByViewer, false);
+    const encounter = await db.prepare("SELECT id FROM encounters WHERE code=?").bind(code).first();
+    const combat = createD1CombatRollRepository(db);
+    const attacker = session.state.tokens.find((token) => token.name === "Dar'eleth");
+    const target = session.state.tokens.find((token) => token.name === "Jelton");
+    const extraDamage = [{ label: "Booming Blade", formula: { count: 2, sides: 8, modifier: 0 }, damageType: "thunder" }];
+    await combat.createRoll({ id: "mixed-projection", encounterId: encounter.id, operationId: "mixed-projection-op",
+      participantId: session.participantId, authenticatedActorIdentityId: "identity-dan", attackerTokenId: attacker.id,
+      targetTokenId: target.id, actionProfileId: enchantedAction.id, actionSource: "manual-character",
+      actionSnapshotJson: JSON.stringify({ ...enchantedAction, damage: { count: 1, sides: 4, modifier: 5 }, extraDamage, attackerName: attacker.name, targetName: target.name }),
+      rollMode: "normal", attackDiceJson: "[15]", keptD20: 15, blessDie: null, attackTotal: 24, outcome: "hit",
+      dmPrivate: false, damageDiceJson: "[]", damageTotal: 0, inTurn: true, now: Date.now(),
+    });
+    await combat.recordDamage({ encounterId: encounter.id, rollId: "mixed-projection", proposalId: "mixed-projection-proposal",
+      targetTokenId: target.id, damageDiceJson: "[4,8,7]", damageTotal: 24, now: Date.now() });
+    const refreshed = await worker.fetch(request(`/api/encounters/${code}/join`, { method: "POST", headers: { cookie: danCookie }, body: JSON.stringify({ campaignId: "campaign-force-of-nature" }) }), { DB: db }, context());
+    const result = await refreshed.json();
+    const mixedRoll = result.state.combatRolls.find((roll) => roll.id === "mixed-projection");
+    assert.ok(mixedRoll, "a d4 weapon with d8 extra damage survives the server projection");
+    assert.deepEqual(mixedRoll.damageDice, [4,8,7]);
+    assert.deepEqual(mixedRoll.action.extraDamage, extraDamage);
+    assert.equal(mixedRoll.damageTotal, 24);
   });
 });
 

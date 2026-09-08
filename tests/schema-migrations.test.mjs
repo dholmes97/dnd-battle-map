@@ -56,8 +56,8 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_rolls') WHERE name IN ('dm_private', 'released_outcome', 'outcome_released_at');"), "3");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND source_ref = 'jelton-sheet-2026-08-30';"), "10");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND lower(name) = 'guiding bolt';"), "0");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND source_ref = 'jelton-sheet-2026-08-30';"), "7");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND lower(name) = 'guiding bolt';"), "1");
   assert.deepEqual(
     (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
       FROM combat_action_profiles
@@ -68,16 +68,17 @@ test("numbered migrations build and seed a fresh database", async () => {
       "Guiding Bolt (3rd level):6d6",
       "Guiding Bolt (4th level):7d6",
       "Guiding Bolt (5th level):8d6",
+      "Guiding Bolt (6th level):9d6",
     ],
   );
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND source_ref = 'malichar-sheet-2026-08-30';"), "5");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND source_ref = 'malichar-sheet-2026-08-30';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND lower(name) = 'dagger';"), "1");
   assert.equal(
     await query(database, `SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier || ' ' || damage_type || ':' || manual_rider_text
       FROM combat_action_profiles WHERE id = 'character-malichar-glimmering-moonbow-v1';`),
-    "1d6+6 piercing:Also deals 1d6 radiant damage. The additional radiant die is not yet included in the automatic damage roll.",
+    "1d6+6 piercing:The 1d6 radiant enchantment is included automatically. Sneak Attack adds 6d6 piercing once per turn when eligible: advantage, or a non-incapacitated enemy of the target within 5 feet and no disadvantage. Resolve Sneak Attack with the DM.",
   );
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-dareleth' AND source_ref = 'dareleth-sheet-2026-08-30';"), "13");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-dareleth' AND source_ref = 'dareleth-sheet-2026-08-30';"), "11");
   assert.deepEqual(
     (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
       FROM combat_action_profiles
@@ -102,7 +103,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   );
   assert.equal(
     await query(database, "SELECT manual_rider_text FROM combat_action_profiles WHERE id = 'character-dareleth-javelin-of-lightning-v1';"),
-    "When activated, also deals 4d6 lightning damage and expends 1 charge. The additional lightning dice are not yet included in the automatic damage roll.",
+    "Improved Divine Smite is included automatically. Optional Divine Smite spends a slot for another 2d8/3d8/4d8 radiant at slot levels 1/2/3, plus 1d8 against undead or fiends; resolve the optional dice with the DM.",
   );
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
@@ -272,9 +273,9 @@ test("bootstrap migration preserves customized existing records", async () => {
     SELECT name || '|' || family || '|' || default_hp || '|' || armor_class || '|' || is_active || '|' || updated_at FROM creature_catalog WHERE id = 'cave-bat';
   `);
 
-  // The one-time sheet-link migration wakes Force of Nature encounter polls;
+  // The sheet-link and level-12 migrations wake Force of Nature encounter polls;
   // all authored fields, timestamps, HP, and catalog customization stay intact.
-  assert.equal(after, before.replace("Keep This Scenario|42|", "Keep This Scenario|43|"));
+  assert.equal(after, before.replace("Keep This Scenario|42|", "Keep This Scenario|44|"));
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "3");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "9");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");

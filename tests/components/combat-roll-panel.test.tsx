@@ -150,7 +150,7 @@ describe("CombatRollPanel", () => {
     const onRoll = vi.fn(async (payload: CommandPayload<"roll-attack">) => { void payload; return result(); });
     render(<CombatRollPanel participant={player} state={state([magicMissile])} attacker={attacker} target={target} anchor={{ x: 10, y: 10 }} onClose={vi.fn()} onRoll={onRoll} onComplete={vi.fn()} />);
 
-    expect(screen.getByRole("option", { name: "Magic Missile (7 charges) · automatic · 9d4+9" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Magic Missile (7 charges) · automatic · 9d4+9 force" })).toBeTruthy();
     expect(screen.getByText("Hits automatically")).toBeTruthy();
     expect(screen.queryByRole("radiogroup", { name: "Roll mode" })).toBeNull();
     expect(screen.queryByText("Bless +1d4 automatic")).toBeNull();

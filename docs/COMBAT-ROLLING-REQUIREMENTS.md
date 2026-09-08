@@ -111,8 +111,8 @@ Each use supports:
 - the configured final attack bonus;
 - natural 1 as an automatic miss;
 - natural 20 as an automatic hit and critical hit;
-- one primary damage component;
-- one standard damage type or untyped damage;
+- one primary damage component and up to four automatic extra components;
+- a separate standard damage type or untyped damage for each component;
 - a server-rolled damage result;
 - critical damage that rolls damage dice twice while adding the flat modifier
   once;
@@ -136,7 +136,6 @@ Attack workflow defined below. Players may not invent ad hoc action values.
 - Area and multi-target attacks
 - Healing rolls
 - Contested checks
-- Mixed damage components such as slashing plus fire
 - Optional on-hit additions such as Divine Smite or Sneak Attack
 - Damage-over-time and start/end-of-turn automatic rolls
 - Expanded critical ranges or feature-specific critical formulas
@@ -145,9 +144,23 @@ Attack workflow defined below. Players may not invent ad hoc action values.
   prone, or invisibility
 - Resource consumption and recharge rolls
 
-The stored model should be extensible to additional resolution modes and
-multiple damage components later, but adapters must not expose incomplete
-future behavior in the MVP.
+Automatic extra damage is stored in `extra_damage_json`, validated into the
+immutable attack snapshot, and rolled only when the authorized roller requests
+damage. Dice are stored in component order; every component doubles its dice
+(not modifiers) on a critical. Alternate weapon damage replaces only the base
+formula. Action editors preserve configured extra components when saving.
+
+Roll cards and history retain typed subtotals. DM-private projections remove
+extra component formulas and raw dice. Whole-total resistance controls remain
+whole-total controls: use the displayed breakdown and Different amount when
+only one type is resisted. Optional and delayed damage remains manual.
+
+Migrations 0046–0047 prepare the linked Force of Nature level-12 actions:
+Dar's melee longsword/javelin include 1d8 radiant; his thrown javelin is a
+separate action without it. Malichar's moonbow includes 1d6 radiant, and his
+Booming Blade melee variants include 2d8 thunder on hit. Sneak Attack, optional
+slot smites, javelin activation, and Booming Blade movement damage stay manual.
+These are battle-map rolls; Beyond20 roll events remain preview-only.
 
 ## Permanent availability and QA isolation
 
@@ -999,6 +1012,6 @@ before their affected UI or schema is built:
 3. **Adjusted-damage note:** decide whether Adjust stores only a structured
    category or also permits a short free-form DM note.
 
-Saving throws, multiple damage components, automatic effects other than Bless,
+Saving throws, automatic effects other than Bless,
 and unofficial D&D Beyond synchronization are deferred scope, not unresolved
 MVP decisions.

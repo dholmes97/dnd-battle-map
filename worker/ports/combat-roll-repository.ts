@@ -18,6 +18,7 @@ export type CombatActionProfileRow = {
   manual_rider: number;
   manual_rider_text: string | null;
   alternate_damage_json: string | null;
+  extra_damage_json?: string | null;
   source_kind: string;
   source_ref: string | null;
   sort_order: number;

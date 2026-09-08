@@ -42,6 +42,27 @@ function storedRoll(overrides = {}) {
   };
 }
 
+test("enchantment dice follow the saved attack snapshot, including two-handed critical hits", async () => {
+  const extraDamage = [{ label: "Improved Divine Smite", formula: { count: 1, sides: 8, modifier: 0 }, damageType: "radiant" }];
+  const attack = context({
+    payload: { operationId: "enchanted-attack", attackerTokenId: "attacker", targetTokenId: "target", actionProfileId: "action", rollMode: "normal", alternateDamage: true },
+    dice: [20], repository: { findActionForToken: async () => action({ extra_damage_json: JSON.stringify(extraDamage), alternate_damage_json: JSON.stringify({ label: "Two-handed", formula: { count: 1, sides: 10, modifier: 5 } }) }) },
+  });
+  await rollAttack(attack);
+  const written = attack.calls.find(([kind]) => kind === "roll")[1];
+  assert.equal(written.damageDiceJson, "[]");
+  assert.deepEqual(JSON.parse(written.actionSnapshotJson).extraDamage, extraDamage);
+  const sides = [];
+  const damage = context({ payload: { operationId: "enchanted-damage", rollId: "roll" }, repository: {
+    findRoll: async () => storedRoll({ action_snapshot_json: written.actionSnapshotJson, outcome: "critical", kept_d20: 20 }),
+  } });
+  damage.rollDie = (size) => { sides.push(size); return size; };
+  const result = await rollDamage(damage);
+  assert.deepEqual(sides, [10, 10, 8, 8]);
+  assert.equal(result.payload.damageTotal, 41);
+  assert.deepEqual(result.payload.damageDice, [10, 10, 8, 8]);
+});
+
 function context(overrides = {}) {
   const attacker = token("attacker", { name: "Hero", kind: "character", campaign_character_id: "character" });
   const target = token("target", { name: "Goblin" });

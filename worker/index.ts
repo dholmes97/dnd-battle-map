@@ -52,6 +52,7 @@ import {
   projectCombatDamageValues,
   projectDamageAdjudication,
   validateCombatActionValues,
+  validActionDamageDice,
   type CombatActionProfile,
   type DamageAdjudication,
 } from "../shared/combat-rolling.ts";
@@ -968,8 +969,8 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
           `INSERT INTO combat_action_profiles
            (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
             damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
-            manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-import', ?, ?, 1, ?, ?)`,
+            manual_rider, manual_rider_text, alternate_damage_json, extra_damage_json, source_kind, source_ref, sort_order, is_enabled, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-import', ?, ?, 1, ?, ?)`,
         ).bind(
           action.id, creature.id, action.values.name, action.values.attackBonus, action.values.attackKind,
           action.values.damage.count, action.values.damage.sides, action.values.damage.modifier,
@@ -977,7 +978,7 @@ async function importCreatureCatalogBatch(request: Request, env: Env, storage: R
           action.values.manualRider ? 1 : 0,
           action.values.manualRiderText,
           action.values.alternateDamage ? JSON.stringify(action.values.alternateDamage) : null,
-          action.sourceRef, index, now, now,
+          JSON.stringify(action.values.extraDamage ?? []), action.sourceRef, index, now, now,
         )),
       ]);
     }
@@ -1211,9 +1212,9 @@ async function handleCreatureCatalogActionImport(request: Request, env: Env): Pr
         `INSERT INTO combat_action_profiles
          (id, campaign_character_id, creature_catalog_id, name, resolution_mode, attack_bonus, attack_kind,
           damage_dice_count, damage_die_size, damage_modifier, damage_type, reach_feet, range_feet,
-          manual_rider, manual_rider_text, alternate_damage_json, source_kind, source_ref,
+          manual_rider, manual_rider_text, alternate_damage_json, extra_damage_json, source_kind, source_ref,
           sort_order, is_enabled, created_at, updated_at)
-         VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-action-import', ?, ?, 1, ?, ?)
+         VALUES (?, NULL, ?, ?, 'attack-vs-ac', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'catalog-action-import', ?, ?, 1, ?, ?)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, attack_bonus = excluded.attack_bonus,
           attack_kind = excluded.attack_kind, damage_dice_count = excluded.damage_dice_count,
           damage_die_size = excluded.damage_die_size, damage_modifier = excluded.damage_modifier,
@@ -1221,6 +1222,7 @@ async function handleCreatureCatalogActionImport(request: Request, env: Env): Pr
           range_feet = excluded.range_feet, manual_rider = excluded.manual_rider,
           manual_rider_text = excluded.manual_rider_text,
           alternate_damage_json = excluded.alternate_damage_json, source_kind = excluded.source_kind,
+          extra_damage_json = excluded.extra_damage_json,
           source_ref = excluded.source_ref, sort_order = excluded.sort_order, is_enabled = 1,
           updated_at = excluded.updated_at
          WHERE combat_action_profiles.creature_catalog_id IS excluded.creature_catalog_id`,
@@ -1230,7 +1232,7 @@ async function handleCreatureCatalogActionImport(request: Request, env: Env): Pr
         action.values.damage.modifier, action.values.damageType, action.values.reachFeet,
         action.values.rangeFeet, action.values.manualRider ? 1 : 0, action.values.manualRiderText,
         action.values.alternateDamage ? JSON.stringify(action.values.alternateDamage) : null,
-        action.sourceRef, action.sourceActionIndex, now, now,
+        JSON.stringify(action.values.extraDamage ?? []), action.sourceRef, action.sourceActionIndex, now, now,
       )),
       creature.actions.length
         ? env.DB.prepare(
@@ -1279,6 +1281,8 @@ function secureRollDie(sides: number): number {
 
 function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile | null {
   let alternateDamage: unknown = null;
+  let extraDamage: unknown = [];
+  try { extraDamage = JSON.parse(row.extra_damage_json ?? "[]"); } catch { return null; }
   try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
   const values = validateCombatActionValues({
     name: row.name,
@@ -1292,6 +1296,7 @@ function combatActionFromRow(row: CombatActionProfileRow): CombatActionProfile |
     manualRider: Boolean(row.manual_rider),
     manualRiderText: row.manual_rider_text,
     alternateDamage,
+    extraDamage,
   });
   const ownerType = row.campaign_character_id ? "character" as const : "creature" as const;
   const ownerId = row.campaign_character_id ?? row.creature_catalog_id;
@@ -1312,8 +1317,7 @@ function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string
   try { snapshot = JSON.parse(row.action_snapshot_json) as Record<string, unknown>; } catch { return null; }
   const action = validateCombatActionValues(snapshot);
   const attackDice = jsonDice(row.attack_dice_json, 20);
-  const damage = validateCombatActionValues(snapshot)?.damage;
-  const storedDamageDice = jsonDice(row.damage_dice_json, damage?.sides ?? 100);
+  const storedDamageDice = jsonDice(row.damage_dice_json, 20);
   if (!action || !attackDice || !storedDamageDice ||
       (row.outcome !== "miss" && row.outcome !== "hit" && row.outcome !== "critical" && row.outcome !== "needs-ac") ||
       (row.roll_mode !== "normal" && row.roll_mode !== "advantage" && row.roll_mode !== "disadvantage")) return null;
@@ -1323,6 +1327,8 @@ function sharedCombatRollFromRow(row: CombatRollRow & { participant_name: string
     ? row.released_outcome
     : dmPrivate ? null : row.outcome;
   const effectiveOutcome = releasedOutcome ?? row.outcome;
+  if (row.damage_rolled_at !== null && action.extraDamage?.length &&
+      !validActionDamageDice(action, storedDamageDice, effectiveOutcome === "critical")) return null;
   const projectedAttack = projectCombatAttackDetails({
     dmPrivate,
     viewerRole,
@@ -1834,7 +1840,7 @@ async function encounterState(
         `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name, cap.resolution_mode,
                 cap.attack_bonus, cap.attack_kind, cap.damage_dice_count, cap.damage_die_size,
                 cap.damage_modifier, cap.damage_type, cap.reach_feet, cap.range_feet,
-                cap.manual_rider, cap.manual_rider_text, cap.alternate_damage_json, cap.source_kind, cap.source_ref,
+                cap.manual_rider, cap.manual_rider_text, cap.alternate_damage_json, cap.extra_damage_json, cap.source_kind, cap.source_ref,
                 cap.sort_order, cap.is_enabled, cap.created_at, cap.updated_at
          FROM combat_action_profiles cap
          WHERE cap.is_enabled = 1 AND (

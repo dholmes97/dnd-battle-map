@@ -5,6 +5,10 @@ import {
   adjudicatedDamage,
   combatRollDisclosure,
   formatDiceFormula,
+  formatActionDamage,
+  actionDamageTypes,
+  damageBreakdown,
+  validActionDamageDice,
   hasBless,
   projectCombatDamageValues,
   projectCombatAttackDetails,
@@ -15,6 +19,35 @@ import {
 } from "../shared/combat-rolling.ts";
 
 const damage = { count: 1, sides: 8, modifier: 5 };
+
+test("typed extra damage is bounded, preserves modifiers and types, and stays private for DM rolls", () => {
+  const action = validateCombatActionValues({
+    name: "Enchanted weapon", attackBonus: 9, attackKind: "melee", damage,
+    damageType: "slashing", reachFeet: 5, rangeFeet: null, manualRider: false,
+    extraDamage: [{ label: "Radiant enchantment", formula: { count: 1, sides: 6, modifier: 2 }, damageType: "radiant" }],
+  });
+  assert.ok(action);
+  assert.equal(formatActionDamage(action), "1d8+5 slashing + 1d6+2 radiant");
+  assert.equal(actionDamageTypes(action), "slashing + radiant");
+  assert.equal(validActionDamageDice(action, [8, 6], false), true);
+  assert.equal(validActionDamageDice(action, [8, 7], false), false);
+  assert.equal(validActionDamageDice(action, [8], false), false);
+  const dagger = { ...action, damage: { count: 1, sides: 4, modifier: 5 }, extraDamage: [{ label: "Booming Blade", formula: { count: 2, sides: 8, modifier: 0 }, damageType: "thunder" }] };
+  assert.equal(validActionDamageDice(dagger, [4, 8, 7], false), true);
+  assert.equal(validActionDamageDice(dagger, [5, 8, 7], false), false);
+  assert.equal(validateCombatActionValues({ ...action, extraDamage: [{ ...action.extraDamage[0], formula: { count: 20, sides: 20, modifier: 100 } }, { ...action.extraDamage[0], formula: { count: 20, sides: 20, modifier: 100 } }] }), null);
+  assert.deepEqual(damageBreakdown(action, [8, 3, 6, 2], true).map((part) => [part.damageType, part.dice, part.total]), [
+    ["slashing", [8, 3], 16], ["radiant", [6, 2], 10],
+  ]);
+  for (const extraDamage of [null, {}, [...action.extraDamage, ...action.extraDamage, ...action.extraDamage, ...action.extraDamage, ...action.extraDamage],
+    [{ ...action.extraDamage[0], damageType: "invalid" }], [{ ...action.extraDamage[0], formula: { count: 21, sides: 6, modifier: 0 } }],
+    [{ ...action.extraDamage[0], label: "" }], [null]]) {
+    assert.equal(validateCombatActionValues({ ...action, extraDamage }), null);
+  }
+  const projected = projectCombatAttackDetails({ viewerRole: "player", dmPrivate: true, action, attackDice: [20], keptD20: 20, blessDie: null, attackTotal: 29 });
+  assert.deepEqual(projected.action.extraDamage, []);
+  assert.deepEqual(projectCombatAttackDetails({ viewerRole: "dm", dmPrivate: true, action, attackDice: [20], keptD20: 20, blessDie: null, attackTotal: 29 }).action.extraDamage, action.extraDamage);
+});
 
 test("normal, advantage, disadvantage, and Bless resolve deterministically", () => {
   const normal = resolveAttack({ rollMode: "normal", attackDice: [10], attackBonus: 4, targetArmorClass: 15, damageFormula: damage, damageDice: [6] });

@@ -1,6 +1,8 @@
 import {
   adjudicatedDamage,
   damageDiceCount,
+  actionDamageComponents,
+  damageBreakdown,
   resolveAttackRoll,
   transitionDamageWithTemporaryHp,
   validateCombatActionValues,
@@ -204,8 +206,8 @@ export async function rollDamage(context: CombatRollCommandContext<"roll-damage"
   try { snapshot = JSON.parse(roll.action_snapshot_json); } catch { return commandError("The attack snapshot is invalid.", 409); }
   const action = validateCombatActionValues(snapshot);
   if (!action) return commandError("The attack snapshot is invalid.", 409);
-  const damageDice = rollFormulaDice(action.damage, damageOutcome === "critical", context.rollDie);
-  const damageTotal = Math.max(0, damageDice.reduce((sum, die) => sum + die, 0) + action.damage.modifier);
+  const damageDice = actionDamageComponents(action).flatMap((part) => rollFormulaDice(part.formula, damageOutcome === "critical", context.rollDie));
+  const damageTotal = damageBreakdown(action, damageDice, damageOutcome === "critical").reduce((sum, part) => sum + part.total, 0);
   const proposalId = context.services.createId();
   await context.repository.recordDamage({
     encounterId: context.encounter.id,
@@ -303,6 +305,8 @@ async function selectedAction(
 
 function actionValues(row: CombatActionProfileRow): CombatActionValues | null {
   let alternateDamage: unknown = null;
+  let extraDamage: unknown = [];
+  try { extraDamage = JSON.parse(row.extra_damage_json ?? "[]"); } catch { return null; }
   try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
   return validateCombatActionValues({
     name: row.name,
@@ -316,6 +320,7 @@ function actionValues(row: CombatActionProfileRow): CombatActionValues | null {
     manualRider: Boolean(row.manual_rider),
     manualRiderText: row.manual_rider_text,
     alternateDamage,
+    extraDamage,
   });
 }
 

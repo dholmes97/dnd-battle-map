@@ -61,9 +61,11 @@ describe("CampaignHome", () => {
       damage: { count: 1, sides: 6, modifier: 6 }, damageType: "piercing",
       reachFeet: null, rangeFeet: 80, manualRider: true,
       manualRiderText: "The target glimmers until the next turn.", alternateDamage: null,
+      extraDamage: [{ label: "Moonbow enchantment", formula: { count: 1, sides: 6, modifier: 0 }, damageType: "radiant" }],
     };
     const playerCampaign = campaign("player");
-    home(player, { campaign: { ...playerCampaign, characters: [{ ...playerCampaign.characters[0], combatActions: [moonbow] }] } });
+    const onSaveCombatAction = vi.fn(async () => true);
+    home(player, { campaign: { ...playerCampaign, characters: [{ ...playerCampaign.characters[0], combatActions: [moonbow] }] }, onSaveCombatAction });
 
     expect(screen.getByText("1 action for Dar'eleth")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Manage actions" }));
@@ -74,6 +76,9 @@ describe("CampaignHome", () => {
     expect(row?.classList.contains("is-editing")).toBe(true);
     expect(row?.nextElementSibling).toBe(editor);
     expect(screen.getByRole("button", { name: `Editing ${moonbow.name}` })).toHaveProperty("disabled", true);
+    expect(screen.getByText(/Automatic extra damage: Moonbow enchantment/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Save action" }));
+    expect(onSaveCombatAction).toHaveBeenCalledWith(expect.objectContaining({ values: expect.objectContaining({ extraDamage: moonbow.extraDamage }) }));
   });
 
   it("requires confirmation before deleting a combat action", async () => {

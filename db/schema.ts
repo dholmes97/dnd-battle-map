@@ -430,6 +430,7 @@ export const combatActionProfiles = sqliteTable(
     manualRider: integer("manual_rider", { mode: "boolean" }).notNull().default(false),
     manualRiderText: text("manual_rider_text"),
     alternateDamageJson: text("alternate_damage_json"),
+    extraDamageJson: text("extra_damage_json"),
     sourceKind: text("source_kind").notNull(),
     sourceRef: text("source_ref"),
     sortOrder: integer("sort_order").notNull().default(0),

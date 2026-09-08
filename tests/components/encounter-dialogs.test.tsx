@@ -121,6 +121,17 @@ describe("DamageReviewCard", () => {
 });
 
 describe("CombatRollResultCard", () => {
+  it("shows mixed die sizes and typed subtotals without leaking a private DM breakdown", () => {
+    const roll: SharedCombatRoll = { ...damageRoll, damageDice: [7, 4], damageTotal: 15,
+      action: { ...damageRoll.action, extraDamage: [{ label: "Enchantment", formula: { count: 1, sides: 6, modifier: 0 }, damageType: "radiant" }] } };
+    const view = render(<CombatRollResultCard notice={{ roll, proposalId: null }} onDismiss={vi.fn()} />);
+    expect(screen.getByText("d8 slashing")).toBeTruthy();
+    expect(screen.getByText("d6 radiant")).toBeTruthy();
+    expect(screen.getByText("11 slashing (Weapon / spell) + 4 radiant (Enchantment)")).toBeTruthy();
+    view.rerender(<CombatRollResultCard notice={{ roll: { ...roll, rollPrivacy: "dm-summary", damageDice: [] }, proposalId: null }} onDismiss={vi.fn()} />);
+    expect(screen.queryByText(/Enchantment/)).toBeNull();
+    expect(screen.queryByLabelText("Damage dice")).toBeNull();
+  });
   it("pauses after a hit until the original roller explicitly rolls damage", async () => {
     vi.useFakeTimers();
     const onRollDamage = vi.fn(async () => undefined);

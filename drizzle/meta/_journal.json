@@ -323,6 +323,20 @@
       "when": 1788823710951,
       "tag": "0045_force_of_nature_beyond20_links",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "6",
+      "when": 1788824470772,
+      "tag": "0046_force_of_nature_level_12_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1788825144177,
+      "tag": "0047_typed_enchantment_damage",
+      "breakpoints": true
     }
   ]
 }

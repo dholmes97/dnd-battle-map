@@ -10,7 +10,7 @@ import {
   DAMAGE_TYPES,
   LEGACY_MANUAL_RIDER_TEXT,
   SUPPORTED_DIE_SIDES,
-  formatDiceFormula,
+  formatActionDamage,
   type CombatActionProfile,
   type CombatActionValues,
 } from "@/shared/combat-rolling";
@@ -45,12 +45,14 @@ type ActionDraft = {
   count: string; sides: string; modifier: string; damageType: string;
   reachFeet: string; rangeFeet: string; manualRider: boolean; manualRiderText: string;
   alternate: boolean; alternateLabel: string; alternateCount: string; alternateSides: string; alternateModifier: string;
+  extraDamage: NonNullable<CombatActionValues["extraDamage"]>;
 };
 
 const EMPTY_ACTION: ActionDraft = {
   name: "", attackBonus: "0", attackKind: "melee", count: "1", sides: "8", modifier: "0",
   damageType: "slashing", reachFeet: "5", rangeFeet: "", manualRider: false, manualRiderText: LEGACY_MANUAL_RIDER_TEXT,
   alternate: false, alternateLabel: "Two-handed", alternateCount: "1", alternateSides: "10", alternateModifier: "0",
+  extraDamage: [],
 };
 
 function CombatActionEditor({ title, draft, setDraft, pending, saveEnabled, onCancel, onSubmit }: {
@@ -64,6 +66,7 @@ function CombatActionEditor({ title, draft, setDraft, pending, saveEnabled, onCa
 }) {
   return <form className="campaign-action-editor" aria-label={title} onSubmit={onSubmit}>
     <div className="campaign-action-editor-heading"><strong>{title}</strong><span>Map-roll values only</span></div>
+    {draft.extraDamage.length ? <p className="campaign-action-extra-damage">Automatic extra damage: {draft.extraDamage.map((part) => `${part.label}: ${part.formula.count}d${part.formula.sides} ${part.damageType}`).join("; ")}. Preserved when saving; also applies to alternate damage.</p> : null}
     <label className="campaign-action-field-name">Action name<input autoFocus maxLength={64} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label>
     <label className="campaign-action-field-bonus">Attack bonus<input type="number" min="-20" max="30" value={draft.attackBonus} onChange={(event) => setDraft((current) => ({ ...current, attackBonus: event.target.value }))} /></label>
     <label className="campaign-action-field-kind">Kind<select value={draft.attackKind} onChange={(event) => setDraft((current) => ({ ...current, attackKind: event.target.value as "melee" | "ranged" }))}><option value="melee">Melee</option><option value="ranged">Ranged</option></select></label>
@@ -118,6 +121,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       alternate: Boolean(action.alternateDamage), alternateLabel: action.alternateDamage?.label ?? "Two-handed",
       alternateCount: String(action.alternateDamage?.formula.count ?? 1), alternateSides: String(action.alternateDamage?.formula.sides ?? 10),
       alternateModifier: String(action.alternateDamage?.formula.modifier ?? action.damage.modifier),
+      extraDamage: action.extraDamage ?? [],
     } : { ...EMPTY_ACTION });
   };
   const values = (): CombatActionValues | null => {
@@ -131,6 +135,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
       name: draft.name.trim(), attackBonus, attackKind: draft.attackKind,
       damage: { count, sides: sides as 4 | 6 | 8 | 10 | 12 | 20, modifier },
       damageType: draft.damageType as CombatActionValues["damageType"],
+      ...(draft.extraDamage.length ? { extraDamage: draft.extraDamage } : {}),
       reachFeet: draft.reachFeet === "" ? null : Number(draft.reachFeet),
       rangeFeet: draft.rangeFeet === "" ? null : Number(draft.rangeFeet),
       manualRider: draft.manualRider,
@@ -165,7 +170,7 @@ function CharacterCombatActions({ campaign, pending, onSave, onDelete }: {
         {editingId === "new" ? editor("New combat action") : null}
         {actions.length ? actions.map((action) => <Fragment key={action.id}>
           <article className={editingId === action.id ? "is-editing" : undefined}>
-            <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatDiceFormula(action.damage)} {action.damageType}{action.manualRider ? " · additional effect" : ""}</span></div>
+            <div><strong>{action.name}</strong><span>{action.attackBonus >= 0 ? "+" : ""}{action.attackBonus} · {formatActionDamage(action)}{action.manualRider ? " · additional effect" : ""}</span></div>
             <button type="button" aria-label={`${editingId === action.id ? "Editing" : "Edit"} ${action.name}`} disabled={pending || editingId === action.id} onClick={() => begin(action)}>{editingId === action.id ? "Editing" : "Edit"}</button>
             <button type="button" className="is-danger" aria-label={`Delete ${action.name}`} disabled={pending} onClick={() => setPendingDelete(action)}>Delete</button>
           </article>

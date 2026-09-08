@@ -65,6 +65,16 @@ async function enterFirstEncounterAsDm(page: Page) {
   await expect(page.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
 }
 
+test("enchanted character actions display their automatic damage in a compact editor", async ({ page }) => {
+  await openHydratedApplication(page);
+  await openCampaignAs(page, "Dan");
+  await page.getByRole("button", { name: "Manage actions" }).click();
+  await page.getByRole("button", { name: "Edit Longsword +1", exact: true }).click();
+  await expect(page.getByText(/Automatic extra damage: Improved Divine Smite: 1d8 radiant/)).toBeVisible();
+  await expectInsideViewport(page, ".campaign-action-extra-damage");
+  await expectNoPageOverflow(page);
+});
+
 async function setupFirstEncounterAsDm(page: Page) {
   await openHydratedApplication(page);
   await openCampaignAs(page, "Kevin");

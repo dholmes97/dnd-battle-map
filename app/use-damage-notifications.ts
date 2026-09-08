@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { transitionDamageWithTemporaryHp } from "@/shared/combat-rolling";
+import { actionDamageTypes, transitionDamageWithTemporaryHp } from "@/shared/combat-rolling";
 import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
 
 export type DamageNotification = {
@@ -89,7 +89,7 @@ export function useDamageNotifications({ participant, state }: {
           targetName: currentToken.name,
           attackerName: roll.attackerName,
           actionName: roll.action.name,
-          damageType: roll.action.damageType,
+          damageType: roll.rollPrivacy === "dm-summary" ? "" : actionDamageTypes(roll.action),
           finalDamage,
           hpBefore: previousToken?.hp ?? null,
           hpAfter: simulatedToken.hp,

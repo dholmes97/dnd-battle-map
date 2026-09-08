@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
+import { actionDamageTypes, damageBreakdown } from "@/shared/combat-rolling";
 import IconActionButton from "@/app/icon-action-button";
 import { Icon, UiSettingsMenu, type IconName } from "@/app/battle-map-ui";
 import type { BattleMapViewport } from "@/app/battle-map-renderer";
@@ -112,7 +113,7 @@ export function BattleMapCommandBar(props: CommandBarProps) {
         <button type="button" className={`icon-tool${combatLogOpen ? " tool-active" : ""}`} aria-label={unreadCombatRollCount > 0 ? `Combat Log, ${unreadCombatRollCount} unread ${unreadCombatRollCount === 1 ? "roll" : "rolls"}` : "Combat Log"} aria-controls="combat-log-panel" aria-expanded={combatLogOpen} data-tooltip="Combat Log" onClick={toggleCombatLog}><Icon name="combatLog" />{unreadCombatRollCount > 0 ? <span className="combat-log-count" aria-hidden="true">{Math.min(99, unreadCombatRollCount)}</span> : null}</button>
         {combatLogOpen ? <section id="combat-log-panel" className="toolbar-popover combat-log-panel" aria-label="Combat Log">
           <header><span><small>Combat Log</small><strong>{state.combatRolls.length ? `${state.combatRolls.length} ${state.combatRolls.length === 1 ? "roll" : "rolls"}` : "No rolls yet"}</strong></span><IconActionButton variant="close" label="Close Combat Log" onClick={closeCombatLog} /></header>
-          <div className="combat-log-scroll">{state.combatRolls.length ? <ol>{state.combatRolls.map((roll) => { const proposal = state.damageProposals.find((item) => item.rollId === roll.id); return <li key={roll.id}><strong>{roll.attackerName} → {roll.targetName}</strong><span>{roll.action.name}</span><small>{combatOutcomeLabel(roll.outcome)}{roll.damageTotal === null ? "" : ` · ${roll.damageTotal} ${roll.action.damageType}`}{proposal ? ` · ${proposalStatusLabel(proposal.status)}` : ""}</small></li>; })}</ol> : <p>No combat rolls have been made.</p>}</div>
+          <div className="combat-log-scroll">{state.combatRolls.length ? <ol>{state.combatRolls.map((roll) => { const proposal = state.damageProposals.find((item) => item.rollId === roll.id); return <li key={roll.id}><strong>{roll.attackerName} → {roll.targetName}</strong><span>{roll.action.name}</span><small>{combatOutcomeLabel(roll.outcome)}{roll.damageTotal === null ? "" : ` · ${roll.damageTotal} ${roll.rollPrivacy === "dm-summary" ? "damage" : actionDamageTypes(roll.action)}`}{proposal ? ` · ${proposalStatusLabel(proposal.status)}` : ""}</small>{roll.damageTotal !== null && roll.rollPrivacy !== "dm-summary" && roll.action.extraDamage?.length ? <small>{damageBreakdown(roll.action, roll.damageDice, roll.outcome === "critical").map((part) => `${part.total} ${part.damageType}`).join(" + ")}</small> : null}</li>; })}</ol> : <p>No combat rolls have been made.</p>}</div>
         </section> : null}
       </div>
       <button className={`icon-tool${props.paletteOpen ? " tool-active" : ""}`} aria-label="Creature palette" data-tooltip="Creature palette" aria-pressed={props.paletteOpen} onClick={props.onToggleCreatures}><Icon name="creatures" /></button>

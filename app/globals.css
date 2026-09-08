@@ -254,6 +254,7 @@ button:disabled { cursor: not-allowed; }
 .campaign-action-editor input:not([type="checkbox"]), .campaign-action-editor select { min-width: 0; min-height: 2.18rem; padding: 0.38rem 0.48rem; border-radius: 0.4rem; font-size: 0.68rem; }
 .campaign-action-editor select { padding-right: 1.75rem; background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.6rem) 50%; background-size: 0.26rem 0.26rem, 0.26rem 0.26rem; }
 .campaign-action-field-name { grid-column: span 4; }
+.campaign-action-extra-damage { grid-column: 1 / -1; margin: 0; font-size: 0.7rem; color: #c8b891; }
 .campaign-action-field-bonus, .campaign-action-field-kind, .campaign-action-field-modifier { grid-column: span 2; }
 .campaign-action-field-count, .campaign-action-field-die { grid-column: span 1; }
 .campaign-action-field-type { grid-column: span 3; }

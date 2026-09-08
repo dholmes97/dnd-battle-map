@@ -143,7 +143,7 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
     `SELECT cap.id, cap.campaign_character_id, cap.creature_catalog_id, cap.name, cap.resolution_mode, cap.attack_bonus,
             cap.attack_kind, cap.damage_dice_count, cap.damage_die_size, cap.damage_modifier,
             cap.damage_type, cap.reach_feet, cap.range_feet, cap.manual_rider, cap.manual_rider_text,
-            cap.alternate_damage_json, cap.source_kind, cap.source_ref, cap.sort_order,
+            cap.alternate_damage_json, cap.extra_damage_json, cap.source_kind, cap.source_ref, cap.sort_order,
             cap.is_enabled, cap.created_at, cap.updated_at
      FROM combat_action_profiles cap
      JOIN campaign_characters cc ON cc.id = cap.campaign_character_id
@@ -485,6 +485,8 @@ function characterSummary(character: CharacterRow, actionRows: CombatActionProfi
 
 function campaignActionSummary(row: CombatActionProfileRow): CombatActionProfile | null {
   let alternateDamage: unknown = null;
+  let extraDamage: unknown = [];
+  try { extraDamage = JSON.parse(row.extra_damage_json ?? "[]"); } catch { return null; }
   try { alternateDamage = row.alternate_damage_json ? JSON.parse(row.alternate_damage_json) : null; } catch { return null; }
   const values = validateCombatActionValues({
     name: row.name,
@@ -498,6 +500,7 @@ function campaignActionSummary(row: CombatActionProfileRow): CombatActionProfile
     manualRider: Boolean(row.manual_rider),
     manualRiderText: row.manual_rider_text,
     alternateDamage,
+    extraDamage,
   });
   return values ? {
     ...values, id: row.id, ownerType: "character", ownerId: row.campaign_character_id!,

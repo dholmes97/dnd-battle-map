@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import IconActionButton from "@/app/icon-action-button";
 import type { DamageNotification } from "@/app/use-damage-notifications";
 import type { DamageAdjudication } from "@/shared/combat-rolling";
+import { actionDamageTypes, damageBreakdown } from "@/shared/combat-rolling";
 import type { EncounterState, SharedCombatRoll, SharedDamageProposal } from "@/shared/contracts";
 import { deterministicDiePreviewValues } from "@/shared/dice-animation";
 
@@ -249,6 +250,9 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
   const automaticDamage = roll.action.resolutionMode === "automatic-damage";
   const privateDmRoll = roll.rollPrivacy === "dm-private";
   const summaryOnly = roll.rollPrivacy === "dm-summary";
+  const damageParts = summaryOnly ? [] : damageBreakdown(roll.action, roll.damageDice, roll.outcome === "critical");
+  const typedDice = damageParts.flatMap((part) => part.dice.map(() => part));
+  const damageTypeLabel = summaryOnly ? roll.action.damageType : actionDamageTypes(roll.action);
   const calculatedOutcome = roll.calculatedOutcome ?? roll.outcome;
   const awaitingVerdictRelease = privateDmRoll && roll.releasedOutcome === null;
   const visibleOutcome = awaitingVerdictRelease ? calculatedOutcome : roll.outcome;
@@ -390,22 +394,22 @@ export function CombatRollResultCard({ notice, proposal = null, onDismiss, onRol
           <span className="combat-roll-damage-actions"><button type="button" className="combat-card-action is-primary" disabled={rollingDamage} onClick={() => void requestDamageRoll()}>{rollingDamage ? "Rolling damage…" : "Roll damage"}</button>{privateDmRoll && roll.canReleaseOutcome && onReleaseOutcome ? <button type="button" className="combat-card-action" disabled={releasingOutcome} onClick={() => void releaseOutcome("miss")}>Resolve as miss</button> : null}</span>
         </> : summaryOnly ? <span>The attack was released as a hit. Waiting for the DM to roll damage.</span> : <span><strong>{roll.participantName}</strong> hit. Waiting for the damage roll.</span>}
       </div> : null}
-      {damagingHit ? <div className={`combat-roll-result-stage combat-roll-damage-stage combat-roll-stage-reveal${summaryOnly ? " is-summary" : ""}${damageStageRevealed ? " is-revealed" : ""}`} aria-label={`${roll.action.damageType} damage total ${roll.damageTotal}`}>
+      {damagingHit ? <div className={`combat-roll-result-stage combat-roll-damage-stage combat-roll-stage-reveal${summaryOnly ? " is-summary" : ""}${damageStageRevealed ? " is-revealed" : ""}`} aria-label={`${damageTypeLabel} damage total ${roll.damageTotal}`}>
         {!summaryOnly ? <div className="combat-roll-dice" aria-label="Damage dice">
           {roll.damageDice.map((die, index) => <AnimatedDieTerm
             key={`${revealPhase}:damage:${index}`}
-            label={`d${roll.action.damage.sides}`}
+            label={`d${typedDice[index]?.formula.sides ?? roll.action.damage.sides}${roll.action.extraDamage?.length ? ` ${typedDice[index]?.damageType}` : ""}`}
             finalValue={die}
-            sides={roll.action.damage.sides}
+            sides={typedDice[index]?.formula.sides ?? roll.action.damage.sides}
             seed={`${roll.id}:damage:${index}`}
             startDelay={relativeDelay(revealPlan.damageTermStartDelays[index])}
             settleDelay={relativeDelay(revealPlan.delays[revealPlan.damageTermSteps[index] - 1])}
             skipAnimation={skipAnimation}
             className=" is-damage"
           />)}
-          <span className={`combat-roll-term is-modifier${revealed(revealPlan.damageTermSteps[roll.damageDice.length]) ? " is-revealed" : ""}`}><small>{roll.damageDice.length ? "Damage bonus" : "Flat damage"}</small><strong>{signedModifier(roll.action.damage.modifier)}</strong></span>
+          <span className={`combat-roll-term is-modifier${revealed(revealPlan.damageTermSteps[roll.damageDice.length]) ? " is-revealed" : ""}`}><small>{roll.damageDice.length ? "Damage bonus" : "Flat damage"}</small><strong>{signedModifier(damageParts.reduce((sum, part) => sum + part.formula.modifier, 0))}</strong></span>
         </div> : null}
-        <div className={`combat-roll-total combat-roll-reveal${summaryOnly || revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{roll.action.damageType} damage</small><strong>{roll.damageTotal}</strong></div>
+        <div className={`combat-roll-total combat-roll-reveal${summaryOnly || revealed(revealPlan.damageTotalStep) ? " is-revealed" : ""}`}><small>{damageTypeLabel} damage</small><strong>{roll.damageTotal}</strong>{damageParts.length > 1 ? <small>{damageParts.map((part) => `${part.total} ${part.damageType} (${part.label})`).join(" + ")}</small> : null}</div>
       </div> : null}
       {inlineDamageReview && proposal && onFinalizeDamage ? <DmDamageFinalizer id={statusId} proposal={proposal} roll={roll} revealed={revealed(revealPlan.completeStep)} onFinalize={onFinalizeDamage} /> : null}
       {damagePending || awaitingVerdictRelease || inlineDamageReview ? null : <p className={`combat-roll-result-status combat-roll-reveal is-${statusKind}${revealed(revealPlan.completeStep) ? " is-revealed" : ""}`} id={statusId} role="status">{roll.outcome === "miss"
@@ -436,6 +440,7 @@ function DmDamageFinalizer({ id, proposal, roll, revealed, onFinalize }: {
   const privateDmRoll = roll.rollPrivacy === "dm-private";
   return <section className={`dm-damage-finalizer combat-roll-reveal${revealed ? " is-revealed" : ""}`} id={id} aria-label={`Finalize damage against ${roll.targetName}`}>
     <p><strong>{privateDmRoll ? "Private damage roll." : "DM damage approval."}</strong> {privateDmRoll ? "Choose the final amount to apply and reveal to the table." : "Apply the rolled damage or choose a different result."}</p>
+    {roll.action.extraDamage?.length ? <p>Resistance buttons affect the whole total. For resistance to only one damage type, use Different amount with the breakdown above.</p> : null}
     <div className="damage-review-decisions" role="group" aria-label={`Final damage for ${roll.targetName}`}>
       <button type="button" className="is-primary" aria-label={privateDmRoll ? `Apply and reveal ${proposal.rolledDamage} damage` : `Apply full ${proposal.rolledDamage} damage`} onClick={() => finalize("apply")}><strong>{privateDmRoll ? "Apply & reveal" : "Apply full"}</strong><span>{proposal.rolledDamage}</span></button>
       <button type="button" onClick={() => finalize("resistant")}><strong>Resistant</strong><span>{Math.floor(proposal.rolledDamage / 2)}</span></button>
@@ -464,7 +469,7 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
   const attackerName = roll?.attackerName ?? "Attacker";
   const targetName = roll?.targetName ?? "target";
   const actionName = roll?.action.name ?? "Attack";
-  const damageType = roll?.action.damageType ?? "";
+  const damageType = roll ? actionDamageTypes(roll.action) : "";
   const adjudicate = (method: DamageAdjudication, amount?: number) => onAdjudicate(proposal.id, method, amount);
   const titleId = `damage-review-title-${proposal.id}`;
   const descriptionId = `damage-review-description-${proposal.id}`;
@@ -478,6 +483,7 @@ export function DamageReviewCard({ proposal, roll, pendingCount, onAdjudicate, o
     <div className="damage-review-content">
       <p id={descriptionId}><strong>{attackerName}</strong> hit <strong>{targetName}</strong> with {actionName}.</p>
       <div className="damage-review-total"><strong>{proposal.rolledDamage}</strong><span>{damageType || "damage"}<small>rolled damage</small></span></div>
+      {roll?.action.extraDamage?.length ? <p>{damageBreakdown(roll.action, roll.damageDice, roll.outcome === "critical").map((part) => `${part.total} ${part.damageType}`).join(" + ")}. Resistance buttons affect the whole total; use Different amount for a single damage type.</p> : null}
       {roll?.action.manualRider ? <p className="damage-review-rider"><strong>Additional effect:</strong> {roll.action.manualRiderText}</p> : null}
       <div className="damage-review-decisions" role="group" aria-label={`Damage rulings for ${targetName}`}>
         <button type="button" className="is-primary" onClick={() => adjudicate("apply")}><strong>Apply full</strong><span>{proposal.rolledDamage}</span></button>

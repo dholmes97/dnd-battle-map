@@ -29,6 +29,36 @@ export type AlternateDamage = {
   formula: DiceFormula;
 };
 
+export type DamageComponent = { label: string; formula: DiceFormula; damageType: DamageType };
+
+export function actionDamageComponents(action: CombatActionValues): DamageComponent[] {
+  return [{ label: "Weapon / spell", formula: action.damage, damageType: action.damageType }, ...(action.extraDamage ?? [])];
+}
+
+export function formatActionDamage(action: CombatActionValues): string {
+  return actionDamageComponents(action).map((part) => `${formatDiceFormula(part.formula)} ${part.damageType}`).join(" + ");
+}
+
+export function actionDamageTypes(action: CombatActionValues): string {
+  return [...new Set(actionDamageComponents(action).map((part) => part.damageType))].join(" + ");
+}
+
+// Dice are persisted in component order; the immutable action snapshot retains their types.
+export function damageBreakdown(action: CombatActionValues, dice: readonly number[], critical: boolean) {
+  let offset = 0;
+  return actionDamageComponents(action).map((part) => {
+    const values = dice.slice(offset, offset + damageDiceCount(part.formula, critical));
+    offset += values.length;
+    return { ...part, dice: values, total: Math.max(0, values.reduce((sum, die) => sum + die, 0) + part.formula.modifier) };
+  });
+}
+
+export function validActionDamageDice(action: CombatActionValues, dice: readonly number[], critical: boolean): boolean {
+  const components = actionDamageComponents(action);
+  if (dice.length !== components.reduce((sum, part) => sum + damageDiceCount(part.formula, critical), 0)) return false;
+  return damageBreakdown(action, dice, critical).every((part) => part.dice.every((die) => integerBetween(die, 1, part.formula.sides)));
+}
+
 export type CombatActionValues = {
   name: string;
   resolutionMode?: ActionResolutionMode;
@@ -41,6 +71,7 @@ export type CombatActionValues = {
   manualRider: boolean;
   manualRiderText: string | null;
   alternateDamage: AlternateDamage | null;
+  extraDamage?: DamageComponent[];
 };
 
 export type CombatActionProfile = CombatActionValues & {
@@ -135,6 +166,7 @@ export function projectCombatAttackDetails(input: {
       manualRider: false,
       manualRiderText: null,
       alternateDamage: null,
+      extraDamage: [],
     },
     attackDice: [],
     keptD20: 0,
@@ -332,11 +364,27 @@ export function validateCombatActionValues(
   const alternateDamage = value.alternateDamage === null || value.alternateDamage === undefined
     ? null
     : validateAlternateDamage(value.alternateDamage);
+  const extraDamage: DamageComponent[] = [];
+  if (value.extraDamage !== undefined) {
+    if (!Array.isArray(value.extraDamage) || value.extraDamage.length > 4) return null;
+    for (const part of value.extraDamage) {
+      if (!isRecord(part)) return null;
+      const label = cleanText(part.label, 64);
+      const formula = validateDiceFormula(part.formula);
+      if (!label || !formula || !DAMAGE_TYPES.includes(part.damageType as DamageType)) return null;
+      extraDamage.push({ label, formula, damageType: part.damageType as DamageType });
+    }
+  }
   if (!name || !resolutionMode || !integerBetween(attackBonus, -20, 30) || !attackKind || !damage || !damageType ||
       reachFeet === undefined || rangeFeet === undefined || manualRider === null ||
       (manualRider && !manualRiderText) ||
       (value.alternateDamage !== null && value.alternateDamage !== undefined && !alternateDamage)) return null;
-  return { name, resolutionMode, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, manualRiderText, alternateDamage };
+  // The existing damage adjudication boundary accepts totals through 1,000.
+  const maximum = (formula: DiceFormula) => formula.count * formula.sides * 2 + Math.max(0, formula.modifier);
+  if (Math.max(damage.count, alternateDamage?.formula.count ?? 0) + extraDamage.reduce((sum, part) => sum + part.formula.count, 0) > 20) return null;
+  if (Math.max(maximum(damage), alternateDamage ? maximum(alternateDamage.formula) : 0) +
+      extraDamage.reduce((sum, part) => sum + maximum(part.formula), 0) > 1000) return null;
+  return { name, resolutionMode, attackBonus, attackKind, damage, damageType, reachFeet, rangeFeet, manualRider, manualRiderText, alternateDamage, ...(extraDamage.length ? { extraDamage } : {}) };
 }
 
 export function validateDiceFormula(value: unknown): DiceFormula | null {

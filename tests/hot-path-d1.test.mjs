@@ -49,6 +49,7 @@ test("hot-path D1 adapters preserve encounter scope and participant ordering", a
       manualRider: false,
       manualRiderText: null,
       alternateDamage: null,
+      extraDamage: [{ label: "Enchantment", formula: { count: 1, sides: 6, modifier: 0 }, damageType: "radiant" }],
     };
     const actionCount = await combat.countActions("character", storedToken.campaign_character_id);
     assert.equal(await combat.saveAction({
@@ -58,6 +59,7 @@ test("hot-path D1 adapters preserve encounter scope and participant ordering", a
     assert.equal(await combat.countActions("character", storedToken.campaign_character_id), actionCount + 1);
     assert.equal(await combat.countActions("creature", creature.id), 0);
     assert.equal((await combat.findAction("hot-action"))?.name, actionValues.name);
+    assert.deepEqual(JSON.parse((await combat.findAction("hot-action")).extra_damage_json), actionValues.extraDamage);
     assert.equal((await combat.findActionForToken("hot-action", storedToken))?.name, actionValues.name);
     assert.equal(await combat.countActionsForToken(storedToken), actionCount + 1);
     await combat.createRoll({
