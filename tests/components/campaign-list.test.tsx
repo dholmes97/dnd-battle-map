@@ -28,6 +28,7 @@ describe("CampaignList", () => {
     expect(screen.getByRole("heading", { name: "Welcome back, Dan." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Force of Nature" })).toBeTruthy();
     expect(screen.getByText("Dar'eleth · Paladin")).toBeTruthy();
+    expect(screen.getByText("D&D Beyond HP sync")).toBeTruthy();
     expect(screen.queryByText("Production QA")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /Open campaign/ }));
     expect(onEnterCampaign).toHaveBeenCalledWith("campaign-force-of-nature");

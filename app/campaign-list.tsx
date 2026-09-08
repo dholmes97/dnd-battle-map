@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Beyond20Download } from "@/app/beyond20-download";
 import type { CampaignAccessSummary, HumanIdentity } from "@/shared/campaigns";
 
 export type QaPersona = "dm" | "player1" | "player2";
@@ -97,6 +98,7 @@ export function CampaignList({ identity, campaigns, invitedIdentities, loading, 
         </article>)}</div>}
       </section>
       {identity.canUseQaSessions ? <QaSessionLauncher qaPending={qaPending} onLaunchQa={onLaunchQa} onResetQa={onResetQa} /> : null}
+      <Beyond20Download />
     </div>
   </main>;
 }

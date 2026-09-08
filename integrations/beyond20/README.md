@@ -1,5 +1,20 @@
 # Beyond20 local refresh fix
 
+## Player download
+
+The My Campaigns page includes a collapsed **D&D Beyond HP sync** section below
+the testing utility (also visible to players without QA access). It links to
+`/downloads/beyond20-flc-2.20.1-r1.zip` and explains Chrome installation, custom
+domain permissions, and the battle-map B20 controls. This package is not for Safari.
+
+Build the distributable with `node scripts/package-beyond20-download.mjs`.
+It uses the pinned upstream commit plus the reviewed patch in a fresh temporary
+directory; it never copies Chrome profile data or changes the installed extension.
+The ZIP contains `chrome/`, corresponding modified `source/`, lockfile, build
+inputs, licenses, patch, regression harness, and `DOWNLOAD-INSTRUCTIONS.md`.
+The source and packaged manifests label the build unofficial without expanding
+permissions. Version the download filename whenever its contents change.
+
 ## Force of Nature sheet links
 
 The DM can save these in the battle map's B20 sheet-link controls. These are
@@ -63,8 +78,7 @@ https://dnd.fridaylunchcrew.com/
 - Rollback: disable the patched copy, enable the store copy, and refresh the
   map and character sheet. This also restores the original refresh defect.
 - Sync HP consent is remembered in this browser for the signed-in identity, campaign character, and linked sheet across refresh and encounter reentry. A rejected update or error disables the remembered consent until explicitly reenabled. New identities or links default off.
-  Re-enable it after entering the encounter. This patch repairs event transport;
-  it does not silently change the app's HP-sync consent policy.
+  This patch repairs event transport; it does not silently enable HP-sync consent.
 
 ## Browser verification, 2026-09-07
 
