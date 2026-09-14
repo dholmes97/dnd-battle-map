@@ -50,7 +50,7 @@ function request(url, token, body) {
 
 function manifest(sender = "kevin@example.com") {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-message-1-revision-1",
     revision: 1,
     operation: "create",

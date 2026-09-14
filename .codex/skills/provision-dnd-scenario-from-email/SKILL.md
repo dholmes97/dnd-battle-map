@@ -58,9 +58,20 @@ Use Gmail message ID, thread ID, mailbox key, and a positive revision number to 
 
 When the mailbox owner is also allowlisted, distinguish human self-sent mail from automation replies by durable message provenance, not by sender or thread. A human message is eligible when its message ID was not produced by this workflow. An automation reply is never eligible, even if Gmail gives it the request label or it shares the authorized sender, subject, and thread.
 
-- A new request uses `operation: create` and must produce a new map.
+- Before any asset generation, resolve sender-scoped campaign context through the dedicated client:
+  `npm run scenario:mail-reply -- context <normalized-sender>`.
+  This authenticated endpoint is mandatory. If unavailable, stop; never fall back to the retired Ember Keep default or a version 1 write.
+- Choose only a returned campaign, using the email's unambiguous campaign name or the sole available campaign. If several are possible, ask which campaign. Include its stable `campaignId` in every version 2 content manifest.
+- For a selected campaign, obtain encounter/party/thread context:
+  `npm run scenario:mail-reply -- context <sender> <campaign-id> - <mailbox-key> <thread-id>`.
+  Prefer ready `threadJobs` as durable revision targets. Multiple target codes require clarification. A follow-up to a clarification-only job remains a create request until a ready encounter exists.
+- For a revision, read its current private preparation context:
+  `npm run scenario:mail-reply -- context <sender> <campaign-id> <scenario-code>`.
+  Copy `encounter.version` to `expectedVersion` and `encounter.draftUpdatedAt` to `expectedDraftUpdatedAt` before generating assets. A conflict requires fresh review, never an automatic overwrite using a new version.
+- A new request uses `operation: create` and must produce a new map. Party members come from current active campaign characters, never another encounter or fixed character names.
 - A same-thread follow-up uses `operation: revise` and the scenario code returned by the earlier ready job.
-- A revision must not recopy the party. It may omit the map to preserve the current map.
+- A revision must not recopy the party. Omit the map to preserve it. A provided map replaces only the private draft; the DM reviews and applies it through Encounter Setup. Never claim a revised map is already live.
+- `tokenChanges` supports bounded `move` (tokenId, x, y) and `remove` (tokenId) operations on existing unattached monsters only, in setup encounters only. Resolve IDs from context and clarify ambiguous names/removal intent. Character/summon edits and changes during active or paused combat require the ordinary app workflow. Creature placements otherwise add new monsters; never translate “move the goblin” into an additional placement.
 - A new thread may revise only when it identifies one target scenario code unambiguously.
 
 Check for an existing job before generating expensive assets. A ready replay needs only a completion response; do not regenerate or duplicate content.
@@ -70,6 +81,8 @@ Check for an existing job before generating expensive assets. A ready replay nee
 Normalize the email into the supported manifest concepts. Make only reversible, low-risk assumptions and record them. Clarify in-thread before provisioning when map dimensions/orientation materially affect layout, fog requirements conflict, a revision target is unclear, overwrite/delete intent is ambiguous, a unique creature lacks stats without permission for defaults, or the request depends on an application feature that does not exist.
 
 Do not turn unsupported requests into code changes. Explain the limitation in one short clarification.
+
+When a campaign, encounter, or asset decision is unresolved, create a version 2 `clarificationOnly: true` job with `operation: create`, `map: null`, `party: { include: false, placements: [] }`, no token changes/handouts/creatures, source provenance, and a short scenario name. Include campaignId only when resolved. The sender must have preparation authority in at least one campaign. Run the ordinary provisioning client: it records `needs_clarification` and exits without content writes. Reserve/send/record the clarification reply normally. A human answer is a new source message and job; never convert a clarification-only job into a content write.
 
 ### 3. Prepare the map and starter fog
 
@@ -109,7 +122,7 @@ npm run scenario:provision -- /absolute/path/to/private-job/envelope.json
 
 This is the only production mutation allowed by this skill. Do not call generic APIs, SQL, Wrangler D1/R2 commands, catalog import, backup, deployment, or arbitrary curl commands. A normal job does not require a production backup.
 
-After the client reports ready, query the public scenario list and the secret-protected job status. Confirm scenario code/name, map image and encounter draft, handout count, placed tokens, created/reused creatures, assumptions, and warnings. Do not start combat or send scenario chat messages.
+After the client reports ready, query the secret-protected job status and sender-scoped campaign/encounter context through the dedicated client. Confirm campaign, scenario code/name, map image and encounter draft, handout count, placed tokens, created/reused creatures, assumptions, and warnings. The public scenario list is retired. A new encounter must appear in its campaign; a map revision must leave the active map unchanged. The ready reply must name the campaign and distinguish prepared draft content from changes already applied. Do not start combat or send scenario chat messages.
 
 ### 8. Reply and label
 

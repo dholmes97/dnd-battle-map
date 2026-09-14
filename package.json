@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
-    "next": "16.3.2",
+    "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -61,11 +61,11 @@
     "c8": "12.0.0",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.3.2",
+    "eslint-config-next": "16.3.5",
     "jsdom": "^30.0.1",
     "miniflare": "4.20260730.0",
     "react-server-dom-webpack": "19.2.8",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "1.0.0-beta.8",
@@ -78,7 +78,8 @@
       "esbuild": "0.28.2"
     },
     "miniflare": {
-      "undici": "7.29.0"
+      "undici": "7.29.0",
+      "sharp": "$sharp"
     }
   },
   "type": "module"

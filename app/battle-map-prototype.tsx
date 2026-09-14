@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import MapWorkshop from "@/app/map-workshop";
 import {
   PING_DURATION_MS,
@@ -901,6 +902,18 @@ export default function BattleMapPrototype() {
       onCreateEncounter={createScenarioFromHome}
       onRenameEncounter={renameScenarioFromHome}
       onRenameCampaign={renameCampaign}
+      onSetEmailDelegation={async (membershipId, allowed) => {
+        if (campaignMutationPending) return false;
+        const previous = selectedCampaign.members?.find((member) => member.membershipId === membershipId)?.canProvisionScenarios;
+        const paintPermission = (value: boolean | undefined) => setCampaigns((current) => current.map((campaign) => campaign.id === selectedCampaign.id ? { ...campaign, members: campaign.members?.map((member) => member.membershipId === membershipId ? { ...member, canProvisionScenarios: value } : member) } : campaign));
+        flushSync(() => { setCampaignMutationPending(true); setError(""); paintPermission(allowed); });
+        try {
+          const result = await api<CampaignAccessResponse>(`/api/campaigns/${encodeURIComponent(selectedCampaign.id)}/email-delegation`, { method: "PATCH", body: JSON.stringify({ membershipId, allowed }) });
+          acceptCampaignAccess(result);
+          return true;
+        } catch (error) { paintPermission(previous); setError(error instanceof Error ? error.message : "Could not change email permission."); return false; }
+        finally { setCampaignMutationPending(false); }
+      }}
       onAddPlayer={addCampaignPlayer}
       onSaveCombatAction={saveCharacterCombatAction}
       onDeleteCombatAction={deleteCharacterCombatAction}

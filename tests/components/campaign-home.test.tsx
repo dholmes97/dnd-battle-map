@@ -178,3 +178,24 @@ describe("CampaignHome", () => {
     });
   });
 });
+
+
+describe("Email delegation", () => {
+  it("lets only the DM manage explicit per-player email permission", async () => {
+    const onSetEmailDelegation = vi.fn(async () => true);
+    const selected = campaign("dm");
+    selected.members!.push({ membershipId: "membership-dan", identity: player, role: "player", characters: [], canProvisionScenarios: true });
+    home(dm, { campaign: selected, onSetEmailDelegation });
+    expect(screen.queryByRole("checkbox", { name: /Allow Dan to prepare/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Manage campaign" }));
+    const control = screen.getByRole("checkbox", { name: "Allow Dan to prepare encounters by email" });
+    expect((control as HTMLInputElement).checked).toBe(true);
+    await userEvent.click(control);
+    expect(onSetEmailDelegation).toHaveBeenCalledWith("membership-dan", false);
+  });
+  it("keeps a delegate a player without campaign management controls", () => {
+    home(player, { campaign: { ...campaign("player"), canProvisionScenarios: true } });
+    expect(screen.queryByRole("button", { name: "Manage campaign" })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: /prepare encounters by email/ })).toBeNull();
+  });
+});

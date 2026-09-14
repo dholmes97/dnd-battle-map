@@ -12,7 +12,7 @@ import {
 
 function manifest(overrides = {}) {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-message-1-revision-1",
     revision: 1,
     operation: "create",
@@ -148,4 +148,19 @@ test("PNG inspection reads dimensions without browser APIs", () => {
   bytes.set([0, 0, 0, 32], 20);
   assert.deepEqual(inspectPng(bytes), { width: 16, height: 32 });
   assert.equal(inspectPng(new Uint8Array(24)), null);
+});
+
+
+test("campaign and thread routing clarify ambiguity without guessing or crossing campaigns", async () => {
+  const { selectEmailCampaign, selectEmailRevisionTarget } = await import("../shared/scenario-email-routing.ts");
+  const campaigns = [{ id: "first", name: "Force of Nature", slug: "force-of-nature" }, { id: "second", name: "Second Campaign", slug: "second" }];
+  assert.equal(selectEmailCampaign(campaigns).reason, "ambiguous");
+  assert.equal(selectEmailCampaign(campaigns, " FORCE OF NATURE ").campaignId, "first");
+  assert.equal(selectEmailCampaign(campaigns, "second").campaignId, "second");
+  assert.equal(selectEmailCampaign(campaigns, "unknown").reason, "unavailable");
+  assert.equal(selectEmailCampaign([]).reason, "unavailable");
+  assert.equal(selectEmailCampaign(campaigns.slice(0, 1)).campaignId, "first");
+  assert.equal(selectEmailRevisionTarget([{ status: "needs_clarification", scenarioCode: null }]).reason, "no_ready_encounter");
+  assert.equal(selectEmailRevisionTarget([{ status: "ready", scenarioCode: "A" }, { status: "ready", scenarioCode: "A" }]).scenarioCode, "A");
+  assert.equal(selectEmailRevisionTarget([{ status: "ready", scenarioCode: "A" }, { status: "ready", scenarioCode: "B" }]).reason, "ambiguous");
 });

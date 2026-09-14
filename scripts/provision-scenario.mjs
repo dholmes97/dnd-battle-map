@@ -34,6 +34,10 @@ const job = created.job;
 if (!job?.id) fail("The provisioning API did not return a job ID.");
 console.log(`${created.created ? "Created" : "Resuming"} provisioning job ${job.id} (${job.status}).`);
 
+if (parsed.manifest.clarificationOnly) {
+  console.log(`Clarification job ${job.id} is ready for a reserved clarification reply. No encounter was changed.`);
+  process.exit(0);
+}
 if (job.status === "ready") {
   printResult(job.result);
   process.exit(0);

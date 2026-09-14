@@ -16,8 +16,10 @@ The local `assets` object is never sent as part of the manifest. The client uplo
 Operational invariants:
 
 - The manifest source is Gmail and records stable mailbox/message/thread identity plus normalized sender.
-- `create` requires a map and normally copies the established party at full health.
-- `revise` requires a scenario code, never recopies the party, and preserves the current map when `map` is null.
+- Version 2 `create` requires campaignId and a map, and copies current active campaign characters at full health; no source encounter is required.
+- `revise` requires campaignId, targetScenarioCode, expectedVersion, and expectedDraftUpdatedAt from context. It never recopies the party. A supplied map changes the private draft only; null preserves both maps.
+- `clarificationOnly: true` creates a reply-tracked question with no mutations/assets; campaignId may be omitted only for this kind of job. It can never finalize.
+- `tokenChanges` moves/removes identified unattached monsters in setup only; new creature placements remain additions.
 - New catalog creatures require original and thumbnail PNG asset IDs; catalog reuse sets `create` to null.
 - All map and token coordinates use cells, not pixels.
 - Assets must be prepared before finalization; D1 changes become visible together.

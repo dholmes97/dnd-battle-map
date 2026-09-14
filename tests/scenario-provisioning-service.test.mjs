@@ -5,7 +5,7 @@ import { createScenarioProvisioningService } from "../worker/scenario-provisioni
 
 function manifest(overrides = {}) {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-message-1-revision-1",
     revision: 1,
     operation: "create",
@@ -48,10 +48,11 @@ function fixture({ recentJobCount = 0, authorizedSenders = ["kevin@example.com",
   const objects = new Map();
   let id = 0;
   const repository = {
+    authorizeCampaign: async (_sender, campaignId) => campaignId === "campaign-force-of-nature",
     findJobByIdempotencyKey: async (key) => [...jobs.values()].find((job) => job.idempotencyKey === key) ?? null,
     findJobById: async (jobId) => jobs.get(jobId) ?? null,
     countJobsCreatedSince: async () => recentJobCount,
-    findScenarioRevisionTarget: async (code) => ({ id: "scenario-target", code, version: 7 }),
+    findScenarioRevisionTarget: async (code) => ({ id: "scenario-target", code, version: 7, campaignId: "campaign-force-of-nature", draftUpdatedAt: null }),
     createJob: async (job) => jobs.set(job.id, job),
     updateJobStatus: async ({ jobId, from, to, summary, errorCode, now }) => {
       const job = jobs.get(jobId);
@@ -323,4 +324,25 @@ test("undeclared, malformed, and missing assets fail before persistence finaliza
   await assert.rejects(service.stageAsset(created.job.id, "arbitrary", "image/jpeg", jpeg(3072, 2048)), (error) => error.code === "asset_not_expected");
   await assert.rejects(service.stageAsset(created.job.id, "map-main", "image/jpeg", jpeg(1024, 1024)), (error) => error.code === "map_dimensions_invalid");
   await assert.rejects(service.finalize(created.job.id), (error) => error.code === "assets_missing");
+});
+
+
+test("campaign binding and stale draft snapshots fail before accepting work", async () => {
+  const { service } = fixture();
+  await assert.rejects(service.createJob(manifest({ campaignId: "other" })), (e) => e.code === "campaign_unauthorized");
+  await assert.rejects(service.createJob(manifest({ version: 1 })), (e) => e.code === "manifest_upgrade_required");
+  const revision = { operation: "revise", targetScenarioCode: "SUNKEN-CHAPEL", party: { include: false }, map: null };
+  await assert.rejects(service.createJob(manifest({ ...revision, expectedVersion: 6 })), (e) => e.code === "scenario_changed");
+  await assert.rejects(service.createJob(manifest({ ...revision, expectedDraftUpdatedAt: 42 })), (e) => e.code === "scenario_changed");
+});
+
+test("clarification-only jobs reserve replies but can never stage or finalize content", async () => {
+  const { service, objects } = fixture();
+  const input = manifest({ clarificationOnly: true, map: null, party: { include: false } });
+  const { job } = await service.createJob(input);
+  assert.equal(job.status, "needs_clarification");
+  assert.ok((await service.reserveMailReply(job.id, { kind: "clarification" })).reply.responseMarker);
+  await assert.rejects(service.stageAsset(job.id, "map-main", "image/jpeg", jpeg(3072, 2048)), (e) => e.code === "clarification_only");
+  await assert.rejects(service.finalize(job.id), (e) => e.code === "clarification_only");
+  assert.equal(objects.size, 0);
 });

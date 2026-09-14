@@ -2,17 +2,16 @@
 
 ## Current status
 
-The production foundation and scheduled intake are active. A bounded Gmail poll
-checks the exact `D&D Scenario Requests` label every 30 minutes, processes at
-most one oldest eligible human message, and accepts only normalized senders
-`uncletev@gmail.com` and `dholmes97@gmail.com`. The default rules source is D&D
-5e 2014 and the canonical application origin is
-`https://dnd.fridaylunchcrew.com`.
+The existing production automation was configured for the exact `D&D Scenario Requests` label, a 30-minute interval, and senders `uncletev@gmail.com` and `dholmes97@gmail.com`. Its local run history includes successful creation and handout revision on August 24, 2026; configuration alone does not prove current delivery health.
+
+The campaign-aware version 2 implementation is prepared locally. Release the Worker and migration 0048 before enabling the updated intake procedure. That migration adds an explicit revocable campaign membership permission and seeds Dan's requested delegation in Force of Nature once. It does not change his player role. Any campaign DM may grant or revoke email preparation for their campaign's players in Manage campaign.
+
+Intake remains a trusted transport allowlist, separate from campaign authority. At rollout, configure `SCENARIO_PROVISIONING_SENDERS` and the automation's exact Gmail sender query consistently for the four invited identities: `dholmes97@gmail.com`, `uncletev@gmail.com`, `barry7davies@gmail.com`, and `rscottparsons2@gmail.com`. Inclusion permits intake only; the sender must additionally be the selected campaign's DM or explicit delegate. Do not infer identity addresses or expand this list from email text. The default rules source remains D&D 5e 2014 and the origin remains `https://dnd.fridaylunchcrew.com`.
 
 Production writes use the dedicated `SCENARIO_PROVISIONING_TOKEN`, retrieved by
 the automation from macOS Keychain service
 `dnd-battle-map-scenario-provisioning`, account `dnd-battle-map`. It is separate
-from participant, catalog-import, and production-backup credentials.
+from participant, catalog-import, and production-backup credentials. The protected sender configuration is mirrored in Keychain service `dnd-battle-map-scenario-provisioning-senders`, account `dnd-battle-map`.
 
 ## Purpose and scope
 
@@ -93,10 +92,14 @@ non-secret marker and never resent or interpreted as a revision.
 ## Scenario outcome invariants
 
 - Scenario and map-image names remain distinct; email preparation writes the encounter draft directly.
-- A new scenario starts in setup and copies the established party at full
+- A new scenario starts in setup and copies the selected campaign's active characters at full
   health; combat, initiative, effects, movement, completion tracking, and
   history start clear.
-- A revision does not recopy the party or reset unrelated state.
+- A revision does not recopy the party or reset unrelated state. Map revisions change only the private draft; applying it remains the DM's explicit app action. Same-size map revisions are supported; dimensions must not change underneath existing tokens.
+- Version 2 manifests bind campaignId and source sender. New content requires current campaign DM/delegate authority at acceptance, staging, and finalization, with an atomic membership check at commit. Version 1 remains readable for historical results but is rejected for new writes.
+- Revisions carry expectedVersion and expectedDraftUpdatedAt from sender-scoped context. Concurrent encounter or draft changes fail safely and require review before resubmission.
+- Existing monster move/remove requests use bounded tokenChanges, with IDs resolved from context. Only unattached monsters in setup may be changed; characters and summons remain protected. Additions are distinct from edits.
+- Clarification-only jobs can reserve and track questions before a campaign or map is resolved. They have no assets and can never finalize content. Replies to them remain new create requests until an encounter has actually been created.
 - No-fog is the safe default when the request omits fog. Shared fog starts with
   the standard bounded polygon. Dynamic vision uses conservative editable walls,
   doors, and round blockers and always carries a DM-review warning.
@@ -155,3 +158,17 @@ The local Mac and Codex desktop app must remain running for the current polling
 adapter. A future dedicated mailbox or hosted Gmail push adapter may replace
 that transport without changing the manifest, API, idempotency, or reply
 provenance contracts.
+
+## Local verification and rollout
+
+The campaign provisioning integration test uses isolated D1/R2 and covers multiple campaigns, a first encounter, a different current party, explicit delegation/revocation, cross-campaign denial, map draft preservation, stale draft conflicts, targeted monster changes, and idempotent retry. Component and browser tests cover the DM's persistent delegation control. Existing provenance tests cover self-sent mail, quoted markers, and interrupted reply recording.
+
+Before rollout, run the complete local verification suite. Publish only when explicitly requested. Then verify migration 0048, confirm Dan remains a player with email delegation in Force of Nature, align the runtime sender allowlist and scheduled query, and confirm the new authenticated context endpoint works. Sync the repository skill to its installed mirror. The old scheduled prompt must not perform version 1 writes after rollout.
+
+Final live acceptance needs a labeled real email: create in an explicitly named campaign, answer an ambiguous-campaign clarification, revise a handout and map draft, and verify the returned campaign/encounter plus exact request/reply labels. Local simulations do not prove Gmail delivery, scheduler execution, Google sign-in, or production secret availability. No live mail or production writes are part of local verification.
+
+### September 14 local validation
+
+Typecheck, lint, Worker build, both enforced coverage suites (273 Node tests and 190 component tests), and all 30 Chromium/WebKit browser tests passed. Browser tests were run separately after stopping the competing local preview; they use disposable D1 state. The ordinary local database now reports Force of Nature / Dan / player / email delegation enabled. The repository and installed email skills match.
+
+The subsequently authorized dependency update resolved the Next.js, Sharp (including nested tooling copies), and js-yaml advisories. Both dependency audits now report zero vulnerabilities; see [dependency security verification](DEPENDENCY-SECURITY-2026-09-14.md). No production deployment, runtime sender change, scheduled-prompt change, or real email was performed during this implementation.

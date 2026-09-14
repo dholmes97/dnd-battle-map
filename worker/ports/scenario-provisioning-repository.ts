@@ -88,10 +88,11 @@ export class ScenarioProvisioningWriteError extends Error {
 }
 
 export interface ScenarioProvisioningRepository {
+  authorizeCampaign(sender: string, campaignId: string): Promise<boolean>;
   findJobByIdempotencyKey(idempotencyKey: string): Promise<ScenarioProvisioningJobRecord | null>;
   findJobById(jobId: string): Promise<ScenarioProvisioningJobRecord | null>;
   countJobsCreatedSince(timestamp: number): Promise<number>;
-  findScenarioRevisionTarget(code: string): Promise<{ id: string; code: string; version: number } | null>;
+  findScenarioRevisionTarget(code: string): Promise<{ id: string; code: string; version: number; campaignId: string; draftUpdatedAt: number | null } | null>;
   createJob(job: ScenarioProvisioningJobRecord): Promise<void>;
   updateJobStatus(input: {
     jobId: string;

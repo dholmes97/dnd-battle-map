@@ -1,8 +1,9 @@
+import { provisioningMembership } from "./d1-provisioning-access.ts";
 import { HANDOUT_MAX_PER_SCENARIO } from "../../shared/handout-domain.ts";
 import { scenarioCodeFromName } from "../../shared/encounter-domain.ts";
 import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-library.ts";
 import { mapSetupFromPackage } from "../../shared/map-package.ts";
-import { MAX_MAP_IMAGES } from "../../shared/resource-limits.ts";
+import { MAX_MAP_IMAGES, MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN } from "../../shared/resource-limits.ts";
 import type { ScenarioProvisioningManifest } from "../../shared/scenario-provisioning.ts";
 import type {
   ScenarioProvisioningAssetRecord,
@@ -53,7 +54,7 @@ type CatalogRow = {
 };
 
 type EncounterTarget = {
-  id: string; campaign_id: string; code: string; name: string; version: number; status: string; grid_width: number; grid_height: number;
+  id: string; campaign_id: string; code: string; name: string; version: number; status: string; grid_width: number; grid_height: number; draft_updated_at: number | null;
 };
 
 const JOB_COLUMNS = `id, idempotency_key, revision, operation, status, manifest_json,
@@ -62,10 +63,11 @@ const ASSET_COLUMNS = `id, job_id, asset_id, kind, r2_key, content_type, width, 
   byte_length, sha256, committed_at, created_at`;
 const MAIL_REPLY_COLUMNS = `id, job_id, mailbox_key, thread_id, reply_kind, response_marker, created_at`;
 const MAIL_MESSAGE_COLUMNS = `id, reply_id, mailbox_key, thread_id, provider_message_id, recorded_at`;
-const PARTY_NAMES = ["Dar'eleth", "Jelton", "Malichar"];
+
 
 export function createD1ScenarioProvisioningRepository(db: D1Database): ScenarioProvisioningRepository {
   return {
+    async authorizeCampaign(sender, campaignId) { return Boolean(await provisioningMembership(db, sender, campaignId)); },
     async findJobByIdempotencyKey(idempotencyKey) {
       const row = await db.prepare(
         `SELECT ${JOB_COLUMNS} FROM scenario_provisioning_jobs WHERE idempotency_key = ?`,
@@ -85,8 +87,8 @@ export function createD1ScenarioProvisioningRepository(db: D1Database): Scenario
       return row?.value ?? 0;
     },
     async findScenarioRevisionTarget(code) {
-      return db.prepare("SELECT id, code, version FROM encounters WHERE code = ?")
-        .bind(code).first<{ id: string; code: string; version: number }>();
+      return db.prepare("SELECT id, code, version, campaign_id AS campaignId, draft_updated_at AS draftUpdatedAt FROM encounters WHERE code = ?")
+        .bind(code).first<{ id: string; code: string; version: number; campaignId: string; draftUpdatedAt: number | null }>();
     },
     async createJob(job) {
       try {
@@ -323,9 +325,11 @@ async function finalizeProvisioning(
   const scenarioName = input.manifest.scenario.name;
   const mapPackage = input.mapPackage;
   if (!target && !mapPackage) throw new ScenarioProvisioningWriteError("map_required", "A new scenario requires a prepared map.");
-  const sourceCampaign = target ?? await db.prepare(
-    "SELECT campaign_id FROM encounters WHERE code = ? LIMIT 1",
-  ).bind(input.manifest.party.sourceScenarioCode).first<{ campaign_id: string }>();
+  const sourceCampaign = { campaign_id: input.manifest.campaignId };
+  const requester = await provisioningMembership(db, input.manifest.source.sender, input.manifest.campaignId ?? "");
+  if (!requester || (target && target.campaign_id !== input.manifest.campaignId)) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "Email preparation permission is unavailable.", 403);
+  if (target && target.draft_updated_at !== input.manifest.expectedDraftUpdatedAt) throw new ScenarioProvisioningWriteError("scenario_changed", "The private draft changed after preparation started.");
+  if (target && target.status !== "setup" && ((input.manifest.tokenChanges?.length ?? 0) || input.manifest.creatures.some((creature) => creature.placements.length))) throw new ScenarioProvisioningWriteError("encounter_not_setup", "Email token edits require an encounter in setup.");
   if (!sourceCampaign?.campaign_id) throw new ScenarioProvisioningWriteError("campaign_not_found", "The source encounter is not attached to a campaign.");
   const dmMembership = await db.prepare(
     `SELECT cm.id AS membership_id, cm.identity_id, i.display_name
@@ -348,15 +352,16 @@ async function finalizeProvisioning(
       `INSERT INTO mutation_assertions (operation_id, valid, created_at)
        SELECT ?, CASE WHEN
          EXISTS (SELECT 1 FROM scenario_provisioning_jobs WHERE id = ? AND status = 'finalizing')
-         AND EXISTS (SELECT 1 FROM encounters WHERE id = ? AND version = ?)
+         AND EXISTS (SELECT 1 FROM encounters WHERE id = ? AND version = ? AND draft_updated_at IS ?)
+         AND EXISTS (SELECT 1 FROM campaign_memberships WHERE id = ? AND (role = 'dm' OR can_provision_scenarios = 1))
        THEN 1 ELSE 0 END, ?`,
-    ).bind(assertionId, input.job.id, target.id, input.job.baseScenarioVersion, input.now)
+    ).bind(assertionId, input.job.id, target.id, input.job.baseScenarioVersion, input.manifest.expectedDraftUpdatedAt ?? null, requester.id, input.now)
     : db.prepare(
       `INSERT INTO mutation_assertions (operation_id, valid, created_at)
        SELECT ?, CASE WHEN EXISTS (
          SELECT 1 FROM scenario_provisioning_jobs WHERE id = ? AND status = 'finalizing'
-       ) THEN 1 ELSE 0 END, ?`,
-    ).bind(assertionId, input.job.id, input.now));
+       ) AND EXISTS (SELECT 1 FROM campaign_memberships WHERE id = ? AND (role = 'dm' OR can_provision_scenarios = 1)) THEN 1 ELSE 0 END, ?`,
+    ).bind(assertionId, input.job.id, requester.id, input.now));
   if (!dmParticipant) statements.push(db.prepare(
     `INSERT INTO participants
      (id, encounter_id, identity_id, campaign_membership_id, name, role, session_secret, joined_at, last_seen_at)
@@ -407,12 +412,11 @@ async function finalizeProvisioning(
       statements.push(mapImageStatement!);
       statements.push(db.prepare(
         `UPDATE encounters SET name = ?, dm_briefing = CASE WHEN ? = '' THEN dm_briefing ELSE ? END,
-         active_map_image_id = ?, active_map_setup_json = ?,
          draft_map_image_id = ?, draft_map_setup_json = ?, draft_updated_at = ?,
          strict_movement = COALESCE(?, strict_movement), version = version + 1, updated_at = ?
          WHERE id = ? AND version = ?`,
       ).bind(
-        scenarioName, briefing, briefing, mapImageId, mapSetupJson, mapImageId, mapSetupJson, input.now,
+        scenarioName, briefing, briefing, mapImageId, mapSetupJson, input.now,
         booleanInteger(input.manifest.settings.strictMovement), input.now, scenarioId, input.job.baseScenarioVersion,
       ));
     } else {
@@ -436,8 +440,9 @@ async function finalizeProvisioning(
     : { width: target!.grid_width, height: target!.grid_height };
   const placedTokenIds: string[] = [];
   if (!target && input.manifest.party.include) {
-    const party = await loadParty(db, input.manifest.party.sourceScenarioCode);
-    if (party.length !== PARTY_NAMES.length) throw new ScenarioProvisioningWriteError("party_source_incomplete", "The configured source scenario does not contain the complete established party.");
+    const party = await loadParty(db, input.manifest.campaignId!);
+    const names = new Set(party.map((token) => token.name.toLowerCase()));
+    if (input.manifest.party.placements.some((placement) => !names.has(placement.name.toLowerCase()))) throw new ScenarioProvisioningWriteError("party_character_missing", "A requested party character is not active in this campaign.");
     const requested = new Map(input.manifest.party.placements.map((placement) => [placement.name.toLowerCase(), placement]));
     party.forEach((token, index) => {
       const placement = requested.get(token.name.toLowerCase()) ?? defaultPartyPlacement(index, dimensions.width, dimensions.height);
@@ -455,6 +460,18 @@ async function finalizeProvisioning(
     });
   }
 
+  for (const change of input.manifest.tokenChanges ?? []) {
+    const token = await db.prepare(`SELECT id, name, size FROM tokens WHERE id = ? AND encounter_id = ?
+      AND kind = 'monster' AND campaign_character_id IS NULL AND summoner_token_id IS NULL
+      AND NOT EXISTS (SELECT 1 FROM tokens child WHERE child.summoner_token_id = tokens.id)`)
+      .bind(change.tokenId, scenarioId).first<{ id: string; name: string; size: CreatureSize }>();
+    if (!token) throw new ScenarioProvisioningWriteError("token_not_editable", "Only an existing unattached monster in this encounter may be edited by email.");
+    if (change.operation === "move") {
+      requireTokenPosition(change.x!, change.y!, token.size, dimensions.width, dimensions.height, token.name);
+      statements.push(db.prepare("UPDATE tokens SET x = ?, y = ?, updated_at = ? WHERE id = ? AND encounter_id = ?")
+        .bind(change.x, change.y, input.now, token.id, scenarioId));
+    } else statements.push(db.prepare("DELETE FROM tokens WHERE id = ? AND encounter_id = ?").bind(token.id, scenarioId));
+  }
   const catalog = await prepareCatalog(db, input.manifest, input.assets, input.job.id, input.now);
   statements.push(...catalog.statements);
   for (const requested of input.manifest.creatures) {
@@ -491,7 +508,7 @@ async function finalizeProvisioning(
     createdCatalogIds: catalog.created,
     reusedCatalogIds: catalog.reused,
     assumptions: input.manifest.assumptions,
-    reviewWarnings: input.manifest.reviewWarnings,
+    reviewWarnings: [...input.manifest.reviewWarnings, ...(target && mapPackage ? ["Map revision is a private draft. The DM must review and apply it in Encounter Setup."] : [])],
   };
   statements.push(db.prepare(
     `UPDATE scenario_provisioning_jobs SET status = 'ready', scenario_id = ?, scenario_code = ?,
@@ -510,7 +527,7 @@ async function finalizeProvisioning(
     scenarioId,
     dmParticipantId,
     target ? "scenario_revised" : "scenario_provisioned",
-    JSON.stringify({ jobId: input.job.id, mapImageId, handoutIds, placedTokenIds }),
+    JSON.stringify({ jobId: input.job.id, requesterIdentityId: requester.identity_id, mapImageId, handoutIds, placedTokenIds, tokenChanges: input.manifest.tokenChanges ?? [] }),
     input.now,
   ));
   statements.push(db.prepare(
@@ -684,23 +701,17 @@ function insertToken(db: D1Database, token: {
   );
 }
 
-async function loadParty(db: D1Database, code: string): Promise<TokenRow[]> {
-  const rows = await db.prepare(
-    `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
-            t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed, t.armor_class, t.hp, t.max_hp,
-            t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative, t.initiative_group_id,
-            t.initiative_order, t.turn_complete, t.movement_used, t.altitude, t.movement_origin_x,
-            t.movement_origin_y, t.owner_participant_id, t.owner_name
-     FROM tokens t JOIN encounters e ON e.id = t.encounter_id
-     WHERE e.code = ? AND t.summoner_token_id IS NULL AND t.name IN (?, ?, ?)
-     ORDER BY CASE t.name WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 ELSE 3 END`,
-  ).bind(code, ...PARTY_NAMES, ...PARTY_NAMES).all<TokenRow>();
+async function loadParty(db: D1Database, campaignId: string): Promise<TokenRow[]> {
+  const rows = await db.prepare(`SELECT id AS campaign_character_id, name, art_asset, 'character' AS kind,
+    size, speed, armor_class, max_hp, NULL AS fly_speed, NULL AS swim_speed, NULL AS climb_speed, NULL AS burrow_speed
+    FROM campaign_characters WHERE campaign_id = ? AND is_active = 1 ORDER BY sort_order, id LIMIT ?`)
+    .bind(campaignId, MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<TokenRow>();
   return rows.results;
 }
 
 async function findTargetEncounter(db: D1Database, code: string): Promise<EncounterTarget | null> {
   return db.prepare(
-    "SELECT id, campaign_id, code, name, version, status, grid_width, grid_height FROM encounters WHERE code = ?",
+    "SELECT id, campaign_id, code, name, version, status, grid_width, grid_height, draft_updated_at FROM encounters WHERE code = ?",
   ).bind(code).first<EncounterTarget>();
 }
 
@@ -716,7 +727,7 @@ async function uniqueScenarioCode(db: D1Database, name: string): Promise<string>
 }
 
 function defaultPartyPlacement(index: number, width: number, height: number) {
-  return { x: Math.min(width - 1, 2 + index * 1.5), y: Math.max(1, height - 2) };
+  return { x: 0.5 + index % width, y: height - 0.5 - Math.floor(index / width) };
 }
 
 function requireTokenPosition(x: number, y: number, size: CreatureSize, width: number, height: number, name: string) {

@@ -1,9 +1,10 @@
+import { MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN } from "./resource-limits.ts";
 import { defaultFogConfig } from "./fog-of-war.ts";
 import { cleanHandoutTitle } from "./handout-domain.ts";
 import { parseMapPackage, type MapBiome, type MapMood, type MapPackage } from "./map-package.ts";
 import { isCreatureSize, type CreatureSize } from "./creature-library.ts";
 
-export const SCENARIO_PROVISIONING_MANIFEST_VERSION = 1;
+export const SCENARIO_PROVISIONING_MANIFEST_VERSION = 2;
 export const SCENARIO_PROVISIONING_MAX_MANIFEST_BYTES = 200_000;
 export const SCENARIO_PROVISIONING_MAX_HANDOUTS = 12;
 export const SCENARIO_PROVISIONING_MAX_CREATURES = 10;
@@ -112,7 +113,12 @@ export type ScenarioProvisioningCreature = {
 };
 
 export type ScenarioProvisioningManifest = {
-  version: 1;
+  version: 1 | 2;
+  campaignId?: string;
+  clarificationOnly?: boolean;
+  expectedVersion?: number;
+  expectedDraftUpdatedAt?: number | null;
+  tokenChanges?: Array<{ tokenId: string; operation: "move" | "remove"; x?: number; y?: number }>;
   idempotencyKey: string;
   revision: number;
   operation: "create" | "revise";
@@ -395,8 +401,8 @@ function parseParty(value: unknown, errors: string[]): ScenarioProvisioningManif
   const include = item.include !== false;
   const sourceScenarioCode = cleanCode(item.sourceScenarioCode) || "EMBER-KEEP";
   const rawPlacements = item.placements ?? [];
-  if (!Array.isArray(rawPlacements) || rawPlacements.length > 4) {
-    errors.push("party.placements must contain at most four items.");
+  if (!Array.isArray(rawPlacements) || rawPlacements.length > MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN) {
+    errors.push(`party.placements must contain at most ${MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN} items.`);
     return { include, sourceScenarioCode, placements: [] };
   }
   const placements = rawPlacements.map((raw) => {
@@ -420,7 +426,27 @@ export function parseScenarioProvisioningManifest(value: unknown): ScenarioProvi
   }
   if (serialized.length > SCENARIO_PROVISIONING_MAX_MANIFEST_BYTES) return { ok: false, errors: ["manifest is too large."] };
   const item = record(value);
-  if (!item || item.version !== SCENARIO_PROVISIONING_MANIFEST_VERSION) return { ok: false, errors: ["manifest version must be 1."] };
+  if (!item || (item.version !== 1 && item.version !== SCENARIO_PROVISIONING_MANIFEST_VERSION)) return { ok: false, errors: ["manifest version must be 1 or 2."] };
+  const clarificationOnly = item.version === 2 && item.clarificationOnly === true;
+  const campaignId = cleanId(item.campaignId, 64);
+  const expectedVersion = integer(item.expectedVersion, 1, Number.MAX_SAFE_INTEGER);
+  const expectedDraftUpdatedAt = item.expectedDraftUpdatedAt === null ? null : integer(item.expectedDraftUpdatedAt, 0, Number.MAX_SAFE_INTEGER);
+  const tokenChanges: NonNullable<ScenarioProvisioningManifest["tokenChanges"]> = [];
+  if (item.version === 2) {
+    if (!campaignId && !clarificationOnly) errors.push("campaignId is required; resolve an authorized campaign before preparing assets.");
+    if (!clarificationOnly && item.operation === "revise" && (expectedVersion === null || !("expectedDraftUpdatedAt" in item) || (item.expectedDraftUpdatedAt !== null && expectedDraftUpdatedAt === null))) errors.push("revisions require expectedVersion and expectedDraftUpdatedAt from current context.");
+    const changes = item.tokenChanges ?? [];
+    if (!Array.isArray(changes) || changes.length > SCENARIO_PROVISIONING_MAX_PLACEMENTS) errors.push("tokenChanges exceeds its limit.");
+    else for (const raw of changes) {
+      const change = record(raw);
+      const tokenId = cleanId(change?.tokenId, 64);
+      const x = finite(change?.x, 0, 48), y = finite(change?.y, 0, 48);
+      if (!tokenId || (change?.operation !== "remove" && change?.operation !== "move") || (change.operation === "move" && (x === null || y === null))) errors.push("tokenChanges requires a tokenId and remove or move with coordinates.");
+      else tokenChanges.push(change.operation === "remove" ? { tokenId, operation: "remove" } : { tokenId, operation: "move", x: x!, y: y! });
+    }
+    if (new Set(tokenChanges.map((change) => change.tokenId)).size !== tokenChanges.length) errors.push("each token may be changed only once.");
+    if (item.operation !== "revise" && tokenChanges.length) errors.push("only revisions may change existing tokens.");
+  }
   const idempotencyKey = cleanId(item.idempotencyKey, 160);
   const revision = integer(item.revision, 1, 10_000);
   const operation = item.operation === "revise" ? "revise" : item.operation === "create" ? "create" : null;
@@ -435,18 +461,20 @@ export function parseScenarioProvisioningManifest(value: unknown): ScenarioProvi
   const settingsValue = record(item.settings) ?? {};
   const strictMovement = typeof settingsValue.strictMovement === "boolean" ? settingsValue.strictMovement : null;
   const party = parseParty(item.party, errors);
+  if (item.version === 2) party.sourceScenarioCode = "";
   const map = parseMap(item.map, errors);
   const handouts = parseHandouts(item.handouts, errors);
   const creatures = parseCreatures(item.creatures, errors);
   const assumptions = stringList(item.assumptions ?? [], 30, 500);
   const reviewWarnings = stringList(item.reviewWarnings ?? [], 30, 500);
   if (!idempotencyKey || revision === null || !operation || !source || !scenarioName || !assumptions || !reviewWarnings) errors.push("manifest identity, operation, source, scenario name, assumptions, or warnings are invalid.");
-  if (operation === "create" && !map) errors.push("a new scenario requires a map.");
+  if (!clarificationOnly && operation === "create" && !map) errors.push("a new scenario requires a map.");
   if (operation === "create" && handouts.some((handout) => handout.replaceHandoutId)) errors.push("a new scenario cannot replace an existing handout.");
   if (operation === "revise" && !targetScenarioCode) errors.push("a revision requires targetScenarioCode.");
   if (operation === "create" && targetScenarioCode) errors.push("a new scenario cannot specify targetScenarioCode.");
   if (operation === "revise" && party.include) errors.push("a revision cannot recopy the player party.");
-  if (operation === "create" && !party.include && creatures.every((creature) => creature.placements.length === 0)) errors.push("a new scenario must include the established party or at least one creature token.");
+  if (!clarificationOnly && operation === "create" && !party.include && creatures.every((creature) => creature.placements.length === 0)) errors.push("a new scenario must include the established party or at least one creature token.");
+  if (clarificationOnly && (operation !== "create" || map || handouts.length || creatures.length || tokenChanges.length)) errors.push("clarification-only jobs cannot declare mutations or assets.");
   const ids = requiredScenarioProvisioningAssets({ map, handouts, creatures });
   if (new Set(ids.map((asset) => asset.id)).size !== ids.length) errors.push("every referenced asset ID must be unique.");
   const catalogIds = creatures.map((creature) => creature.catalogId);
@@ -457,7 +485,8 @@ export function parseScenarioProvisioningManifest(value: unknown): ScenarioProvi
   if (new Set(handoutIds).size !== handoutIds.length) errors.push("every handout ID must be unique.");
   if (errors.length || !idempotencyKey || revision === null || !operation || !source || !assumptions || !reviewWarnings) return { ok: false, errors: [...new Set(errors)] };
   const manifest: ScenarioProvisioningManifest = {
-    version: 1,
+    version: item.version as 1 | 2,
+    ...(item.version === 2 ? { campaignId, clarificationOnly, expectedVersion: expectedVersion ?? undefined, expectedDraftUpdatedAt, tokenChanges } : {}),
     idempotencyKey,
     revision,
     operation,

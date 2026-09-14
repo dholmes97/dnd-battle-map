@@ -96,6 +96,8 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (!emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders)) {
       throw new ScenarioProvisioningWriteError("sender_unauthorized", "The manifest sender is not authorized for scenario provisioning.", 403);
     }
+    if (parsed.manifest.version !== 2 || (!parsed.manifest.campaignId && !parsed.manifest.clarificationOnly)) throw new ScenarioProvisioningWriteError("manifest_upgrade_required", "Use a campaign-aware version 2 manifest.", 400);
+    if (!await repository.authorizeCampaign(parsed.manifest.source.sender, parsed.manifest.campaignId ?? "")) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "The sender is not a DM or email delegate for this campaign.", 403);
     const recordedSourceMessage = await repository.findMailMessage(
       parsed.manifest.source.mailboxKey,
       parsed.manifest.source.messageId,
@@ -128,18 +130,20 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (parsed.manifest.operation === "revise" && !revisionTarget) {
       throw new ScenarioProvisioningWriteError("scenario_not_found", "The scenario to revise was not found.", 404);
     }
+    if (revisionTarget && (revisionTarget.campaignId !== parsed.manifest.campaignId)) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "The encounter is not in the selected campaign.", 403);
+    if (revisionTarget && (revisionTarget.version !== parsed.manifest.expectedVersion || revisionTarget.draftUpdatedAt !== parsed.manifest.expectedDraftUpdatedAt)) throw new ScenarioProvisioningWriteError("scenario_changed", "The encounter or its draft changed; refresh preparation context.");
     const job: ScenarioProvisioningJobRecord = {
       id: dependencies.createId(),
       idempotencyKey: parsed.manifest.idempotencyKey,
       revision: parsed.manifest.revision,
       operation: parsed.manifest.operation,
-      status: "received",
+      status: parsed.manifest.clarificationOnly ? "needs_clarification" : "received",
       manifestJson: parsed.canonicalJson,
       manifestHash,
       scenarioId: revisionTarget?.id ?? null,
       scenarioCode: parsed.manifest.targetScenarioCode,
       baseScenarioVersion: revisionTarget?.version ?? null,
-      summary: "Scenario request accepted.",
+      summary: parsed.manifest.clarificationOnly ? "Clarification is required before preparation." : "Scenario request accepted.",
       errorCode: null,
       resultJson: null,
       createdAt: now,
@@ -170,6 +174,7 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     const existing = await repository.findMailReply(jobId, replyKind);
     if (existing) return { created: false, reply: publicMailReply(existing) };
     const parsed = parseStoredManifest(job);
+    if ((!parsed.manifest.campaignId && !parsed.manifest.clarificationOnly) || !emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders) || !await repository.authorizeCampaign(parsed.manifest.source.sender, parsed.manifest.campaignId ?? "")) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "Email preparation permission is no longer available.", 403);
     const id = dependencies.createId();
     const reply: ScenarioProvisioningMailReplyRecord = {
       id,
@@ -259,6 +264,8 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     const job = await requireJob(jobId);
     if (job.status === "ready" || job.status === "finalizing") throw new ScenarioProvisioningWriteError("job_not_staging", "This job no longer accepts assets.");
     const parsed = parseStoredManifest(job);
+    if ((!parsed.manifest.campaignId && !parsed.manifest.clarificationOnly) || !emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders) || !await repository.authorizeCampaign(parsed.manifest.source.sender, parsed.manifest.campaignId ?? "")) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "Email preparation permission is no longer available.", 403);
+    if (parsed.manifest.clarificationOnly) throw new ScenarioProvisioningWriteError("clarification_only", "Clarification jobs cannot stage assets.");
     const spec = requiredScenarioProvisioningAssets(parsed.manifest).find((candidate) => candidate.id === assetId);
     if (!spec) throw new ScenarioProvisioningWriteError("asset_not_expected", "That asset is not declared by this manifest.", 404);
     const dimensions = validateAsset(spec, contentType, bytes);
@@ -343,6 +350,8 @@ export function createScenarioProvisioningService(dependencies: ScenarioProvisio
     if (job.status === "ready" && job.resultJson) return JSON.parse(job.resultJson) as ScenarioProvisioningFinalizeResult;
     if (job.status === "finalizing") throw new ScenarioProvisioningWriteError("job_finalizing", "This job is already finalizing.");
     const parsed = parseStoredManifest(job);
+    if ((!parsed.manifest.campaignId && !parsed.manifest.clarificationOnly) || !emailSenderAllowed(parsed.manifest.source.sender, dependencies.authorizedSenders) || !await repository.authorizeCampaign(parsed.manifest.source.sender, parsed.manifest.campaignId ?? "")) throw new ScenarioProvisioningWriteError("campaign_unauthorized", "Email preparation permission is no longer available.", 403);
+    if (parsed.manifest.clarificationOnly) throw new ScenarioProvisioningWriteError("clarification_only", "Clarification jobs cannot finalize an encounter.");
     let assets = await repository.listAssets(jobId);
     validateCompleteAssetSet(parsed.manifest, assets);
     const transitionError = scenarioProvisioningTransitionError(job.status, "finalizing");

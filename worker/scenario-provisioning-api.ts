@@ -4,7 +4,7 @@ import {
   isScenarioProvisioningJobStatus,
 } from "../shared/scenario-provisioning.ts";
 import { SCENARIO_MAIL_BODY_MAX_BYTES } from "../shared/scenario-mail-provenance.ts";
-import { bearerSecretMatches, parseEmailAllowlist } from "../shared/secret-auth.ts";
+import { bearerSecretMatches, parseEmailAllowlist, emailSenderAllowed } from "../shared/secret-auth.ts";
 import { createD1ScenarioProvisioningRepository, createR2ScenarioProvisioningStorage } from "./adapters/d1-scenario-provisioning-repository.ts";
 import { ScenarioProvisioningWriteError } from "./ports/scenario-provisioning-repository.ts";
 import { createScenarioProvisioningService } from "./scenario-provisioning-service.ts";
@@ -14,6 +14,7 @@ import {
   readBoundedJsonObject,
   readBoundedRequestBytes,
 } from "./request-security.ts";
+import { provisioningContext } from "./adapters/d1-provisioning-access.ts";
 import type { Env } from "./types.ts";
 
 const JOB_ROUTE = /^\/api\/scenario-provisioning\/jobs(?:\/([a-zA-Z0-9-]{1,64})(?:\/(assets\/([a-zA-Z0-9._-]{1,96})|finalize))?)?$/;
@@ -38,7 +39,8 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
   const match = pathname.match(JOB_ROUTE);
   const mailReplyMatch = pathname.match(MAIL_REPLY_ROUTE);
   const isMailClassification = pathname === MAIL_CLASSIFY_ROUTE;
-  if (!match && !mailReplyMatch && !isMailClassification) {
+  const isContext = pathname === "/api/scenario-provisioning/context";
+  if (!match && !mailReplyMatch && !isMailClassification && !isContext) {
     return json({ error: "Scenario provisioning route not found.", code: "not_found" }, { status: 404 });
   }
   const objectStorage = createR2ScenarioProvisioningStorage(env.MAP_ASSETS, env.DB);
@@ -52,6 +54,13 @@ export async function handleScenarioProvisioningApi(request: Request, env: Env):
   });
 
   try {
+    if (isContext) {
+      if (request.method !== "POST") return methodNotAllowed("POST");
+      const body = await readJsonBody(request, SCENARIO_MAIL_BODY_MAX_BYTES);
+      const sender = typeof body.sender === "string" ? body.sender.trim().toLowerCase() : "";
+      if (!emailSenderAllowed(sender, parseEmailAllowlist(env.SCENARIO_PROVISIONING_SENDERS))) throw new ScenarioProvisioningWriteError("sender_unauthorized", "Sender is not authorized for intake.", 403);
+      return json(await provisioningContext(env.DB, sender, body));
+    }
     if (isMailClassification) {
       if (request.method !== "POST") return methodNotAllowed("POST");
       const body = await readJsonBody(request, SCENARIO_MAIL_BODY_MAX_BYTES);

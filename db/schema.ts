@@ -176,6 +176,7 @@ export const campaignMemberships = sqliteTable(
     campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
     identityId: text("identity_id").notNull().references(() => identities.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
+    canProvisionScenarios: integer("can_provision_scenarios").notNull().default(0),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },

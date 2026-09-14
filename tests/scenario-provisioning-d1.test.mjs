@@ -51,7 +51,7 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
       createId: () => `provisioned-id-${++nextId}`,
       now: () => testNow + nextId,
       hash: async (value) => `hash-${typeof value === "string" ? value.length : value.byteLength}`,
-      authorizedSenders: ["kevin@example.com", "dan@example.com"],
+      authorizedSenders: ["uncletev@gmail.com", "dholmes97@gmail.com"],
     });
     const created = await service.createJob(manifest());
     const initialMap = await service.stageAsset(created.job.id, "map-main", "image/jpeg", jpeg(3072, 2048));
@@ -100,7 +100,10 @@ test("D1/R2 adapter finalizes a complete scenario atomically and replays safely"
     assert.match(await scalar(db, "SELECT token_asset AS value FROM creature_catalog WHERE id = 'email-shadow-bat'", undefined), /shadow-bat-original\.png$/);
     assert.match(await scalar(db, "SELECT thumbnail_asset AS value FROM creature_catalog WHERE id = 'email-shadow-bat'", undefined), /shadow-bat-thumbnail\.png\?variant=thumbnail&v=1$/);
 
-    const revision = await service.createJob(revisionManifest(result.scenario.code, result.scenario.name));
+    const revisionInput = revisionManifest(result.scenario.code, result.scenario.name);
+    const snapshot = await db.prepare("SELECT version, draft_updated_at FROM encounters WHERE id = ?").bind(result.scenario.id).first();
+    revisionInput.expectedVersion = snapshot.version; revisionInput.expectedDraftUpdatedAt = snapshot.draft_updated_at;
+    const revision = await service.createJob(revisionInput);
     assert.equal(revision.job.baseScenarioVersion, 1);
     await service.transition(revision.job.id, "validating", "Revision validated.");
     await db.prepare("UPDATE encounters SET version = version + 1 WHERE id = ?").bind(result.scenario.id).run();
@@ -140,11 +143,16 @@ test("concurrent identical staging preserves the winning content-addressed R2 ob
       createId: () => `race-id-${++nextId}`,
       now: () => testNow + nextId,
       hash: async (value) => `hash-${typeof value === "string" ? value.length : [...value].reduce((sum, byte) => sum + byte, 0)}`,
-      authorizedSenders: ["kevin@example.com"],
+      authorizedSenders: ["uncletev@gmail.com"],
     });
     const request = manifest();
     request.idempotencyKey = "concurrent-stage-1";
     request.source.messageId = "concurrent-stage-message";
+    if (request.operation === "revise") {
+      const current = await db.prepare("SELECT version, draft_updated_at FROM encounters WHERE code = ?").bind(request.targetScenarioCode).first();
+      request.expectedVersion = current.version;
+      request.expectedDraftUpdatedAt = current.draft_updated_at;
+    }
     const created = await service.createJob(request);
     const bytes = jpeg(3072, 2048);
     const results = await Promise.allSettled([
@@ -214,11 +222,16 @@ test("a scenario revision changing at the final D1 batch boundary fully rolls ba
       createId: () => `revision-race-${++nextId}`,
       now: () => 1_910_000_000_000 + nextId,
       hash: async (value) => `hash-${typeof value === "string" ? value.length : value.byteLength}`,
-      authorizedSenders: ["kevin@example.com"],
+      authorizedSenders: ["uncletev@gmail.com"],
     });
     const request = revisionManifest(target.code, "Raced Rename");
     request.idempotencyKey = "revision-race-final-batch";
     request.source.messageId = "revision-race-message";
+    if (request.operation === "revise") {
+      const current = await db.prepare("SELECT version, draft_updated_at FROM encounters WHERE code = ?").bind(request.targetScenarioCode).first();
+      request.expectedVersion = current.version;
+      request.expectedDraftUpdatedAt = current.draft_updated_at;
+    }
     const created = await service.createJob(request);
     await service.transition(created.job.id, "validating", "Revision validated.");
     injectRace = true;
@@ -235,12 +248,12 @@ test("a scenario revision changing at the final D1 batch boundary fully rolls ba
 
 function manifest() {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-sunken-chapel-1",
     revision: 1,
     operation: "create",
     targetScenarioCode: null,
-    source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "kevin@example.com" },
+    source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "uncletev@gmail.com" },
     scenario: { name: "Sunken Chapel", briefing: "Test the flooded nave." },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },
@@ -277,12 +290,12 @@ function manifest() {
 
 function revisionManifest(code, name) {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-sunken-chapel-2",
     revision: 2,
     operation: "revise",
     targetScenarioCode: code,
-    source: { provider: "gmail", mailboxKey: "primary", messageId: "message-2", threadId: "thread-1", sender: "kevin@example.com" },
+    source: { provider: "gmail", mailboxKey: "primary", messageId: "message-2", threadId: "thread-1", sender: "uncletev@gmail.com" },
     scenario: { name, briefing: "" },
     settings: { strictMovement: true },
     party: { include: false, sourceScenarioCode: "EMBER-KEEP", placements: [] },

@@ -7,7 +7,11 @@ if (!siteUrl) fail("Set BATTLE_MAP_SITE_URL to the deployed battle-map origin, s
 
 const [command, ...arguments_] = process.argv.slice(2);
 let result;
-if (command === "reserve") {
+if (command === "context") {
+  const [sender, campaignId, scenarioCode, mailboxKey, threadId] = arguments_;
+  if (!sender || arguments_.length > 5) usageFailure();
+  result = await apiJson("/api/scenario-provisioning/context", { sender, ...(campaignId ? { campaignId } : {}), ...(scenarioCode && scenarioCode !== "-" ? { scenarioCode } : {}), ...(mailboxKey ? { mailboxKey, threadId } : {}) });
+} else if (command === "reserve") {
   const [jobId, kind] = arguments_;
   requireArguments(command, arguments_, 2);
   result = await apiJson(`/api/scenario-provisioning/jobs/${encodeURIComponent(jobId)}/mail-replies`, { kind });

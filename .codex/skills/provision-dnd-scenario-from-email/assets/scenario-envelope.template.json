@@ -1,6 +1,6 @@
 {
   "manifest": {
-    "version": 1,
+    "version": 2,
     "idempotencyKey": "mailbox-message-revision",
     "revision": 1,
     "operation": "create",
@@ -21,14 +21,15 @@
     },
     "party": {
       "include": true,
-      "sourceScenarioCode": "EMBER-KEEP",
       "placements": []
     },
     "map": null,
     "handouts": [],
     "creatures": [],
     "assumptions": [],
-    "reviewWarnings": []
+    "reviewWarnings": [],
+    "campaignId": "campaign-id-from-authorized-context",
+    "tokenChanges": []
   },
   "assets": {}
 }

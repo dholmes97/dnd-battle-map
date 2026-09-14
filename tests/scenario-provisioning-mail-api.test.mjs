@@ -20,7 +20,7 @@ test("mail provenance API prevents an allowlisted self-reply from becoming a sce
     const environment = {
       DB: db,
       SCENARIO_PROVISIONING_TOKEN: token,
-      SCENARIO_PROVISIONING_SENDERS: "kevin@example.com,dan@example.com",
+      SCENARIO_PROVISIONING_SENDERS: "uncletev@gmail.com,dholmes97@gmail.com",
     };
     const createdResponse = await handleScenarioProvisioningApi(
       jsonRequest("http://localhost/api/scenario-provisioning/jobs", manifest()),
@@ -66,7 +66,7 @@ test("mail provenance API prevents an allowlisted self-reply from becoming a sce
     const loopAttempt = await handleScenarioProvisioningApi(
       jsonRequest("http://localhost/api/scenario-provisioning/jobs", manifest({
         idempotencyKey: "gmail-primary-dan-automation-reply-1",
-        source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-automation-reply-1", threadId: "self-thread", sender: "dan@example.com" },
+        source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-automation-reply-1", threadId: "self-thread", sender: "dholmes97@gmail.com" },
       })),
       environment,
     );
@@ -113,11 +113,11 @@ function jsonRequest(url, body, method = "POST") {
 
 function manifest(overrides = {}) {
   return {
-    version: 1,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null,
     idempotencyKey: "gmail-primary-dan-human-1",
     revision: 1,
     operation: "create",
-    source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-human-1", threadId: "self-thread", sender: "dan@example.com" },
+    source: { provider: "gmail", mailboxKey: "primary", messageId: "dan-human-1", threadId: "self-thread", sender: "dholmes97@gmail.com" },
     scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false },
     party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },

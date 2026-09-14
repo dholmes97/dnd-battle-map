@@ -20,6 +20,7 @@ type MembershipRow = {
   name: string;
   membership_id: string;
   role: "dm" | "player";
+  can_provision_scenarios: number;
 };
 
 type CharacterRow = {
@@ -41,6 +42,7 @@ type MemberRow = {
   identity_id: string;
   display_name: string;
   role: "dm" | "player";
+  can_provision_scenarios: number;
 };
 
 type EncounterSummaryRow = {
@@ -79,9 +81,21 @@ export async function handleCampaignResource(
   env: Env,
   identity: AuthenticatedIdentity,
   campaignId: string,
-  child: "members" | "encounters" | "actions" | null,
+  child: "members" | "encounters" | "actions" | "email-delegation" | null,
 ): Promise<Response> {
   if (!cleanIdentifier(campaignId)) return json({ error: "Campaign not found." }, { status: 404 });
+  if (child === "email-delegation") {
+    if (request.method !== "PATCH") return methodNotAllowed("PATCH");
+    if (!await requireCampaignDm(env, identity.id, campaignId)) return json({ error: "Only this campaign's DM can delegate email preparation." }, { status: 403 });
+    const body = await readBoundedJsonObject(request, API_JSON_BODY_MAX_BYTES);
+    if (!cleanIdentifier(body.membershipId) || typeof body.allowed !== "boolean") return json({ error: "Choose a member and permission." }, { status: 400 });
+    const result = await env.DB.prepare(`UPDATE campaign_memberships SET can_provision_scenarios = ?, updated_at = ?
+      WHERE id = ? AND campaign_id = ? AND role = 'player'
+      AND EXISTS (SELECT 1 FROM campaign_memberships dm WHERE dm.campaign_id = ? AND dm.identity_id = ? AND dm.role = 'dm')`)
+      .bind(body.allowed ? 1 : 0, Date.now(), body.membershipId, campaignId, campaignId, identity.id).run();
+    if (!result.meta.changes) return json({ error: "Campaign player not found." }, { status: 404 });
+    return campaignListResponse(env, identity);
+  }
   if (child === "members") {
     if (request.method !== "POST") return methodNotAllowed("POST");
     return addCampaignPlayer(request, env, identity, campaignId);
@@ -102,7 +116,7 @@ export async function campaignListResponse(env: Env, identity: AuthenticatedIden
 
 async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
   const memberships = await env.DB.prepare(
-    `SELECT c.id, c.slug, c.name, cm.id AS membership_id, cm.role
+    `SELECT c.id, c.slug, c.name, cm.id AS membership_id, cm.role, cm.can_provision_scenarios
      FROM campaign_memberships cm
      JOIN campaigns c ON c.id = cm.campaign_id
      WHERE cm.identity_id = ?
@@ -119,7 +133,7 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
      ORDER BY cc.campaign_id, cc.sort_order, cc.name, cc.id LIMIT ?`,
   ).bind(identity.id, MAX_CAMPAIGNS * MAX_CAMPAIGN_CHARACTERS_PER_CAMPAIGN).all<CharacterRow>();
   const members = await env.DB.prepare(
-    `SELECT cm.campaign_id, cm.id AS membership_id, cm.identity_id, i.display_name, cm.role
+    `SELECT cm.campaign_id, cm.id AS membership_id, cm.identity_id, i.display_name, cm.role, cm.can_provision_scenarios
      FROM campaign_memberships cm
      JOIN identities i ON i.id = cm.identity_id
      JOIN campaign_memberships access ON access.campaign_id = cm.campaign_id
@@ -164,12 +178,14 @@ async function campaignAccess(env: Env, identity: AuthenticatedIdentity) {
         slug: membership.slug,
         name: membership.name,
         membershipId: membership.membership_id,
+        canProvisionScenarios: membership.role === "dm" || Boolean(membership.can_provision_scenarios),
         role: membership.role,
         characters: campaignCharacters.filter((character) =>
           membership.role === "dm" || character.controller_identity_id === identity.id,
         ).map((character) => characterSummary(character, actionRows.results)),
         members: campaignMembers.map((member) => ({
           membershipId: member.membership_id,
+          canProvisionScenarios: member.role === "dm" || Boolean(member.can_provision_scenarios),
           identity: { id: member.identity_id, displayName: member.display_name },
           role: member.role,
           characters: campaignCharacters.filter((character) => character.controller_identity_id === member.identity_id)

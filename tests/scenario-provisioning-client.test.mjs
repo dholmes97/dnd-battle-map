@@ -84,7 +84,7 @@ function response(body, status = 200) {
 
 function manifest() {
   return {
-    version: 1, idempotencyKey: "gmail-primary-message-1-revision-1", revision: 1, operation: "create", targetScenarioCode: null,
+    version: 2, campaignId: "campaign-force-of-nature", expectedVersion: 7, expectedDraftUpdatedAt: null, idempotencyKey: "gmail-primary-message-1-revision-1", revision: 1, operation: "create", targetScenarioCode: null,
     source: { provider: "gmail", mailboxKey: "primary", messageId: "message-1", threadId: "thread-1", sender: "kevin@example.com" },
     scenario: { name: "Sunken Chapel", briefing: "Briefing" },
     settings: { strictMovement: false }, party: { include: true, sourceScenarioCode: "EMBER-KEEP", placements: [] },

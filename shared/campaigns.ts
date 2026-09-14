@@ -29,6 +29,7 @@ export type CampaignCharacterSummary = {
 };
 
 export type CampaignMemberSummary = {
+  canProvisionScenarios?: boolean;
   membershipId: string;
   identity: HumanIdentity;
   role: Role;
@@ -39,6 +40,7 @@ export type CampaignAccessSummary = {
   id: string;
   slug: string;
   name: string;
+  canProvisionScenarios?: boolean;
   membershipId: string;
   role: Role;
   characters: CampaignCharacterSummary[];

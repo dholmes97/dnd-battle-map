@@ -459,3 +459,23 @@ test.describe("mobile playability", () => {
     await expectNoSeriousAccessibilityViolations(page);
   });
 });
+
+
+test("DM email delegation persists and can be revoked", async ({ page }) => {
+  await openHydratedApplication(page);
+  await openCampaignAs(page, "Kevin");
+  await page.getByRole("button", { name: "Manage campaign" }).click();
+  const permission = page.getByRole("checkbox", { name: "Allow Dan to prepare encounters by email" });
+  await expect(permission).toBeChecked();
+  await permission.uncheck();
+  await expect(permission).toBeEnabled();
+  await expect(permission).not.toBeChecked();
+  await page.reload();
+  await page.getByRole("button", { name: /Open campaign/ }).click();
+  await page.getByRole("button", { name: "Manage campaign" }).click();
+  await expect(permission).not.toBeChecked();
+  await permission.check();
+  await expect(permission).toBeEnabled();
+  await expect(permission).toBeChecked();
+  await expectNoSeriousAccessibilityViolations(page);
+});

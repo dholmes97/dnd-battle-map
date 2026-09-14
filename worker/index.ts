@@ -203,7 +203,7 @@ const HANDOUT_API_ROUTE =
   /^\/api\/encounters\/([^/]+)\/handouts(?:\/([^/]+)(?:\/(thumbnail|display))?)?$/;
 const PRODUCTION_BACKUP_ROUTE = /^\/api\/admin\/production-backup\/(d1|r2(?:\/object)?)$/;
 const AUTH_ROUTE = /^\/api\/auth\/(session|dev-login|logout|google\/start|google\/callback)$/;
-const CAMPAIGN_RESOURCE_ROUTE = /^\/api\/campaigns\/([a-zA-Z0-9-]{1,64})(?:\/(members|encounters|actions))?$/;
+const CAMPAIGN_RESOURCE_ROUTE = /^\/api\/campaigns\/([a-zA-Z0-9-]{1,64})(?:\/(members|encounters|actions|email-delegation))?$/;
 
 const PRODUCTION_BACKUP_PAGE_SIZE = 100;
 
@@ -2845,7 +2845,7 @@ const worker = {
           env,
           identity,
           campaignResourceMatch[1],
-          campaignResourceMatch[2] === "members" || campaignResourceMatch[2] === "encounters" || campaignResourceMatch[2] === "actions"
+          campaignResourceMatch[2] === "members" || campaignResourceMatch[2] === "encounters" || campaignResourceMatch[2] === "actions" || campaignResourceMatch[2] === "email-delegation"
             ? campaignResourceMatch[2]
             : null,
         );
