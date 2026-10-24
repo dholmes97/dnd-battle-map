@@ -57,7 +57,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.34",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "c8": "12.0.0",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
@@ -69,8 +69,8 @@
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "1.0.0-beta.8",
-    "vite": "8.2.2",
-    "vitest": "4.1.11",
+    "vite": "8.2.4",
+    "vitest": "4.1.12",
     "wrangler": "4.125.0"
   },
   "overrides": {
@@ -78,7 +78,7 @@
       "esbuild": "0.28.2"
     },
     "miniflare": {
-      "undici": "7.29.0",
+      "undici": "7.30.1",
       "sharp": "$sharp"
     }
   },
