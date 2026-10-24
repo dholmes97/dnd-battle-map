@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=26.0.0 <27"
+    "node": ">=26.12.1 <27"
   },
   "scripts": {
     "predev": "npm run db:bootstrap",
@@ -52,7 +52,7 @@
     "@tailwindcss/postcss": "4.2.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
-    "@types/node": "26.2.0",
+    "@types/node": "26.6.5",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
