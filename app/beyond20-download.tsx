@@ -1,4 +1,4 @@
-export const BEYOND20_DOWNLOAD = "/downloads/beyond20-flc-2.20.1-r1.zip";
+export const BEYOND20_DOWNLOAD = "/downloads/beyond20-flc-2.20.1-r2.zip";
 
 export function Beyond20Download() {
   return <details className="qa-session-launcher beyond20-download" id="beyond20-setup">

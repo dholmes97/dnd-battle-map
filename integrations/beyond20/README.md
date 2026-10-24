@@ -4,16 +4,25 @@
 
 The My Campaigns page includes a collapsed **D&D Beyond HP sync** section below
 the testing utility (also visible to players without QA access). It links to
-`/downloads/beyond20-flc-2.20.1-r1.zip` and explains Chrome installation, custom
+`/downloads/beyond20-flc-2.20.1-r2.zip` and explains Chrome installation, custom
 domain permissions, and the battle-map B20 controls. This package is not for Safari.
 
 Build the distributable with `node scripts/package-beyond20-download.mjs`.
-It uses the pinned upstream commit plus the reviewed patch in a fresh temporary
-directory; it never copies Chrome profile data or changes the installed extension.
+Run it with Node 22.23.4. It archives reviewed commit
+`2c4a57baa2f03a080fd7bcc09c9b0c7bdab921e3` from the local Beyond20 checkout into
+a fresh temporary directory, installs its lockfile with lifecycle hooks disabled,
+and runs syntax checks, both browser builds, and regression tests. It never copies
+Chrome profile data or changes the installed extension.
 The ZIP contains `chrome/`, corresponding modified `source/`, lockfile, build
-inputs, licenses, patch, regression harness, and `DOWNLOAD-INSTRUCTIONS.md`.
+inputs, licenses, transport and complete reviewed-change patches, regression
+harness, build provenance, and `DOWNLOAD-INSTRUCTIONS.md`.
 The source and packaged manifests label the build unofficial without expanding
 permissions. Version the download filename whenever its contents change.
+
+Revision r2 replaces the r1 download with the same transport fixes built using
+Gulp 5.0.1 and web-ext 10.8.0. The source lock removes Babel 6, form-data, and
+Request. The known unfixed node-forge 1.4.0 development-tooling advisory remains
+documented in the download; it is not evidence of an extension-runtime exploit.
 
 ## Force of Nature sheet links
 
@@ -49,7 +58,9 @@ It is a focused regression test, not a replacement for browser verification.
 
 ## Reproduce the build
 
-From the application repository root, use a fresh destination:
+To rebuild the distributed r2, use its included `source/` directory and Node
+22.23.4. See `DOWNLOAD-INSTRUCTIONS.md`. The following historical recipe recreates
+the original transport-only patch, not the updated r2 build toolchain:
 
 ```sh
 git clone --depth 1 --branch v2.20.1 https://github.com/kakaroto/Beyond20.git .working/beyond20-refresh-fix

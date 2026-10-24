@@ -1,6 +1,6 @@
-# Beyond20 — Friday Lunch Crew refresh fix r1
+# Beyond20 — Friday Lunch Crew refresh fix r2
 
-Unofficial modified build, 2026-09-08. Not endorsed by Beyond20 or D&D Beyond.
+Unofficial modified build, 2026-10-24. Not endorsed by Beyond20 or D&D Beyond.
 Chrome desktop only; this package cannot be installed in Safari.
 
 ## Install
@@ -29,15 +29,25 @@ Do not delete the installed folder while using the extension.
 
 Beyond20 by KaKaRoTo and contributors: https://github.com/kakaroto/Beyond20
 Base: v2.20.1, commit 3d737952cd1ba505cd73a9f0d4ef8e84c5f47a8b.
+Reviewed source: 2c4a57baa2f03a080fd7bcc09c9b0c7bdab921e3.
 Upstream copyright notices and GPLv3/MIT license texts are preserved in both
 chrome/ and source/. The source/ directory contains the corresponding modified
 source and build inputs; refresh-fix.patch records the transport changes.
+reviewed-changes.patch includes the transport fixes and updated build tooling;
+BUILD-PROVENANCE.json records the source commit and exact build runtime.
 
 Friday Lunch Crew modifications probe stale custom-site receivers after page
 refresh, coalesce navigation checks, and recognize localhost permission grants
 with ports. The packaged manifest adds an unofficial-build name/version label;
 permissions are unchanged. No account settings, sessions, or credentials are included.
 
-To rebuild: in source/, run npm ci --ignore-scripts, then npm run build:chrome.
+Revision r2 rebuilds the same refresh fixes with the maintained build toolchain:
+Gulp 5.0.1 and web-ext 10.8.0. Babel 6, form-data, and Request have been removed.
+One known unfixed development-tooling advisory remains in
+web-ext -> @devicefarmer/adbkit -> node-forge 1.4.0 (GHSA-86w9-cpqp-85rv).
+This is not a claim of extension-runtime exploitation or a fully clean tooling audit.
+
+To rebuild: use Node 22.23.4 (source/.node-version), then in source/ run
+npm ci --ignore-scripts, npm run check, npm run build, and npm test.
 Load source/build/chrome. Use the supplied refresh-regression.test.cjs with
 `node refresh-regression.test.cjs source` from this package's root to test the patch.
