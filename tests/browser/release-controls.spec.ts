@@ -69,7 +69,7 @@ test("enchanted character actions display their automatic damage in a compact ed
   await openHydratedApplication(page);
   await openCampaignAs(page, "Dan");
   await page.getByRole("button", { name: "Manage actions" }).click();
-  await page.getByRole("button", { name: "Edit Longsword +1", exact: true }).click();
+  await page.getByRole("button", { name: "Edit Holy Avenger Longsword", exact: true }).click();
   await expect(page.getByText(/Automatic extra damage: Improved Divine Smite: 1d8 radiant/)).toBeVisible();
   await expectInsideViewport(page, ".campaign-action-extra-damage");
   await expectNoPageOverflow(page);
