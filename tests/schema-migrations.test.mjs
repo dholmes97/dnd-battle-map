@@ -56,35 +56,40 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_action_profiles') WHERE name = 'manual_rider_text';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('combat_rolls') WHERE name IN ('dm_private', 'released_outcome', 'outcome_released_at');"), "3");
   assert.equal(await query(database, "SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier FROM combat_action_profiles WHERE id = 'character-combat-qa-guiding-bolt-v1';"), "4d6+0");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND source_ref = 'jelton-sheet-2026-08-30';"), "7");
   assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-jelton' AND lower(name) = 'guiding bolt';"), "1");
   assert.deepEqual(
-    (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
+    (await query(database, `SELECT name || ':' || attack_bonus || ':' || damage_dice_count || 'd' || damage_die_size
       FROM combat_action_profiles
       WHERE campaign_character_id = 'character-jelton' AND name LIKE 'Guiding Bolt (%'
       ORDER BY sort_order;`)).split("\n"),
     [
-      "Guiding Bolt (2nd level):5d6",
-      "Guiding Bolt (3rd level):6d6",
-      "Guiding Bolt (4th level):7d6",
-      "Guiding Bolt (5th level):8d6",
-      "Guiding Bolt (6th level):9d6",
+      "Guiding Bolt (2nd level):13:5d6",
+      "Guiding Bolt (3rd level):13:6d6",
+      "Guiding Bolt (4th level):13:7d6",
+      "Guiding Bolt (5th level):13:8d6",
+      "Guiding Bolt (6th level):13:9d6",
+      "Guiding Bolt (7th level):13:10d6",
     ],
   );
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND source_ref = 'malichar-sheet-2026-08-30';"), "1");
   assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-malichar' AND lower(name) = 'dagger';"), "1");
   assert.equal(
     await query(database, `SELECT damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier || ' ' || damage_type || ':' || manual_rider_text
       FROM combat_action_profiles WHERE id = 'character-malichar-glimmering-moonbow-v1';`),
-    "1d6+6 piercing:The 1d6 radiant enchantment is included automatically. Sneak Attack adds 6d6 piercing once per turn when eligible: advantage, or a non-incapacitated enemy of the target within 5 feet and no disadvantage. Resolve Sneak Attack with the DM.",
+    "1d6+6 piercing:The 1d6 radiant enchantment is included automatically. Sneak Attack adds 7d6 piercing once per turn when eligible: advantage, or a non-incapacitated enemy of the target within 5 feet and no disadvantage. Resolve Sneak Attack with the DM.",
   );
-  assert.equal(await query(database, "SELECT COUNT(*) FROM combat_action_profiles WHERE campaign_character_id = 'character-dareleth' AND source_ref = 'dareleth-sheet-2026-08-30';"), "11");
+  assert.deepEqual(
+    (await query(database, `SELECT name || ':' || attack_bonus || ':' || damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier
+      FROM combat_action_profiles
+      WHERE id IN ('character-dareleth-longsword-v1', 'character-jelton-moon-sickle-v1', 'character-malichar-staff-of-the-magi-v1')
+      ORDER BY id;`)).split("\n"),
+    ["Holy Avenger Longsword:12:1d8+7", "Moon Sickle +3:9:1d4+4", "Staff of the Magi:6:1d6+1"],
+  );
   assert.deepEqual(
     (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size
       FROM combat_action_profiles
       WHERE campaign_character_id = 'character-dareleth' AND name LIKE 'Guiding Bolt%'
       ORDER BY sort_order;`)).split("\n"),
-    ["Guiding Bolt:4d6", "Guiding Bolt (2nd level):5d6", "Guiding Bolt (3rd level):6d6"],
+    ["Guiding Bolt:4d6", "Guiding Bolt (2nd level):5d6", "Guiding Bolt (3rd level):6d6", "Guiding Bolt (4th level):7d6"],
   );
   assert.deepEqual(
     (await query(database, `SELECT name || ':' || damage_dice_count || 'd' || damage_die_size || '+' || damage_modifier || ':' || resolution_mode
@@ -101,9 +106,9 @@ test("numbered migrations build and seed a fresh database", async () => {
       "Magic Missile (7th level, 7 charges):9d4+9:automatic-damage",
     ],
   );
-  assert.equal(
-    await query(database, "SELECT manual_rider_text FROM combat_action_profiles WHERE id = 'character-dareleth-javelin-of-lightning-v1';"),
-    "Improved Divine Smite is included automatically. Optional Divine Smite spends a slot for another 2d8/3d8/4d8 radiant at slot levels 1/2/3, plus 1d8 against undead or fiends; resolve the optional dice with the DM.",
+  assert.match(
+    await query(database, "SELECT manual_rider_text FROM combat_action_profiles WHERE id = 'character-dareleth-longsword-v1';"),
+    /fiend or undead.*2d10 radiant/,
   );
   assert.equal(await query(database, `SELECT COUNT(*) FROM tokens t
     WHERE t.encounter_id = 'encounter-combat-rolling-qa' AND t.catalog_creature_id IS NOT NULL
@@ -137,6 +142,11 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT json_extract(draft_map_setup_json, '$.format') FROM encounters WHERE code = 'EMBER-KEEP';"), "dnd-map-setup");
   assert.equal(await query(database, "SELECT COUNT(*) FROM app_maintenance WHERE id = 'map-images-and-drafts-v1';"), "1");
   assert.equal(await query(database, "SELECT name FROM campaigns WHERE id = 'campaign-force-of-nature';"), "Force of Nature");
+  assert.deepEqual(
+    (await query(database, `SELECT max_hp || '/' || armor_class || '/' || speed FROM campaign_characters
+      WHERE campaign_id = 'campaign-force-of-nature' ORDER BY id;`)).split("\n"),
+    ["144/24/40", "129/22/30", "129/18/40"],
+  );
   assert.equal(await query(database, "SELECT COUNT(*) FROM campaign_memberships WHERE campaign_id = 'campaign-force-of-nature';"), "4");
   assert.equal(await query(database, "SELECT COUNT(*) FROM campaign_characters WHERE campaign_id = 'campaign-force-of-nature';"), "3");
   assert.equal(await query(database, "SELECT campaign_id FROM encounters WHERE code = 'EMBER-KEEP';"), "campaign-force-of-nature");
@@ -146,7 +156,6 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('auth_accounts', 'auth_sessions', 'auth_oauth_states');"), "3");
   assert.equal(await query(database, "SELECT login_email FROM identities WHERE id = 'identity-dan';"), "dholmes97@gmail.com");
   assert.equal(await query(database, "SELECT SUM(can_create_campaigns) FROM identities;"), "4");
-  assert.equal(await query(database, "SELECT max_hp FROM campaign_characters WHERE id = 'character-dareleth';"), "10");
   assert.match(
     await query(database, "EXPLAIN QUERY PLAN SELECT * FROM scenario_provisioning_mail_messages WHERE mailbox_key = 'primary' AND provider_message_id = 'message-1';"),
     /USING INDEX idx_scenario_provisioning_mail_messages_mailbox_message/,
@@ -265,6 +274,28 @@ test("bootstrap migration preserves customized existing records", async () => {
     SELECT name || '|' || family || '|' || default_hp || '|' || armor_class || '|' || is_active || '|' || updated_at FROM creature_catalog WHERE id = 'cave-bat';
   `);
   for (const migration of migrations.slice(bootstrapIndex)) {
+    if (migration.startsWith("0049_")) {
+      await sqlite(database, `
+        UPDATE combat_action_profiles
+        SET source_ref = NULL, name = 'Holy Avenger Longsword', attack_bonus = 12,
+            damage_modifier = 7, updated_at = 1794265829661
+        WHERE id = 'character-dareleth-longsword-v1';
+        UPDATE combat_action_profiles
+        SET source_ref = NULL, attack_bonus = 17
+        WHERE id = 'character-jelton-thorn-whip-v1';
+        UPDATE campaign_characters SET max_hp = 93
+        WHERE id IN ('character-jelton', 'character-malichar');
+        INSERT INTO encounters (id, code, name, status, campaign_id, map_asset, grid_width, grid_height, updated_at)
+        VALUES ('f181b47c-fac0-4d56-ad5c-ab56c70cfa94', 'LEVEL-UP-FIXTURE', 'Prepared encounter',
+                'setup', 'campaign-force-of-nature', '', 24, 16, 123);
+        INSERT INTO tokens (id, encounter_id, campaign_character_id, name, kind, x, y, hp, max_hp, armor_class, speed, updated_at)
+        VALUES
+          ('43c24d31-1ba2-495f-962f-f70d4436e8a2', 'f181b47c-fac0-4d56-ad5c-ab56c70cfa94',
+           'character-malichar', 'Malichar', 'character', 1, 2, 93, 93, 10, 30, 1794250280412),
+          ('ef214e48-398a-43eb-8fdd-74b9123a1c62', 'f181b47c-fac0-4d56-ad5c-ab56c70cfa94',
+           'character-jelton', 'Jelton', 'character', 1, 2, 88, 93, 10, 30, 1794250276781);
+      `);
+    }
     await sqlite(database, await readFile(new URL(migration, migrationDirectory), "utf8"));
   }
   const after = await query(database, `
@@ -273,11 +304,22 @@ test("bootstrap migration preserves customized existing records", async () => {
     SELECT name || '|' || family || '|' || default_hp || '|' || armor_class || '|' || is_active || '|' || updated_at FROM creature_catalog WHERE id = 'cave-bat';
   `);
 
-  // The sheet-link and level-12 migrations wake Force of Nature encounter polls;
+  // The sheet-link and combat preset migrations wake Force of Nature encounter polls;
   // all authored fields, timestamps, HP, and catalog customization stay intact.
-  assert.equal(after, before.replace("Keep This Scenario|42|", "Keep This Scenario|44|"));
-  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "3");
-  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "9");
+  assert.equal(after, before.replace("Keep This Scenario|42|", "Keep This Scenario|45|"));
+  assert.equal(await query(database, "SELECT attack_bonus FROM combat_action_profiles WHERE id = 'character-jelton-thorn-whip-v1';"), "17");
+  assert.match(
+    await query(database, "SELECT manual_rider_text FROM combat_action_profiles WHERE id = 'character-dareleth-longsword-v1';"),
+    /fiend or undead.*2d10 radiant/,
+  );
+  assert.equal(await query(database, "SELECT max_hp FROM campaign_characters WHERE id = 'character-malichar';"), "129");
+  assert.deepEqual(
+    (await query(database, `SELECT hp || '/' || max_hp || '/' || armor_class || '/' || speed FROM tokens
+      WHERE encounter_id = 'f181b47c-fac0-4d56-ad5c-ab56c70cfa94' ORDER BY campaign_character_id;`)).split("\n"),
+    ["88/93/10/30", "109/129/18/40"],
+  );
+  assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "4");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "11");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");
