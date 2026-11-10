@@ -42,6 +42,7 @@ test("numbered migrations build and seed a fresh database", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM encounters;"), "2");
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "8");
   assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'temporary_hp';"), "1");
+  assert.equal(await query(database, "SELECT COUNT(*) FROM pragma_table_info('tokens') WHERE name = 'spell_cone_json' AND type = 'TEXT';"), "1");
   assert.equal(await query(database, "SELECT temporary_hp FROM tokens WHERE id = 'token-combat-qa-player';"), "5");
   assert.equal(await query(database, `SELECT COUNT(*) FROM identities
     WHERE id IN ('identity-dan', 'identity-barry', 'identity-scott', 'identity-kevin')
@@ -322,6 +323,7 @@ test("bootstrap migration preserves customized existing records", async () => {
   assert.equal(await query(database, "SELECT COUNT(*) FROM tokens;"), "11");
   assert.equal(await query(database, "SELECT COUNT(*) FROM creature_catalog;"), "17");
   assert.equal(await query(database, "SELECT armor_class FROM tokens WHERE id = 'custom-token';"), "21");
+  assert.equal(await query(database, "SELECT spell_cone_json IS NULL FROM tokens WHERE id = 'custom-token';"), "1");
   assert.equal(await query(database, "SELECT dm_briefing FROM encounters WHERE id = 'custom-encounter';"), "");
   assert.equal(await query(database, "SELECT active_map_image_id FROM encounters WHERE id = 'custom-encounter';"), "encounter-custom-encounter");
   assert.equal(await query(database, "SELECT draft_map_image_id FROM encounters WHERE id = 'custom-encounter';"), "encounter-custom-encounter");

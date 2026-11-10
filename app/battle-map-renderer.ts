@@ -4,7 +4,7 @@ import { tokenRadiusCells } from "@/shared/creature-library";
 import type { EncounterState, MapPoint, ParticipantSession, SharedAnnotation, SharedToken } from "@/shared/contracts";
 import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shared/battle-map-geometry";
 import { displayHealth } from "@/shared/health";
-import { SPELL_EFFECT_KIND, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
+import { DEFAULT_SPELL_CONE, SPELL_EFFECT_KIND, spellConeGeometry, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
 import { annotationGeometryIsBounded } from "@/shared/annotation-geometry";
 import { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "@/shared/token-label-layout";
@@ -153,7 +153,8 @@ function drawSpellEffect(
   token: SharedToken,
   x: number,
   y: number,
-  radius: number,
+  cellSize: number,
+  feetPerCell: number,
   art: HTMLImageElement | null,
   animationNow: number,
   selected: boolean,
@@ -161,6 +162,35 @@ function drawSpellEffect(
 ) {
   const spell = spellEffectByArt(token.artAsset);
   if (!spell) return;
+  if (spell.shape === "cone") {
+    const geometry = spellConeGeometry(token.spellCone ?? DEFAULT_SPELL_CONE, feetPerCell);
+    const radius = geometry.radius * cellSize;
+    context.save();
+    const fill = context.createRadialGradient(x, y, 0, x, y, radius);
+    fill.addColorStop(0, `${spell.accent}44`);
+    fill.addColorStop(1, `${spell.accent}18`);
+    context.fillStyle = fill;
+    context.strokeStyle = selected ? "#fff2bd" : spell.accent;
+    context.lineWidth = selected ? 2.5 : 1.5;
+    context.lineJoin = "round";
+    if (token.hidden) context.setLineDash([6, 4]);
+    context.beginPath();
+    context.moveTo(x, y);
+    context.arc(x, y, radius, geometry.start, geometry.end);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.globalAlpha *= 0.55;
+    context.lineWidth = 1;
+    context.setLineDash([4, 5]);
+    context.beginPath();
+    context.moveTo(x, y);
+    context.lineTo(x + Math.cos(geometry.direction) * radius, y + Math.sin(geometry.direction) * radius);
+    context.stroke();
+    context.restore();
+    return;
+  }
+  const radius = cellSize * tokenRadiusCells(token.size);
   const time = animationNow / 1_000;
   const isMoonbeam = spell.id === "moonbeam";
   const isMagicCircle = spell.id === "magic-circle";
@@ -625,8 +655,8 @@ export function drawMap(
     const position = preview?.tokenId === token.id ? preview : token;
     const x = screenX(position.x);
     const y = screenY(position.y);
-    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(token.size);
-    drawSpellEffect(context, token, x, y, radius, token.artAsset ? tokenArt.get(token.artAsset) ?? null : null,
+    drawSpellEffect(context, token, x, y, Math.min(cellWidth, cellHeight), state.grid.feetPerCell,
+      token.artAsset ? tokenArt.get(token.artAsset) ?? null : null,
       animationNow, token.id === selectedTokenId, token.controlledByViewer);
   });
 
@@ -899,7 +929,7 @@ export function drawMap(
       maxHp: null,
       temporaryHp: 0,
       healthState: null,
-      hidden: false,
+      hidden: spellPlacementPreview.spell.shape === "cone" && participant.role === "dm",
       summonerTokenId: null,
       initiative: null,
       initiativeGroupId: null,
@@ -914,9 +944,8 @@ export function drawMap(
       x: spellPlacementPreview.x,
       y: spellPlacementPreview.y,
     };
-    const radius = Math.min(cellWidth, cellHeight) * tokenRadiusCells(spellToken.size);
     context.save(); context.globalAlpha = 0.78;
-    drawSpellEffect(context, spellToken, screenX(spellToken.x), screenY(spellToken.y), radius,
+    drawSpellEffect(context, spellToken, screenX(spellToken.x), screenY(spellToken.y), Math.min(cellWidth, cellHeight), state.grid.feetPerCell,
       tokenArt.get(spellToken.artAsset ?? "") ?? null, animationNow, true, true);
     context.restore();
   }

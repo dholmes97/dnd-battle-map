@@ -28,6 +28,7 @@ export type TokenWrite = {
   temporaryHp: number;
   catalogCreatureId: string | null;
   hidden: boolean;
+  spellConeJson?: string | null;
   summonerTokenId: string | null;
   initiative: number | null;
   initiativeOrder: number | null;

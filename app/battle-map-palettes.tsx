@@ -72,8 +72,8 @@ export function SpellPalette({ participant, playerCharacter, armedId, onClose, o
   const armedSpell = SPELL_EFFECTS.find((spell) => spell.id === armedId);
   return <section className={`spell-palette${armedSpell ? " is-placement-armed" : ""}`} aria-label="Spell effects palette">
     <div className="palette-heading"><div><small>Persistent magic</small><h2>Spell effects</h2></div><IconActionButton variant="close" label="Close spell effects" onClick={onClose} /></div>
-    {armedSpell ? <p className="palette-placement-status" role="status"><strong>{armedSpell.name} selected.</strong> Tap the visible map to place it once.</p> : null}
-    <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live, synchronizes for everyone, and can be repositioned like a token.</p>
+    {armedSpell ? <p className="palette-placement-status" role="status"><strong>{armedSpell.name} selected.</strong> Tap the visible map to place it once.{armedSpell.shape === "cone" && participant.role === "dm" ? " Only you can see it until you share it." : ""}</p> : null}
+    <p className="spell-palette-intro">Drag an effect onto the battlefield. It stays live and can be repositioned like a token.</p>
     <div className="spell-grid">
       {SPELL_EFFECTS.map((spell) => <button type="button" draggable className={`spell-tile is-${spell.id}${armedId === spell.id ? " is-armed" : ""}`} key={spell.id} onDragStart={(event) => onDragStart(event, spell)} onDragEnd={onDragEnd} onClick={() => onArm(armedId === spell.id ? null : spell.id)} aria-pressed={armedId === spell.id}>
         <span className={`spell-art${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={240} height={240} draggable={false} unoptimized />}</span>

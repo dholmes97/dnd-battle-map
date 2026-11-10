@@ -479,3 +479,55 @@ test("DM email delegation persists and can be revoked", async ({ page }) => {
   await expect(permission).toBeChecked();
   await expectNoSeriousAccessibilityViolations(page);
 });
+
+test("Spell Cone can be placed, configured, and shared with a live player", async ({ page, browser }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await enterFirstEncounterAsDm(page);
+  const playerContext = await browser.newContext();
+  const player = await playerContext.newPage();
+  try {
+    await openHydratedApplication(player);
+    await openCampaignAs(player, "Dan");
+    await player.getByRole("button", { name: "Enter encounter" }).first().click();
+    await expect(player.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
+    const dmCount = await visibleTokenCount(page);
+    const playerCount = await visibleTokenCount(player);
+
+    await page.getByRole("button", { name: "Spell effects" }).click();
+    const coneTile = page.getByRole("button", { name: /Spell Cone/ });
+    const map = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
+    const mapBounds = (await map.boundingBox())!;
+    const paletteBounds = (await page.locator(".spell-palette").boundingBox())!;
+    const targetPosition = { x: paletteBounds.x - mapBounds.x + paletteBounds.width + 40, y: mapBounds.height / 2 };
+    await coneTile.dragTo(map, { targetPosition });
+    await expect(coneTile).toHaveAttribute("aria-pressed", "false");
+    const card = page.getByRole("region", { name: "Spell Cone spell effect details" });
+    const dismiss = card.getByRole("button", { name: "Dismiss Spell Cone" });
+    try {
+      await expect(card).toBeVisible();
+      await expect.poll(() => visibleTokenCount(page)).toBe(dmCount + 1);
+      await expect.poll(() => visibleTokenCount(player)).toBe(playerCount);
+      const dmOnly = card.getByRole("checkbox", { name: "DM only" });
+      await expect(dmOnly).toBeChecked();
+      await page.getByRole("button", { name: "Close spell effects" }).click();
+
+      await card.getByLabel("Range (ft)").fill("45");
+      await card.getByLabel("Angle (°)").fill("60");
+      await card.getByLabel("Direction (°)").fill("270");
+      await card.getByRole("button", { name: "Apply cone settings" }).click();
+      await expect(card.getByText("45 ft · 60° spread")).toBeVisible();
+      await expect(card.getByText("270°", { exact: true })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath("spell-cone.png") });
+
+      await dmOnly.uncheck();
+      await expect.poll(() => visibleTokenCount(player), { timeout: 12_000 }).toBe(playerCount + 1);
+      await dmOnly.check();
+      await expect.poll(() => visibleTokenCount(player), { timeout: 12_000 }).toBe(playerCount);
+    } finally {
+      if (await dismiss.isVisible()) await dismiss.click();
+    }
+    await expect.poll(() => visibleTokenCount(page)).toBe(dmCount);
+  } finally {
+    await playerContext.close();
+  }
+});

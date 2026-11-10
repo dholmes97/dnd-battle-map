@@ -58,6 +58,7 @@ import { adjudicatedDamage, transitionDamageWithTemporaryHp } from "@/shared/com
 import { commandRequest } from "@/shared/command-parser.ts";
 import { buildRosterRows } from "@/shared/initiative-domain.ts";
 import {
+  DEFAULT_SPELL_CONE,
   SPELL_EFFECT_KIND,
   spellEffectByArt,
   type SpellEffectDefinition,
@@ -153,7 +154,7 @@ export default function BattleMapPrototype() {
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [armedAttackAttackerId, setArmedAttackAttackerId] = useState<string | null>(null);
   const [combatChooser, setCombatChooser] = useState<null | {
-    attackerId: string; targetId: string; anchor: { x: number; y: number };
+    opening: number; attackerId: string; targetId: string; anchor: { x: number; y: number };
   }>(null);
   const [selectedMapNoteId, setSelectedMapNoteId] = useState<string | null>(null);
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("move");
@@ -265,14 +266,14 @@ export default function BattleMapPrototype() {
       (participant.role === "player" ? playerCharacter : null);
     const target = state.tokens.find((token) => token.id === targetId);
     if (!attacker?.controlledByViewer || attacker.kind === SPELL_EFFECT_KIND || !target || target.kind === SPELL_EFFECT_KIND || attacker.id === target.id) return false;
-    setCombatChooser({ attackerId: attacker.id, targetId: target.id, anchor });
+    setCombatChooser((current) => ({ opening: (current?.opening ?? 0) + 1, attackerId: attacker.id, targetId: target.id, anchor }));
     setArmedAttackAttackerId(null);
     return true;
   }, [armedAttackAttackerId, effectiveSelectedTokenId, participant, playerCharacter, state]);
   const movementEnabled = connection === "live" && !busy && state?.encounter.status !== "paused";
   const canMoveToken = (token: SharedToken) => Boolean(
     participant && state && !movementPolicyDenial({
-      strictMovement: state.encounter.strictMovement,
+      strictMovement: token.kind === SPELL_EFFECT_KIND || state.encounter.strictMovement,
       participantRole: participant.role,
       controlledByViewer: token.controlledByViewer,
       encounterStatus: state.encounter.status,
@@ -653,6 +654,7 @@ export default function BattleMapPrototype() {
         name,
         artAsset: spell.artAsset,
         kind: SPELL_EFFECT_KIND,
+        ...(spell.shape === "cone" ? { spellCone: DEFAULT_SPELL_CONE } : {}),
         size: spell.size,
         speed: 0,
         flySpeed: null,
@@ -664,7 +666,7 @@ export default function BattleMapPrototype() {
         maxHp: null,
         temporaryHp: 0,
         healthState: null,
-        hidden: false,
+        hidden: spell.shape === "cone" && participant.role === "dm",
         summonerTokenId: effectivePlacementSummonerId || null,
         initiative: caster?.initiative ?? null,
         initiativeGroupId: null,
@@ -1087,14 +1089,15 @@ export default function BattleMapPrototype() {
               const attacker = state.tokens.find((token) => token.id === combatChooser.attackerId);
               const target = state.tokens.find((token) => token.id === combatChooser.targetId);
               return attacker && target ? <CombatRollPanel
-                participant={participant} state={state} attacker={attacker} target={target} anchor={combatChooser.anchor}
+                key={participant.role === "player" ? combatChooser.opening : undefined}
+                participant={participant} playerIdentityId={signedInIdentity.id} state={state} attacker={attacker} target={target} anchor={combatChooser.anchor}
                 onClose={() => setCombatChooser(null)}
                 onRoll={(payload) => runOptimisticCommand<CombatRollResponse, "roll-attack">(
                   "roll-attack", payload, (current) => current, undefined, undefined, false,
                 )}
                 onComplete={(response) => {
                   const roll = response.state.combatRolls.find((item) => item.id === response.rollId);
-                  setCombatChooser(null);
+                  setCombatChooser((current) => current === combatChooser ? null : current);
                   if (roll) combatRollNotifications.enqueue({ roll, proposalId: response.proposalId });
                   else setError("The attack was rolled, but its result could not be displayed.");
                 }}

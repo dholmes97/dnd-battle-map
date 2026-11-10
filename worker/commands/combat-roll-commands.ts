@@ -11,6 +11,7 @@ import {
   type DiceFormula,
 } from "../../shared/combat-rolling.ts";
 import { MAX_COMBAT_ACTIONS_PER_OWNER } from "../../shared/resource-limits.ts";
+import { SPELL_EFFECT_KIND } from "../../shared/spell-effects.ts";
 import type { CombatActionProfileRow, CombatRollRepository } from "../ports/combat-roll-repository.ts";
 import type { TokenRow } from "../types.ts";
 import { commandError, requireDm, type CommandContextFor, type CommandOutcome } from "./types.ts";
@@ -76,7 +77,9 @@ export async function rollAttack(context: CombatRollCommandContext<"roll-attack"
   }
   const attacker = await context.repository.findToken(context.encounter.id, cleanId(context.payload.attackerTokenId));
   const target = await context.repository.findToken(context.encounter.id, cleanId(context.payload.targetTokenId));
-  if (!attacker || !target) return commandError("Attacker or target not found.", 404);
+  if (!attacker || !target || attacker.kind === SPELL_EFFECT_KIND || target.kind === SPELL_EFFECT_KIND) {
+    return commandError("Attacker or target not found.", 404);
+  }
   if (!await context.canControl(attacker)) return commandError("You cannot attack from that token.", 403);
   if (attacker.id === target.id) return commandError("Choose a different target.", 400);
 

@@ -1,6 +1,6 @@
 import { isCreatureSize } from "./creature-library.ts";
 import { parseMapPackage } from "./map-package.ts";
-import { isSpellAreaSize, spellEffectById } from "./spell-effects.ts";
+import { isSpellAreaSize, parseSpellCone, spellEffectById } from "./spell-effects.ts";
 import {
   ROLL_MODES,
   validateCombatActionValues,
@@ -165,9 +165,11 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         ? { command, payload: { tokenId: body.tokenId, size: body.size } }
         : null;
     case "update-token": {
+      const spellCone = body.spellCone === undefined ? undefined : parseSpellCone(body.spellCone);
       if (!requiredString(body.tokenId) || !optionalString(body.name) ||
           (body.size !== undefined && !isCreatureSize(body.size)) || !optionalNumber(body.speed) ||
-          !optionalNumber(body.altitude) || !optionalNumber(body.armorClass) || !optionalNumber(body.maxHp) || !optionalBoolean(body.hidden) || !optionalString(body.artAsset)) return null;
+          !optionalNumber(body.altitude) || !optionalNumber(body.armorClass) || !optionalNumber(body.maxHp) ||
+          !optionalBoolean(body.hidden) || !optionalString(body.artAsset) || spellCone === null) return null;
       return { command, payload: compact<"update-token">({
         tokenId: body.tokenId,
         name: body.name,
@@ -178,6 +180,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         maxHp: body.maxHp,
         hidden: body.hidden,
         artAsset: body.artAsset,
+        spellCone,
       }) };
     }
     case "link-beyond20":

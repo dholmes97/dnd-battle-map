@@ -351,6 +351,13 @@
       "when": 1794266014431,
       "tag": "0049_force_of_nature_level_14",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1794280892891,
+      "tag": "0050_spell_cone",
+      "breakpoints": true
     }
   ]
 }

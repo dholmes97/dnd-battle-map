@@ -2,7 +2,7 @@ import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-libra
 import { transitionHp } from "../../shared/encounter-transitions.ts";
 import { transitionDamageWithTemporaryHp } from "../../shared/combat-rolling.ts";
 import { normalizeAltitude } from "../../shared/token-altitude.ts";
-import { SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
+import { DEFAULT_SPELL_CONE, SPELL_CONE_ART, SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
 import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
@@ -47,7 +47,8 @@ export async function createSpellEffect(context: TokenEffectCommandContext<"crea
     maxHp: null,
     temporaryHp: 0,
     catalogCreatureId: null,
-    hidden: false,
+    hidden: spell.shape === "cone" && context.participant.role === "dm",
+    spellConeJson: spell.shape === "cone" ? JSON.stringify(DEFAULT_SPELL_CONE) : null,
     summonerTokenId,
     artAsset: spell.artAsset,
     initiative: summoner?.initiative ?? null,
@@ -112,6 +113,7 @@ export async function resizeSpellEffect(context: TokenEffectCommandContext<"resi
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token || token.kind !== SPELL_EFFECT_KIND) return commandError("Spell effect not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot resize this spell effect.", 403);
+  if (token.art_asset === SPELL_CONE_ART) return commandError("Adjust the cone's range and angle instead.", 400);
   const size = context.payload.size;
   const x = clamp(token.x, context.encounter.gridWidth, size);
   const y = clamp(token.y, context.encounter.gridHeight, size);
@@ -125,11 +127,16 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot edit this token.", 403);
+  const isCone = token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART;
+  if (context.payload.spellCone && !isCone) return commandError("Only Spell Cone supports cone geometry.", 400);
+  if (isCone && context.payload.hidden !== undefined && context.participant.role !== "dm") {
+    return commandError("Only the DM can change cone visibility.", 403);
+  }
   const requestedArt = context.payload.artAsset ?? "";
-  const artAsset = await context.isAllowedArt(requestedArt)
+  const artAsset = isCone ? token.art_asset : await context.isAllowedArt(requestedArt)
     ? requestedArt
     : context.payload.artAsset === "" ? null : token.art_asset;
-  const size: CreatureSize = context.payload.size ?? token.size;
+  const size: CreatureSize = isCone ? token.size : context.payload.size ?? token.size;
   const maxHp = Number.isFinite(context.payload.maxHp)
     ? Math.max(1, Math.trunc(context.payload.maxHp!))
     : token.max_hp;
@@ -158,6 +165,7 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     hidden: context.participant.role === "dm"
       ? context.payload.hidden ?? Boolean(token.is_hidden)
       : Boolean(token.is_hidden),
+    spellConeJson: context.payload.spellCone ? JSON.stringify(context.payload.spellCone) : token.spell_cone_json,
     artAsset,
     x: clamp(token.x, context.encounter.gridWidth, size),
     y: clamp(token.y, context.encounter.gridHeight, size),
@@ -184,6 +192,7 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     temporary_hp: next.temporaryHp,
     catalog_creature_id: next.catalogCreatureId,
     is_hidden: next.hidden ? 1 : 0,
+    spell_cone_json: next.spellConeJson,
     art_asset: next.artAsset,
     x: next.x,
     y: next.y,
@@ -336,6 +345,7 @@ function tokenSnapshot(token: TokenRow) {
     temporaryHp: token.temporary_hp,
     catalogCreatureId: token.catalog_creature_id ?? null,
     hidden: Boolean(token.is_hidden),
+    ...(token.spell_cone_json ? { spellConeJson: token.spell_cone_json } : {}),
     summonerTokenId: token.summoner_token_id,
     initiative: token.initiative,
     initiativeOrder: token.initiative_order,
@@ -361,6 +371,7 @@ async function createTokenEntity(
       tokenId, name: token.name, kind: token.kind, size: token.size, x: token.x, y: token.y,
       speed: token.speed, armorClass: token.armorClass, hp: token.hp, maxHp: token.maxHp,
       temporaryHp: token.temporaryHp, hidden: token.hidden,
+      spellConeJson: token.spellConeJson ?? null,
       catalogCreatureId: token.catalogCreatureId,
       flySpeed: token.flySpeed, swimSpeed: token.swimSpeed,
       climbSpeed: token.climbSpeed, burrowSpeed: token.burrowSpeed,
@@ -385,7 +396,7 @@ function tokenChange(previous: TokenRow, next: TokenRow) {
     climbSpeed: token.climb_speed, burrowSpeed: token.burrow_speed,
     altitude: token.altitude,
     armorClass: token.armor_class, hp: token.hp, maxHp: token.max_hp, temporaryHp: token.temporary_hp,
-    hidden: Boolean(token.is_hidden), artAsset: token.art_asset,
+    hidden: Boolean(token.is_hidden), artAsset: token.art_asset, spellConeJson: token.spell_cone_json ?? null,
   });
   return { tokenId: previous.id, previous: view(previous), next: view(next) };
 }

@@ -1,7 +1,7 @@
 import type { CreatureSize } from "./creature-library";
 import type { MapImage, MapPackage } from "./map-package";
 import type { HealthBand } from "./health";
-import type { SpellAreaSize, SpellEffectDefinition } from "./spell-effects";
+import type { SpellAreaSize, SpellCone, SpellEffectDefinition } from "./spell-effects";
 import type { CombatActionProfile, CombatActionValues, DamageAdjudication, DamageProposalStatus, RollMode } from "./combat-rolling";
 
 export type Role = "player" | "dm";
@@ -35,6 +35,7 @@ export type SharedToken = MapPoint & {
   temporaryHp: number | null;
   healthState: HealthBand | null;
   hidden: boolean;
+  spellCone?: SpellCone;
   summonerTokenId: string | null;
   initiative: number | null;
   initiativeGroupId: string | null;
@@ -256,6 +257,7 @@ export type CommandPayloadMap = {
     maxHp?: number;
     hidden?: boolean;
     artAsset?: string;
+    spellCone?: SpellCone;
   };
   "apply-hp": { tokenId: string; delta: number };
   "link-beyond20": { tokenId: string; characterId: string | null };

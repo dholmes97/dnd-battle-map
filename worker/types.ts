@@ -41,6 +41,7 @@ export type TokenRow = {
   size: CreatureSize; speed: number; fly_speed: number | null; swim_speed: number | null;
   climb_speed: number | null; burrow_speed: number | null;
   armor_class: number | null; hp: number | null; max_hp: number | null; temporary_hp: number; is_hidden: number;
+  spell_cone_json?: string | null;
   summoner_token_id: string | null; initiative: number | null; initiative_group_id: string | null;
   campaign_character_id: string | null; catalog_creature_id?: string | null;
   initiative_order: number | null; turn_complete: number; movement_used: number;

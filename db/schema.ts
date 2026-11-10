@@ -496,6 +496,7 @@ export const tokens = sqliteTable(
     maxHp: integer("max_hp"),
     temporaryHp: integer("temporary_hp").notNull().default(0),
     isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
+    spellConeJson: text("spell_cone_json"),
     summonerTokenId: text("summoner_token_id"),
     campaignCharacterId: text("campaign_character_id").references(() => campaignCharacters.id),
     catalogCreatureId: text("catalog_creature_id").references(() => creatureCatalog.id, { onDelete: "set null" }),

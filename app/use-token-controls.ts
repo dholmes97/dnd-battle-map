@@ -10,7 +10,7 @@ import { transitionDamageWithTemporaryHp } from "@/shared/combat-rolling.ts";
 import { clampMapPoint } from "@/shared/battle-map-geometry.ts";
 import { initiativePackMembers, rosterBaseName } from "@/shared/initiative-domain.ts";
 import { MAX_ALTITUDE_FEET, normalizeAltitude } from "@/shared/token-altitude.ts";
-import { spellAreaDiameter, type SpellAreaSize, type SpellEffectDefinition } from "@/shared/spell-effects";
+import { spellAreaDiameter, type SpellAreaSize, type SpellCone, type SpellEffectDefinition } from "@/shared/spell-effects";
 
 export function useTokenControls({ participant, state, sync, setError, setNotice }: {
   participant: ParticipantSession | null;
@@ -300,6 +300,17 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     );
   };
 
+  const configureSpellCone = (token: SharedToken, changes: { spellCone: SpellCone } | { hidden: boolean }) => {
+    void sync.runOptimisticCommand(
+      "update-token",
+      { tokenId: token.id, ...changes },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id ? { ...item, ...changes } : item) }),
+      "hidden" in changes
+        ? changes.hidden ? "Spell Cone is now DM only." : "Spell Cone is now shared."
+        : "Spell Cone updated.",
+    );
+  };
+
   const saveAltitude = async (token: SharedToken) => {
     const draft = altitudeDrafts[token.id];
     if (draft === undefined) return;
@@ -332,7 +343,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
     requireConcentrationCheck: (token: SharedToken) => setConcentrationReminder({ id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name }),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, syncBeyond20Hp, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, saveAltitude,
+    applyHpToToken, syncBeyond20Hp, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, configureSpellCone, saveAltitude,
   };
 }
 

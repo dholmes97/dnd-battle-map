@@ -99,7 +99,7 @@ export async function replayTokenEffectHistory(
     if (!expected || !value) return 0;
     const current = await db.prepare(
       `SELECT name, size, speed, fly_speed, swim_speed, climb_speed, burrow_speed,
-       altitude, armor_class, hp, max_hp, temporary_hp, is_hidden, art_asset, x, y
+       altitude, armor_class, hp, max_hp, temporary_hp, is_hidden, art_asset, x, y, spell_cone_json
        FROM tokens WHERE id = ? AND encounter_id = ?`,
     ).bind(tokenId, encounterId).first<Record<string, unknown>>();
     if (!current || !tokenSnapshotMatches(current, expected)) return 0;
@@ -121,8 +121,8 @@ async function insertToken(
      (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
       climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, is_hidden, summoner_token_id, campaign_character_id, catalog_creature_id,
       initiative, initiative_order, turn_complete, movement_used, altitude,
-      owner_participant_id, owner_name, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 0, 0, ?, NULL, NULL, ?)`,
+      owner_participant_id, owner_name, updated_at, spell_cone_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 0, 0, ?, NULL, NULL, ?, ?)`,
   ).bind(
     tokenId, encounterId, cleanText(token.name, 48), Number(token.x), Number(token.y),
     token.artAsset ?? null, cleanText(token.kind, 16) || "monster",
@@ -132,7 +132,7 @@ async function insertToken(
     cleanSecondarySpeed(token.burrowSpeed), cleanArmorClass(token.armorClass),
     token.hp ?? null, token.maxHp ?? null, finiteNumber(token.temporaryHp, 0), token.hidden ? 1 : 0,
     cleanId(token.summonerTokenId) || null, cleanId(token.catalogCreatureId) || null, token.initiative ?? null,
-    token.initiativeOrder ?? null, finiteNumber(token.altitude, 0), now,
+    token.initiativeOrder ?? null, finiteNumber(token.altitude, 0), now, token.spellConeJson ?? null,
   ).run();
 }
 
@@ -148,7 +148,7 @@ async function updateToken(
   await db.prepare(
     `UPDATE tokens SET name = ?, size = ?, x = ?, y = ?, speed = ?, fly_speed = ?, swim_speed = ?,
      climb_speed = ?, burrow_speed = ?, altitude = ?, armor_class = ?, hp = ?, max_hp = ?, temporary_hp = ?,
-     is_hidden = ?, art_asset = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
+     is_hidden = ?, art_asset = ?, spell_cone_json = ?, updated_at = ? WHERE id = ? AND encounter_id = ?`,
   ).bind(
     cleanText(value.name, 48), isCreatureSize(value.size) ? value.size : current.size as CreatureSize,
     finiteNumber(value.x, Number(current.x) || input.gridWidth / 2),
@@ -162,6 +162,7 @@ async function updateToken(
     value.hp ?? null, value.maxHp ?? null,
     value.temporaryHp === undefined ? current.temporary_hp : finiteNumber(value.temporaryHp, 0),
     value.hidden ? 1 : 0, value.artAsset ?? null,
+    value.spellConeJson === undefined ? current.spell_cone_json : value.spellConeJson,
     now, tokenId, encounterId,
   ).run();
 }
@@ -172,6 +173,7 @@ function tokenSnapshotMatches(current: Record<string, unknown>, expected: Record
     ["swim_speed", "swimSpeed"], ["climb_speed", "climbSpeed"], ["burrow_speed", "burrowSpeed"],
     ["altitude", "altitude"], ["armor_class", "armorClass"], ["hp", "hp"],
     ["max_hp", "maxHp"], ["temporary_hp", "temporaryHp"], ["art_asset", "artAsset"], ["x", "x"], ["y", "y"],
+    ["spell_cone_json", "spellConeJson"],
   ];
   return pairs.every(([column, property]) => expected[property] === undefined || current[column] === expected[property]) &&
     (expected.hidden === undefined || Boolean(current.is_hidden) === Boolean(expected.hidden));

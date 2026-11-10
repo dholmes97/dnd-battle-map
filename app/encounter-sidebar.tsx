@@ -10,7 +10,11 @@ import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/c
 import { displayHealth } from "@/shared/health";
 import { initiativePackMembers } from "@/shared/initiative-domain";
 import type { MapNote } from "@/shared/map-package";
-import { isSpellShapeArt, SPELL_AREA_SIZES, SPELL_EFFECT_KIND, spellAreaDiameter, spellEffectByArt, type SpellAreaSize, type SpellEffectDefinition } from "@/shared/spell-effects";
+import {
+  DEFAULT_SPELL_CONE, isSpellShapeArt, MAX_SPELL_CONE_ANGLE_DEGREES, MAX_SPELL_CONE_RANGE_FEET,
+  parseSpellCone, SPELL_AREA_SIZES, SPELL_EFFECT_KIND, spellAreaDiameter, spellEffectByArt,
+  type SpellAreaSize, type SpellEffectDefinition,
+} from "@/shared/spell-effects";
 
 export type RosterRow =
   | { type: "token"; token: SharedToken; grouped: boolean }
@@ -44,6 +48,39 @@ function spellFootprintLabel(spell: SpellEffectDefinition, size: CreatureSize) {
   if (spell.shape === "square") return `${diameter}-ft square`;
   if (spell.id === "magic-circle") return `${diameter}-ft diameter · ${diameter / 2}-ft radius`;
   return `${diameter}-ft diameter`;
+}
+
+function SpellConeControls({ token, isDm, configure }: {
+  token: SharedToken;
+  isDm: boolean;
+  configure: TokenControls["configureSpellCone"];
+}) {
+  const { rangeFeet, angleDegrees, directionDegrees } = token.spellCone ?? DEFAULT_SPELL_CONE;
+  return <>
+    {token.controlledByViewer ? <form className="spell-cone-form" onSubmit={(event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const spellCone = parseSpellCone({
+        rangeFeet: Number(data.get("rangeFeet")),
+        angleDegrees: Number(data.get("angleDegrees")),
+        directionDegrees: Number(data.get("directionDegrees")),
+      });
+      if (spellCone && (spellCone.rangeFeet !== rangeFeet || spellCone.angleDegrees !== angleDegrees ||
+          spellCone.directionDegrees !== directionDegrees)) configure(token, { spellCone });
+    }}>
+      <div className="spell-cone-fields" key={JSON.stringify([token.id, rangeFeet, angleDegrees, directionDegrees])}>
+        <label>Range (ft)<input type="number" name="rangeFeet" min={5} max={MAX_SPELL_CONE_RANGE_FEET} defaultValue={rangeFeet} required /></label>
+        <label>Angle (°)<input type="number" name="angleDegrees" min={1} max={MAX_SPELL_CONE_ANGLE_DEGREES} defaultValue={angleDegrees} required /></label>
+        <label>Direction (°)<input type="number" name="directionDegrees" min={0} max={359} defaultValue={directionDegrees} required /></label>
+      </div>
+      <small>0° north · 90° east · 180° south · 270° west</small>
+      <button type="submit">Apply cone settings</button>
+    </form> : null}
+    {isDm ? <label className="spell-cone-visibility">
+      <input type="checkbox" checked={token.hidden} onChange={(event) => configure(token, { hidden: event.target.checked })} />
+      DM only
+    </label> : null}
+  </>;
 }
 
 type EncounterSidebarProps = {
@@ -118,9 +155,27 @@ export function EncounterSidebar({ participant, state, hidden, inCombat, rosterR
   };
 
   const tokenDetails = (token: SharedToken) => <TokenDetails participant={participant} state={state} token={token} health={displayHealth(token.hp, token.maxHp, token.healthState)} hpStep={hpStep} controls={controls} onBeginAttack={onBeginAttack} onHideToken={onHideToken} onDeleteToken={onDeleteToken} />;
-  const tokenCard = (token: SharedToken, spell: SpellEffectDefinition | null) => spell
-    ? <section className={`spell-detail is-${spell.id}`} aria-label={`${token.name} spell effect details`}><div className={`spell-detail-visual${spell.shape ? " is-generic-shape" : ""}`}>{spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={180} height={180} unoptimized />}</div><div className="spell-detail-copy"><small>Persistent spell · controlled by {token.controller.name}</small><h2>{token.name}</h2><p>{spell.description}</p></div><div className="spell-detail-meta"><span><small>Area</small><strong>{spellFootprintLabel(spell, token.size)}</strong></span><span><small>Movement</small><strong>{canMoveToken(token) ? "Drag directly" : `Owner only · ${token.controller.name}`}</strong></span></div>{token.controlledByViewer ? <label className="spell-size-control">Footprint<select aria-label="Spell footprint size" value={SPELL_AREA_SIZES.includes(token.size as SpellAreaSize) ? token.size : "medium"} onChange={(event) => onResizeSpell(token, spell, event.target.value as SpellAreaSize)}>{SPELL_AREA_SIZES.map((size) => <option value={size} key={size}>{spell.shape === "square" ? `${spellAreaDiameter(size)}-ft square` : `${spellAreaDiameter(size)}-ft diameter`}</option>)}</select></label> : null}{token.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => onDeleteToken(token)}>Dismiss {spell.name}</button> : null}</section>
-    : tokenDetails(token);
+  const tokenCard = (token: SharedToken, spell: SpellEffectDefinition | null) => {
+    if (!spell) return tokenDetails(token);
+    const cone = spell.shape === "cone" ? token.spellCone ?? DEFAULT_SPELL_CONE : null;
+    return <section className={`spell-detail is-${spell.id}`} aria-label={`${token.name} spell effect details`}>
+      <div className={`spell-detail-visual${spell.shape ? " is-generic-shape" : ""}`}>
+        {spell.shape ? <SpellShapeMark shape={spell.shape} /> : <NextImage src={spell.artAsset} alt="" width={180} height={180} unoptimized />}
+      </div>
+      <div className="spell-detail-copy"><small>Persistent spell · controlled by {token.controller.name}</small><h2>{token.name}</h2><p>{spell.description}</p></div>
+      <div className="spell-detail-meta">
+        <span><small>Area</small><strong>{cone ? `${cone.rangeFeet} ft · ${cone.angleDegrees}° spread` : spellFootprintLabel(spell, token.size)}</strong></span>
+        {cone ? <span><small>Direction</small><strong>{cone.directionDegrees}°</strong></span> : <span><small>Movement</small><strong>{canMoveToken(token) ? "Drag directly" : `Owner only · ${token.controller.name}`}</strong></span>}
+      </div>
+      {cone ? <SpellConeControls token={token} isDm={participant.role === "dm"} configure={controls.configureSpellCone} />
+        : token.controlledByViewer ? <label className="spell-size-control">Footprint
+          <select aria-label="Spell footprint size" value={SPELL_AREA_SIZES.includes(token.size as SpellAreaSize) ? token.size : "medium"} onChange={(event) => onResizeSpell(token, spell, event.target.value as SpellAreaSize)}>
+            {SPELL_AREA_SIZES.map((size) => <option value={size} key={size}>{spell.shape === "square" ? `${spellAreaDiameter(size)}-ft square` : `${spellAreaDiameter(size)}-ft diameter`}</option>)}
+          </select>
+        </label> : null}
+      {token.controlledByViewer ? <button className="dismiss-spell-button" onClick={() => onDeleteToken(token)}>Dismiss {spell.name}</button> : null}
+    </section>;
+  };
   const dockableTokenCard = (token: SharedToken, spell: SpellEffectDefinition | null, pinned: boolean) => <div className={`dockable-card${pinned ? " is-pinned" : ""}`}>
     <button type="button" className="card-lock-button" aria-label={`${pinned ? "Unlock" : "Lock"} ${token.name} card`} aria-pressed={pinned} data-tooltip={pinned ? "Unlock card from the bottom of the sidebar" : "Lock card at the bottom of the sidebar"} onClick={() => setPinnedTokenId(pinned ? null : token.id)}><Icon name={pinned ? "lock" : "unlock"} /></button>
     {tokenCard(token, spell)}

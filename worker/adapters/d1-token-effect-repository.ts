@@ -8,7 +8,7 @@ import {
 import { replayTokenEffectHistory } from "./d1-token-effect-history.ts";
 
 const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
-  climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden,
+  climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id, is_hidden, spell_cone_json,
   summoner_token_id, campaign_character_id, initiative, initiative_group_id, initiative_order, turn_complete,
   movement_used, altitude, movement_origin_x, movement_origin_y, owner_participant_id, owner_name`;
 
@@ -29,8 +29,8 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
          (id, encounter_id, name, x, y, art_asset, kind, size, speed, fly_speed, swim_speed,
           climb_speed, burrow_speed, armor_class, hp, max_hp, temporary_hp, catalog_creature_id,
           is_hidden, summoner_token_id, campaign_character_id, initiative, initiative_order, turn_complete,
-          movement_used, altitude, owner_participant_id, owner_name, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?
+          movement_used, altitude, owner_participant_id, owner_name, updated_at, spell_cone_json)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 0, 0, ?, NULL, NULL, ?, ?
          WHERE (SELECT COUNT(*) FROM tokens WHERE encounter_id = ?) < ?`,
       ).bind(
         input.id,
@@ -57,6 +57,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.initiativeOrder,
         input.altitude,
         input.now,
+        input.spellConeJson ?? null,
         input.encounterId,
         MAX_TOKENS_PER_ENCOUNTER,
       ).run();
@@ -71,7 +72,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
       await db.prepare(
         `UPDATE tokens SET name = ?, size = ?, speed = ?, fly_speed = ?, swim_speed = ?,
          climb_speed = ?, burrow_speed = ?, altitude = ?, armor_class = ?, hp = ?, max_hp = ?, temporary_hp = ?, catalog_creature_id = ?,
-         is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?
+         is_hidden = ?, art_asset = ?, x = ?, y = ?, updated_at = ?, spell_cone_json = ?
          WHERE id = ? AND encounter_id = ?`,
       ).bind(
         input.name,
@@ -92,6 +93,7 @@ export function createD1TokenEffectRepository(db: D1Database): TokenEffectReposi
         input.x,
         input.y,
         input.now,
+        input.spellConeJson ?? null,
         input.id,
         input.encounterId,
       ).run();

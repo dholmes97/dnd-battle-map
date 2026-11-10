@@ -1,0 +1,1 @@
+ALTER TABLE `tokens` ADD `spell_cone_json` text;

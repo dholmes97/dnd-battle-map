@@ -35,8 +35,10 @@ import {
   storedHandoutVariantError,
 } from "../shared/handout-domain.ts";
 import {
+  SPELL_CONE_ART,
   SPELL_EFFECT_KIND,
   SPELL_EFFECTS,
+  readSpellCone,
 } from "../shared/spell-effects";
 import {
   type CommandName,
@@ -1249,6 +1251,7 @@ async function handleCreatureCatalogActionImport(request: Request, env: Env): Pr
 
 async function isAllowedTokenArt(env: Env, value: unknown): Promise<boolean> {
   const artAsset = typeof value === "string" ? value : "";
+  if (artAsset === SPELL_CONE_ART) return false;
   if (CHARACTER_ART_ASSETS.includes(artAsset)) return true;
   if (SPELL_EFFECTS.some((spell) => spell.artAsset === artAsset)) return true;
   if (!artAsset) return false;
@@ -1706,7 +1709,8 @@ async function encounterState(
   const tokens = await env.DB.prepare(
     `SELECT t.id, t.name, t.x, t.y, t.art_asset, t.kind, t.size, t.speed,
             t.fly_speed, t.swim_speed, t.climb_speed, t.burrow_speed,
-            t.armor_class, t.hp, t.max_hp, t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.summoner_token_id, t.campaign_character_id, t.initiative,
+            t.armor_class, t.hp, t.max_hp, t.temporary_hp, t.catalog_creature_id, t.is_hidden, t.spell_cone_json,
+            t.summoner_token_id, t.campaign_character_id, t.initiative,
             t.initiative_group_id, t.initiative_order, t.turn_complete, t.movement_used, t.altitude,
             t.movement_origin_x, t.movement_origin_y,
             t.owner_participant_id, t.owner_name
@@ -1833,7 +1837,7 @@ async function encounterState(
   const fogVisibility = visibilityForViewer(activeMapPackage, visibilityTokens, viewer) as EncounterState["encounter"]["fogVisibility"];
   const visibleTokens = tokens.results.filter(
     (token) =>
-      ((!token.is_hidden || viewer?.role === "dm" || viewerControls(token)) &&
+      ((!token.is_hidden || viewer?.role === "dm" || (token.kind !== SPELL_EFFECT_KIND && viewerControls(token))) &&
       (viewer?.role === "dm" || viewerControls(token) || pointVisibleToViewer(token, fogVisibility))),
   );
   const actionRows = await env.DB.prepare(
@@ -2028,6 +2032,9 @@ async function encounterState(
         temporaryHp: canSeePrivateStats ? token.temporary_hp : null,
         healthState: coarseHealth(token.hp, token.max_hp),
         hidden: Boolean(token.is_hidden),
+        ...(token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART
+          ? { spellCone: readSpellCone(token.spell_cone_json) }
+          : {}),
         summonerTokenId: token.summoner_token_id,
         initiative: token.initiative,
         initiativeGroupId: token.initiative_group_id,
@@ -2213,6 +2220,7 @@ async function canControlToken(
   participant: ParticipantRow,
 ): Promise<boolean> {
   if (participant.role === "dm") return true;
+  if (token.kind === SPELL_EFFECT_KIND && token.is_hidden) return false;
   let current = token;
   const visited = new Set<string>();
   while (current.summoner_token_id && !visited.has(current.id)) {
@@ -2636,12 +2644,12 @@ async function handleApi(
   )
     .bind(tokenId, encounter.id)
     .first<TokenRow>();
-  if (!token) {
+  if (!token || (token.kind === SPELL_EFFECT_KIND && token.is_hidden && participant.role !== "dm")) {
     return json({ error: "Token not found." }, { status: 404 });
   }
 
   if (action === "move") {
-    const strictMovement = Boolean(encounter.strict_movement);
+    const strictMovement = token.kind === SPELL_EFFECT_KIND || Boolean(encounter.strict_movement);
     const controlledByViewer = participant.role === "dm" || !strictMovement || await canControlToken(env, encounter.id, token, participant);
     const policyDenial = movementPolicyDenial({
       strictMovement,

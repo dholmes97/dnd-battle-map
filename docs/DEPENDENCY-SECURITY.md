@@ -23,3 +23,16 @@ On 2026-09-07 the PNG-retirement release refreshed compatible transitive build
 packages: Browserslist 4.28.9, fast-uri 3.1.7, and fflate 0.7.5 (plus Browserslist's
 browser-data dependencies). Direct framework versions remain unchanged. Both
 required dependency audits again report zero vulnerabilities.
+
+## Reviewed development advisories
+
+Reviewed on 2026-11-09. Release owner is Dan Holmes. The production dependency audit found
+zero advisories. The following moderate advisories remain in the development
+toolchain. Recheck them at the next release and remove each entry once a
+compatible locked update clears the advisory and passes `npm run verify`.
+
+| Advisory | Dependency path and exposure | Release control |
+| --- | --- | --- |
+| GHSA-3g3m-2fjr-6pw4 | `c8 → test-exclude → glob` handles coverage file discovery. | Coverage uses repository-owned paths and patterns in the local and CI test commands. The production Worker has no coverage file-discovery path. |
+| GHSA-g3hv-75wg-m249 | `c8 → test-exclude → glob/minimatch` and `eslint-config-next → typescript-eslint → @typescript-eslint/typescript-estree → minimatch` handle test and lint patterns. | Only reviewed repository and CI commands supply those patterns. Encounter input does not reach either tool. |
+| GHSA-wx4j-mvgx-mqwp | `vinext → @vercel/og → satori` supports generated social images. | The application has no dynamic social-image route or `ImageResponse` usage. The release build contains no Satori renderer. Reassess before adding image generation to the runtime. |

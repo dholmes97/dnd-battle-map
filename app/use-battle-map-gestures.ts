@@ -46,7 +46,9 @@ import {
   spatialKeyboardIntent,
 } from "@/shared/spatial-keyboard";
 import {
+  DEFAULT_SPELL_CONE,
   SPELL_EFFECT_KIND,
+  pointInSpellCone,
   spellEffectByArt,
   spellEffectById,
   type SpellEffectDefinition,
@@ -497,6 +499,9 @@ export function useBattleMapGestures({
       const radius = geometry.cellSize * tokenRadiusCells(token.size);
       const distance = Math.hypot(deltaX, deltaY);
       const spell = token.kind === SPELL_EFFECT_KIND ? spellEffectByArt(token.artAsset) : null;
+      if (spell?.shape === "cone") {
+        return pointInSpellCone(token.spellCone ?? DEFAULT_SPELL_CONE, state.grid.feetPerCell, point.x - token.x, point.y - token.y);
+      }
       if (spell?.id === "magic-circle") {
         const outerRadius = radius * 1.25;
         return distance >= outerRadius * 0.72 && distance <= outerRadius * 1.08;
@@ -842,10 +847,14 @@ export function useBattleMapGestures({
     let bestDistance = Infinity;
     for (const token of state.tokens) {
       if (isTokenPendingCreation(token.id)) continue;
-      const distance = Math.hypot(point.x - token.x, point.y - token.y);
-      if (distance > tokenRadiusCells(token.size) + 0.25) continue;
+      const dx = point.x - token.x;
+      const dy = point.y - token.y;
+      const distance = Math.hypot(dx, dy);
       const bestIsSpell = best?.kind === SPELL_EFFECT_KIND;
       const tokenIsSpell = token.kind === SPELL_EFFECT_KIND;
+      const isCone = tokenIsSpell && spellEffectByArt(token.artAsset)?.shape === "cone";
+      const hitsCone = isCone && pointInSpellCone(token.spellCone ?? DEFAULT_SPELL_CONE, state.grid.feetPerCell, dx, dy);
+      if (!hitsCone && distance > tokenRadiusCells(token.size) + 0.25) continue;
       if (distance > bestDistance || (distance === bestDistance && best && !bestIsSpell && tokenIsSpell)) continue;
       if (distance === bestDistance && best && bestIsSpell === tokenIsSpell && token.id.localeCompare(best.id) >= 0) continue;
       best = token;

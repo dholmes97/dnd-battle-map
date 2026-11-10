@@ -1091,3 +1091,72 @@ test("eight joined clients converge on one collaboration update", async () => {
     await command(dm, "clear-annotations").catch(() => null);
   }
 });
+
+test("Spell Cone geometry and DM-only visibility survive live sync and history", async () => {
+  const { participant: dm } = await joinIdentity(FIXED_IDENTITIES.kevin);
+  const { participant: player, state } = await joinIdentity(FIXED_IDENTITIES.dan);
+  const originalStrictMovement = state.encounter.strictMovement;
+  const createdIds = [];
+  const findCone = (state, id) => state.tokens.find((token) => token.id === id);
+  try {
+    const placed = await command(dm, "create-spell-effect", { spellId: "spell-cone", x: 4, y: 4 });
+    assert.equal(placed.response.status, 200);
+    const tokenId = placed.body.tokenId;
+    createdIds.push(tokenId);
+    const initial = findCone(placed.body.state, tokenId);
+    assert.equal(initial.hidden, true);
+    assert.deepEqual(initial.spellCone, { rangeFeet: 30, angleDegrees: 90, directionDegrees: 90 });
+    assert.equal(findCone((await viewerState(player)).body, tokenId), undefined);
+
+    const spellCone = { rangeFeet: 60, angleDegrees: 55, directionDegrees: 290 };
+    const edit = await command(dm, "update-token", { tokenId, spellCone });
+    assert.equal(edit.response.status, 200);
+    assert.deepEqual(findCone(edit.body.state, tokenId).spellCone, spellCone);
+    const moved = await request("move", {
+      method: "POST", body: participantBody(dm, tokenId, { x: 5, y: 5 }),
+    });
+    assert.equal(moved.response.status, 200);
+    assert.equal(moved.body.movementUsed, 0);
+    assert.deepEqual(findCone(moved.body.state, tokenId).spellCone, spellCone);
+    const shared = await command(dm, "update-token", { tokenId, hidden: false });
+    assert.equal(shared.response.status, 200);
+    const remoteCone = findCone((await viewerState(player)).body, tokenId);
+    assert.deepEqual(remoteCone.spellCone, spellCone);
+    assert.deepEqual([remoteCone.x, remoteCone.y], [5, 5]);
+    assert.equal(remoteCone.controlledByViewer, false);
+    assert.equal((await command(player, "update-token", { tokenId, spellCone })).response.status, 403);
+    await command(dm, "set-strict-movement", { enabled: false });
+    assert.equal((await request("move", {
+      method: "POST", body: participantBody(player, tokenId, { x: 6, y: 6 }),
+    })).response.status, 403);
+
+    assert.equal((await command(dm, "undo")).response.status, 200);
+    assert.equal(findCone((await viewerState(player)).body, tokenId), undefined);
+    assert.equal((await command(dm, "redo")).response.status, 200);
+    assert.deepEqual(findCone((await viewerState(player)).body, tokenId).spellCone, spellCone);
+    assert.equal((await command(dm, "delete-token", { tokenId })).response.status, 200);
+    assert.equal(findCone((await viewerState(player)).body, tokenId), undefined);
+    const restored = await command(dm, "undo");
+    assert.equal(restored.response.status, 200);
+    assert.deepEqual(findCone(restored.body.state, tokenId).spellCone, spellCone);
+
+    const playerPlacement = await command(player, "create-spell-effect", {
+      spellId: "spell-cone", summonerTokenId: FIXED_IDENTITIES.dan.tokenId, x: 4, y: 4,
+    });
+    assert.equal(playerPlacement.response.status, 200);
+    const playerConeId = playerPlacement.body.tokenId;
+    createdIds.push(playerConeId);
+    const playerCone = findCone(playerPlacement.body.state, playerConeId);
+    assert.equal(playerCone.hidden, false);
+    assert.equal(playerCone.controlledByViewer, true);
+    assert.equal((await command(player, "update-token", { tokenId: playerConeId, hidden: true })).response.status, 403);
+    assert.equal((await command(dm, "update-token", { tokenId: playerConeId, hidden: true })).response.status, 200);
+    assert.equal(findCone((await viewerState(player)).body, playerConeId), undefined);
+    assert.equal((await request("move", {
+      method: "POST", body: participantBody(player, playerConeId, { x: 6, y: 6 }),
+    })).response.status, 404);
+  } finally {
+    await command(dm, "set-strict-movement", { enabled: originalStrictMovement });
+    for (const tokenId of createdIds) await command(dm, "delete-token", { tokenId });
+  }
+});

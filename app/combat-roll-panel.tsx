@@ -38,6 +38,11 @@ type CombatPanelPosition = {
 const COMBAT_PANEL_GUTTER = 8;
 const COMBAT_PANEL_ANCHOR_GAP = 10;
 
+function readLastAttack(key: string | null): string | null {
+  try { return key ? window.localStorage.getItem(key) : null; }
+  catch { return null; }
+}
+
 export function calculateCombatPanelPosition({
   anchor,
   containerWidth,
@@ -92,6 +97,7 @@ export function calculateCombatPanelPosition({
 
 export function CombatRollPanel({
   participant,
+  playerIdentityId,
   state,
   attacker,
   target,
@@ -101,6 +107,7 @@ export function CombatRollPanel({
   onComplete,
 }: {
   participant: ParticipantSession;
+  playerIdentityId?: string;
   state: EncounterState;
   attacker: SharedToken;
   target: SharedToken;
@@ -110,10 +117,14 @@ export function CombatRollPanel({
   onComplete(response: CombatRollResponse): void;
 }) {
   const actions = useMemo(
-    () => state.combatActions.filter((action) => action.applicableTokenIds.includes(attacker.id)),
+    () => state.combatActions.filter((action) => action.enabled && action.applicableTokenIds.includes(attacker.id)),
     [attacker.id, state.combatActions],
   );
-  const [actionId, setActionId] = useState(actions[0]?.id ?? "");
+  const attackerScope = attacker.campaignCharacterId ?? [state.encounter.code, attacker.id];
+  const lastAttackKey = participant.role === "player" && playerIdentityId
+    ? `dnd-battle-map:last-attack:v1:${JSON.stringify([playerIdentityId, attackerScope])}`
+    : null;
+  const [actionId, setActionId] = useState(() => readLastAttack(lastAttackKey) ?? actions[0]?.id ?? "");
   const [rollMode, setRollMode] = useState<RollMode>("normal");
   const [alternateDamage, setAlternateDamage] = useState(false);
   const [pending, setPending] = useState(false);
@@ -217,7 +228,13 @@ export function CombatRollPanel({
         rollMode,
         alternateDamage: selectedAction?.alternateDamage ? alternateDamage : undefined,
       });
-      if (response) onComplete(response);
+      if (response) {
+        if (lastAttackKey && selectedAction) {
+          try { window.localStorage.setItem(lastAttackKey, selectedAction.id); }
+          catch { /* The roll can still complete when browser storage is unavailable. */ }
+        }
+        onComplete(response);
+      }
     } finally {
       setPending(false);
     }

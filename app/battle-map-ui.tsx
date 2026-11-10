@@ -51,8 +51,13 @@ export function Icon({ name }: { name: IconName }) {
   );
 }
 
-export function SpellShapeMark({ shape, className = "" }: { shape: "circle" | "square"; className?: string }) {
-  return <span className={`${className}${className ? " " : ""}spell-shape-mark is-${shape}`} aria-hidden="true"><i /></span>;
+export function SpellShapeMark({ shape, className = "" }: { shape: "circle" | "square" | "cone"; className?: string }) {
+  return <span className={`${className}${className ? " " : ""}spell-shape-mark is-${shape}`} aria-hidden="true">
+    {shape === "cone" ? <svg viewBox="0 0 48 48" focusable="false">
+      <path d="M24 39 9 13a30 30 0 0 1 30 0Z" fill="currentColor" fillOpacity=".15" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M24 39V9" stroke="currentColor" strokeOpacity=".55" strokeDasharray="3 3" />
+    </svg> : <i />}
+  </span>;
 }
 
 type UiSettingsMenuProps = {

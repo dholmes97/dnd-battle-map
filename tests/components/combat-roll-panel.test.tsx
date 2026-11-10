@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CombatRollPanel,
   calculateCombatPanelPosition,
@@ -43,6 +43,8 @@ const player: ParticipantSession = { id: "participant", name: "Player", role: "p
 const dm: ParticipantSession = { id: "dm", name: "DM", role: "dm", sessionSecret: "secret" };
 const attacker = token("attacker", { name: "Blessed Hero", effects: [{ id: "bless", name: " Bless ", type: "concentration", durationRounds: 10, expiresRound: 11, reminderTiming: "end", due: false }] });
 const target = token("target", { name: "Goblin", controlledByViewer: false });
+
+afterEach(() => vi.unstubAllGlobals());
 
 function result(): CombatRollResponse {
   return {
@@ -172,6 +174,41 @@ describe("CombatRollPanel", () => {
     expect(onRoll.mock.calls[0][0]).toMatchObject({ rollMode: "advantage", alternateDamage: true, actionProfileId: "longsword" });
     expect(onComplete).toHaveBeenCalledWith(result());
     expect(screen.queryByText("d20 16, 4 + Bless 3 = 26")).toBeNull();
+  });
+
+  it("defaults to the player's last successful action while it is still available", async () => {
+    const storedActions = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => storedActions.get(key) ?? null,
+      setItem: (key: string, value: string) => storedActions.set(key, value),
+    });
+    const bow = { ...action, id: "bow", name: "Longbow", alternateDamage: null };
+    const onRoll = vi.fn().mockResolvedValueOnce(result()).mockResolvedValueOnce(null);
+    const props = {
+      participant: player, playerIdentityId: "identity-player",
+      state: state([action, bow]), attacker: { ...attacker, campaignCharacterId: "campaign-character" },
+      target, anchor: { x: 10, y: 10 }, onClose: vi.fn(), onRoll, onComplete: vi.fn(),
+    };
+    const chooser = render(<CombatRollPanel key="first" {...props} />);
+    const picker = () => screen.getByRole("combobox", { name: "Action" });
+    const selectedValue = () => screen.getByRole("option", { selected: true }).getAttribute("value");
+    expect(selectedValue()).toBe("longsword");
+    await userEvent.selectOptions(picker(), "bow");
+    await userEvent.click(screen.getByRole("button", { name: "Roll attack" }));
+    await waitFor(() => expect(props.onComplete).toHaveBeenCalledOnce());
+
+    chooser.rerender(<CombatRollPanel key="second" {...props} />);
+    expect(selectedValue()).toBe("bow");
+    await userEvent.selectOptions(picker(), "longsword");
+    await userEvent.click(screen.getByRole("button", { name: "Roll attack" }));
+    await waitFor(() => expect(onRoll).toHaveBeenCalledTimes(2));
+
+    chooser.rerender(<CombatRollPanel key="third" {...props} />);
+    expect(selectedValue()).toBe("bow");
+    chooser.rerender(<CombatRollPanel key="other-player" {...props} playerIdentityId="identity-other" />);
+    expect(selectedValue()).toBe("longsword");
+    chooser.rerender(<CombatRollPanel key="disabled" {...props} state={state([action, { ...bow, enabled: false }])} />);
+    expect(selectedValue()).toBe("longsword");
   });
 
   it("offers the structured unsaved fallback only to the DM when no profile exists", async () => {
