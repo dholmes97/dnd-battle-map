@@ -481,11 +481,19 @@ test("DM email delegation persists and can be revoked", async ({ page }) => {
 });
 
 test("Spell Cone can be placed, configured, and shared with a live player", async ({ page, browser }, testInfo) => {
+  // Model two distinct clients so this test can run within the shared local login quota.
+  const localLogin = /^http:\/\/localhost:\d+\/api\/auth\/dev-login$/;
+  await page.route(localLogin, (route) => route.continue({
+    headers: { ...route.request().headers(), "cf-connecting-ip": "192.0.2.10" },
+  }));
   await page.setViewportSize({ width: 1440, height: 900 });
   await enterFirstEncounterAsDm(page);
   const playerContext = await browser.newContext();
   const player = await playerContext.newPage();
   try {
+    await player.route(localLogin, (route) => route.continue({
+      headers: { ...route.request().headers(), "cf-connecting-ip": "192.0.2.11" },
+    }));
     await openHydratedApplication(player);
     await openCampaignAs(player, "Dan");
     await player.getByRole("button", { name: "Enter encounter" }).first().click();
