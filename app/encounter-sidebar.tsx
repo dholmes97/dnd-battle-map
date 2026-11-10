@@ -73,6 +73,7 @@ function SpellConeControls({ token, isDm, configure }: {
         <label>Angle (°)<input type="number" name="angleDegrees" min={1} max={MAX_SPELL_CONE_ANGLE_DEGREES} defaultValue={angleDegrees} required /></label>
         <label>Direction (°)<input type="number" name="directionDegrees" min={0} max={359} defaultValue={directionDegrees} required /></label>
       </div>
+      <small>Drag a corner to rotate. Drag inside to move.</small>
       <small>0° north · 90° east · 180° south · 270° west</small>
       <button type="submit">Apply cone settings</button>
     </form> : null}

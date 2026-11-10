@@ -2,7 +2,7 @@ import { tokenRadiusCells, type CreatureSize } from "../../shared/creature-libra
 import { transitionHp } from "../../shared/encounter-transitions.ts";
 import { transitionDamageWithTemporaryHp } from "../../shared/combat-rolling.ts";
 import { normalizeAltitude } from "../../shared/token-altitude.ts";
-import { DEFAULT_SPELL_CONE, SPELL_CONE_ART, SPELL_EFFECT_KIND, spellEffectById } from "../../shared/spell-effects.ts";
+import { DEFAULT_SPELL_CONE, SPELL_CONE_ART, SPELL_EFFECT_KIND, readSpellCone, spellEffectById } from "../../shared/spell-effects.ts";
 import type { TokenEffectRepository, TokenWrite } from "../ports/token-effect-repository.ts";
 import type { TokenRow } from "../types.ts";
 import { commandError, type CommandContextFor, type CommandOutcome } from "./types.ts";
@@ -128,7 +128,12 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot edit this token.", 403);
   const isCone = token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART;
-  if (context.payload.spellCone && !isCone) return commandError("Only Spell Cone supports cone geometry.", 400);
+  const { spellConeDirection } = context.payload;
+  if (!isCone && (context.payload.spellCone || spellConeDirection !== undefined)) {
+    return commandError("Only Spell Cone supports cone geometry.", 400);
+  }
+  const spellCone = spellConeDirection === undefined ? context.payload.spellCone
+    : { ...readSpellCone(token.spell_cone_json), directionDegrees: spellConeDirection };
   if (isCone && context.payload.hidden !== undefined && context.participant.role !== "dm") {
     return commandError("Only the DM can change cone visibility.", 403);
   }
@@ -165,10 +170,10 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
     hidden: context.participant.role === "dm"
       ? context.payload.hidden ?? Boolean(token.is_hidden)
       : Boolean(token.is_hidden),
-    spellConeJson: context.payload.spellCone ? JSON.stringify(context.payload.spellCone) : token.spell_cone_json,
+    spellConeJson: spellCone ? JSON.stringify(spellCone) : token.spell_cone_json,
     artAsset,
-    x: clamp(token.x, context.encounter.gridWidth, size),
-    y: clamp(token.y, context.encounter.gridHeight, size),
+    x: isCone ? token.x : clamp(token.x, context.encounter.gridWidth, size),
+    y: isCone ? token.y : clamp(token.y, context.encounter.gridHeight, size),
     kind: token.kind,
     summonerTokenId: token.summoner_token_id,
     initiative: token.initiative,

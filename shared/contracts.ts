@@ -258,6 +258,7 @@ export type CommandPayloadMap = {
     hidden?: boolean;
     artAsset?: string;
     spellCone?: SpellCone;
+    spellConeDirection?: number;
   };
   "apply-hp": { tokenId: string; delta: number };
   "link-beyond20": { tokenId: string; characterId: string | null };

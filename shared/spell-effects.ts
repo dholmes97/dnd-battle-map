@@ -4,6 +4,7 @@ export const SPELL_EFFECT_KIND = "spell-effect";
 export const SPELL_CONE_ART = "shape:spell-cone";
 export const MAX_SPELL_CONE_RANGE_FEET = 300;
 export const MAX_SPELL_CONE_ANGLE_DEGREES = 180;
+export const SPELL_CONE_HANDLE_RADIUS_PX = 6;
 export type SpellCone = { rangeFeet: number; angleDegrees: number; directionDegrees: number };
 export const DEFAULT_SPELL_CONE: Readonly<SpellCone> = { rangeFeet: 30, angleDegrees: 90, directionDegrees: 90 };
 export const SPELL_AREA_SIZES = ["medium", "large", "huge", "gargantuan"] as const;
@@ -88,8 +89,12 @@ export function parseSpellCone(value: unknown): SpellCone | null {
   const { rangeFeet, angleDegrees, directionDegrees } = value as Record<string, unknown>;
   if (!wholeNumberInRange(rangeFeet, 5, MAX_SPELL_CONE_RANGE_FEET) ||
       !wholeNumberInRange(angleDegrees, 1, MAX_SPELL_CONE_ANGLE_DEGREES) ||
-      !wholeNumberInRange(directionDegrees, 0, 359)) return null;
+      !isSpellConeDirection(directionDegrees)) return null;
   return { rangeFeet, angleDegrees, directionDegrees };
+}
+
+export function isSpellConeDirection(value: unknown): value is number {
+  return wholeNumberInRange(value, 0, 359);
 }
 
 export function readSpellCone(serialized: string | null | undefined): SpellCone {
@@ -104,10 +109,19 @@ function wholeNumberInRange(value: unknown, min: number, max: number): value is 
   return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
 }
 
-export function spellConeGeometry(cone: SpellCone, feetPerCell: number) {
-  const direction = (cone.directionDegrees - 90) * Math.PI / 180;
+export function spellConeGeometry(cone: SpellCone, feetPerCell: number, directionDegrees = cone.directionDegrees) {
+  const direction = (directionDegrees - 90) * Math.PI / 180;
   const halfAngle = cone.angleDegrees * Math.PI / 360;
   return { radius: cone.rangeFeet / feetPerCell, direction, start: direction - halfAngle, end: direction + halfAngle };
+}
+
+export function spellConeCornerOffsets({ radius, start, end }: ReturnType<typeof spellConeGeometry>) {
+  return [start, end].map((angle) => ({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) }));
+}
+
+export function rotateSpellConeDirection(directionDegrees: number, start: { x: number; y: number }, current: { x: number; y: number }) {
+  const turn = Math.atan2(current.y, current.x) - Math.atan2(start.y, start.x);
+  return ((Math.round(directionDegrees + turn * 180 / Math.PI) % 360) + 360) % 360;
 }
 
 export function pointInSpellCone(cone: SpellCone, feetPerCell: number, dx: number, dy: number): boolean {

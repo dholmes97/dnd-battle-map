@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spellArtUsesAnimation } from "../shared/battle-map-animation.ts";
 import { parseCommandRequest } from "../shared/command-parser.ts";
-import { DEFAULT_SPELL_CONE, pointInSpellCone, spellEffectById } from "../shared/spell-effects.ts";
+import { DEFAULT_SPELL_CONE, pointInSpellCone, rotateSpellConeDirection, spellEffectById } from "../shared/spell-effects.ts";
 
 test("Spell Cone is a static sector measured from its tip in map units", () => {
   const spell = spellEffectById("spell-cone");
@@ -30,4 +30,13 @@ test("the command parser bounds cone geometry and rejects non-numeric values", (
   for (const changes of [{ rangeFeet: 301 }, { rangeFeet: "30" }, { angleDegrees: 0 }, { angleDegrees: 181 }, { directionDegrees: 360 }, { directionDegrees: 2.5 }]) {
     assert.equal(parseCommandRequest({ ...base, spellCone: { ...DEFAULT_SPELL_CONE, ...changes } }).ok, false);
   }
+  assert.equal(parseCommandRequest({ ...base, spellConeDirection: 0 }).ok, true);
+  assert.equal(parseCommandRequest({ ...base, spellConeDirection: 360 }).ok, false);
+  assert.equal(parseCommandRequest({ ...base, spellCone: DEFAULT_SPELL_CONE, spellConeDirection: 180 }).ok, false);
+});
+
+test("relative corner rotation preserves the initial grip and wraps north", () => {
+  assert.equal(rotateSpellConeDirection(90, { x: 1, y: 1 }, { x: 2, y: 2 }), 90);
+  assert.equal(rotateSpellConeDirection(315, { x: 1, y: 0 }, { x: 0, y: 1 }), 45);
+  assert.equal(rotateSpellConeDirection(45, { x: 0, y: 1 }, { x: 1, y: 0 }), 315);
 });

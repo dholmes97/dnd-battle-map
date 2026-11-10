@@ -14,11 +14,12 @@ function release(scene: RenderedMapScene | null): void {
   scene.image.src = "";
 }
 
-export function useMapAssets({ active, state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor, pingStartedAtRef, canvasRef }: {
+export function useMapAssets({ active, state, participant, preview, coneHandlesTokenId, placementPreview, spellPlacementPreview, dragOrigin, viewport, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor, pingStartedAtRef, canvasRef }: {
   active: boolean;
   state: EncounterState | null;
   participant: ParticipantSession | null;
   preview: TokenPreview | null;
+  coneHandlesTokenId?: string | null;
   placementPreview: PlacementPreview | null;
   spellPlacementPreview: SpellPlacementPreview | null;
   dragOrigin: { x: number; y: number } | null;
@@ -128,8 +129,8 @@ export function useMapAssets({ active, state, participant, preview, placementPre
 
   const redraw = useCallback((animationNow = Date.now()) => {
     const scene = state?.encounter.mapPackage && renderedMapScene?.mapId === state.encounter.mapPackage.id ? renderedMapScene.image : null;
-    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, scene, tokenArt, viewport, pingStartedAtRef.current, animationNow, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor);
-  }, [canvasRef, dragOrigin, gridOpacity, keyboardCursor, participant, pingStartedAtRef, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, selectedTokenId, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
+    if (canvasRef.current && state && participant) drawMap(canvasRef.current, state, preview, placementPreview, spellPlacementPreview, dragOrigin, participant, scene, tokenArt, viewport, pingStartedAtRef.current, animationNow, selectedTokenId, selectedMapNoteId, gridOpacity, showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor, coneHandlesTokenId);
+  }, [canvasRef, coneHandlesTokenId, dragOrigin, gridOpacity, keyboardCursor, participant, pingStartedAtRef, placementPreview, preview, renderedMapScene, selectedMapNoteId, selectedSharedFogVertex, selectedTokenId, sharedFogPreview, showColoredTokenCenters, showHealthRings, spellPlacementPreview, state, tokenArt, viewport]);
 
   useEffect(() => {
     if (!active) return;

@@ -2,8 +2,8 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useBattleMapGestures } from "@/app/use-battle-map-gestures";
 import { viewportGeometry } from "@/shared/battle-map-geometry";
-import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
-import { SPELL_EFFECT_KIND } from "@/shared/spell-effects";
+import type { EncounterState, MapPoint, ParticipantSession, SharedToken } from "@/shared/contracts";
+import { DEFAULT_SPELL_CONE, SPELL_CONE_ART, SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 
 const participant: ParticipantSession = {
   id: "participant-1",
@@ -69,6 +69,7 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
     onPlaceCreature: vi.fn(),
     onPlaceSpellEffect: vi.fn(),
     onMoveToken: vi.fn(),
+    onRotateSpellCone: vi.fn(),
     onAddAnnotation: vi.fn(),
     onRemoveAnnotation: vi.fn(),
     onUpdateSharedFog,
@@ -81,7 +82,7 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
 function pointerDownAtToken(
   viewport: ReturnType<typeof renderGestures>["result"]["current"]["viewport"],
   currentState: EncounterState,
-  target: SharedToken,
+  target: MapPoint,
   pointerId = 1,
 ) {
   const rect = { left: 0, top: 0, width: 1200, height: 800 } as DOMRect;
@@ -119,6 +120,52 @@ function keyboardEvent(key: string, modifiers: Partial<React.KeyboardEvent<HTMLC
 }
 
 describe("useBattleMapGestures", () => {
+  it.each([-1, 1])("rotates a cone around its tip from forward corner %s", (side) => {
+    const cone = { ...token, kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART, spellCone: DEFAULT_SPELL_CONE };
+    const coneState = { ...state, tokens: [cone] };
+    const onMoveToken = vi.fn();
+    const onRotateSpellCone = vi.fn();
+    const { result } = renderGestures({
+      state: coneState, selectedTokenId: cone.id, canMoveToken: () => true, onMoveToken, onRotateSpellCone,
+    });
+    const corner = 6 / Math.sqrt(2);
+    const { event: start } = pointerDownAtToken(result.current.viewport, coneState, { x: cone.x + corner, y: cone.y + side * corner });
+    const { event: end } = pointerDownAtToken(result.current.viewport, coneState, { x: cone.x - side * corner, y: cone.y + corner });
+    expect(result.current.coneHandlesTokenId).toBe(cone.id);
+    act(() => result.current.onCanvasPointerDown(start));
+    act(() => result.current.onCanvasPointerMove(end));
+    expect(result.current.preview).toMatchObject({ tokenId: cone.id, x: cone.x, y: cone.y, spellConeDirection: 180 });
+    expect(onRotateSpellCone).not.toHaveBeenCalled();
+    act(() => result.current.onCanvasPointerUp(end));
+    expect(onRotateSpellCone).toHaveBeenCalledExactlyOnceWith(cone, 180);
+    expect(onMoveToken).not.toHaveBeenCalled();
+    expect(result.current.preview).toBeNull();
+  });
+
+  it("moves a selected cone by its interior and discards a cancelled corner drag", () => {
+    const cone = { ...token, kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART };
+    const coneState = { ...state, tokens: [cone] };
+    const onMoveToken = vi.fn();
+    const onRotateSpellCone = vi.fn();
+    const { result } = renderGestures({
+      state: coneState, selectedTokenId: cone.id, canMoveToken: () => true, onMoveToken, onRotateSpellCone,
+    });
+    const pointer = (x: number, y: number) => pointerDownAtToken(result.current.viewport, coneState, { x, y }).event;
+    act(() => result.current.onCanvasPointerDown(pointer(7, 5)));
+    act(() => result.current.onCanvasPointerUp(pointer(8, 6)));
+    expect(onMoveToken).toHaveBeenCalledExactlyOnceWith(cone.id, { x: 6, y: 6, altitude: 0 });
+
+    const corner = 6 / Math.sqrt(2);
+    act(() => result.current.onCanvasPointerDown(pointer(cone.x + corner, cone.y + corner)));
+    const end = pointer(5, 10);
+    act(() => result.current.onCanvasPointerMove(end));
+    expect(result.current.preview?.spellConeDirection).toBe(135);
+    act(() => result.current.onCanvasPointerCancel(end));
+    act(() => result.current.onCanvasPointerUp(end));
+    expect(onRotateSpellCone).not.toHaveBeenCalled();
+    expect(result.current.preview).toBeNull();
+  });
+
   it("completes a token move and altitude change without a pointer", () => {
     const onMoveToken = vi.fn();
     const { result, onSelectToken } = renderGestures({

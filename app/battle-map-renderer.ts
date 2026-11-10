@@ -4,14 +4,14 @@ import { tokenRadiusCells } from "@/shared/creature-library";
 import type { EncounterState, MapPoint, ParticipantSession, SharedAnnotation, SharedToken } from "@/shared/contracts";
 import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shared/battle-map-geometry";
 import { displayHealth } from "@/shared/health";
-import { DEFAULT_SPELL_CONE, SPELL_EFFECT_KIND, spellConeGeometry, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
+import { DEFAULT_SPELL_CONE, SPELL_CONE_HANDLE_RADIUS_PX, SPELL_EFFECT_KIND, spellConeCornerOffsets, spellConeGeometry, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
 import { annotationGeometryIsBounded } from "@/shared/annotation-geometry";
 import { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "@/shared/token-label-layout";
 
 export { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 
-export type TokenPreview = MapPoint & { tokenId: string; altitude: number };
+export type TokenPreview = MapPoint & { tokenId: string; altitude: number; spellConeDirection?: number };
 export type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 export type SpellPlacementPreview = MapPoint & { spell: SpellEffectDefinition };
 export type BattleMapViewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
@@ -159,11 +159,12 @@ function drawSpellEffect(
   animationNow: number,
   selected: boolean,
   owned: boolean,
+  coneDirection?: number,
 ) {
   const spell = spellEffectByArt(token.artAsset);
   if (!spell) return;
   if (spell.shape === "cone") {
-    const geometry = spellConeGeometry(token.spellCone ?? DEFAULT_SPELL_CONE, feetPerCell);
+    const geometry = spellConeGeometry(token.spellCone ?? DEFAULT_SPELL_CONE, feetPerCell, coneDirection);
     const radius = geometry.radius * cellSize;
     context.save();
     const fill = context.createRadialGradient(x, y, 0, x, y, radius);
@@ -503,6 +504,7 @@ export function drawMap(
   sharedFogPreview: MapPoint[] | null,
   selectedSharedFogVertex: number | null,
   keyboardCursor: MapPoint | null,
+  coneHandlesTokenId: string | null = null,
 ) {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -657,7 +659,8 @@ export function drawMap(
     const y = screenY(position.y);
     drawSpellEffect(context, token, x, y, Math.min(cellWidth, cellHeight), state.grid.feetPerCell,
       token.artAsset ? tokenArt.get(token.artAsset) ?? null : null,
-      animationNow, token.id === selectedTokenId, token.controlledByViewer);
+      animationNow, token.id === selectedTokenId, token.controlledByViewer,
+      preview?.tokenId === token.id ? preview.spellConeDirection : undefined);
   });
 
   if (preview && dragOrigin) {
@@ -947,6 +950,23 @@ export function drawMap(
     context.save(); context.globalAlpha = 0.78;
     drawSpellEffect(context, spellToken, screenX(spellToken.x), screenY(spellToken.y), Math.min(cellWidth, cellHeight), state.grid.feetPerCell,
       tokenArt.get(spellToken.artAsset ?? "") ?? null, animationNow, true, true);
+    context.restore();
+  }
+  const coneWithHandles = coneHandlesTokenId ? state.tokens.find((token) => token.id === coneHandlesTokenId) : null;
+  if (coneWithHandles) {
+    const conePreview = preview?.tokenId === coneWithHandles.id ? preview : null;
+    const origin = conePreview ?? coneWithHandles;
+    const geometry = spellConeGeometry(coneWithHandles.spellCone ?? DEFAULT_SPELL_CONE, state.grid.feetPerCell, conePreview?.spellConeDirection);
+    context.save();
+    context.fillStyle = "#302319";
+    context.strokeStyle = "#fff2bd";
+    context.lineWidth = 2;
+    for (const corner of spellConeCornerOffsets(geometry)) {
+      context.beginPath();
+      context.arc(screenX(origin.x + corner.x), screenY(origin.y + corner.y), SPELL_CONE_HANDLE_RADIUS_PX, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+    }
     context.restore();
   }
   if (keyboardCursor) {

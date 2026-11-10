@@ -756,6 +756,7 @@ export default function BattleMapPrototype() {
     onPlaceCreature: placeCreature,
     onPlaceSpellEffect: placeSpellEffect,
     onMoveToken: publishMove,
+    onRotateSpellCone: tokenControls.rotateSpellCone,
     onAddAnnotation: addAnnotation,
     onRemoveAnnotation: (annotation) => void runOptimisticCommand(
       "remove-annotation",
@@ -768,6 +769,7 @@ export default function BattleMapPrototype() {
   });
   const {
     preview,
+    coneHandlesTokenId,
     dragOrigin,
     dragging,
     placementPreview,
@@ -789,6 +791,7 @@ export default function BattleMapPrototype() {
     onCanvasPointerMove,
     onCanvasPointerUp,
     onCanvasPointerCancel,
+    onCanvasLostPointerCapture,
     onCanvasWheel,
     onCanvasContextMenu,
     onCanvasFocus,
@@ -805,7 +808,7 @@ export default function BattleMapPrototype() {
   } = gestures;
   useMapAssets({
     active: !workshopOpen,
-    state, participant, preview, placementPreview, spellPlacementPreview, dragOrigin, viewport,
+    state, participant, preview, coneHandlesTokenId, placementPreview, spellPlacementPreview, dragOrigin, viewport,
     selectedTokenId: effectiveSelectedTokenId, selectedMapNoteId, gridOpacity,
     showColoredTokenCenters, showHealthRings, sharedFogPreview, selectedSharedFogVertex, keyboardCursor,
     pingStartedAtRef, canvasRef,
@@ -1084,7 +1087,7 @@ export default function BattleMapPrototype() {
           <div className="map-stage">
           <div className="map-frame" style={{ aspectRatio: `${state.grid.width} / ${state.grid.height}` }}>
             <p id="battle-map-keyboard-help" className="visually-hidden">Arrow keys move the map cursor one cell; Shift plus arrows moves five cells. Enter activates the current tool or selects an object. Space grabs or drops a movable token. Page Up and Page Down adjust altitude while grabbed. Alt plus arrows pans. Plus and minus zoom. Escape cancels a staged keyboard action.</p>
-            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onWheel={onCanvasWheel} onContextMenu={onCanvasContextMenu} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-describedby="battle-map-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space PageUp PageDown Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight + - Escape" aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="application" tabIndex={0} />
+            <canvas ref={canvasRef} className={`map-canvas${dragging ? " is-dragging" : ""}${panning ? " is-panning" : ""}${armedCreatureId || armedSpellId ? " is-placing" : ""}${annotationMode === "erase" ? " is-erasing" : ""}${editingSharedFog ? " is-editing-fog" : ""}${movementEnabled ? "" : " is-blocked"}`} onFocus={onCanvasFocus} onKeyDown={onCanvasKeyDown} onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onLostPointerCapture={onCanvasLostPointerCapture} onWheel={onCanvasWheel} onContextMenu={onCanvasContextMenu} onDragOver={onMapDragOver} onDrop={onMapDrop} onDragLeave={onMapDragLeave} aria-describedby="battle-map-keyboard-help" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space PageUp PageDown Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight + - Escape" aria-label={`${state.grid.width} by ${state.grid.height} battle grid with ${state.tokens.length} visible tokens. ${mapInteractionDescription}`} role="application" tabIndex={0} />
             {combatChooser ? (() => {
               const attacker = state.tokens.find((token) => token.id === combatChooser.attackerId);
               const target = state.tokens.find((token) => token.id === combatChooser.targetId);

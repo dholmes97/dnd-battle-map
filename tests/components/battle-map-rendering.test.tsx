@@ -6,7 +6,7 @@ import { useMapAssets } from "@/app/use-map-assets";
 import { battleMapAnimationIsActive } from "@/shared/battle-map-animation";
 import type { EncounterState, ParticipantSession, SharedToken } from "@/shared/contracts";
 import type { MapPackage } from "@/shared/map-package";
-import { SPELL_EFFECT_KIND } from "@/shared/spell-effects";
+import { SPELL_CONE_ART, SPELL_CONE_HANDLE_RADIUS_PX, SPELL_EFFECT_KIND } from "@/shared/spell-effects";
 import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "@/shared/token-label-layout";
 
 const participant: ParticipantSession = { id: "player-1", name: "Dan", role: "player", sessionSecret: "secret" };
@@ -164,6 +164,25 @@ describe("token label layout", () => {
 });
 
 describe("executable canvas adapters", () => {
+  it("paints both handles at the forward corners of the local cone rotation preview", () => {
+    const context = contextMock();
+    const canvas = document.createElement("canvas");
+    Object.defineProperty(canvas, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 1200, height: 800 }) });
+    Object.defineProperty(canvas, "getContext", { value: () => context });
+    const cone = createToken({ kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART });
+    const preview = { tokenId: cone.id, x: cone.x, y: cone.y, altitude: 0, spellConeDirection: 180 };
+
+    drawMap(canvas, createState([cone]), preview, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, cone.id, null, 0.4, true, true, null, null, null, cone.id);
+
+    const corner = 300 / Math.sqrt(2);
+    const handles = vi.mocked(context.arc).mock.calls.filter(([, , radius]) => radius === SPELL_CONE_HANDLE_RADIUS_PX);
+    expect(handles).toHaveLength(2);
+    expect(handles[0][0]).toBeCloseTo(300 + corner);
+    expect(handles[1][0]).toBeCloseTo(300 - corner);
+    expect(handles[0][1]).toBeCloseTo(300 + corner);
+    expect(handles[1][1]).toBeCloseTo(300 + corner);
+  });
+
   it("paints a high-contrast keyboard cursor on the real map canvas", () => {
     const context = contextMock();
     const canvas = document.createElement("canvas");

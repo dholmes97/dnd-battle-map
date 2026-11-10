@@ -507,6 +507,8 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
     const mapBounds = (await map.boundingBox())!;
     const paletteBounds = (await page.locator(".spell-palette").boundingBox())!;
     const targetPosition = { x: paletteBounds.x - mapBounds.x + paletteBounds.width + 40, y: mapBounds.height / 2 };
+    const placement = page.waitForResponse((response) =>
+      response.url().endsWith("/command") && response.request().postDataJSON()?.command === "create-spell-effect");
     await coneTile.dragTo(map, { targetPosition });
     await expect(coneTile).toHaveAttribute("aria-pressed", "false");
     const card = page.getByRole("region", { name: "Spell Cone spell effect details" });
@@ -525,6 +527,37 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
       await card.getByRole("button", { name: "Apply cone settings" }).click();
       await expect(card.getByText("45 ft · 60° spread")).toBeVisible();
       await expect(card.getByText("270°", { exact: true })).toBeVisible();
+
+      const placed = await (await placement).json();
+      const originalCone = placed.state.tokens.find((token: { id: string }) => token.id === placed.tokenId);
+      const grid = placed.state.grid;
+      const cell = Math.max(mapBounds.width / grid.width, mapBounds.height / grid.height);
+      const origin = { x: mapBounds.x + targetPosition.x, y: mapBounds.y + targetPosition.y };
+      const rotation = page.waitForResponse((response) =>
+        response.url().endsWith("/command") && response.request().postDataJSON()?.spellConeDirection !== undefined);
+      await page.mouse.move(origin.x - 9 * cell * Math.cos(Math.PI / 6), origin.y + 4.5 * cell);
+      await page.mouse.down();
+      await page.mouse.move(origin.x, origin.y + 4 * cell, { steps: 8 });
+      await page.mouse.up();
+      const rotated = await (await rotation).json();
+      expect(rotated.state.tokens.find((token: { id: string }) => token.id === placed.tokenId)).toMatchObject({
+        x: originalCone.x, y: originalCone.y,
+        spellCone: { rangeFeet: 45, angleDegrees: 60, directionDegrees: 210 },
+      });
+      await expect(card.getByLabel("Direction (°)")).toHaveValue("210");
+
+      const movement = page.waitForResponse((response) =>
+        response.url().endsWith("/move") && response.request().postDataJSON()?.tokenId === placed.tokenId);
+      const interior = { x: origin.x - cell, y: origin.y + 2 * cell };
+      await page.mouse.move(interior.x, interior.y);
+      await page.mouse.down();
+      await page.mouse.move(interior.x + cell, interior.y - cell, { steps: 5 });
+      await page.mouse.up();
+      const moved = await (await movement).json();
+      const movedCone = moved.state.tokens.find((token: { id: string }) => token.id === placed.tokenId);
+      expect(movedCone.x).toBeCloseTo(originalCone.x + 1, 1);
+      expect(movedCone.y).toBeCloseTo(originalCone.y - 1, 1);
+      expect(movedCone.spellCone).toEqual({ rangeFeet: 45, angleDegrees: 60, directionDegrees: 210 });
       await page.screenshot({ path: testInfo.outputPath("spell-cone.png") });
 
       await dmOnly.uncheck();
