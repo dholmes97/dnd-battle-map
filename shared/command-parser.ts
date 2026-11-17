@@ -170,7 +170,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
       if (!requiredString(body.tokenId) || !optionalString(body.name) ||
           (body.size !== undefined && !isCreatureSize(body.size)) || !optionalNumber(body.speed) ||
           !optionalNumber(body.altitude) || !optionalNumber(body.armorClass) || !optionalNumber(body.maxHp) ||
-          !optionalBoolean(body.hidden) || !optionalString(body.artAsset) || spellCone === null ||
+          !optionalBoolean(body.hidden) || !optionalBoolean(body.spellConeDirectionHint) || !optionalString(body.artAsset) || spellCone === null ||
           (spellConeDirection !== undefined && (spellCone !== undefined || !isSpellConeDirection(spellConeDirection)))) return null;
       return { command, payload: compact<"update-token">({
         tokenId: body.tokenId,
@@ -184,6 +184,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         artAsset: body.artAsset,
         spellCone,
         spellConeDirection,
+        spellConeDirectionHint: body.spellConeDirectionHint,
       }) };
     }
     case "link-beyond20":

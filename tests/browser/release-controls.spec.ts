@@ -520,6 +520,10 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
       const dmOnly = card.getByRole("checkbox", { name: "DM only" });
       await expect(dmOnly).toBeChecked();
       await page.getByRole("button", { name: "Close spell effects" }).click();
+      const directionHint = card.getByRole("checkbox", { name: "Direction hint (10 ft)" });
+      await expect(directionHint).not.toBeChecked();
+      await directionHint.check();
+      await expect(directionHint).toBeChecked();
 
       await card.getByLabel("Range (ft)").fill("45");
       await card.getByLabel("Angle (°)").fill("60");
@@ -561,6 +565,7 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
       await page.screenshot({ path: testInfo.outputPath("spell-cone.png") });
 
       await dmOnly.uncheck();
+      await expect(directionHint).toBeHidden();
       await expect.poll(() => visibleTokenCount(player), { timeout: 12_000 }).toBe(playerCount + 1);
       await dmOnly.check();
       await expect.poll(() => visibleTokenCount(player), { timeout: 12_000 }).toBe(playerCount);

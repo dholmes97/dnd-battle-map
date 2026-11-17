@@ -5,6 +5,7 @@ export const SPELL_CONE_ART = "shape:spell-cone";
 export const MAX_SPELL_CONE_RANGE_FEET = 300;
 export const MAX_SPELL_CONE_ANGLE_DEGREES = 180;
 export const SPELL_CONE_HANDLE_RADIUS_PX = 6;
+export const SPELL_CONE_HINT_FEET = 10;
 export type SpellCone = { rangeFeet: number; angleDegrees: number; directionDegrees: number };
 export const DEFAULT_SPELL_CONE: Readonly<SpellCone> = { rangeFeet: 30, angleDegrees: 90, directionDegrees: 90 };
 export const SPELL_AREA_SIZES = ["medium", "large", "huge", "gargantuan"] as const;
@@ -97,12 +98,21 @@ export function isSpellConeDirection(value: unknown): value is number {
   return wholeNumberInRange(value, 0, 359);
 }
 
-export function readSpellCone(serialized: string | null | undefined): SpellCone {
+export function readSpellCone(serialized: string | null | undefined): SpellCone & { directionHint?: true } {
   try {
-    return (serialized && parseSpellCone(JSON.parse(serialized))) || DEFAULT_SPELL_CONE;
+    const stored = serialized ? JSON.parse(serialized) : null;
+    const cone = parseSpellCone(stored);
+    if (!cone) return DEFAULT_SPELL_CONE;
+    return stored.directionHint === true ? { ...cone, directionHint: true } : cone;
   } catch {
     return DEFAULT_SPELL_CONE;
   }
+}
+
+export function spellConeHintOffset(directionDegrees: number, feetPerCell: number) {
+  const direction = (directionDegrees - 90) * Math.PI / 180;
+  const length = SPELL_CONE_HINT_FEET / feetPerCell;
+  return { x: Math.cos(direction) * length, y: Math.sin(direction) * length };
 }
 
 function wholeNumberInRange(value: unknown, min: number, max: number): value is number {

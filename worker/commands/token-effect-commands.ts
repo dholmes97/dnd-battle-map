@@ -128,12 +128,22 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot edit this token.", 403);
   const isCone = token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART;
-  const { spellConeDirection } = context.payload;
-  if (!isCone && (context.payload.spellCone || spellConeDirection !== undefined)) {
+  const { spellConeDirection, spellConeDirectionHint } = context.payload;
+  if (!isCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined)) {
     return commandError("Only Spell Cone supports cone geometry.", 400);
   }
-  const spellCone = spellConeDirection === undefined ? context.payload.spellCone
-    : { ...readSpellCone(token.spell_cone_json), directionDegrees: spellConeDirection };
+  if (spellConeDirectionHint !== undefined && context.participant.role !== "dm") {
+    return commandError("Only the DM can change the cone's direction hint.", 403);
+  }
+  const storedCone = isCone ? readSpellCone(token.spell_cone_json) : null;
+  const spellCone = storedCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined)
+    ? {
+        ...storedCone,
+        ...context.payload.spellCone,
+        directionDegrees: spellConeDirection ?? context.payload.spellCone?.directionDegrees ?? storedCone.directionDegrees,
+        directionHint: (spellConeDirectionHint ?? storedCone.directionHint) || undefined,
+      }
+    : null;
   if (isCone && context.payload.hidden !== undefined && context.participant.role !== "dm") {
     return commandError("Only the DM can change cone visibility.", 403);
   }

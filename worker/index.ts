@@ -2000,6 +2000,12 @@ async function encounterState(
     combatActions,
     combatRolls,
     damageProposals,
+    spellConeHints: viewer?.role === "player" ? tokens.results.flatMap((token) => {
+      if (!token.is_hidden || token.kind !== SPELL_EFFECT_KIND || token.art_asset !== SPELL_CONE_ART ||
+          !pointVisibleToViewer(token, fogVisibility)) return [];
+      const cone = readSpellCone(token.spell_cone_json);
+      return cone.directionHint ? [{ x: token.x, y: token.y, directionDegrees: cone.directionDegrees }] : [];
+    }) : [],
     undo: {
       available: availableHistory.undo.length,
       redoAvailable: availableHistory.redo.length,
@@ -2010,6 +2016,9 @@ async function encounterState(
       const controlledByViewer = viewerControls(token);
       const canSeePrivateStats = viewer?.role === "dm" || controlledByViewer;
       const sheetCharacter = characterControllers.results.find((row) => row.character_id === token.campaign_character_id);
+      const cone = token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART
+        ? readSpellCone(token.spell_cone_json)
+        : null;
       return {
         id: token.id,
         campaignCharacterId: canSeePrivateStats ? token.campaign_character_id ?? null : null,
@@ -2032,9 +2041,10 @@ async function encounterState(
         temporaryHp: canSeePrivateStats ? token.temporary_hp : null,
         healthState: coarseHealth(token.hp, token.max_hp),
         hidden: Boolean(token.is_hidden),
-        ...(token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART
-          ? { spellCone: readSpellCone(token.spell_cone_json) }
-          : {}),
+        ...(cone ? {
+          spellCone: { rangeFeet: cone.rangeFeet, angleDegrees: cone.angleDegrees, directionDegrees: cone.directionDegrees },
+          ...(viewer?.role === "dm" ? { spellConeDirectionHint: Boolean(cone.directionHint) } : {}),
+        } : {}),
         summonerTokenId: token.summoner_token_id,
         initiative: token.initiative,
         initiativeGroupId: token.initiative_group_id,

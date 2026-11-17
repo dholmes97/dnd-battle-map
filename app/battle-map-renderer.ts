@@ -4,7 +4,7 @@ import { tokenRadiusCells } from "@/shared/creature-library";
 import type { EncounterState, MapPoint, ParticipantSession, SharedAnnotation, SharedToken } from "@/shared/contracts";
 import { calculateDirectDistance, tokenArtScale, viewportGeometry } from "@/shared/battle-map-geometry";
 import { displayHealth } from "@/shared/health";
-import { DEFAULT_SPELL_CONE, SPELL_CONE_HANDLE_RADIUS_PX, SPELL_EFFECT_KIND, spellConeCornerOffsets, spellConeGeometry, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
+import { DEFAULT_SPELL_CONE, SPELL_CONE_ART, SPELL_CONE_HANDLE_RADIUS_PX, SPELL_EFFECT_KIND, spellConeCornerOffsets, spellConeGeometry, spellConeHintOffset, spellEffectByArt, type SpellEffectDefinition } from "@/shared/spell-effects";
 import { annotationGeometryIsBounded } from "@/shared/annotation-geometry";
 import { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "@/shared/token-label-layout";
@@ -568,6 +568,32 @@ export function drawMap(
   }
   for (let y = 0; y <= state.grid.height; y += 1) {
     context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + geometry.visibleWidth * geometry.cellSize, screenY(y)); context.stroke();
+  }
+
+  const coneHints = participant.role === "dm" ? state.tokens.flatMap((token) => {
+    if (token.kind !== SPELL_EFFECT_KIND || token.artAsset !== SPELL_CONE_ART || !token.hidden || !token.spellConeDirectionHint) return [];
+    const local = preview?.tokenId === token.id ? preview : null;
+    const { x, y } = local ?? token;
+    return [{ x, y, directionDegrees: local?.spellConeDirection ?? (token.spellCone ?? DEFAULT_SPELL_CONE).directionDegrees }];
+  }) : state.spellConeHints ?? [];
+  if (coneHints.length) {
+    context.save();
+    context.beginPath();
+    context.rect(geometry.offsetX, geometry.offsetY, geometry.visibleWidth * cellWidth, geometry.visibleHeight * cellHeight);
+    context.clip();
+    context.strokeStyle = "#ffce9c";
+    context.shadowColor = "#271408";
+    context.shadowBlur = 4;
+    context.lineWidth = 2.5;
+    context.setLineDash([6, 4]);
+    for (const hint of coneHints) {
+      const offset = spellConeHintOffset(hint.directionDegrees, state.grid.feetPerCell);
+      context.beginPath();
+      context.moveTo(screenX(hint.x), screenY(hint.y));
+      context.lineTo(screenX(hint.x + offset.x), screenY(hint.y + offset.y));
+      context.stroke();
+    }
+    context.restore();
   }
 
   const serverFog = state.encounter.fogVisibility;

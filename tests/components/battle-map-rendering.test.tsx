@@ -164,6 +164,18 @@ describe("token label layout", () => {
 });
 
 describe("executable canvas adapters", () => {
+  it("draws only a two-cell centerline for a hidden cone's projected hint", () => {
+    const context = contextMock();
+    const canvas = document.createElement("canvas");
+    Object.defineProperty(canvas, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 1200, height: 800 }) });
+    Object.defineProperty(canvas, "getContext", { value: () => context });
+    const state = { ...createState(), spellConeHints: [{ x: 6, y: 6, directionDegrees: 90 }] };
+    drawMap(canvas, state, null, null, null, null, participant, null, new Map(), viewport, new Map(), 1_000, null, null, 0.4, true, true, null, null, null);
+    expect(context.moveTo).toHaveBeenCalledWith(300, 300);
+    expect(context.lineTo).toHaveBeenCalledWith(400, 300);
+    expect(context.arc).not.toHaveBeenCalled();
+  });
+
   it("paints both handles at the forward corners of the local cone rotation preview", () => {
     const context = contextMock();
     const canvas = document.createElement("canvas");

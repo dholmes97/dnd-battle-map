@@ -36,6 +36,7 @@ export type SharedToken = MapPoint & {
   healthState: HealthBand | null;
   hidden: boolean;
   spellCone?: SpellCone;
+  spellConeDirectionHint?: boolean;
   summonerTokenId: string | null;
   initiative: number | null;
   initiativeGroupId: string | null;
@@ -125,6 +126,7 @@ export type EncounterState = {
   viewer: null | { id: string; role: Role };
   undo: { available: number; redoAvailable: number; lastAction: string | null; nextRedoAction: string | null };
   tokens: SharedToken[];
+  spellConeHints?: Array<MapPoint & { directionDegrees: number }>;
   annotations: SharedAnnotation[];
   chatMessages: SharedChatMessage[];
   handouts: SharedHandout[];
@@ -259,6 +261,7 @@ export type CommandPayloadMap = {
     artAsset?: string;
     spellCone?: SpellCone;
     spellConeDirection?: number;
+    spellConeDirectionHint?: boolean;
   };
   "apply-hp": { tokenId: string; delta: number };
   "link-beyond20": { tokenId: string; characterId: string | null };

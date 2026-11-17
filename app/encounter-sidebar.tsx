@@ -81,6 +81,10 @@ function SpellConeControls({ token, isDm, configure }: {
       <input type="checkbox" checked={token.hidden} onChange={(event) => configure(token, { hidden: event.target.checked })} />
       DM only
     </label> : null}
+    {isDm && token.hidden ? <label className="spell-cone-visibility">
+      <input type="checkbox" checked={Boolean(token.spellConeDirectionHint)} onChange={(event) => configure(token, { spellConeDirectionHint: event.target.checked })} />
+      Direction hint (10 ft)
+    </label> : null}
   </>;
 }
 

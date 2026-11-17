@@ -1107,6 +1107,10 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
     assert.equal(initial.hidden, true);
     assert.deepEqual(initial.spellCone, { rangeFeet: 30, angleDegrees: 90, directionDegrees: 90 });
     assert.equal(findCone((await viewerState(player)).body, tokenId), undefined);
+    assert.deepEqual((await viewerState(player)).body.spellConeHints, []);
+    const hinted = await command(dm, "update-token", { tokenId, spellConeDirectionHint: true });
+    assert.equal(hinted.response.status, 200);
+    assert.equal(findCone(hinted.body.state, tokenId).spellConeDirectionHint, true);
 
     const spellCone = { rangeFeet: 60, angleDegrees: 55, directionDegrees: 290 };
     const beforeRotation = { ...spellCone, directionDegrees: 180 };
@@ -1124,12 +1128,17 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
     assert.equal(moved.response.status, 200);
     assert.equal(moved.body.movementUsed, 0);
     assert.deepEqual(findCone(moved.body.state, tokenId).spellCone, spellCone);
+    const playerHintState = (await viewerState(player)).body;
+    assert.equal(findCone(playerHintState, tokenId), undefined);
+    assert.deepEqual(playerHintState.spellConeHints, [{ x: 5, y: 5, directionDegrees: 290 }]);
     const shared = await command(dm, "update-token", { tokenId, hidden: false });
     assert.equal(shared.response.status, 200);
     const remoteCone = findCone((await viewerState(player)).body, tokenId);
     assert.deepEqual(remoteCone.spellCone, spellCone);
     assert.deepEqual([remoteCone.x, remoteCone.y], [5, 5]);
     assert.equal(remoteCone.controlledByViewer, false);
+    assert.equal(remoteCone.spellConeDirectionHint, undefined);
+    assert.deepEqual((await viewerState(player)).body.spellConeHints, []);
     assert.equal((await command(player, "update-token", { tokenId, spellCone })).response.status, 403);
     assert.equal((await command(player, "update-token", { tokenId, spellConeDirection: 90 })).response.status, 403);
     await command(dm, "set-strict-movement", { enabled: false });
@@ -1139,6 +1148,7 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
 
     assert.equal((await command(dm, "undo")).response.status, 200);
     assert.equal(findCone((await viewerState(player)).body, tokenId), undefined);
+    assert.deepEqual((await viewerState(player)).body.spellConeHints, [{ x: 5, y: 5, directionDegrees: 290 }]);
     assert.equal((await command(dm, "redo")).response.status, 200);
     assert.deepEqual(findCone((await viewerState(player)).body, tokenId).spellCone, spellCone);
     assert.equal((await command(dm, "delete-token", { tokenId })).response.status, 200);
@@ -1156,6 +1166,7 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
     const playerCone = findCone(playerPlacement.body.state, playerConeId);
     assert.equal(playerCone.hidden, false);
     assert.equal(playerCone.controlledByViewer, true);
+    assert.equal((await command(player, "update-token", { tokenId: playerConeId, spellConeDirectionHint: true })).response.status, 403);
     assert.equal((await command(player, "update-token", { tokenId: playerConeId, hidden: true })).response.status, 403);
     assert.equal((await command(dm, "update-token", { tokenId: playerConeId, hidden: true })).response.status, 200);
     assert.equal(findCone((await viewerState(player)).body, playerConeId), undefined);

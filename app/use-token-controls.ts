@@ -300,7 +300,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     );
   };
 
-  const configureSpellCone = (token: SharedToken, changes: { spellCone: SpellCone } | { hidden: boolean }) => {
+  const configureSpellCone = (token: SharedToken, changes: { spellCone: SpellCone } | { hidden: boolean } | { spellConeDirectionHint: boolean }) => {
     void sync.runOptimisticCommand(
       "update-token",
       { tokenId: token.id, ...changes },
