@@ -284,7 +284,7 @@ export function CampaignHome({ identity, campaign, invitedIdentities, loading, o
 
       <CharacterCombatActions campaign={campaign} pending={campaignMutationPending} onSave={onSaveCombatAction} onDelete={onDeleteCombatAction} />
 
-      <section className="campaign-coming-soon" aria-labelledby="campaign-tools-title"><div><div className="eyebrow">Coming next</div><h2 id="campaign-tools-title">Beyond the battle map</h2></div><p>This space is ready for party notes, recaps, character resources, handouts, and other between-session tools as the campaign grows.</p></section>
+      <section className="campaign-coming-soon" aria-labelledby="campaign-tools-title"><div><div className="eyebrow">{campaign.id === "campaign-force-of-nature" ? "Between sessions" : "Coming next"}</div><h2 id="campaign-tools-title">Beyond the battle map</h2></div>{campaign.id === "campaign-force-of-nature" ? <div className="campaign-website"><p>Explore the Force of Nature campaign journal, session recaps, and party stories.</p><a href="https://d-and-d-campaign.vercel.app" target="_blank" rel="noopener noreferrer">Campaign website <span aria-hidden="true">↗</span><span className="visually-hidden"> (opens in a new tab)</span></a></div> : <p>This space is ready for party notes, recaps, character resources, handouts, and other between-session tools as the campaign grows.</p>}</section>
     </div>
   </main>;
 }
