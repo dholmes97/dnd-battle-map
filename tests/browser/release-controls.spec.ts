@@ -562,6 +562,41 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
       expect(movedCone.x).toBeCloseTo(originalCone.x + 1, 1);
       expect(movedCone.y).toBeCloseTo(originalCone.y - 1, 1);
       expect(movedCone.spellCone).toEqual({ rangeFeet: 45, angleDegrees: 60, directionDegrees: 210 });
+      // Shrink to a visible front handle, then drag only range along its centerline.
+      await card.getByLabel("Range (ft)").fill("15");
+      await card.getByLabel("Direction (°)").fill("270");
+      await card.getByRole("button", { name: "Apply cone settings" }).click();
+      await expect(card.getByLabel("Range (ft)")).toHaveValue("15");
+      const movedOrigin = { x: origin.x + cell, y: origin.y - cell };
+      const resizeResponse = page.waitForResponse((response) =>
+        response.url().endsWith("/command") && response.request().postDataJSON()?.spellConeRange !== undefined);
+      await page.mouse.move(movedOrigin.x - 3 * cell, movedOrigin.y);
+      await page.mouse.down();
+      await page.mouse.move(movedOrigin.x - 5 * cell, movedOrigin.y, { steps: 6 });
+      await page.mouse.up();
+      const resized = await (await resizeResponse).json();
+      const resizedCone = resized.state.tokens.find((token: { id: string }) => token.id === placed.tokenId);
+      expect(resizedCone.x).toBeCloseTo(movedCone.x, 2);
+      expect(resizedCone.y).toBeCloseTo(movedCone.y, 2);
+      expect(resizedCone.spellCone).toEqual({ rangeFeet: 25, angleDegrees: 60, directionDegrees: 270 });
+
+      // Rotate from a side segment without using its distant corner.
+      const edgeResponse = page.waitForResponse((response) =>
+        response.url().endsWith("/command") && response.request().postDataJSON()?.spellConeDirection !== undefined);
+      await page.mouse.move(movedOrigin.x - 2 * cell * Math.cos(Math.PI / 6), movedOrigin.y + cell);
+      await page.mouse.down();
+      await page.mouse.move(movedOrigin.x, movedOrigin.y + 2 * cell, { steps: 6 });
+      await page.mouse.up();
+      await edgeResponse;
+      await expect(card.getByLabel("Direction (°)")).toHaveValue("210");
+
+      // Further zooming out from whole-map Fit makes off-map controls reachable.
+      await map.hover();
+      await page.mouse.wheel(0, 100);
+      await expect(page.getByRole("button", { name: "Fit whole map", exact: true })).toHaveAttribute("aria-pressed", "true");
+      await page.mouse.wheel(0, 500);
+      await expect(page.getByRole("button", { name: "Fit whole map", exact: true })).toHaveAttribute("aria-pressed", "false");
+      await expect(page.getByRole("button", { name: /Reset zoom to 100%, currently/ })).toHaveText(/4\d%/);
       await page.screenshot({ path: testInfo.outputPath("spell-cone.png") });
 
       await dmOnly.uncheck();
@@ -576,4 +611,36 @@ test("Spell Cone can be placed, configured, and shared with a live player", asyn
   } finally {
     await playerContext.close();
   }
+});
+
+test("a player can dismiss an owned summon with its card and Delete", async ({ page }) => {
+  const placeSummon = async () => {
+    const canvas = page.getByRole("application", { name: /battle grid with .* visible tokens/i });
+    const bounds = await canvas.boundingBox();
+    await canvas.click({ position: { x: bounds!.width * 0.75, y: bounds!.height * 0.5 } });
+  };
+  await page.route(/^http:\/\/localhost:\d+\/api\/auth\/dev-login$/, (route) => route.continue({
+    headers: { ...route.request().headers(), "cf-connecting-ip": "192.0.2.12" },
+  }));
+  await openHydratedApplication(page);
+  await openCampaignAs(page, "Dan");
+  await page.getByRole("button", { name: "Enter encounter" }).first().click();
+  await expect(page.getByRole("application", { name: /battle grid with .* visible tokens/i })).toBeVisible();
+  const originalCount = await visibleTokenCount(page);
+  await page.getByRole("button", { name: "Creature palette" }).click();
+  await page.locator(".creature-tile").first().click();
+  await placeSummon();
+  await expect.poll(() => visibleTokenCount(page)).toBe(originalCount + 1);
+  await page.getByRole("button", { name: "Close creature palette" }).click();
+  const dismiss = page.getByRole("button", { name: "Dismiss summon" });
+  await expect(dismiss).toBeVisible();
+  await dismiss.click();
+  await expect.poll(() => visibleTokenCount(page)).toBe(originalCount);
+  await page.getByRole("button", { name: "Creature palette" }).click();
+  await page.locator(".creature-tile").first().click();
+  await placeSummon();
+  await page.getByRole("button", { name: "Close creature palette" }).click();
+  await expect.poll(() => visibleTokenCount(page)).toBe(originalCount + 1);
+  await page.keyboard.press("Delete");
+  await expect.poll(() => visibleTokenCount(page)).toBe(originalCount);
 });

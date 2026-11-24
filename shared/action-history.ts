@@ -5,6 +5,10 @@ export type HistoryRow = { id: string; action_type: string; payload_json: string
 export function isReversibleHistoryRow(row: HistoryRow, reversibleActionTypes: ReadonlySet<string>): boolean {
   if (row.action_type === "action_undone" || row.action_type === "action_redone") return true;
   if (!reversibleActionTypes.has(row.action_type)) return false;
+  if (row.action_type === "token_deleted") {
+    try { return JSON.parse(row.payload_json)?.token?.kind === "summon"; }
+    catch { return false; }
+  }
   if (row.action_type !== "annotation_added" && row.action_type !== "annotation_removed" &&
       row.action_type !== "annotations_cleared") return true;
   try {

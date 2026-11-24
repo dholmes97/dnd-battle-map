@@ -127,6 +127,16 @@ function context(overrides = {}) {
   };
 }
 
+test("a player can roll an opportunity attack while another initiative slot is active", async () => {
+  const value = context();
+  value.encounter.activeInitiativeOrder = 2;
+  const before = { round: value.encounter.currentRound, active: value.encounter.activeInitiativeOrder };
+  const outcome = await rollAttack(value);
+  assert.equal(outcome.payload.rolled, true);
+  assert.equal(value.calls.find(([name]) => name === "roll")[1].inTurn, false);
+  assert.deepEqual({ round: value.encounter.currentRound, active: value.encounter.activeInitiativeOrder }, before);
+});
+
 test("a configured roll uses authoritative Bless, dice, action values, and actor audit identity", async () => {
   const value = context({
     dice: [14, 3],

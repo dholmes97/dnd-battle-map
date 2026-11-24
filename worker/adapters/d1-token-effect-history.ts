@@ -79,7 +79,7 @@ export async function replayTokenEffectHistory(
     ).run();
     return 1;
   }
-  if (actionType === "token_created" || actionType === "spell_effect_dismissed") {
+  if (actionType === "token_created" || actionType === "spell_effect_dismissed" || actionType === "token_deleted") {
     const shouldInsert = (actionType === "token_created") === !undo;
     const exists = Boolean(await db.prepare(
       "SELECT 1 AS found FROM tokens WHERE id = ? AND encounter_id = ?",
@@ -90,7 +90,22 @@ export async function replayTokenEffectHistory(
         .bind(tokenId, encounterId).run();
       return 1;
     }
-    await insertToken(db, encounterId, tokenId, (payload.token ?? payload) as Record<string, unknown>, now);
+    const snapshot = (payload.token ?? payload) as Record<string, unknown>;
+    await insertToken(db, encounterId, tokenId, snapshot, now);
+    if (snapshot.kind === "summon") {
+      await db.prepare(
+        "UPDATE tokens SET turn_complete = ?, movement_used = ?, movement_origin_x = ?, movement_origin_y = ? WHERE id = ? AND encounter_id = ?",
+      ).bind(snapshot.turnComplete ? 1 : 0, snapshot.movementUsed ?? 0,
+        snapshot.movementOriginX ?? null, snapshot.movementOriginY ?? null, tokenId, encounterId).run();
+      const effects = Array.isArray(snapshot.effects) ? snapshot.effects : [];
+      for (const effect of effects) {
+        await db.prepare(
+          `INSERT INTO effects (id, encounter_id, token_id, name, effect_type, duration_rounds,
+           expires_round, reminder_timing, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).bind(effect.id, encounterId, tokenId, effect.name, effect.effect_type, effect.duration_rounds,
+          effect.expires_round, effect.reminder_timing, effect.created_by, effect.created_at).run();
+      }
+    }
     return 1;
   }
   if (actionType === "token_updated") {

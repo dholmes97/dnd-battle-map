@@ -56,6 +56,7 @@ function context(overrides = {}) {
     updateHp: async (...args) => calls.push(["hp", ...args]),
     addEffect: async (value) => { calls.push(["effect", value]); return true; },
     findEffect: async () => null,
+    listTokenEffects: async () => [],
     removeEffect: async (...args) => calls.push(["remove-effect", ...args]),
     deleteToken: async (...args) => calls.push(["delete", ...args]),
     ...repoOverrides,
@@ -181,6 +182,23 @@ test("effects and deletion enforce token control", async () => {
     temporaryHp: 0, catalogCreatureId: null,
     hidden: false, summonerTokenId: null, initiative: 18, initiativeOrder: 0,
   });
+});
+
+test("players dismiss only their controlled summons and record a restorable snapshot", async () => {
+  const summon = token({ kind: "summon", summoner_token_id: "hero", movement_used: 15, turn_complete: 1 });
+  const value = context({
+    participant: { id: "player", name: "Dan", role: "player" }, payload: { tokenId: "token" },
+    repository: { findToken: async () => summon },
+  });
+  assert.equal((await deleteToken(value)).payload.deleted, true);
+  const snapshot = value.calls.find(([name]) => name === "record")[2].token;
+  assert.equal(snapshot.kind, "summon");
+  assert.equal(snapshot.summonerTokenId, "hero");
+  assert.equal(snapshot.movementUsed, 15);
+  assert.equal(snapshot.turnComplete, true);
+  assert.deepEqual(snapshot.effects, []);
+  value.canControl = async () => false;
+  assert.equal((await deleteToken(value)).status, 403);
 });
 
 test("token and effect quotas fail before state version or history changes", async () => {

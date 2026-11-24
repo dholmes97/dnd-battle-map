@@ -261,6 +261,7 @@ export type CommandPayloadMap = {
     artAsset?: string;
     spellCone?: SpellCone;
     spellConeDirection?: number;
+    spellConeRange?: number;
     spellConeDirectionHint?: boolean;
   };
   "apply-hp": { tokenId: string; delta: number };

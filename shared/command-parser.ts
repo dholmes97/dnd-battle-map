@@ -1,6 +1,6 @@
 import { isCreatureSize } from "./creature-library.ts";
 import { parseMapPackage } from "./map-package.ts";
-import { isSpellAreaSize, isSpellConeDirection, parseSpellCone, spellEffectById } from "./spell-effects.ts";
+import { MAX_SPELL_CONE_RANGE_FEET, isSpellAreaSize, isSpellConeDirection, parseSpellCone, spellEffectById } from "./spell-effects.ts";
 import {
   ROLL_MODES,
   validateCombatActionValues,
@@ -167,11 +167,14 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
     case "update-token": {
       const spellCone = body.spellCone === undefined ? undefined : parseSpellCone(body.spellCone);
       const spellConeDirection = body.spellConeDirection;
+      const spellConeRange = body.spellConeRange;
       if (!requiredString(body.tokenId) || !optionalString(body.name) ||
           (body.size !== undefined && !isCreatureSize(body.size)) || !optionalNumber(body.speed) ||
           !optionalNumber(body.altitude) || !optionalNumber(body.armorClass) || !optionalNumber(body.maxHp) ||
           !optionalBoolean(body.hidden) || !optionalBoolean(body.spellConeDirectionHint) || !optionalString(body.artAsset) || spellCone === null ||
           (spellConeDirection !== undefined && (spellCone !== undefined || !isSpellConeDirection(spellConeDirection)))) return null;
+      if (spellConeRange !== undefined && (spellCone !== undefined || typeof spellConeRange !== "number" ||
+          !Number.isInteger(spellConeRange) || spellConeRange < 5 || spellConeRange > MAX_SPELL_CONE_RANGE_FEET)) return null;
       return { command, payload: compact<"update-token">({
         tokenId: body.tokenId,
         name: body.name,
@@ -184,6 +187,7 @@ function parseKnownCommand(command: CommandName, body: Record<string, unknown>):
         artAsset: body.artAsset,
         spellCone,
         spellConeDirection,
+        spellConeRange,
         spellConeDirectionHint: body.spellConeDirectionHint,
       }) };
     }

@@ -4,6 +4,7 @@ import type { EncounterState, MapPoint, SharedAnnotation } from "./contracts";
 type MapGrid = { width: number; height: number };
 export type MapViewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
 type GeometryState = Pick<EncounterState, "encounter" | "grid">;
+const MAP_SURROUND_CELLS = 62;
 
 export function roundCoordinate(value: number): number {
   return Math.round(value * 1_000) / 1_000;
@@ -63,14 +64,14 @@ export function viewportGeometry(viewport: MapViewport, state: GeometryState, wi
   const fit = matchesMap && viewport.fit;
   const fitted = fit ? fitGridGeometry(state.grid.width, state.grid.height, width, height) : null;
   const requestedZoom = matchesMap ? viewport.zoom : 1;
-  const zoom = fit ? fitZoom : Math.max(1, Math.min(3, requestedZoom));
+  const zoom = fit ? fitZoom : Math.max(0.1, Math.min(3, requestedZoom));
   const cellSize = fitted?.cellSize ?? Math.max(1, baseCellSize * zoom);
-  const visibleWidth = Math.min(state.grid.width, width / cellSize);
-  const visibleHeight = Math.min(state.grid.height, height / cellSize);
+  const visibleWidth = fit ? state.grid.width : width / cellSize;
+  const visibleHeight = fit ? state.grid.height : height / cellSize;
   const requestedCenterX = matchesMap ? viewport.centerX : state.grid.width / 2;
   const requestedCenterY = matchesMap ? viewport.centerY : state.grid.height / 2;
-  const centerX = Math.max(visibleWidth / 2, Math.min(state.grid.width - visibleWidth / 2, requestedCenterX));
-  const centerY = Math.max(visibleHeight / 2, Math.min(state.grid.height - visibleHeight / 2, requestedCenterY));
+  const centerX = fit ? state.grid.width / 2 : Math.max(-MAP_SURROUND_CELLS, Math.min(state.grid.width + MAP_SURROUND_CELLS, requestedCenterX));
+  const centerY = fit ? state.grid.height / 2 : Math.max(-MAP_SURROUND_CELLS, Math.min(state.grid.height + MAP_SURROUND_CELLS, requestedCenterY));
   return {
     zoom,
     centerX,
@@ -82,8 +83,8 @@ export function viewportGeometry(viewport: MapViewport, state: GeometryState, wi
     visibleHeight,
     panX: fitted?.panX ?? centerX - visibleWidth / 2,
     panY: fitted?.panY ?? centerY - visibleHeight / 2,
-    offsetX: fitted?.offsetX ?? Math.max(0, (width - state.grid.width * cellSize) / 2),
-    offsetY: fitted?.offsetY ?? Math.max(0, (height - state.grid.height * cellSize) / 2),
+    offsetX: fitted?.offsetX ?? 0,
+    offsetY: fitted?.offsetY ?? 0,
   };
 }
 
@@ -96,13 +97,13 @@ export function zoomViewportAt(viewport: MapViewport, state: GeometryState, widt
   const current = viewportGeometry(viewport, state, width, height);
   const baseCellSize = Math.max(width / state.grid.width, height / state.grid.height);
   const fitZoom = Math.min(width / state.grid.width, height / state.grid.height) / baseCellSize;
-  const nextFit = zoom < 1;
-  const nextZoom = nextFit ? 1 : Math.min(3, zoom);
+  const nextFit = zoom < 1 && !current.fit && current.zoom >= 1;
+  const nextZoom = nextFit ? 1 : Math.max(0.1, Math.min(3, zoom));
   const effectiveNextZoom = nextFit ? fitZoom : nextZoom;
-  const mapX = current.panX + Math.min(current.visibleWidth, Math.max(0, focusX * width - current.offsetX) / current.cellSize);
-  const mapY = current.panY + Math.min(current.visibleHeight, Math.max(0, focusY * height - current.offsetY) / current.cellSize);
-  const visibleWidth = Math.min(state.grid.width, width / (baseCellSize * effectiveNextZoom));
-  const visibleHeight = Math.min(state.grid.height, height / (baseCellSize * effectiveNextZoom));
+  const mapX = current.panX + (focusX * width - current.offsetX) / current.cellSize;
+  const mapY = current.panY + (focusY * height - current.offsetY) / current.cellSize;
+  const visibleWidth = width / (baseCellSize * effectiveNextZoom);
+  const visibleHeight = height / (baseCellSize * effectiveNextZoom);
   return clampViewport({
     zoom: nextZoom,
     centerX: mapX + (0.5 - focusX) * visibleWidth,

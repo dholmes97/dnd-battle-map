@@ -1111,6 +1111,9 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
     const hinted = await command(dm, "update-token", { tokenId, spellConeDirectionHint: true });
     assert.equal(hinted.response.status, 200);
     assert.equal(findCone(hinted.body.state, tokenId).spellConeDirectionHint, true);
+    const resized = await command(dm, "update-token", { tokenId, spellConeRange: 45 });
+    assert.equal(resized.response.status, 200);
+    assert.deepEqual(findCone(resized.body.state, tokenId).spellCone, { rangeFeet: 45, angleDegrees: 90, directionDegrees: 90 });
 
     const spellCone = { rangeFeet: 60, angleDegrees: 55, directionDegrees: 290 };
     const beforeRotation = { ...spellCone, directionDegrees: 180 };
@@ -1173,6 +1176,25 @@ test("Spell Cone geometry and DM-only visibility survive live sync and history",
     assert.equal((await request("move", {
       method: "POST", body: participantBody(player, playerConeId, { x: 6, y: 6 }),
     })).response.status, 404);
+
+    const summoned = await command(player, "create-token", {
+      name: "Dismissal test summon", kind: "summon", size: "medium", speed: 30,
+      summonerTokenId: FIXED_IDENTITIES.dan.tokenId, x: 6, y: 6, maxHp: 30,
+    });
+    assert.equal(summoned.response.status, 200);
+    const summonId = summoned.body.tokenId;
+    createdIds.push(summonId);
+    await command(player, "add-effect", { tokenId: summonId, name: "Bless" });
+    const dismissal = await command(player, "delete-token", { tokenId: summonId });
+    assert.equal(dismissal.response.status, 200);
+    assert.equal(findCone(dismissal.body.state, summonId), undefined);
+    const undoDismissal = await command(player, "undo");
+    assert.equal(undoDismissal.response.status, 200);
+    const restoredSummon = findCone(undoDismissal.body.state, summonId);
+    assert.equal(restoredSummon.controlledByViewer, true);
+    assert.equal(restoredSummon.hp, 30);
+    assert.equal(restoredSummon.effects[0].name, "Bless");
+    assert.equal((await command(player, "redo")).response.status, 200);
   } finally {
     await command(dm, "set-strict-movement", { enabled: originalStrictMovement });
     for (const tokenId of createdIds) await command(dm, "delete-token", { tokenId });

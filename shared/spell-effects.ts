@@ -129,6 +129,23 @@ export function spellConeCornerOffsets({ radius, start, end }: ReturnType<typeof
   return [start, end].map((angle) => ({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) }));
 }
 
+export function spellConeFrontOffset(cone: SpellCone, feetPerCell: number) {
+  const { radius, direction } = spellConeGeometry(cone, feetPerCell);
+  return { x: radius * Math.cos(direction), y: radius * Math.sin(direction) };
+}
+
+export function spellConeBoundaryDistance(cone: SpellCone, feetPerCell: number, point: { x: number; y: number }) {
+  const geometry = spellConeGeometry(cone, feetPerCell);
+  const corners = spellConeCornerOffsets(geometry);
+  const segmentDistance = (end: { x: number; y: number }) => {
+    const t = Math.max(0, Math.min(1, (point.x * end.x + point.y * end.y) / (geometry.radius * geometry.radius)));
+    return Math.hypot(point.x - t * end.x, point.y - t * end.y);
+  };
+  const angle = Math.atan2(point.y, point.x) - geometry.direction;
+  const withinAngle = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) <= cone.angleDegrees * Math.PI / 360;
+  return Math.min(...corners.map(segmentDistance), withinAngle ? Math.abs(Math.hypot(point.x, point.y) - geometry.radius) : Infinity);
+}
+
 export function rotateSpellConeDirection(directionDegrees: number, start: { x: number; y: number }, current: { x: number; y: number }) {
   const turn = Math.atan2(current.y, current.x) - Math.atan2(start.y, start.x);
   return ((Math.round(directionDegrees + turn * 180 / Math.PI) % 360) + 360) % 360;

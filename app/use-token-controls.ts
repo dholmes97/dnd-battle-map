@@ -325,6 +325,15 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     );
   };
 
+  const resizeSpellCone = (token: SharedToken, rangeFeet: number) => {
+    void sync.runOptimisticCommand(
+      "update-token", { tokenId: token.id, spellConeRange: rangeFeet },
+      (current) => ({ ...current, tokens: current.tokens.map((item) => item.id === token.id
+        ? { ...item, spellCone: { ...(item.spellCone ?? DEFAULT_SPELL_CONE), rangeFeet } } : item) }),
+      `Spell Cone range set to ${rangeFeet} ft.`,
+    );
+  };
+
   const saveAltitude = async (token: SharedToken) => {
     const draft = altitudeDrafts[token.id];
     if (draft === undefined) return;
@@ -357,7 +366,7 @@ export function useTokenControls({ participant, state, sync, setError, setNotice
     concentrationReminder, dismissConcentrationReminder: () => setConcentrationReminder(null),
     requireConcentrationCheck: (token: SharedToken) => setConcentrationReminder({ id: crypto.randomUUID(), tokenId: token.id, tokenName: token.name }),
     saveInitiative, splitInitiativePack, saveInitiativeGroup, addEffectToToken,
-    applyHpToToken, syncBeyond20Hp, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, configureSpellCone, rotateSpellCone, saveAltitude,
+    applyHpToToken, syncBeyond20Hp, saveTemporaryHp, removeEffectFromToken, discardTokenDetails, saveTokenDetails, resizeSpellEffect, configureSpellCone, rotateSpellCone, resizeSpellCone, saveAltitude,
   };
 }
 

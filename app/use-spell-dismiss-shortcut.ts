@@ -12,7 +12,7 @@ export function useSpellDismissShortcut({ enabled, selectedToken, onDismiss }: {
   const dismiss = useEffectEvent((token: SharedToken) => onDismiss(token));
 
   useEffect(() => {
-    if (!enabled || selectedToken?.kind !== SPELL_EFFECT_KIND || !selectedToken.controlledByViewer) return;
+    if (!enabled || (selectedToken?.kind !== SPELL_EFFECT_KIND && selectedToken?.kind !== "summon") || !selectedToken.controlledByViewer) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof HTMLElement &&

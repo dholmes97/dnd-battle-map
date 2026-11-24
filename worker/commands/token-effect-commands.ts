@@ -128,18 +128,19 @@ export async function updateToken(context: TokenEffectCommandContext<"update-tok
   if (!token) return commandError("Token not found.", 404);
   if (!await context.canControl(token)) return commandError("You cannot edit this token.", 403);
   const isCone = token.kind === SPELL_EFFECT_KIND && token.art_asset === SPELL_CONE_ART;
-  const { spellConeDirection, spellConeDirectionHint } = context.payload;
-  if (!isCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined)) {
+  const { spellConeDirection, spellConeDirectionHint, spellConeRange } = context.payload;
+  if (!isCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined || spellConeRange !== undefined)) {
     return commandError("Only Spell Cone supports cone geometry.", 400);
   }
   if (spellConeDirectionHint !== undefined && context.participant.role !== "dm") {
     return commandError("Only the DM can change the cone's direction hint.", 403);
   }
   const storedCone = isCone ? readSpellCone(token.spell_cone_json) : null;
-  const spellCone = storedCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined)
+  const spellCone = storedCone && (context.payload.spellCone || spellConeDirection !== undefined || spellConeDirectionHint !== undefined || spellConeRange !== undefined)
     ? {
         ...storedCone,
         ...context.payload.spellCone,
+        rangeFeet: spellConeRange ?? context.payload.spellCone?.rangeFeet ?? storedCone.rangeFeet,
         directionDegrees: spellConeDirection ?? context.payload.spellCone?.directionDegrees ?? storedCone.directionDegrees,
         directionHint: (spellConeDirectionHint ?? storedCone.directionHint) || undefined,
       }
@@ -328,14 +329,23 @@ export async function deleteToken(context: TokenEffectCommandContext<"delete-tok
   const token = await context.repository.findToken(context.encounter.id, tokenId);
   if (!token) return commandError("Token not found.", 404);
   if (context.participant.role !== "dm" &&
-      (token.kind !== SPELL_EFFECT_KIND || !await context.canControl(token))) {
+      ((token.kind !== SPELL_EFFECT_KIND && token.kind !== "summon") || !await context.canControl(token))) {
     return commandError("Only the DM can delete this token.", 403);
   }
+  const summonSnapshot = token.kind === "summon" ? {
+    ...tokenSnapshot(token),
+    turnComplete: Boolean(token.turn_complete),
+    movementUsed: token.movement_used,
+    movementOriginX: token.movement_origin_x ?? null,
+    movementOriginY: token.movement_origin_y ?? null,
+    effects: await context.repository.listTokenEffects(context.encounter.id, tokenId),
+  } : null;
   await context.repository.deleteToken(context.encounter.id, tokenId);
   await finish(
     context,
     token.kind === SPELL_EFFECT_KIND ? "spell_effect_dismissed" : "token_deleted",
-    token.kind === SPELL_EFFECT_KIND ? { tokenId, token: tokenSnapshot(token) } : { tokenId },
+    token.kind === SPELL_EFFECT_KIND ? { tokenId, token: tokenSnapshot(token) }
+      : summonSnapshot ? { tokenId, token: summonSnapshot } : { tokenId },
   );
   return success(context, { deleted: true });
 }

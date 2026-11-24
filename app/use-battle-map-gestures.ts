@@ -47,6 +47,9 @@ import {
 } from "@/shared/spatial-keyboard";
 import {
   DEFAULT_SPELL_CONE,
+  MAX_SPELL_CONE_RANGE_FEET,
+  spellConeFrontOffset,
+  spellConeBoundaryDistance,
   SPELL_CONE_ART,
   SPELL_CONE_HANDLE_RADIUS_PX,
   SPELL_EFFECT_KIND,
@@ -71,13 +74,15 @@ type TokenDragGesture = {
 };
 
 type ConeRotationGesture = {
-  kind: "rotate";
+  kind: "rotate" | "resize";
   pointerId: number;
   tokenId: string;
   origin: MapPoint;
   altitude: number;
   startVector: MapPoint;
   startDirection: number;
+  startRange: number;
+  latestRange: number;
   latestDirection: number;
 };
 
@@ -155,6 +160,7 @@ type UseBattleMapGesturesInput = {
   onPlaceSpellEffect: (spell: SpellEffectDefinition, point: MapPoint) => void | Promise<void>;
   onMoveToken: (tokenId: string, point: MapPoint & { altitude: number }) => void | Promise<void>;
   onRotateSpellCone: (token: SharedToken, directionDegrees: number) => void;
+  onResizeSpellCone: (token: SharedToken, rangeFeet: number) => void;
   onAddAnnotation: (type: AnnotationMode, start: MapPoint, end?: MapPoint) => void | Promise<void>;
   onRemoveAnnotation: (annotation: SharedAnnotation) => void;
   onUpdateSharedFog: (polygon: MapPoint[]) => void;
@@ -223,6 +229,7 @@ export function useBattleMapGestures({
   onPlaceSpellEffect,
   onMoveToken,
   onRotateSpellCone,
+  onResizeSpellCone,
   onAddAnnotation,
   onRemoveAnnotation,
   onUpdateSharedFog,
@@ -287,7 +294,7 @@ export function useBattleMapGestures({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const gesture = dragGestureRef.current;
-      if (event.key === "Escape" && gesture?.kind === "rotate") {
+      if (event.key === "Escape" && gesture && gesture.kind !== "move") {
         dragGestureRef.current = null;
         setPreview(null);
         setDragging(false);
@@ -341,13 +348,13 @@ export function useBattleMapGestures({
     const startGesture = (rawEvent: Event) => {
       const event = rawEvent as SafariGestureEvent;
       event.preventDefault();
-      if (touchZoomGestureRef.current || dragGestureRef.current?.kind === "rotate") return;
+      if (touchZoomGestureRef.current || dragGestureRef.current && dragGestureRef.current.kind !== "move") return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const geometry = viewportGeometry(viewportRef.current, state, rect.width, rect.height);
       safariZoomGestureRef.current = {
         viewport: viewportRef.current,
-        zoom: geometry.fit ? 1 : geometry.zoom,
+        zoom: geometry.zoom,
         width: rect.width,
         height: rect.height,
         focusX: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
@@ -423,7 +430,7 @@ export function useBattleMapGestures({
 
   const onCanvasContextMenu = (event: ReactMouseEvent<HTMLCanvasElement>) => {
     if (!state || !participant) return;
-    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, null);
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     const target = [...state.tokens].reverse().find((token) => {
@@ -483,7 +490,7 @@ export function useBattleMapGestures({
         touchZoomGestureRef.current = {
           pointerIds: [first[0], second[0]],
           viewport: viewportRef.current,
-          zoom: geometry.fit ? 1 : geometry.zoom,
+          zoom: geometry.zoom,
           width: rect.width,
           height: rect.height,
           distance,
@@ -504,7 +511,7 @@ export function useBattleMapGestures({
         return;
       }
     }
-    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY);
+    const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, null);
     const rect = event.currentTarget.getBoundingClientRect();
     const geometry = viewportGeometry(viewport, state, rect.width, rect.height);
     if (editingSharedFog && participant.role === "dm" && state.encounter.mapPackage?.fog.mode === "shared") {
@@ -591,17 +598,24 @@ export function useBattleMapGestures({
       const cone = rotatableCone.spellCone ?? DEFAULT_SPELL_CONE;
       const corners = spellConeCornerOffsets(spellConeGeometry(cone, state.grid.feetPerCell));
       const hitRadius = SPELL_CONE_HANDLE_RADIUS_PX + (event.pointerType === "touch" ? 8 : 3);
-      if (corners.some((corner) => Math.hypot(startVector.x - corner.x, startVector.y - corner.y) * geometry.cellSize <= hitRadius)) {
+      const front = spellConeFrontOffset(cone, state.grid.feetPerCell);
+      const resize = Math.hypot(startVector.x - front.x, startVector.y - front.y) * geometry.cellSize <= hitRadius;
+      const edge = spellConeBoundaryDistance(cone, state.grid.feetPerCell, startVector) * geometry.cellSize <= hitRadius;
+      const creatureHit = hitToken && hitToken.kind !== SPELL_EFFECT_KIND;
+      if (resize || (!creatureHit && Math.hypot(startVector.x, startVector.y) * geometry.cellSize > hitRadius * 2 &&
+          (edge || corners.some((corner) => Math.hypot(startVector.x - corner.x, startVector.y - corner.y) * geometry.cellSize <= hitRadius)))) {
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
         dragGestureRef.current = {
-          kind: "rotate",
+          kind: resize ? "resize" : "rotate",
           pointerId: event.pointerId,
           tokenId: rotatableCone.id,
           origin: { x: rotatableCone.x, y: rotatableCone.y },
           altitude: rotatableCone.altitude,
           startVector,
           startDirection: cone.directionDegrees,
+          startRange: cone.rangeFeet,
+          latestRange: cone.rangeFeet,
           latestDirection: cone.directionDegrees,
         };
         setDragging(true);
@@ -639,11 +653,11 @@ export function useBattleMapGestures({
         clientX: event.clientX,
         clientY: event.clientY,
         viewport: {
-          zoom: geometry.fit ? 1 : geometry.zoom,
+          zoom: geometry.zoom,
           centerX: geometry.centerX,
           centerY: geometry.centerY,
           mapKey: geometry.mapKey,
-          fit: geometry.fit,
+          fit: false,
         },
       };
       setPanning(true);
@@ -663,7 +677,13 @@ export function useBattleMapGestures({
       const point = pointerToMap(event.currentTarget, state, viewport, event.clientX, event.clientY, null);
       const vector = { x: point.x - gesture.origin.x, y: point.y - gesture.origin.y };
       if (Math.hypot(vector.x, vector.y) >= 0.1) {
-        gesture.latestDirection = rotateSpellConeDirection(gesture.startDirection, gesture.startVector, vector);
+        if (gesture.kind === "resize") {
+          const direction = (gesture.startDirection - 90) * Math.PI / 180;
+          const projection = vector.x * Math.cos(direction) + vector.y * Math.sin(direction);
+          gesture.latestRange = Math.max(5, Math.min(MAX_SPELL_CONE_RANGE_FEET, Math.round(projection * state.grid.feetPerCell)));
+        } else {
+          gesture.latestDirection = rotateSpellConeDirection(gesture.startDirection, gesture.startVector, vector);
+        }
       }
     }
     return gesture.latestDirection;
@@ -728,8 +748,10 @@ export function useBattleMapGestures({
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
-    if (gesture.kind === "rotate") {
-      setPreview({ tokenId: gesture.tokenId, ...gesture.origin, altitude: gesture.altitude, spellConeDirection: updateConeRotation(gesture, event) });
+    if (gesture.kind !== "move") {
+      updateConeRotation(gesture, event);
+      setPreview({ tokenId: gesture.tokenId, ...gesture.origin, altitude: gesture.altitude,
+        spellConeDirection: gesture.latestDirection, spellConeRange: gesture.latestRange });
       return;
     }
     gesture.latest = dragPoint(event.currentTarget, gesture, event.clientX, event.clientY);
@@ -776,15 +798,19 @@ export function useBattleMapGestures({
     const gesture = dragGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
-    if (gesture.kind === "rotate") {
+    if (gesture.kind !== "move") {
       const direction = updateConeRotation(gesture, event);
       dragGestureRef.current = null;
       setDragging(false);
       setPreview(null);
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-      if (rotatableCone?.id === gesture.tokenId && direction !== gesture.startDirection &&
-          direction !== (rotatableCone.spellCone ?? DEFAULT_SPELL_CONE).directionDegrees) {
-        onRotateSpellCone(rotatableCone, direction);
+      if (rotatableCone?.id === gesture.tokenId) {
+        if (gesture.kind === "resize" && gesture.latestRange !== gesture.startRange) {
+          onResizeSpellCone(rotatableCone, gesture.latestRange);
+        } else if (gesture.kind === "rotate" && direction !== gesture.startDirection &&
+            direction !== (rotatableCone.spellCone ?? DEFAULT_SPELL_CONE).directionDegrees) {
+          onRotateSpellCone(rotatableCone, direction);
+        }
       }
       return;
     }
@@ -848,7 +874,7 @@ export function useBattleMapGestures({
       state,
       rect.width,
       rect.height,
-      current.zoom * Math.exp(-event.deltaY * 0.0015),
+      viewportGeometry(current, state, rect.width, rect.height).zoom * Math.exp(-event.deltaY * 0.0015),
       focusX,
       focusY,
     ));
@@ -965,7 +991,7 @@ export function useBattleMapGestures({
 
   const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
     if (!state || !participant || event.metaKey || event.ctrlKey) return;
-    if (event.key === "Escape" && dragGestureRef.current?.kind === "rotate") return;
+    if (event.key === "Escape" && dragGestureRef.current && dragGestureRef.current.kind !== "move") return;
     const intent = spatialKeyboardIntent(event);
     if (!intent) return;
     const currentPoint = resolvedKeyboardCursor();
@@ -1202,7 +1228,7 @@ export function useBattleMapGestures({
     onCanvasPointerUp,
     onCanvasPointerCancel,
     onCanvasLostPointerCapture: (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (dragGestureRef.current?.kind === "rotate") onCanvasPointerCancel(event);
+      if (dragGestureRef.current && dragGestureRef.current.kind !== "move") onCanvasPointerCancel(event);
     },
     onCanvasWheel,
     onCanvasContextMenu,

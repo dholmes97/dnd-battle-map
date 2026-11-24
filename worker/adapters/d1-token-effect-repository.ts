@@ -14,6 +14,12 @@ const TOKEN_COLUMNS = `id, name, x, y, art_asset, kind, size, speed, fly_speed, 
 
 export function createD1TokenEffectRepository(db: D1Database): TokenEffectRepository {
   return {
+    async listTokenEffects(encounterId, tokenId) {
+      const rows = await db.prepare(
+        "SELECT id, token_id, name, effect_type, duration_rounds, expires_round, reminder_timing, created_by, created_at FROM effects WHERE encounter_id = ? AND token_id = ? LIMIT ?",
+      ).bind(encounterId, tokenId, MAX_EFFECTS_PER_TOKEN).all<import("../types.ts").EffectRow & { created_by: string; created_at: number }>();
+      return rows.results;
+    },
     async findToken(encounterId, tokenId) {
       return await db.prepare(
         `SELECT ${TOKEN_COLUMNS} FROM tokens WHERE id = ? AND encounter_id = ?`,

@@ -70,6 +70,7 @@ function renderGestures(overrides: Partial<Parameters<typeof useBattleMapGesture
     onPlaceSpellEffect: vi.fn(),
     onMoveToken: vi.fn(),
     onRotateSpellCone: vi.fn(),
+    onResizeSpellCone: vi.fn(),
     onAddAnnotation: vi.fn(),
     onRemoveAnnotation: vi.fn(),
     onUpdateSharedFog,
@@ -120,6 +121,36 @@ function keyboardEvent(key: string, modifiers: Partial<React.KeyboardEvent<HTMLC
 }
 
 describe("useBattleMapGestures", () => {
+  it("resizes from the cone front without changing its origin or direction", () => {
+    const cone = { ...token, kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART, spellCone: DEFAULT_SPELL_CONE };
+    const coneState = { ...state, tokens: [cone] };
+    const onResizeSpellCone = vi.fn();
+    const onRotateSpellCone = vi.fn();
+    const { result } = renderGestures({ state: coneState, selectedTokenId: cone.id,
+      canMoveToken: () => true, onResizeSpellCone, onRotateSpellCone });
+    const pointer = (x: number, y: number) => pointerDownAtToken(result.current.viewport, coneState, { x, y }).event;
+    act(() => result.current.onCanvasPointerDown(pointer(11, 5)));
+    act(() => result.current.onCanvasPointerMove(pointer(15, 5)));
+    expect(result.current.preview).toMatchObject({ x: 5, y: 5, spellConeRange: 50, spellConeDirection: 90 });
+    expect(onResizeSpellCone).not.toHaveBeenCalled();
+    act(() => result.current.onCanvasPointerUp(pointer(15, 5)));
+    expect(onResizeSpellCone).toHaveBeenCalledExactlyOnceWith(cone, 50);
+    expect(onRotateSpellCone).not.toHaveBeenCalled();
+  });
+
+  it("rotates from a cone side edge while its distant corners are off screen", () => {
+    const cone = { ...token, kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART,
+      spellCone: { ...DEFAULT_SPELL_CONE, rangeFeet: 120 } };
+    const coneState = { ...state, tokens: [cone] };
+    const onRotateSpellCone = vi.fn();
+    const { result } = renderGestures({ state: coneState, selectedTokenId: cone.id,
+      canMoveToken: () => true, onRotateSpellCone });
+    const pointer = (x: number, y: number) => pointerDownAtToken(result.current.viewport, coneState, { x, y }).event;
+    act(() => result.current.onCanvasPointerDown(pointer(7, 7)));
+    act(() => result.current.onCanvasPointerUp(pointer(3, 7)));
+    expect(onRotateSpellCone).toHaveBeenCalledExactlyOnceWith(cone, 180);
+  });
+
   it.each([-1, 1])("rotates a cone around its tip from forward corner %s", (side) => {
     const cone = { ...token, kind: SPELL_EFFECT_KIND, artAsset: SPELL_CONE_ART, spellCone: DEFAULT_SPELL_CONE };
     const coneState = { ...state, tokens: [cone] };

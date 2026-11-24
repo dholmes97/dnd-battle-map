@@ -11,7 +11,7 @@ import { layoutTokenLabels, type LabelRectangle, type TokenLabelRequest } from "
 
 export { PING_DURATION_MS, SPOTLIGHT_DURATION_MS } from "@/shared/battle-map-animation";
 
-export type TokenPreview = MapPoint & { tokenId: string; altitude: number; spellConeDirection?: number };
+export type TokenPreview = MapPoint & { tokenId: string; altitude: number; spellConeDirection?: number; spellConeRange?: number };
 export type PlacementPreview = MapPoint & { creature: CreatureTemplate };
 export type SpellPlacementPreview = MapPoint & { spell: SpellEffectDefinition };
 export type BattleMapViewport = { zoom: number; centerX: number; centerY: number; mapKey: string; fit: boolean };
@@ -160,11 +160,13 @@ function drawSpellEffect(
   selected: boolean,
   owned: boolean,
   coneDirection?: number,
+  coneRange?: number,
 ) {
   const spell = spellEffectByArt(token.artAsset);
   if (!spell) return;
   if (spell.shape === "cone") {
-    const geometry = spellConeGeometry(token.spellCone ?? DEFAULT_SPELL_CONE, feetPerCell, coneDirection);
+    const cone = token.spellCone ?? DEFAULT_SPELL_CONE;
+    const geometry = spellConeGeometry({ ...cone, rangeFeet: coneRange ?? cone.rangeFeet }, feetPerCell, coneDirection);
     const radius = geometry.radius * cellSize;
     context.save();
     const fill = context.createRadialGradient(x, y, 0, x, y, radius);
@@ -523,25 +525,12 @@ export function drawMap(
   const cellHeight = geometry.cellSize;
   const screenX = (mapX: number) => geometry.offsetX + (mapX - geometry.panX) * geometry.cellSize;
   const screenY = (mapY: number) => geometry.offsetY + (mapY - geometry.panY) * geometry.cellSize;
-  context.fillStyle = "#242622";
+  context.fillStyle = "#050506";
   context.fillRect(0, 0, rect.width, rect.height);
   const mapPackage = state.encounter.mapPackage;
   if (mapScene && mapPackage) {
-    const sourceWidth = geometry.visibleWidth / state.grid.width * mapScene.width;
-    const sourceHeight = geometry.visibleHeight / state.grid.height * mapScene.height;
-    const sourceX = geometry.panX / state.grid.width * mapScene.width;
-    const sourceY = geometry.panY / state.grid.height * mapScene.height;
-    context.drawImage(
-      mapScene,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      geometry.offsetX,
-      geometry.offsetY,
-      geometry.visibleWidth * geometry.cellSize,
-      geometry.visibleHeight * geometry.cellSize,
-    );
+    context.drawImage(mapScene, screenX(0), screenY(0),
+      state.grid.width * cellWidth, state.grid.height * cellHeight);
     renderMapPackageOverlayToContext(
       context,
       mapPackage,
@@ -553,21 +542,16 @@ export function drawMap(
     );
   } else {
     context.fillStyle = "#4b4b42";
-    context.fillRect(
-      geometry.offsetX,
-      geometry.offsetY,
-      geometry.visibleWidth * geometry.cellSize,
-      geometry.visibleHeight * geometry.cellSize,
-    );
+    context.fillRect(screenX(0), screenY(0), state.grid.width * cellWidth, state.grid.height * cellHeight);
   }
 
   context.strokeStyle = `rgba(232, 220, 190, ${Math.min(1, Math.max(0, gridOpacity))})`;
   context.lineWidth = 1;
   for (let x = 0; x <= state.grid.width; x += 1) {
-    context.beginPath(); context.moveTo(screenX(x), geometry.offsetY); context.lineTo(screenX(x), geometry.offsetY + geometry.visibleHeight * geometry.cellSize); context.stroke();
+    context.beginPath(); context.moveTo(screenX(x), screenY(0)); context.lineTo(screenX(x), screenY(state.grid.height)); context.stroke();
   }
   for (let y = 0; y <= state.grid.height; y += 1) {
-    context.beginPath(); context.moveTo(geometry.offsetX, screenY(y)); context.lineTo(geometry.offsetX + geometry.visibleWidth * geometry.cellSize, screenY(y)); context.stroke();
+    context.beginPath(); context.moveTo(screenX(0), screenY(y)); context.lineTo(screenX(state.grid.width), screenY(y)); context.stroke();
   }
 
   const coneHints = participant.role === "dm" ? state.tokens.flatMap((token) => {
@@ -686,7 +670,8 @@ export function drawMap(
     drawSpellEffect(context, token, x, y, Math.min(cellWidth, cellHeight), state.grid.feetPerCell,
       token.artAsset ? tokenArt.get(token.artAsset) ?? null : null,
       animationNow, token.id === selectedTokenId, token.controlledByViewer,
-      preview?.tokenId === token.id ? preview.spellConeDirection : undefined);
+      preview?.tokenId === token.id ? preview.spellConeDirection : undefined,
+      preview?.tokenId === token.id ? preview.spellConeRange : undefined);
   });
 
   if (preview && dragOrigin) {
@@ -982,7 +967,8 @@ export function drawMap(
   if (coneWithHandles) {
     const conePreview = preview?.tokenId === coneWithHandles.id ? preview : null;
     const origin = conePreview ?? coneWithHandles;
-    const geometry = spellConeGeometry(coneWithHandles.spellCone ?? DEFAULT_SPELL_CONE, state.grid.feetPerCell, conePreview?.spellConeDirection);
+    const cone = coneWithHandles.spellCone ?? DEFAULT_SPELL_CONE;
+    const geometry = spellConeGeometry({ ...cone, rangeFeet: conePreview?.spellConeRange ?? cone.rangeFeet }, state.grid.feetPerCell, conePreview?.spellConeDirection);
     context.save();
     context.fillStyle = "#302319";
     context.strokeStyle = "#fff2bd";
@@ -993,6 +979,13 @@ export function drawMap(
       context.fill();
       context.stroke();
     }
+    const frontX = screenX(origin.x + geometry.radius * Math.cos(geometry.direction));
+    const frontY = screenY(origin.y + geometry.radius * Math.sin(geometry.direction));
+    context.fillStyle = "#ffce9c";
+    context.beginPath();
+    context.rect(frontX - 6, frontY - 6, 12, 12);
+    context.fill();
+    context.stroke();
     context.restore();
   }
   if (keyboardCursor) {

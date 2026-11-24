@@ -20,6 +20,7 @@ const REVERSIBLE_ACTION_TYPES = new Set([
   "annotations_cleared",
   "token_created",
   "spell_effect_dismissed",
+  "token_deleted",
   "token_updated",
 ]);
 

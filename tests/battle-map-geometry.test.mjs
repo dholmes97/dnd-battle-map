@@ -64,7 +64,7 @@ test("line hit testing chooses the nearest durable drawing", () => {
   assert.equal(drawingAtPoint(annotations, { x: 4, y: 4 }, 0.25), null);
 });
 
-test("100% covers while Fit is the only letterboxed viewport", () => {
+test("100% covers while Fit centers the whole scene", () => {
   const cover = viewportGeometry({ zoom: 1, centerX: 12, centerY: 8, mapKey, fit: false }, state, 800, 800);
   assert.equal(cover.cellSize, 50);
   assert.equal(cover.visibleWidth, 16);
@@ -91,4 +91,21 @@ test("zooming preserves the map point under the pointer", () => {
   const after = viewportGeometry(zoomed, state, 1200, 800);
   assert.ok(Math.abs(targetBefore.x - (after.panX + focusX * 1200 / after.cellSize)) < 1e-9);
   assert.ok(Math.abs(targetBefore.y - (after.panY + focusY * 800 / after.cellSize)) < 1e-9);
+});
+
+test("zooming out past Fit exposes map surroundings and supports off-map panning", () => {
+  const viewport = { zoom: 1, centerX: 12, centerY: 8, mapKey, fit: false };
+  const fit = zoomViewportAt(viewport, state, 1200, 800, 0.8);
+  assert.equal(fit.fit, true);
+  const surround = zoomViewportAt(fit, state, 1200, 800, 0.5);
+  const geometry = viewportGeometry(surround, state, 1200, 800);
+  assert.equal(surround.fit, false);
+  assert.equal(geometry.zoom, 0.5);
+  assert.ok(geometry.panX < 0);
+  assert.ok(geometry.visibleWidth > state.grid.width);
+  const panned = viewportGeometry({ ...surround, centerX: 40 }, state, 1200, 800);
+  assert.equal(panned.centerX, 40);
+  const squareFit = zoomViewportAt(viewport, state, 800, 800, 0.8);
+  const squareSurround = zoomViewportAt(squareFit, state, 800, 800, 0.5);
+  assert.equal(viewportGeometry(squareSurround, state, 800, 800).zoom, 0.5);
 });

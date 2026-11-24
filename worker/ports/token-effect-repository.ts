@@ -36,6 +36,7 @@ export type TokenWrite = {
 };
 
 export interface TokenEffectRepository {
+  listTokenEffects(encounterId: string, tokenId: string): Promise<Array<EffectRow & { created_by: string; created_at: number }>>;
   findToken(encounterId: string, tokenId: string): Promise<TokenRow | null>;
   createToken(input: TokenWrite): Promise<boolean>;
   resizeToken(

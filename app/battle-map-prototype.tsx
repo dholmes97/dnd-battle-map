@@ -262,8 +262,9 @@ export default function BattleMapPrototype() {
   const selectedSpell = selectedToken?.kind === SPELL_EFFECT_KIND ? spellEffectByArt(selectedToken.artAsset) : null;
   const openAttackTarget = useCallback((targetId: string, anchor: { x: number; y: number }) => {
     if (!state || !participant) return false;
-    const attacker = state.tokens.find((token) => token.id === (armedAttackAttackerId ?? effectiveSelectedTokenId)) ??
-      (participant.role === "player" ? playerCharacter : null);
+    const selectedAttacker = state.tokens.find((token) => token.id === (armedAttackAttackerId ?? effectiveSelectedTokenId));
+    const attacker = selectedAttacker?.controlledByViewer && selectedAttacker.kind !== SPELL_EFFECT_KIND
+      ? selectedAttacker : participant.role === "player" ? playerCharacter : null;
     const target = state.tokens.find((token) => token.id === targetId);
     if (!attacker?.controlledByViewer || attacker.kind === SPELL_EFFECT_KIND || !target || target.kind === SPELL_EFFECT_KIND || attacker.id === target.id) return false;
     setCombatChooser((current) => ({ opening: (current?.opening ?? 0) + 1, attackerId: attacker.id, targetId: target.id, anchor }));
@@ -688,7 +689,7 @@ export default function BattleMapPrototype() {
 
   const deleteToken = async (token: SharedToken) => {
     if (!participant || !state || isTokenPendingCreation(token.id)) return;
-    if (participant.role !== "dm" && (token.kind !== SPELL_EFFECT_KIND || !token.controlledByViewer)) return;
+    if (participant.role !== "dm" && ((token.kind !== SPELL_EFFECT_KIND && token.kind !== "summon") || !token.controlledByViewer)) return;
     setSelectedTokenId((current) => current === token.id ? null : current);
     await removeTokenOptimistically(token, token.kind === SPELL_EFFECT_KIND ? `${token.name} dismissed.` : "Token removed.");
   };
@@ -757,6 +758,7 @@ export default function BattleMapPrototype() {
     onPlaceSpellEffect: placeSpellEffect,
     onMoveToken: publishMove,
     onRotateSpellCone: tokenControls.rotateSpellCone,
+    onResizeSpellCone: tokenControls.resizeSpellCone,
     onAddAnnotation: addAnnotation,
     onRemoveAnnotation: (annotation) => void runOptimisticCommand(
       "remove-annotation",
